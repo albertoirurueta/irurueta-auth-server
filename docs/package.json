@@ -1,0 +1,19 @@
+{
+  "name": "irurueta-auth-server-docs",
+  "version": "1.0.0",
+  "description": "Antora documentation of irurueta-auth-server",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "private": true,
+  "devDependencies": {
+    "antora": "3.2.1"
+  },
+  "dependencies": {
+    "@antora/lunr-extension": "^1.0.0-alpha.13",
+    "@djencks/asciidoctor-mathjax": "^0.0.9",
+    "@sntke/antora-mermaid-extension": "^0.0.13"
+  }
+}

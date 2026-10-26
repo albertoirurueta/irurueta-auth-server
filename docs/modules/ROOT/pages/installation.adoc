@@ -1,0 +1,66 @@
+= Installation
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+Irurueta Auth Server is an example project, so it is not published as a package. Build and run it from source.
+
+== Prerequisites
+
+* *JDK 21* or newer. The build enforces Java 21 as the minimum.
+* *Docker*, for the integration tests (Testcontainers) and for the local services the applications will use.
+* Maven is optional: the repository ships the Maven wrapper (`./mvnw`).
+
+== Build and test
+
+[source,bash]
+----
+git clone https://github.com/albertoirurueta/irurueta-auth-server.git
+cd irurueta-auth-server
+./mvnw verify
+----
+
+`verify` compiles every module, runs the unit tests (`*Test`, Surefire) and the integration tests (`*IT`,
+Failsafe), and writes the JaCoCo coverage reports. The current version is `1.0.0-SNAPSHOT`.
+
+== Run the applications
+
+Start each application in its own terminal, `auth-server` first:
+
+[source,bash]
+----
+./mvnw -pl auth-server spring-boot:run
+./mvnw -pl resource-server spring-boot:run
+./mvnw -pl bff spring-boot:run
+./mvnw -pl service-client spring-boot:run
+----
+
+[cols="1,2",options="header"]
+|===
+|Application
+|Address
+
+|`auth-server`
+|http://localhost:9000
+
+|`bff`
+|http://localhost:8080
+
+|`resource-server`
+|http://localhost:8081
+
+|`service-client`
+|No HTTP port: it runs, calls the API and exits.
+|===
+
+== Build the documentation
+
+Building this documentation site requires Node.js 24 or newer:
+
+[source,bash]
+----
+cd docs
+npm ci
+npx antora antora-playbook.yml
+----
+
+The site is written to `docs/build/site`.

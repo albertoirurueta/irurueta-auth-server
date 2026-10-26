@@ -22,3 +22,25 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.properties
+
+# IDEs and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Antora documentation build (docs/)
+docs/build/
+docs/node_modules/
+node_modules/
+
+# local environment overrides and secrets
+.env
+*.local.yml
+
+# the Antora UI bundle is committed so the docs build works offline
+!docs/ui-bundle.zip

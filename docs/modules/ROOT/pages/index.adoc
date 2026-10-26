@@ -1,0 +1,71 @@
+= Irurueta Auth Server
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+Irurueta Auth Server is an *example project*: an OAuth 2.1 / OpenID Connect authorization server built from scratch
+with Spring Boot 4.1 and Spring Security 7.1 (which now contains Spring Authorization Server), together with the
+applications that use it. It exists to back a step-by-step guide in the
+https://www.irurueta.com[Irurueta Docs] site (*Guides & References → Backend Development → SpringBoot Reference*),
+so every code listing in that guide comes from code in this repository that compiles and passes its tests.
+
+It is a teaching example, not a product. It is never deployed: CI only builds it and runs its tests.
+
+== What the example covers
+
+When complete, the example shows how to:
+
+* sign a browser single-page application in through a *Backend-for-Frontend (BFF)*, so tokens never reach JavaScript
+* authenticate users with passwords stored securely, *passkeys (WebAuthn)*, *e-mail and SMS one-time codes*,
+  *TOTP authenticator apps* with recovery codes, and *social login* (Google, Microsoft Entra ID, Apple, GitHub)
+* combine those methods into *multi-factor authentication* with step-up, and report the result to clients in the
+  `amr`, `acr` and `auth_time` claims
+* issue signed JWS / JWT *access, refresh and ID tokens* with persisted, rotated signing keys
+* call APIs from server to server with the *client credentials* grant, `private_key_jwt` and mTLS client
+  authentication, and token exchange
+* explain the legacy *implicit* flow and migrate away from it
+
+The work is tracked in the repository's issues and the *1.0.0* milestone. Until it is complete, the modules are
+skeletons that only start a Spring Boot application.
+
+== Modules
+
+[cols="1,1,3",options="header"]
+|===
+|Module
+|Port
+|Role
+
+|`auth-server`
+|9000
+|The authorization server: Spring Authorization Server protocol endpoints, plus the login, consent, MFA and account
+pages.
+
+|`bff`
+|8080
+|The Backend-for-Frontend: an `oauth2Login()` client that keeps the user's tokens in a server-side session, serves
+the SPA and relays its API calls.
+
+|`resource-server`
+|8081
+|A JWT-protected API that validates the tokens issued by `auth-server`.
+
+|`service-client`
+|—
+|A non-interactive client that obtains tokens with the client credentials grant and calls `resource-server`.
+|===
+
+[mermaid]
+....
+flowchart LR
+  Browser["Browser SPA"] -- "session cookie" --> BFF["bff"]
+  BFF -- "authorization code + PKCE" --> AS["auth-server"]
+  BFF -- "access token" --> RS["resource-server"]
+  SVC["service-client"] -- "client credentials" --> AS
+  SVC -- "access token" --> RS
+  RS -- "JWKS" --> AS
+....
+
+== Next steps
+
+* xref:installation.adoc[] explains how to build the example and run each application from source.
+* xref:reference.adoc[] lists the reports the build generates.

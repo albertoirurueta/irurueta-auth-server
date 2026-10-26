@@ -1,0 +1,36 @@
+= Reference
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+These reports are generated during the build. They are not published anywhere: run the build locally, or download
+the `test-reports` artifact of a *Build and test* workflow run on GitHub Actions.
+
+== Generated Reports
+
+[cols="1,3",options="header"]
+|===
+|Report
+|Description
+
+|`<module>/target/surefire-reports/`
+|Unit test results (`*Test`), written by `./mvnw verify`.
+
+|`<module>/target/failsafe-reports/`
+|Integration test results (`*IT`), written by `./mvnw verify`.
+
+|`<module>/target/site/jacoco/index.html`
+|JaCoCo coverage of the unit tests, written by `./mvnw verify`.
+
+|`<module>/target/site/jacoco-it/index.html`
+|JaCoCo coverage of the integration tests, written by `./mvnw verify` once a module has integration tests.
+
+|`<module>/target/site/index.html`
+|Maven site with the Checkstyle, PMD, SpotBugs, JXR, Surefire and JaCoCo reports, written by `./mvnw verify site`.
+The quality reports never fail the build.
+|===
+
+== Links
+
+* https://github.com/albertoirurueta/irurueta-auth-server[Source code on GitHub]
+* https://github.com/albertoirurueta/irurueta-auth-server/actions[GitHub Actions runs]
+* https://www.irurueta.com[Irurueta Docs], where the step-by-step guide built on this example is published

@@ -1,0 +1,5 @@
+name: irurueta-auth-server
+version: 1.0.0
+title: Irurueta Auth Server
+nav:
+  - modules/ROOT/nav.adoc
