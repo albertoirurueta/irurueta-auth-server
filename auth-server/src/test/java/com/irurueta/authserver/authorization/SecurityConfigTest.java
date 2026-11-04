@@ -93,7 +93,11 @@ class SecurityConfigTest {
         @Bean
         @Order(1)
         LoginChainCustomizer firstCustomizer() {
-            return http -> CALLS.add("first");
+            return http -> {
+                CALLS.add("first");
+                // a login method permitting its own endpoints, as passkeys or one-time tokens will
+                http.authorizeHttpRequests(authorize -> authorize.requestMatchers("/test-method/**").permitAll());
+            };
         }
 
         @Bean
@@ -169,6 +173,13 @@ class SecurityConfigTest {
     void formLogin_withInvalidCredentials_redirectsToError() throws Exception {
         mockMvc.perform(post("/login").param("username", "u").param("password", "x").with(csrf()))
                 .andExpect(redirectedUrl("/login?error"));
+    }
+
+    @Test
+    void customizer_canPermitItsOwnEndpoints() throws Exception {
+        // no controller handles the path: reaching the dispatcher (404) proves the request was not sent to login
+        mockMvc.perform(get("/test-method/start"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

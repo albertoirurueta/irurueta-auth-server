@@ -69,14 +69,14 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain loginSecurityFilterChain(
             final HttpSecurity http, final ObjectProvider<LoginChainCustomizer> customizers) throws Exception {
-        http
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(LOGIN_PATH, "/error", "/actuator/health/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated())
-                .formLogin(form -> form.loginPage(LOGIN_PATH).permitAll());
+        http.formLogin(form -> form.loginPage(LOGIN_PATH).permitAll());
+        // customizers run before the catch-all rule below, so they can still permit their own endpoints
         for (final var customizer : customizers.orderedStream().toList()) {
             customizer.customize(http);
         }
+        http.authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(LOGIN_PATH, "/error", "/actuator/health/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated());
         return http.build();
     }
     // end::security-chains[]
