@@ -41,3 +41,51 @@ module, all versions declared in the root `pom.xml`:
 - Code shown in the docs guide is marked with AsciiDoc tag comments (`// tag::<feature>-<what>[]` …
   `// end::<feature>-<what>[]`). Never rename or remove a tag without updating the docs repository.
 - Never commit secrets, keys or certificates: generate dev keys at first start and test keys inside the tests.
+
+## Package layout of `auth-server`
+
+Everything lives under `com.irurueta.authserver.authorization`. The root package holds only `AuthServerApplication`,
+`SecurityConfig` (protocol chain `@Order(1)` and login/UI chain `@Order(2)`), `OpenApiConfig`, the dev-only
+`DevDataInitializer` and the temporary pieces. One sub-package per feature, each with a `package-info.java` saying
+which issue fills it: `password`, `keys`, `tokens`, `clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `social`,
+`x509`, `implicit`, `account`, `admin`.
+
+## Extension points: adding a login method without editing shared files
+
+- `login.LoginChainCustomizer` (a `Customizer<HttpSecurity>`): every bean of this type is applied, in `@Order`, to the
+  login/UI chain by `SecurityConfig`. A new method declares one in its own `@Configuration` to enable its
+  `HttpSecurity` features (for example `http.oneTimeTokenLogin(...)`), so `SecurityConfig` is never edited.
+- `login.LoginMethodFragment`: every bean of this type contributes a Thymeleaf fragment (`templateName()`,
+  `fragmentName()`, `order()`) that `LoginController` passes to `templates/login.html`, which renders them below the
+  password form.
+
+A later issue therefore adds a login method by creating its own package (for example `ott`) with a `@Configuration`,
+its controller/services, a template under `templates/<method>.html`, a `LoginChainCustomizer` bean and a
+`LoginMethodFragment` bean, plus its own Flyway migration in its range. No existing file needs to change.
+
+## Tag-comment convention
+
+Code included by the docs guide is wrapped in `tag::<feature>-<what>[]` / `end::<feature>-<what>[]` markers
+(lowercase kebab-case, feature first, for example `security-chains`, `login-form`, `sas-schema`, `bff-user`). The
+comment syntax follows the file type: `// tag::x[]` in Java, `-- tag::x[]` in SQL, `# tag::x[]` in YAML/properties and
+`<!-- tag::x[] -->` in HTML/XML. Antora includes them with
+`include::irurueta-auth-server::example$<module>/src/...[tag=x]`; the Antora Collector copies each module's `src/**`
+(plus the root `pom.xml` and `compose.yaml`) into the `example$` family, so paths start with the module name.
+
+## Flyway ranges
+
+Migrations live in `auth-server/src/main/resources/db/migration` (`classpath:db/migration`). The skeleton uses
+`V100`-`V199` (`V100` Spring Authorization Server schema, `V101` users). Each later issue takes its own hundred-block
+so parallel branches never collide: issue #2 `V200`-`V299`, #3 `V300`-`V399`, and so on (issue number x 100).
+
+## Testing
+
+- `test-support` is a small module (compile scope on the consumers' test classpath, `<scope>test</scope>` in their
+  poms) holding `PostgresTestConfiguration` (a `postgres:18` Testcontainers container exposed through
+  `@ServiceConnection`) and the `@PostgresIT` meta-annotation: `@SpringBootTest` wired to that container, with a
+  `webEnvironment()` attribute for `RANDOM_PORT` tests. Name integration tests `*IT` (Failsafe, `verify` phase).
+- `e2e-tests` drives the packaged `auth-server` and `bff` jars through headless Chromium with Playwright for Java.
+  Playwright was chosen over Selenium because it manages its own browser binaries, auto-waits for elements (less
+  flaky) and needs no driver setup. It depends on `test-support` only and must stay last in the reactor.
+- `openapi/auth-server.json` is the committed OpenAPI contract; `OpenApiDriftIT` fails when `/v3/api-docs` differs.
+  Regenerate with `./mvnw -pl auth-server verify -Dopenapi.update=true` and commit the result.

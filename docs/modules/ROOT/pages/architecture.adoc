@@ -1,0 +1,55 @@
+= Architecture
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+== Security filter chains
+
+`auth-server` defines two `SecurityFilterChain` beans in `SecurityConfig`. The first (order 1) applies only to the
+authorization server protocol endpoints; the second (order 2) secures everything else, including the login page.
+
+[source,java]
+----
+include::example$auth-server/src/main/java/com/irurueta/authserver/authorization/SecurityConfig.java[tag=security-chains]
+----
+
+== Extension points for authentication methods
+
+Each authentication method lives in its own package with its own `@Configuration`. Two extension points avoid editing
+shared files:
+
+* `LoginChainCustomizer` (package `login`) is a functional interface over `HttpSecurity`. Every bean of this type is
+  applied to the login chain in `@Order` order.
+* `LoginMethodFragment` contributes a fragment to the login page, which is `templates/login.html`.
+
+[source,html]
+----
+include::example$auth-server/src/main/resources/templates/login.html[tag=login-form]
+----
+
+== Users and clients
+
+Users are loaded from PostgreSQL by `JdbcUserDetailsService`, and registered clients, authorizations and consents by
+the JDBC services of Spring Authorization Server.
+
+[source,java]
+----
+include::example$auth-server/src/main/java/com/irurueta/authserver/authorization/clients/JdbcAuthorizationServerConfiguration.java[tag=jdbc-services]
+----
+
+The signing JWK is temporarily generated in memory at each start; persisted, rotated keys come later.
+
+== BFF and resource server
+
+The `bff` is an `oauth2Login()` client using the authorization code grant with PKCE, and exposes `GET /bff/user`.
+
+[source,java]
+----
+include::example$bff/src/main/java/com/irurueta/authserver/bff/security/SecurityConfig.java[tag=bff-security]
+----
+
+The `resource-server` validates JWT access tokens against the issuer and exposes `GET /orders`.
+
+[source,java]
+----
+include::example$resource-server/src/main/java/com/irurueta/authserver/resourceserver/security/SecurityConfig.java[tag=resource-server-security]
+----

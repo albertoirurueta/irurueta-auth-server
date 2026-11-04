@@ -24,6 +24,10 @@ the `test-reports` artifact of a *Build and test* workflow run on GitHub Actions
 |`<module>/target/site/jacoco-it/index.html`
 |JaCoCo coverage of the integration tests, written by `./mvnw verify` once a module has integration tests.
 
+|`openapi/auth-server.json`
+|The committed OpenAPI document of `auth-server` (springdoc). `OpenApiDriftIT` fails when the running application no
+longer matches it.
+
 |`<module>/target/site/index.html`
 |Maven site with the Checkstyle, PMD, SpotBugs, JXR, Surefire and JaCoCo reports, written by `./mvnw verify site`.
 The quality reports never fail the build.

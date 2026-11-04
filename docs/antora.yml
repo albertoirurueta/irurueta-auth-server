@@ -3,3 +3,32 @@ version: 1.0.0
 title: Irurueta Auth Server
 nav:
   - modules/ROOT/nav.adoc
+ext:
+  collector:
+    # dir is relative to the repository root (the worktree), not to docs/. Only src/** is scanned, so target/ and
+    # node_modules/ never reach the site.
+    # Copies each module's sources into the example$ family so the guide can include tagged regions, for example
+    # include::irurueta-auth-server::example$auth-server/src/main/java/...[tag=security-chains]
+    - scan:
+        - dir: auth-server
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server
+        - dir: bff
+          files: 'src/**'
+          into: modules/ROOT/examples/bff
+        - dir: resource-server
+          files: 'src/**'
+          into: modules/ROOT/examples/resource-server
+        - dir: service-client
+          files: 'src/**'
+          into: modules/ROOT/examples/service-client
+        - dir: test-support
+          files: 'src/**'
+          into: modules/ROOT/examples/test-support
+        - dir: e2e-tests
+          files: 'src/**'
+          into: modules/ROOT/examples/e2e-tests
+        # '~+' is the repository root; a plain '.' would mean the docs/ start path
+        - dir: '~+'
+          files: '{pom.xml,compose.yaml}'
+          into: modules/ROOT/examples

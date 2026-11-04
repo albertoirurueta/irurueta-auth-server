@@ -22,13 +22,26 @@ cd irurueta-auth-server
 `verify` compiles every module, runs the unit tests (`*Test`, Surefire) and the integration tests (`*IT`,
 Failsafe), and writes the JaCoCo coverage reports. The current version is `1.0.0-SNAPSHOT`.
 
+The root `compose.yaml` starts PostgreSQL 18 and Mailpit for local development. The integration tests do not use it:
+they start their own PostgreSQL container through the `test-support` module (`@PostgresIT`). The `e2e-tests` module
+is built last and runs a Playwright sign-in smoke test (`SignInSmokeIT`) against the other modules; Playwright
+downloads its Chromium build on first use.
+
 == Run the applications
+
+Run `auth-server` with the `dev` profile: it starts the services of `compose.yaml` through `spring-boot-docker-compose`
+(PostgreSQL, and Mailpit on SMTP port 1025 and web UI port 8025), applies the Flyway migrations and seeds a `demo` user
+and a confidential `bff` client with generated secrets, which it writes to its log. Export the client secret as
+`BFF_CLIENT_SECRET` before starting the `bff`.
+
+WARNING: The `dev` profile data and the compose credentials are throwaway development values. The signing key is
+temporarily generated in memory at each start.
 
 Start each application in its own terminal, `auth-server` first:
 
 [source,bash]
 ----
-./mvnw -pl auth-server spring-boot:run
+./mvnw -pl auth-server spring-boot:run -Dspring-boot.run.profiles=dev
 ./mvnw -pl resource-server spring-boot:run
 ./mvnw -pl bff spring-boot:run
 ./mvnw -pl service-client spring-boot:run

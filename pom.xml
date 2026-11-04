@@ -64,6 +64,9 @@
     <module>bff</module>
     <module>resource-server</module>
     <module>service-client</module>
+    <module>test-support</module>
+    <!-- keep e2e-tests last: it exercises the other modules -->
+    <module>e2e-tests</module>
   </modules>
 
   <properties>
@@ -81,7 +84,30 @@
     <maven-project-info-reports-plugin.version>3.9.0</maven-project-info-reports-plugin.version>
     <maven-surefire-report-plugin.version>3.6.1</maven-surefire-report-plugin.version>
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
+
+    <!--
+      third-party artifacts not managed by the Spring Boot BOM. Flyway (flyway-core, flyway-database-postgresql),
+      the PostgreSQL driver and Testcontainers (through the imported testcontainers-bom) are managed by
+      spring-boot-dependencies 4.1.x, so they are deliberately not pinned here.
+    -->
+    <springdoc-openapi.version>3.1.1</springdoc-openapi.version>
+    <playwright.version>1.63.0</playwright.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc-openapi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.playwright</groupId>
+        <artifactId>playwright</artifactId>
+        <version>${playwright.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <pluginManagement>

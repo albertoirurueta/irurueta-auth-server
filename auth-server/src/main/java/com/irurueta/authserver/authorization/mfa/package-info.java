@@ -14,16 +14,7 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.authorization;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
-@SpringBootTest
-class AuthServerApplicationTest {
-
-    @Test
-    void contextLoads() {
-        // fails if the application context cannot start
-    }
-}
+/**
+ * Multi-factor authentication orchestration. Filled by the MFA issue.
+ */
+package com.irurueta.authserver.authorization.mfa;

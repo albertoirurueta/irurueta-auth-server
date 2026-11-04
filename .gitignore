@@ -44,3 +44,4 @@ node_modules/
 
 # the Antora UI bundle is committed so the docs build works offline
 !docs/ui-bundle.zip
+.integration-test.lock/
