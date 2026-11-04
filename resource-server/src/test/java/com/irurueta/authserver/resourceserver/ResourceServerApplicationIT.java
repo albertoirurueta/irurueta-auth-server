@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.resourceserver;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.irurueta.authserver.testsupport.PostgresIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,6 +37,14 @@ class ResourceServerApplicationIT {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private OAuth2ResourceServerProperties resourceServerProperties;
+
+    @Test
+    void jwtAudiences_areRestrictedToTheBffClient() {
+        assertThat(resourceServerProperties.getJwt().getAudiences()).containsExactly("bff");
+    }
 
     @Test
     void actuatorHealth_isUpAndPublic() throws Exception {

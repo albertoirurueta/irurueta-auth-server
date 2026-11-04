@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.password;
 
 import java.util.List;
+import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -38,12 +39,12 @@ public class JdbcUserDetailsService implements UserDetailsService {
             WHERE u.username = ?
             """;
 
-    /** Query returning the authorities of a user by username. */
+    /** Query returning the authorities of a user by user id. */
     private static final String FIND_AUTHORITIES = """
-            SELECT a.authority
-            FROM user_authorities a JOIN users u ON u.id = a.user_id
-            WHERE u.username = ?
-            ORDER BY a.authority
+            SELECT authority
+            FROM user_authorities
+            WHERE user_id = ?
+            ORDER BY authority
             """;
 
     /** JDBC client used to run the queries. */
@@ -71,11 +72,11 @@ public class JdbcUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(final String username) throws UsernameNotFoundException {
         final var row = jdbcClient.sql(FIND_USER).param(username)
-                .query((rs, rowNum) -> new UserRow(rs.getString("username"), rs.getString("encoded_password"),
-                        rs.getBoolean("enabled")))
+                .query((rs, rowNum) -> new UserRow(rs.getObject("id", UUID.class), rs.getString("username"),
+                        rs.getString("encoded_password"), rs.getBoolean("enabled")))
                 .optional()
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        final List<String> authorities = jdbcClient.sql(FIND_AUTHORITIES).param(username)
+        final List<String> authorities = jdbcClient.sql(FIND_AUTHORITIES).param(row.id())
                 .query(String.class).list();
         return User.withUsername(row.username())
                 .password(row.password())
@@ -85,6 +86,6 @@ public class JdbcUserDetailsService implements UserDetailsService {
     }
     // end::password-load-user[]
 
-    private record UserRow(String username, String password, boolean enabled) {
+    private record UserRow(UUID id, String username, String password, boolean enabled) {
     }
 }

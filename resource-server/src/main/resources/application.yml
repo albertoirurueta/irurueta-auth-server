@@ -21,6 +21,8 @@ spring:
         jwt:
           # The JWT decoder resolves the issuer metadata lazily, on the first request.
           issuer-uri: ${AUTH_ISSUER:http://localhost:9000}
+          # Only tokens issued to these clients (the "aud" claim) are accepted; #2 finalizes the audience model.
+          audiences: ${RESOURCE_SERVER_AUDIENCES:bff}
 
 server:
   port: 8081

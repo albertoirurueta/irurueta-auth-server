@@ -37,7 +37,10 @@ and a confidential `bff` client with generated secrets, which it writes to its l
 WARNING: The `dev` profile data and the compose credentials are throwaway development values. The signing key is
 temporarily generated in memory at each start.
 
-Start each application in its own terminal, `auth-server` first:
+Start each application in its own terminal, `auth-server` first. The `dev` profile finds `compose.yaml` at
+`../compose.yaml`, relative to the working directory, which `spring-boot:run` sets to the module directory. When starting
+the jar or an IDE run configuration from elsewhere, point to the file with
+`SPRING_DOCKER_COMPOSE_FILE=<repository>/compose.yaml`.
 
 [source,bash]
 ----

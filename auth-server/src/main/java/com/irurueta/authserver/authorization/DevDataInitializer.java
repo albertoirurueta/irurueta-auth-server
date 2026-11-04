@@ -115,7 +115,8 @@ public class DevDataInitializer implements ApplicationRunner {
                 .params(id, "ROLE_USER").update();
         jdbc.sql("INSERT INTO user_passwords (user_id, encoded_password) VALUES (?, ?)")
                 .params(id, encoder.encode(password)).update();
-        LOG.info("Created dev demo user '{}' with generated password: {}", DEMO_USERNAME, password);
+        LOG.warn("DEV ONLY, never use outside local development: created demo user '{}' with generated password: {}",
+                DEMO_USERNAME, password);
     }
 
     private void createBffClient() {
@@ -137,7 +138,8 @@ public class DevDataInitializer implements ApplicationRunner {
                 .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(ACCESS_TOKEN_TTL).build())
                 .build();
         clients.save(client);
-        LOG.info("Created dev client '{}' with generated secret: {}", BFF_CLIENT_ID, secret);
+        LOG.warn("DEV ONLY, never use outside local development: created client '{}' with generated secret: {}",
+                BFF_CLIENT_ID, secret);
     }
 
     private String generateSecret() {

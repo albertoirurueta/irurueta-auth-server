@@ -38,7 +38,8 @@
   </form>
   <!-- end::login-form[] -->
   <section th:each="fragment : ${fragments}" class="login-method">
-    <div th:replace="~{${fragment.templateName()} :: ${fragment.fragmentName()}}"></div>
+    <!-- LoginMethodFragment.reference() is the single source of the "template :: fragment" expression -->
+    <div th:replace="~{__${fragment.reference()}__}"></div>
   </section>
 </main>
 </body>

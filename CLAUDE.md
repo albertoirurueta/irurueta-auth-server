@@ -88,4 +88,8 @@ so parallel branches never collide: issue #2 `V200`-`V299`, #3 `V300`-`V399`, an
   Playwright was chosen over Selenium because it manages its own browser binaries, auto-waits for elements (less
   flaky) and needs no driver setup. It depends on `test-support` only and must stay last in the reactor.
 - `openapi/auth-server.json` is the committed OpenAPI contract; `OpenApiDriftIT` fails when `/v3/api-docs` differs.
-  Regenerate with `./mvnw -pl auth-server verify -Dopenapi.update=true` and commit the result.
+  Regenerate with `./mvnw -pl auth-server verify -Dopenapi.update=true` and commit the result. springdoc only
+  documents the `api` group (`/api/**`, see `OpenApiConfig`): put every new REST endpoint of `auth-server` under
+  `/api/**`, or widen the group, otherwise the drift test does not cover it.
+- The `dev` profile of `auth-server` resolves `../compose.yaml` against the working directory (`spring-boot:run` uses
+  the module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
