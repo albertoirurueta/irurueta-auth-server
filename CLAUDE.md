@@ -9,7 +9,8 @@ An **example** OAuth 2.1 / OpenID Connect authorization server built from scratc
 Security 7.1 (Spring Authorization Server), plus the applications that use it. It backs the step-by-step guide
 *Building an Authorization Server from Scratch* in the docs site (repository `albertoirurueta/docs`, under
 `modules/ROOT/pages/backend/springboot/authorization-server-from-scratch/`), which includes code from this repository
-with tagged regions. It is never deployed: CI only builds, analyses and tests it.
+with tagged regions. The applications are never deployed: CI only builds, analyses and tests them, and publishes the
+documentation (Antora site plus Maven site reports) to GitHub Pages.
 
 ## Commands
 
@@ -21,7 +22,7 @@ Testcontainers.
 ./mvnw test                            # fast unit-test run only, no Spring context starts
 ./mvnw -pl auth-server/api/web -am test -Dtest=LoginControllerTest   # one test class in one module
 ./mvnw -pl auth-server/boot -am spring-boot:run -Dspring-boot.run.profiles=dev   # run one application
-./mvnw verify site                     # adds the browsable Checkstyle/PMD/SpotBugs/JXR/Javadoc reports
+./mvnw install && ./mvnw site site:stage -DskipTests   # browsable reports, staged as published under /mvn-site
 cd docs && npm ci && npx antora antora-playbook.yml            # build this repository's Antora docs
 ```
 
@@ -296,3 +297,9 @@ suppression, because a private constructor breaks Spring's configuration proxyin
 CI (`.github/workflows/build.yml`) runs `verify` on every push and pull request, then the SonarCloud analysis
 (organization `albertoirurueta`, project `albertoirurueta_irurueta-auth-server`) when the `SONAR_TOKEN` secret is set.
 The workflow never deploys anything.
+
+`.github/workflows/docs.yml` (*Documentation*, on every push to `main` and on demand) publishes the documentation to
+the `gh-pages` branch, served at `https://albertoirurueta.github.io/irurueta-auth-server/`: the Antora site at the
+root, the staged Maven site (`target/staging`: aggregated Javadoc, JaCoCo, Surefire/Failsafe, Checkstyle, PMD,
+SpotBugs, JXR) under `/mvn-site/` and the committed OpenAPI documents under `/openapi/`. The Antora *Reference* page
+links those reports, so a new report or module that should be reachable from the docs needs a row there.

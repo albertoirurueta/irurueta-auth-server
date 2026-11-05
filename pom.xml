@@ -59,6 +59,16 @@
     <url>https://github.com/albertoirurueta/irurueta-auth-server/tree/main</url>
   </scm>
 
+  <!-- Only the Maven site is published (by the Documentation workflow, to GitHub Pages under /mvn-site); the
+       applications themselves are never deployed. site:stage needs this URL to lay out the multi-module site with
+       working links between modules; it never uploads anything itself. -->
+  <distributionManagement>
+    <site>
+      <id>github-pages</id>
+      <url>https://albertoirurueta.github.io/irurueta-auth-server/mvn-site/</url>
+    </site>
+  </distributionManagement>
+
   <modules>
     <module>test-support</module>
     <module>auth-server</module>
@@ -472,6 +482,24 @@
           <detectJavaApiLink>true</detectJavaApiLink>
           <doclint>none</doclint>
         </configuration>
+        <reportSets>
+          <!-- each module's own API documentation, from the classes the build already compiled -->
+          <reportSet>
+            <id>module</id>
+            <reports>
+              <report>javadoc-no-fork</report>
+            </reports>
+          </reportSet>
+          <!-- the root site gets one API reference spanning every module (apidocs/); run after install, so the
+               modules resolve from the local repository -->
+          <reportSet>
+            <id>aggregate</id>
+            <inherited>false</inherited>
+            <reports>
+              <report>aggregate-no-fork</report>
+            </reports>
+          </reportSet>
+        </reportSets>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -479,8 +507,9 @@
         <version>${maven-surefire-report-plugin.version}</version>
         <reportSets>
           <reportSet>
+            <!-- *-only: render the results of the verify run instead of forking the test phase again -->
             <reports>
-              <report>report</report>
+              <report>report-only</report>
               <report>failsafe-report-only</report>
             </reports>
           </reportSet>
@@ -494,6 +523,7 @@
           <reportSet>
             <reports>
               <report>report</report>
+              <report>report-integration</report>
             </reports>
           </reportSet>
         </reportSets>
