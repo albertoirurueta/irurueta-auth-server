@@ -1,0 +1,74 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Contract of the JSON API the BFF offers its browser front end (version 1). This file is the source of truth: the
+# Spring interface and DTO implemented by bff/api/web are generated from it by openapi-generator, and
+# OpenApiDriftIT fails when the running application serves an operation or a status code this file does not
+# declare. The OAuth 2.0 login endpoints (/oauth2/**, /login/**) belong to Spring Security and are not part of it.
+openapi: 3.1.0
+info:
+  title: Irurueta BFF API
+  description: >-
+    JSON endpoints of the example backend for frontend. The browser is authenticated by the BFF session cookie set
+    after the OpenID Connect login against the authorization server; it never holds a token.
+  version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.txt
+servers:
+  - url: http://localhost:8080
+    description: Local development instance.
+tags:
+  - name: User
+    description: The user signed in to the BFF session
+paths:
+  # tag::bff-user-api[]
+  /bff/user:
+    get:
+      tags: [ User ]
+      operationId: getSessionUser
+      summary: Returns the signed-in user
+      description: Answers the subject of the user signed in to the BFF session.
+      security:
+        - session: [ ]
+      responses:
+        '200':
+          description: The signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionUserResponse'
+        '401':
+          description: There is no signed-in user
+  # end::bff-user-api[]
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: >-
+        Session cookie of the BFF, set after the OpenID Connect login against the authorization server. Requests
+        without a signed-in session are answered 401 instead of being redirected to the login page.
+  schemas:
+    SessionUserResponse:
+      type: object
+      description: The user signed in to the BFF session
+      required: [ subject ]
+      properties:
+        subject:
+          type: string
+          description: Identifier (OpenID Connect subject) of the signed-in user.
+          examples:
+            - demo-user

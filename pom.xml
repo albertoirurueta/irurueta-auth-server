@@ -97,12 +97,15 @@
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-javadoc-plugin.version>3.11.3</maven-javadoc-plugin.version>
     <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
+    <openapi-generator-maven-plugin.version>7.27.0</openapi-generator-maven-plugin.version>
 
     <!-- analysis and coverage settings -->
     <checkstyle.config.location>${maven.multiModuleProjectDirectory}/checkstyle.xml</checkstyle.config.location>
     <sonar.organization>albertoirurueta</sonar.organization>
     <sonar.projectKey>albertoirurueta_irurueta-auth-server</sonar.projectKey>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    <!-- code generated from the contracts under apis/ is a compile source root, which the scanner would pick up -->
+    <sonar.exclusions>**/target/generated-sources/**</sonar.exclusions>
     <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
     <!--
@@ -276,6 +279,63 @@
           <artifactId>sonar-maven-plugin</artifactId>
           <version>${sonar-maven-plugin.version}</version>
         </plugin>
+        <!--
+          Contract-first REST APIs: the contracts live under apis/ (see apis/README.md) and each api/web module that
+          implements one declares the executions (inputSpec, packages). The options shared by every server
+          interface are set once here and merged into those executions. The generated code lands in
+          target/generated-sources/openapi, is never committed and is kept out of Checkstyle, PMD/CPD, SpotBugs and
+          JaCoCo (see their configuration below and spotbugs-exclude.xml).
+        -->
+        <plugin>
+          <groupId>org.openapitools</groupId>
+          <artifactId>openapi-generator-maven-plugin</artifactId>
+          <version>${openapi-generator-maven-plugin.version}</version>
+          <configuration>
+            <generatorName>spring</generatorName>
+            <generateApiTests>false</generateApiTests>
+            <generateModelTests>false</generateModelTests>
+            <generateApiDocumentation>false</generateApiDocumentation>
+            <generateModelDocumentation>false</generateModelDocumentation>
+            <generateSupportingFiles>false</generateSupportingFiles>
+            <!-- ISO-8601 durations (format: duration) and instants (format: date-time) keep the java.time types
+                 the controllers used before the contracts existed, so the JSON on the wire is unchanged -->
+            <typeMappings>
+              <typeMapping>string+duration=Duration</typeMapping>
+              <typeMapping>DateTime=Instant</typeMapping>
+            </typeMappings>
+            <importMappings>
+              <importMapping>Duration=java.time.Duration</importMapping>
+              <importMapping>Instant=java.time.Instant</importMapping>
+            </importMappings>
+            <configOptions>
+              <!-- the generator owns the interfaces and DTOs; the hand-written controllers implement them, so
+                   regenerating can never overwrite real logic -->
+              <interfaceOnly>true</interfaceOnly>
+              <!-- no default method bodies: a controller that misses an operation does not compile -->
+              <skipDefaultInterface>true</skipDefaultInterface>
+              <useSpringBoot4>true</useSpringBoot4>
+              <useJackson3>true</useJackson3>
+              <useJakartaEe>true</useJakartaEe>
+              <useTags>true</useTags>
+              <useRecords>true</useRecords>
+              <useBeanValidation>true</useBeanValidation>
+              <performBeanValidation>true</performBeanValidation>
+              <openApiNullable>false</openApiNullable>
+              <!-- a required array that is missing stays null, so @NotNull rejects it -->
+              <containerDefaultToNull>true</containerDefaultToNull>
+              <!-- inclusion and null handling stay with the application's JsonMapper, as before -->
+              <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+              <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+              <!-- the generated interfaces carry the contract's descriptions, so springdoc keeps publishing
+                   /v3/api-docs and the Swagger UI from them, and OpenApiDriftIT compares that document with the
+                   contract -->
+              <documentationProvider>springdoc</documentationProvider>
+              <requestMappingMode>none</requestMappingMode>
+              <reactive>false</reactive>
+              <unhandledException>false</unhandledException>
+            </configOptions>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -366,7 +426,9 @@
       <!--
         Coverage. Each module only writes its own report and execution data (jacoco.exec for unit tests,
         jacoco-it.exec for integration tests); the 80% line / 70% branch gate lives in the `coverage` module, which
-        merges every module's data. *Application classes only start Spring and are excluded.
+        merges every module's data. *Application classes only start Spring and are excluded, and so is the code
+        generated from the contracts under apis/ (packages named *.generated.*): it is tested by its generator, and
+        the controllers implementing it are covered as usual.
       -->
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -374,6 +436,7 @@
         <configuration>
           <excludes>
             <exclude>**/*Application.class</exclude>
+            <exclude>**/generated/**</exclude>
           </excludes>
         </configuration>
         <executions>

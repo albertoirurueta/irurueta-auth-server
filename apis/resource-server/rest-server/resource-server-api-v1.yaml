@@ -1,0 +1,128 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Contract of the protected REST API of the resource server (version 1). This file is the source of truth: the
+# Spring interface and DTO implemented by resource-server/api/web are generated from it by openapi-generator, and
+# OpenApiDriftIT fails when the running application serves an operation or a status code this file does not
+# declare.
+openapi: 3.1.0
+info:
+  title: Irurueta Resource Server API
+  description: Protected REST API of the example resource server.
+  version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.txt
+servers:
+  - url: http://localhost:8081
+    description: Local development instance.
+tags:
+  - name: documents
+    description: Documents of the authenticated user.
+paths:
+  # tag::resource-server-documents-api[]
+  /api/documents:
+    get:
+      tags: [ documents ]
+      operationId: listDocuments
+      summary: Lists documents
+      description: Lists the caller's documents; an administrator sees all. Needs scope documents.read.
+      security:
+        - bearer: [ documents.read ]
+      responses:
+        '200':
+          description: The documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The token lacks the documents.read scope.
+          headers:
+            WWW-Authenticate:
+              $ref: '#/components/headers/WwwAuthenticate'
+  /api/documents/{id}:
+    delete:
+      tags: [ documents ]
+      operationId: deleteDocument
+      summary: Deletes a document
+      description: >-
+        Deletes one of the caller's documents; an administrator may delete any. Needs scope documents.delete.
+        Someone else's document is answered 404, like a missing one.
+      security:
+        - bearer: [ documents.delete ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the document.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The document was deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The token lacks the documents.delete scope.
+          headers:
+            WWW-Authenticate:
+              $ref: '#/components/headers/WwwAuthenticate'
+        '404':
+          description: The document does not exist or belongs to someone else.
+  # end::resource-server-documents-api[]
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Access token issued by the authorization server for this resource server's audience: a JWT, or a reference
+        token with the opaque profile. The scope an operation needs is listed as the role of its security
+        requirement; an administrator (role ADMIN) acts on every document. Failures are answered with an RFC 6750
+        WWW-Authenticate challenge and no body.
+  headers:
+    WwwAuthenticate:
+      description: RFC 6750 bearer challenge, for example Bearer error="insufficient_scope".
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      headers:
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+  schemas:
+    DocumentResponse:
+      type: object
+      description: A document owned by a user.
+      required: [ id, owner, title, content ]
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the document.
+        owner:
+          type: string
+          description: Subject of the user who owns the document.
+        title:
+          type: string
+          description: Short title of the document.
+        content:
+          type: string
+          description: Body of the document.
