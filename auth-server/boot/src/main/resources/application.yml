@@ -25,6 +25,10 @@ spring:
     url: ${AUTHSERVER_DB_URL:jdbc:postgresql://localhost:5432/authserver}
     username: ${AUTHSERVER_DB_USER:authserver}
     password: ${AUTHSERVER_DB_PASSWORD:}
+  mail:
+    # SMTP relay; credentials, when the relay needs them, come from spring.mail.* environment variables only
+    host: ${AUTHSERVER_MAIL_HOST:localhost}
+    port: ${AUTHSERVER_MAIL_PORT:1025}
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -45,3 +49,16 @@ management:
 springdoc:
   api-docs:
     enabled: true
+
+authserver:
+  mail:
+    from: ${AUTHSERVER_MAIL_FROM:no-reply@localhost}
+    base-url: ${AUTHSERVER_ISSUER_URL:http://localhost:9000}
+    locale: en
+  clients:
+    # Secret of the confidential bff client, from the environment only; empty means the client is not seeded.
+    bff-secret: ${AUTHSERVER_BFF_CLIENT_SECRET:}
+  oidc:
+    client-registration:
+      # Dynamic client registration (/connect/register) is off unless explicitly enabled.
+      enabled: false

@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.domain.password;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,6 +38,12 @@ class UserAccountTest {
 
     /** Encoded password used by the tests; not a real credential. */
     private static final String ENCODED_PASSWORD = "{noop}encoded";
+
+    /** E-mail address used by the tests. */
+    private static final String EMAIL = "alice@example.com";
+
+    /** Tenant used by the tests. */
+    private static final String TENANT = "acme";
 
     /** Authority used by the tests. */
     private static final String ROLE_USER = "ROLE_USER";
@@ -182,5 +189,66 @@ class UserAccountTest {
         assertEquals(first.hashCode(), same.hashCode());
         assertNotEquals(first, disabled);
         assertFalse(disabled.enabled());
+    }
+
+    /**
+     * Verifies that the short constructor leaves the e-mail unset and uses the default tenant.
+     */
+    @Test
+    void constructor_whenOptionalFieldsAreOmitted_usesDefaults() {
+        final var account = new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, List.of());
+
+        assertNull(account.email());
+        assertFalse(account.emailVerified());
+        assertEquals(UserAccount.DEFAULT_TENANT, account.tenant());
+    }
+
+    /**
+     * Verifies that the e-mail, its verification and the tenant are kept.
+     */
+    @Test
+    void constructor_whenEmailAndTenantAreGiven_keepsThem() {
+        final var account = new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, List.of(), EMAIL,
+                true, TENANT);
+
+        assertEquals(EMAIL, account.email());
+        assertTrue(account.emailVerified());
+        assertEquals(TENANT, account.tenant());
+    }
+
+    /**
+     * Verifies that a blank e-mail is rejected.
+     */
+    @Test
+    void constructor_whenEmailIsBlank_throwsIllegalArgumentException() {
+        final var id = UUID.randomUUID();
+        final var authorities = List.<String>of();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new UserAccount(id, USERNAME, ENCODED_PASSWORD, true, authorities, " ", false, TENANT));
+    }
+
+    /**
+     * Verifies that a null tenant is rejected.
+     */
+    @Test
+    void constructor_whenTenantIsNull_throwsIllegalArgumentException() {
+        final var id = UUID.randomUUID();
+        final var authorities = List.<String>of();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new UserAccount(id, USERNAME, ENCODED_PASSWORD, true, authorities, EMAIL, false, null));
+    }
+
+    /**
+     * Verifies that a blank tenant is rejected.
+     */
+    @Test
+    void constructor_whenTenantIsBlank_throwsIllegalArgumentException() {
+        final var id = UUID.randomUUID();
+        final var authorities = List.<String>of();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new UserAccount(id, USERNAME, ENCODED_PASSWORD, true, authorities, EMAIL, false, " "));
     }
 }

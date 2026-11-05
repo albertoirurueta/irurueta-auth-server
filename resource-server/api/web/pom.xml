@@ -27,9 +27,17 @@
 
   <artifactId>resource-server-api-web</artifactId>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Web adapter of the resource server: JWT bearer security filter chain. It exposes no endpoint of its own yet: #2 adds the protected API.</description>
+  <description>Web adapter of the resource server: JWT / opaque-token bearer security filter chain. Exposes the protected documents API.</description>
 
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>resource-server-domain</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>resource-server-application</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
@@ -37,6 +45,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+    </dependency>
+    <!-- OpenAPI document only: the resource server ships no Swagger UI -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

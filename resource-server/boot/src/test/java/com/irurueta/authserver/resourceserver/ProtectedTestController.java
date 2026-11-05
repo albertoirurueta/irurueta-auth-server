@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Test-only endpoint: the resource server exposes no API of its own yet, so the security tests need one protected
- * path to prove that a bearer JWT is required and that its claims reach the application. It lives in the test
- * sources, so it never ships in the jar.
+ * Test-only endpoint: the security tests need one path that no rule of the filter chain names, to prove that a
+ * bearer JWT with the resource server's audience is required (the default rule) and that its claims reach the
+ * application. It lives in the test sources, so it never ships in the jar.
  */
 @RestController
 public class ProtectedTestController {

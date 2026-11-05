@@ -21,8 +21,14 @@ spring:
         jwt:
           # The JWT decoder resolves the issuer metadata lazily, on the first request.
           issuer-uri: ${AUTH_ISSUER:http://localhost:9000}
-          # Only tokens issued to these clients (the "aud" claim) are accepted; #2 finalizes the audience model.
-          audiences: ${RESOURCE_SERVER_AUDIENCES:bff}
+          # Only tokens whose "aud" claim lists one of these audiences are accepted; it must not be empty.
+          # The opaque profile applies the same audiences to the introspection response.
+          audiences: ${RESOURCE_SERVER_AUDIENCES:resource-server}
+
+springdoc:
+  # The OpenAPI document is published; the Swagger UI is not shipped.
+  swagger-ui:
+    enabled: false
 
 server:
   port: 8081

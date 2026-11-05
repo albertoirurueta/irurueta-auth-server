@@ -21,8 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -54,6 +57,15 @@ class JdbcUserAccountRepositoryTest {
 
     /** Authority used by the tests. */
     private static final String ROLE_USER = "ROLE_USER";
+
+    /** E-mail address used by the tests. */
+    private static final String EMAIL = "alice@example.com";
+
+    /** Tenant used by the tests. */
+    private static final String TENANT = "acme";
+
+    /** Number of statements saving an account with two authorities runs. */
+    private static final int FIVE = 5;
 
     /** JDBC client that runs the queries. */
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -88,6 +100,9 @@ class JdbcUserAccountRepositoryTest {
         when(resultSet.getString("username")).thenReturn(USERNAME);
         when(resultSet.getString("encoded_password")).thenReturn(ENCODED_PASSWORD);
         when(resultSet.getBoolean("enabled")).thenReturn(false);
+        when(resultSet.getString("email")).thenReturn(null);
+        when(resultSet.getBoolean("email_verified")).thenReturn(false);
+        when(resultSet.getString("tenant")).thenReturn(UserAccount.DEFAULT_TENANT);
         final var captor = ArgumentCaptor.<RowMapper<Object>>captor();
         final var spec = client.sql(any(String.class)).param(any());
         when(spec.query(captor.capture()).optional())
@@ -101,5 +116,132 @@ class JdbcUserAccountRepositoryTest {
         assertEquals(ENCODED_PASSWORD, account.encodedPassword());
         assertFalse(account.enabled());
         assertEquals(List.of(ROLE_USER), account.authorities());
+    }
+
+    /**
+     * Verifies that an empty result is returned when no user has the identifier.
+     */
+    @Test
+    void findById_whenUserIsMissing_returnsEmpty() {
+        when(client.sql(any(String.class)).param(any())
+                .query(ArgumentMatchers.<RowMapper<Object>>any()).optional())
+                .thenReturn(Optional.empty());
+
+        assertTrue(repository.findById(UUID.randomUUID()).isEmpty());
+    }
+
+    /**
+     * Verifies that an existing username is reported as existing.
+     */
+    @Test
+    void existsByUsername_whenUserExists_returnsTrue() {
+        when(client.sql(any(String.class)).param(any()).query(Integer.class).single()).thenReturn(1);
+
+        assertTrue(repository.existsByUsername(USERNAME));
+    }
+
+    /**
+     * Verifies that an unknown username is reported as missing.
+     */
+    @Test
+    void existsByUsername_whenUserIsMissing_returnsFalse() {
+        when(client.sql(any(String.class)).param(any()).query(Integer.class).single()).thenReturn(0);
+
+        assertFalse(repository.existsByUsername(USERNAME));
+    }
+
+    /**
+     * Verifies that the new hash is written with the user id.
+     */
+    @Test
+    void updatePassword_whenCalled_updatesTheRow() {
+        final var id = UUID.randomUUID();
+
+        repository.updatePassword(id, ENCODED_PASSWORD);
+
+        verify(client.sql(any(String.class)).params(ENCODED_PASSWORD, id)).update();
+    }
+
+    /**
+     * Verifies that an empty result is returned when no user has the e-mail address.
+     */
+    @Test
+    void findByEmail_whenUserIsMissing_returnsEmpty() {
+        when(client.sql(any(String.class)).param(any())
+                .query(ArgumentMatchers.<RowMapper<Object>>any()).optional())
+                .thenReturn(Optional.empty());
+
+        assertTrue(repository.findByEmail(EMAIL).isEmpty());
+    }
+
+    /**
+     * Verifies that the e-mail columns of the row are mapped to the account.
+     *
+     * @throws SQLException never; declared by the mocked result set.
+     */
+    @Test
+    void findByEmail_whenUserExists_mapsEmailColumns() throws SQLException {
+        final var resultSet = mockRow(UUID.randomUUID());
+        final var captor = ArgumentCaptor.<RowMapper<Object>>captor();
+        final var spec = client.sql(any(String.class)).param(any());
+        when(spec.query(captor.capture()).optional())
+                .thenAnswer(invocation -> Optional.of(captor.getValue().mapRow(resultSet, 0)));
+        when(spec.query(String.class).list()).thenReturn(List.of());
+
+        final var account = repository.findByEmail(EMAIL).orElseThrow();
+
+        assertEquals(EMAIL, account.email());
+        assertTrue(account.emailVerified());
+        assertEquals(TENANT, account.tenant());
+    }
+
+    /**
+     * Verifies that saving writes the user, its password and one row per authority.
+     */
+    @Test
+    void save_whenAccountHasTwoAuthorities_runsFiveStatements() {
+        final var account = new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true,
+                List.of(ROLE_USER, "ROLE_ADMIN"), EMAIL, false, TENANT);
+
+        repository.save(account);
+
+        final var sql = ArgumentCaptor.<String>captor();
+        verify(client, times(FIVE)).sql(sql.capture());
+        final var statements = sql.getAllValues();
+        assertTrue(statements.get(0).contains("INSERT INTO users"));
+        assertTrue(statements.get(1).contains("user_passwords"));
+        assertTrue(statements.get(2).contains("DELETE FROM user_authorities"));
+        assertTrue(statements.getLast().contains("INSERT INTO user_authorities"));
+    }
+
+    /**
+     * Verifies that the e-mail is marked as verified for the user.
+     */
+    @Test
+    void markEmailVerified_whenCalled_updatesTheRow() {
+        final var id = UUID.randomUUID();
+
+        repository.markEmailVerified(id);
+
+        verify(client.sql(any(String.class)).param(id)).update();
+    }
+
+    /**
+     * Mocks a result set row with the columns of an account.
+     *
+     * @param id identifier returned for the user.
+     * @return the mocked row.
+     * @throws SQLException never; declared by the mocked result set.
+     */
+    private static ResultSet mockRow(final UUID id) throws SQLException {
+        final var resultSet = mock(ResultSet.class);
+        when(resultSet.getObject("id", UUID.class)).thenReturn(id);
+        when(resultSet.getString("username")).thenReturn(USERNAME);
+        when(resultSet.getString("encoded_password")).thenReturn(ENCODED_PASSWORD);
+        when(resultSet.getBoolean("enabled")).thenReturn(true);
+        when(resultSet.getString("email")).thenReturn(EMAIL);
+        when(resultSet.getBoolean("email_verified")).thenReturn(true);
+        when(resultSet.getString("tenant")).thenReturn(TENANT);
+        return resultSet;
     }
 }

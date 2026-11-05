@@ -27,9 +27,17 @@
 
   <artifactId>auth-server-infrastructure-keys</artifactId>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Signing key adapter of the authorization server: a temporary in-memory key until key management lands.</description>
+  <description>Signing key adapter of the authorization server: encrypted signing keys, JWK sources and the signed token service.</description>
 
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>auth-server-domain</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>auth-server-application</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
@@ -40,8 +48,18 @@
       <artifactId>spring-security-oauth2-jose</artifactId>
     </dependency>
     <dependency>
+      <!-- key-encryption at rest (Encryptors/TextEncryptor) -->
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

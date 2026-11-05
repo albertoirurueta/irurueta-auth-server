@@ -16,8 +16,9 @@
 
 package com.irurueta.authserver.authorization.infrastructure.persistence.dev;
 
+import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +28,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
-import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,17 +59,8 @@ public class DevDataInitializer implements ApplicationRunner {
     /** Username of the demo user. */
     static final String DEMO_USERNAME = "demo";
 
-    /** Client id of the BFF client. */
-    static final String BFF_CLIENT_ID = "bff";
-
-    /** Redirect URI of the BFF client. */
-    static final String BFF_REDIRECT_URI = "http://localhost:8080/login/oauth2/code/bff";
-
     /** Number of random bytes of generated secrets. */
     private static final int SECRET_BYTES = 24;
-
-    /** Lifetime of access tokens issued to the demo client. */
-    private static final Duration ACCESS_TOKEN_TTL = Duration.ofMinutes(10);
 
     /** Source of randomness for generated secrets. */
     private final SecureRandom random = new SecureRandom();
@@ -87,7 +72,7 @@ public class DevDataInitializer implements ApplicationRunner {
     private final PasswordEncoder encoder;
 
     /** Repository where the BFF client is stored. */
-    private final RegisteredClientRepository clients;
+    private final ClientRegistrationRepository clients;
 
     /**
      * Creates the demo user and the BFF client when they do not exist yet.
@@ -122,29 +107,16 @@ public class DevDataInitializer implements ApplicationRunner {
     }
 
     /**
-     * Creates the BFF client, with a generated secret, unless it already exists.
+     * Creates the BFF client from its default definition, with a generated secret, unless it already exists.
      */
     private void createBffClient() {
-        if (clients.findByClientId(BFF_CLIENT_ID) != null) {
+        if (clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID).isPresent()) {
             return;
         }
         final var secret = generateSecret();
-        final var client = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId(BFF_CLIENT_ID)
-                .clientSecret(encoder.encode(secret))
-                .clientName("Backend for Frontend")
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri(BFF_REDIRECT_URI)
-                .scope(OidcScopes.OPENID)
-                .scope(OidcScopes.PROFILE)
-                .clientSettings(ClientSettings.builder().requireProofKey(true).build())
-                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(ACCESS_TOKEN_TTL).build())
-                .build();
-        clients.save(client);
+        clients.save(DefaultClientDefinitions.bff(), encoder.encode(secret));
         log.warn("DEV ONLY, never use outside local development: created client '{}' with generated secret: {}",
-                BFF_CLIENT_ID, secret);
+                DefaultClientDefinitions.BFF_CLIENT_ID, secret);
     }
 
     /**

@@ -24,9 +24,10 @@ When complete, the example shows how to:
   authentication, and token exchange
 * explain the legacy *implicit* flow and migrate away from it
 
-The work is tracked in the repository's issues and the *1.0.0* milestone. The current state is a *walking skeleton*:
-a user can sign in with a username and password through the BFF (authorization code with PKCE), and the resource
-server accepts the access tokens issued to the BFF. The other authentication methods are added on top of the
+The work is tracked in the repository's issues and the *1.0.0* milestone. The current state is the walking skeleton plus
+the credential and token core: users sign in with a username and password (Argon2 storage) through the BFF
+(authorization code with PKCE), tokens are signed with persisted, rotating keys, clients are managed through an
+admin API, and the resource server exposes a documents API protected by scopes and audience. The other authentication methods are added on top of the
 extension points described in xref:architecture.adoc[].
 
 == Modules
@@ -76,5 +77,9 @@ flowchart LR
 
 * xref:architecture.adoc[] describes the security filter chains and how authentication methods plug in.
 * xref:data-model.adoc[] describes the PostgreSQL schema managed by Flyway.
+* xref:passwords-and-accounts.adoc[] covers password storage, the compromised-password check and the account API.
+* xref:tokens-and-keys.adoc[] covers signing keys, rotation, token claims and refresh token reuse detection.
+* xref:clients.adoc[] covers client seeding, the admin API and dynamic registration.
+* xref:resource-server.adoc[] covers the documents API and token validation.
 * xref:installation.adoc[] explains how to build the example and run each application from source.
 * xref:reference.adoc[] lists the reports the build generates.

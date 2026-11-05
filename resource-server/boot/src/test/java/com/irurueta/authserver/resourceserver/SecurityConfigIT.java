@@ -16,11 +16,19 @@
 
 package com.irurueta.authserver.resourceserver;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.resourceserver.api.web.documents.DocumentController;
+import com.irurueta.authserver.resourceserver.domain.documents.Document;
+import com.irurueta.authserver.resourceserver.domain.documents.DocumentRepository;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -69,10 +77,10 @@ class SecurityConfigIT {
     private static final String ISSUER = "http://localhost:9000";
 
     /** Audience the resource server accepts by default. */
-    private static final String ACCEPTED_AUDIENCE = "bff";
+    private static final String ACCEPTED_AUDIENCE = "resource-server";
 
     /** Audience of a token issued to another client. */
-    private static final String OTHER_AUDIENCE = "service-client";
+    private static final String OTHER_AUDIENCE = "bff";
 
     /** Size in bits of the generated RSA key. */
     private static final int KEY_SIZE = 2048;
@@ -85,6 +93,16 @@ class SecurityConfigIT {
 
     /** Key pair that signs the test tokens. */
     private static final KeyPair KEY_PAIR = generateKeyPair();
+
+    /** Scope that allows reading documents. */
+    private static final String READ_SCOPE = "documents.read";
+
+    /** Scope that allows deleting documents. */
+    private static final String DELETE_SCOPE = "documents.delete";
+
+    /** Store of the documents. */
+    @Autowired
+    private DocumentRepository documentRepository;
 
     /** Entry point to the web layer. */
     @Autowired
@@ -165,6 +183,82 @@ class SecurityConfigIT {
     }
 
     /**
+     * Verifies that an audience failure answers with the RFC 6750 {@code invalid_token} challenge.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void resourceServerFilterChain_whenTokenIsInvalid_challengesWithInvalidToken() throws Exception {
+        mockMvc.perform(get(DocumentController.PATH)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ISSUER, List.of(OTHER_AUDIENCE), READ_SCOPE)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")));
+    }
+
+    /**
+     * Verifies that listing documents needs the read scope, challenging with {@code insufficient_scope}.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenTokenLacksTheReadScope_returnsForbiddenWithInsufficientScope() throws Exception {
+        mockMvc.perform(get(DocumentController.PATH)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ISSUER, List.of(ACCEPTED_AUDIENCE))))
+                .andExpect(status().isForbidden())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("insufficient_scope")));
+    }
+
+    /**
+     * Verifies that a caller sees only their own documents.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenTokenHasTheReadScope_listsOnlyTheCallersDocuments() throws Exception {
+        documentRepository.save(new Document("it-own", SUBJECT, "Own", "text"));
+        documentRepository.save(new Document("it-foreign", "someone-else", "Foreign", "text"));
+
+        mockMvc.perform(get(DocumentController.PATH)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), READ_SCOPE)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == 'it-own')]").exists())
+                .andExpect(jsonPath("$[?(@.id == 'it-foreign')]").doesNotExist());
+    }
+
+    /**
+     * Verifies that deleting needs the delete scope.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenTokenLacksTheDeleteScope_deleteIsForbidden() throws Exception {
+        documentRepository.save(new Document("it-keep", SUBJECT, "Keep", "text"));
+
+        mockMvc.perform(delete(DocumentController.PATH + "/it-keep")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), READ_SCOPE)))
+                .andExpect(status().isForbidden())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("insufficient_scope")));
+        assertEquals(1, documentRepository.findByOwner(SUBJECT).stream()
+                .filter(document -> "it-keep".equals(document.id())).count());
+    }
+
+    /**
+     * Verifies that a caller with the delete scope deletes a document, and that deleting it again finds nothing.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenTokenHasTheDeleteScope_deletesOnceThenNotFound() throws Exception {
+        documentRepository.save(new Document("it-delete", SUBJECT, "Delete", "text"));
+        final var header = bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE);
+
+        mockMvc.perform(delete(DocumentController.PATH + "/it-delete").header(HttpHeaders.AUTHORIZATION, header))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(delete(DocumentController.PATH + "/it-delete").header(HttpHeaders.AUTHORIZATION, header))
+                .andExpect(status().isNotFound());
+    }
+
+    /**
      * Builds an {@code Authorization} header value carrying a token signed with the generated key.
      *
      * @param issuer    issuer claim of the token.
@@ -172,6 +266,18 @@ class SecurityConfigIT {
      * @return the header value.
      */
     private static String bearer(final String issuer, final List<String> audiences) {
+        return bearer(issuer, audiences, "");
+    }
+
+    /**
+     * Builds an {@code Authorization} header value carrying a token signed with the generated key.
+     *
+     * @param issuer    issuer claim of the token.
+     * @param audiences audience claim of the token; empty to leave the claim out.
+     * @param scope     space-separated scopes of the token; empty to leave the claim out.
+     * @return the header value.
+     */
+    private static String bearer(final String issuer, final List<String> audiences, final String scope) {
         final var rsaKey = new RSAKey.Builder((RSAPublicKey) KEY_PAIR.getPublic())
                 .privateKey((RSAPrivateKey) KEY_PAIR.getPrivate())
                 .build();
@@ -184,6 +290,9 @@ class SecurityConfigIT {
                 .expiresAt(now.plus(TOKEN_TTL));
         if (!audiences.isEmpty()) {
             claims.audience(audiences);
+        }
+        if (!scope.isEmpty()) {
+            claims.claim("scope", scope);
         }
         return "Bearer " + encoder.encode(JwtEncoderParameters.from(claims.build())).getTokenValue();
     }

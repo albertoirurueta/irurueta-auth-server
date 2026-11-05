@@ -27,8 +27,11 @@ and pull request when the `SONAR_TOKEN` secret is set (organization `albertoirur
 |JaCoCo coverage of the integration tests, written by `./mvnw verify` once a module has integration tests.
 
 |`openapi/auth-server.json`
-|The committed OpenAPI document of `auth-server` (springdoc). `OpenApiDriftIT` fails when the running application no
-longer matches it.
+|The committed OpenAPI document of `auth-server` (springdoc, group `/api/**`: account, client and key administration).
+`OpenApiDriftIT` fails when the running application no longer matches it.
+
+|`openapi/resource-server.json`
+|The committed OpenAPI document of `resource-server` (documents API), guarded by its own drift test.
 
 |`coverage/target/site/jacoco-aggregate/index.html`
 |JaCoCo coverage aggregated over every module (unit and integration tests), written by `./mvnw verify`. The same

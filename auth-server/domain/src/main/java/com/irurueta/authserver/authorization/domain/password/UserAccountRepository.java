@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.domain.password;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Port that provides the user accounts able to sign in with a password. An implementation never returns
@@ -31,4 +32,50 @@ public interface UserAccountRepository {
      * @return the account, or an empty optional when no account has that username.
      */
     Optional<UserAccount> findByUsername(String username);
+
+    /**
+     * Finds a user account by its identifier.
+     *
+     * @param id identifier of the account.
+     * @return the account, or an empty optional when there is none.
+     */
+    Optional<UserAccount> findById(UUID id);
+
+    /**
+     * Finds a user account by its e-mail address.
+     *
+     * @param email e-mail address of the user.
+     * @return the account, or an empty optional when no account has that address.
+     */
+    Optional<UserAccount> findByEmail(String email);
+
+    /**
+     * Tells whether an account with a username exists.
+     *
+     * @param username name the user signs in with.
+     * @return {@code true} when an account has that username.
+     */
+    boolean existsByUsername(String username);
+
+    /**
+     * Stores a new account, with its authorities.
+     *
+     * @param account the account to create.
+     */
+    void save(UserAccount account);
+
+    /**
+     * Replaces the encoded password of an account.
+     *
+     * @param userId          identifier of the account.
+     * @param encodedPassword the new encoded password.
+     */
+    void updatePassword(UUID userId, String encodedPassword);
+
+    /**
+     * Marks the e-mail address of an account as verified and enables the account.
+     *
+     * @param userId identifier of the account.
+     */
+    void markEmailVerified(UUID userId);
 }

@@ -15,6 +15,6 @@
  */
 
 /**
- * Resource server security configuration (JWT validation).
+ * Resource server security configuration (JWT or opaque-token validation, method security, RFC 6750 error handling).
  */
 package com.irurueta.authserver.resourceserver.api.web.security;

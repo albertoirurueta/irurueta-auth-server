@@ -20,9 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.password.FindUserAccountUseCase;
+import com.irurueta.authserver.authorization.application.password.UpgradePasswordHashUseCase;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +37,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
@@ -47,12 +52,19 @@ class UserAccountUserDetailsServiceTest {
     /** Encoded password used by the tests; not a real credential. */
     private static final String ENCODED_PASSWORD = "{noop}encoded";
 
+    /** Upgraded encoded password used by the tests; not a real credential. */
+    private static final String NEW_ENCODED_PASSWORD = "{argon2}upgraded";
+
     /** Authority used by the tests. */
     private static final String ROLE_USER = "ROLE_USER";
 
     /** Use case that looks the account up. */
     @Mock
     private FindUserAccountUseCase findUserAccountUseCase;
+
+    /** Use case that stores the upgraded hash. */
+    @Mock
+    private UpgradePasswordHashUseCase upgradePasswordHashUseCase;
 
     /** Service under test. */
     @InjectMocks
@@ -98,5 +110,34 @@ class UserAccountUserDetailsServiceTest {
         final var error = assertThrows(UsernameNotFoundException.class, () -> service.loadUserByUsername(USERNAME));
 
         assertTrue(error.getMessage().contains(USERNAME));
+    }
+
+    /**
+     * Verifies that the upgraded hash is stored and carried by the returned details.
+     */
+    @Test
+    void updatePassword_whenAccountExists_storesHashAndReturnsUpdatedUser() {
+        final var account = new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, List.of(ROLE_USER));
+        when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.of(account));
+        final var current = User.withUsername(USERNAME).password(ENCODED_PASSWORD).authorities(ROLE_USER).build();
+
+        final var updated = service.updatePassword(current, NEW_ENCODED_PASSWORD);
+
+        verify(upgradePasswordHashUseCase).replaceHash(account, NEW_ENCODED_PASSWORD);
+        assertEquals(NEW_ENCODED_PASSWORD, updated.getPassword());
+        assertEquals(USERNAME, updated.getUsername());
+    }
+
+    /**
+     * Verifies that a missing account is reported and nothing is stored.
+     */
+    @Test
+    void updatePassword_whenAccountIsMissing_throwsUsernameNotFoundException() {
+        when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.empty());
+        final var current = User.withUsername(USERNAME).password(ENCODED_PASSWORD).authorities(ROLE_USER).build();
+
+        assertThrows(UsernameNotFoundException.class, () -> service.updatePassword(current, NEW_ENCODED_PASSWORD));
+
+        verify(upgradePasswordHashUseCase, never()).replaceHash(any(), any());
     }
 }

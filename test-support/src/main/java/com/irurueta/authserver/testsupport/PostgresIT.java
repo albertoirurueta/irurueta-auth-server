@@ -33,7 +33,7 @@ import org.springframework.core.annotation.AliasFor;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @SpringBootTest
-@Import(PostgresTestConfiguration.class)
+@Import({PostgresTestConfiguration.class, KeyEncryptionTestConfiguration.class})
 public @interface PostgresIT {
 
     /**

@@ -16,9 +16,11 @@
 
 package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
 
+import com.irurueta.authserver.authorization.infrastructure.persistence.tokens.ReuseDetectingAuthorizationService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
@@ -45,7 +47,8 @@ public class JdbcAuthorizationServerConfiguration {
     }
 
     /**
-     * Creates the service that stores OAuth 2 authorizations.
+     * Creates the service that stores OAuth 2 authorizations, decorated to detect the reuse of rotated refresh
+     * tokens.
      *
      * @param jdbcTemplate             JDBC template of the application datasource.
      * @param registeredClientRepository repository used to resolve the client of each authorization.
@@ -54,7 +57,9 @@ public class JdbcAuthorizationServerConfiguration {
     @Bean
     public OAuth2AuthorizationService authorizationService(
             final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository) {
-        return new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository);
+        return new ReuseDetectingAuthorizationService(
+                new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository),
+                JdbcClient.create(jdbcTemplate));
     }
 
     /**

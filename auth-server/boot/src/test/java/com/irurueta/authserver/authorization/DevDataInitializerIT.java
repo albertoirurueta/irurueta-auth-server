@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.irurueta.authserver.authorization.api.web.password.PasswordConfiguration;
 import com.irurueta.authserver.authorization.infrastructure.persistence.dev.DevDataInitializer;
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.util.List;
@@ -77,7 +78,7 @@ class DevDataInitializerIT {
 
         final var user = userDetailsService.loadUserByUsername("demo");
         assertEquals(List.of("ROLE_USER"), user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
-        assertTrue(user.getPassword().startsWith("{bcrypt}"));
+        assertTrue(user.getPassword().startsWith("{" + PasswordConfiguration.DEFAULT_ENCODING_ID + "}"));
 
         final var client = clients.findByClientId("bff");
         assertNotNull(client);

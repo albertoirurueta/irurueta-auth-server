@@ -64,11 +64,14 @@ module (package granularity). Never weaken either to make code fit; move the cod
   `SecurityFilterChain`, …) are framework adapters: they live in `api/*` or `infrastructure/*`, never in `domain`
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet (for example
-  `bff` until #3, `resource-server` until #2) has no `infrastructure` or `application` module, and `service-client`
-  stays a single `boot` module until #8 gives it a domain.
+  `bff` until #3) has no `infrastructure` or `application` module, and `service-client` stays a single `boot` module
+  until #8 gives it a domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and
+  `infrastructure/mail`; `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
   or adapter that exists only so a test has something to call lives in `src/test`. The one exception is
-  `DevDataInitializer` in `infrastructure/persistence` (its Javadoc says why).
+  `DevDataInitializer` in `infrastructure/persistence` and `DevKeyEncryptionSecret` in `infrastructure/keys` (both are
+  `dev`-profile only, inert elsewhere, and their Javadoc says why they cannot live in `src/test`: the end-to-end
+  tests run the packaged jar).
 - `test-support` (shared Testcontainers base), `e2e-tests` and `coverage` (JaCoCo aggregate) are root modules
   outside the applications.
 
@@ -82,13 +85,26 @@ placeholder package holds a `package-info.java` saying which issue fills it.
 
 ### Extension points: adding a login method without editing shared files
 
-- `api.web.login.LoginChainCustomizer` (a `Customizer<HttpSecurity>`): every bean of this type is applied, in
+- `api.web.login.LoginChainCustomizer` (a functional interface over `HttpSecurity`, deliberately **not** a `Customizer<HttpSecurity>`, because Spring Security applies every such bean to every filter chain): every bean of this type is applied, in
   `@Order`, to the login/UI chain by `SecurityConfig`, **before** its catch-all `anyRequest().authenticated()`, so a
   customizer may still permit its own endpoints. A new method declares one in its own `@Configuration` to enable its
   `HttpSecurity` features (for example `http.oneTimeTokenLogin(...)`); `SecurityConfig` is never edited.
 - `api.web.login.LoginMethodFragment`: every bean of this type contributes a Thymeleaf fragment (`templateName()`,
   `fragmentName()`, `order()`; `reference()` builds the `template :: fragment` expression) that `LoginController`
   passes to `templates/login.html`, which renders them below the password form.
+
+- `api.web.ProtocolChainCustomizer` (a functional interface over `OAuth2AuthorizationServerConfigurer`, deliberately **not** a `Customizer<...>` bean type for the same reason): every bean of this type is
+  applied, in `@Order`, to the protocol chain (`/oauth2/**`, `/.well-known/**`, OIDC endpoints) by
+  `SecurityConfig.authorizationServerSecurityFilterChain`, right after OIDC is enabled. A feature declares one in its
+  own `@Configuration` to add a converter or provider to a protocol endpoint (for example `x509` or `implicit`);
+  `SecurityConfig` is never edited.
+- `api.web.tokens.JwtClaimsContributor` (introduced by the token customisation task): every bean of this type adds
+  claims to the access and ID tokens through `RolesTenantAudienceTokenCustomizer`, the one
+  `OAuth2TokenCustomizer<JwtEncodingContext>` of the server, so a feature (for example `mfa` adding `amr`) contributes
+  claims without owning a second customizer.
+- `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, bearer JWTs validated by the local
+  `JwtDecoder`, errors per RFC 6750). Its public paths and the `/api/admin/**` rule are fixed there; a feature only
+  adds controllers under `/api/**`.
 
 A later issue therefore adds a login method by creating its feature packages (domain model and port, use case,
 persistence adapter, web `@Configuration` with its controller, a `templates/<method>.html`, a `LoginChainCustomizer`
@@ -98,7 +114,18 @@ bean and a `LoginMethodFragment` bean), plus its own Flyway migration in its ran
 
 Migrations live in `auth-server/infrastructure/persistence/src/main/resources/db/migration`
 (`classpath:db/migration`). The skeleton (#1) uses `V100`–`V199` (`V100` Spring Authorization Server schema, `V101`
-users). Each issue states its own range in its body; never write a migration outside it.
+users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens. Each issue states its own
+range in its body; never write a migration outside it.
+
+### Key encryption secret and OpenAPI documents
+
+- Private signing keys are encrypted at rest from `authserver.keys.encryption.password` and `.salt` (hex). With the
+  `dev` profile `DevKeyEncryptionSecret` generates them once per machine under `~/.irurueta-auth-server/` (owner-only
+  file, never inside the repository). Without `dev` they must be supplied, normally through the environment variables
+  `AUTHSERVER_KEYS_ENCRYPTION_PASSWORD` and `AUTHSERVER_KEYS_ENCRYPTION_SALT`; tests pass runtime-generated values.
+- Both `openapi/auth-server.json` and `openapi/resource-server.json` are committed contracts guarded by an
+  `OpenApiDriftIT` in the respective `boot` module. Regenerate the resource server one with
+  `./mvnw -pl resource-server/boot -am verify -Dopenapi.update=true`.
 
 ## Conventions
 

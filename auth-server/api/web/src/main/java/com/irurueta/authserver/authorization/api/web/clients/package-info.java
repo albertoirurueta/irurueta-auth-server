@@ -15,6 +15,7 @@
  */
 
 /**
- * Web adapter of registered client management. Filled by the administration issue.
+ * Web adapter of registered client management: the administration endpoints, their DTOs, the startup seeding and
+ * the optional dynamic client registration.
  */
 package com.irurueta.authserver.authorization.api.web.clients;

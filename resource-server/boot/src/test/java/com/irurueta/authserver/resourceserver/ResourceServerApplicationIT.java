@@ -53,11 +53,11 @@ class ResourceServerApplicationIT {
     }
 
     /**
-     * Verifies that accepted tokens are restricted to the BFF client.
+     * Verifies that accepted tokens are restricted to the resource server's own audience.
      */
     @Test
-    void jwtAudiences_whenDefaultsApply_areRestrictedToTheBffClient() {
-        assertEquals(List.of("bff"), resourceServerProperties.getJwt().getAudiences());
+    void jwtAudiences_whenDefaultsApply_areRestrictedToTheResourceServerAudience() {
+        assertEquals(List.of("resource-server"), resourceServerProperties.getJwt().getAudiences());
     }
 
     /**

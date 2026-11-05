@@ -45,7 +45,8 @@ Each application is a Maven sub-reactor split into modules by hexagonal layer. T
 |Business logic: it only wires beans, holds `application*.yml` and the integration tests
 |===
 
-A layer is only created once it has code: `bff` has no `application` or `infrastructure` module yet, and
+A layer is only created once it has code: `bff` has no `application` or `infrastructure` module yet,
+`resource-server` has `domain`, `application`, `infrastructure/memory` and `api/web`, and
 `service-client` is a single `boot` module. A port is an interface in `domain` (for example `UserAccountRepository`);
 its implementation lives in an `infrastructure/*` adapter. Domain models are never returned from a controller: the
 `api/*` adapter maps them onto its own DTOs. Spring Security and Spring Authorization Server types are framework
@@ -56,24 +57,36 @@ modules outside the applications.
 
 == Security filter chains
 
-`auth-server` defines two `SecurityFilterChain` beans in `SecurityConfig` (module `auth-server/api/web`). The first
-(order 1) applies only to the authorization server protocol endpoints; the second (order 2) secures everything else,
-including the login page.
+`auth-server` defines three `SecurityFilterChain` beans (module `auth-server/api/web`). `ApiSecurityConfig` (order 0)
+secures `/api/**` statelessly: it validates bearer JWTs issued by this server itself (see
+xref:tokens-and-keys.adoc[]), leaves registration, e-mail verification and password reset public, and requires scope
+`admin` or role `ROLE_ADMIN` under `/api/admin/**`. In `SecurityConfig`, the first chain (order 1) applies only to the
+authorization server protocol endpoints; the second (order 2) secures everything else, including the login page.
 
 [source,java]
 ----
 include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/SecurityConfig.java[tag=security-chains]
 ----
 
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ApiSecurityConfig.java[tag=api-security]
+----
+
 == Extension points for authentication methods
 
 A feature spans the layers with the same package name in each (`...domain.password`, `...application.password`,
 `...infrastructure.persistence.password`, `...api.web.password`), so authentication methods can be developed in
-parallel. Two extension points avoid editing shared files:
+parallel. These extension points avoid editing shared files:
 
-* `LoginChainCustomizer` (package `api.web.login`) is a `Customizer<HttpSecurity>`. Every bean of this type is applied
+* `LoginChainCustomizer` (package `api.web.login`) is a functional interface over `HttpSecurity` (deliberately not a `Customizer<HttpSecurity>`, which Spring Security would apply to every chain). Every bean of this type is applied
   to the login chain in `@Order` order, before its catch-all rule.
 * `LoginMethodFragment` contributes a Thymeleaf fragment to the login page, which is `templates/login.html`.
+* `ProtocolChainCustomizer` (package `api.web`) is the same idea for the protocol endpoints: every bean receives the
+  `OAuth2AuthorizationServerConfigurer` of the protocol chain, in `@Order` order. It is how the UserInfo mapper and the
+  optional dynamic client registration are configured. It is also deliberately not a `Customizer`, which Spring
+  Security would apply to every chain.
+* `JwtClaimsContributor` (package `api.web.tokens`) adds claims to issued tokens; see xref:tokens-and-keys.adoc[].
 
 [source,html]
 ----
@@ -98,8 +111,14 @@ Registered clients, authorizations and consents use the JDBC services of Spring 
 include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/clients/JdbcAuthorizationServerConfiguration.java[tag=jdbc-services]
 ----
 
-The signing JWK is temporarily generated in memory at each start by the `infrastructure/keys` adapter; persisted,
-rotated keys come later.
+Passwords, accounts, signing keys, tokens and registered clients are described in xref:passwords-and-accounts.adoc[],
+xref:tokens-and-keys.adoc[] and xref:clients.adoc[]. The `infrastructure/mail` adapter implements the `AccountMailer`
+port with Spring's `JavaMailSender`; its settings live under `authserver.mail` (sender, base URL for the links, locale).
+
+[source,java]
+----
+include::example$auth-server/infrastructure/mail/src/main/java/com/irurueta/authserver/authorization/infrastructure/mail/MailProperties.java[tag=mail-properties]
+----
 
 == BFF and resource server
 
@@ -115,11 +134,6 @@ include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/s
 include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/user/UserController.java[tag=bff-user]
 ----
 
-The `resource-server` validates JWT access tokens against the issuer and accepts only those issued to the `bff`
-audience. It has no API of its own yet (#2 adds one); its integration tests prove the chain against an endpoint that
-exists only in the test sources.
-
-[source,java]
-----
-include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-security]
-----
+The `resource-server` validates JWT access tokens against the issuer and accepts only those whose `aud` claim lists
+one of the configured audiences (`resource-server` by default). Its API and security are described in
+xref:resource-server.adoc[].

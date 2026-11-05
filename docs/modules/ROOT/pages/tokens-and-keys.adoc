@@ -1,0 +1,128 @@
+= Tokens and signing keys
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+== Persisted, rotating signing keys
+
+Signing keys are RSA keys (`RS256`) stored in the `signing_keys` table with a status of `NEXT`, `ACTIVE` or `RETIRED`.
+The private half is encrypted with AES-256-GCM (`Encryptors.stronger`) using a password and salt from
+`authserver.keys.encryption.password` and `authserver.keys.encryption.salt`, which come from the environment in
+production and are never committed. With the `dev` profile, a random secret is created once under
+`~/.irurueta-auth-server/` (readable by the owner only) and reused, so persisted keys survive restarts.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/keys/src/main/java/com/irurueta/authserver/authorization/infrastructure/keys/KeyEncryptionProperties.java[tag=keys-encryption]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V210__signing_keys.sql[tag=keys-schema]
+----
+
+`RotateSigningKeysUseCase` applies the lifecycle: it creates the `ACTIVE` and `NEXT` keys when missing, promotes
+`NEXT` and retires the old `ACTIVE` key when the rotation interval has elapsed, always leaves a fresh `NEXT` key, and
+deletes keys retired for longer than the retention. Rotation runs in one transaction guarded by a PostgreSQL advisory
+lock, so two instances never rotate at once.
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/keys/RotateSigningKeysUseCase.java[tag=keys-rotation]
+----
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/keys/JdbcSigningKeyRepository.java[tag=keys-rotation-lock]
+----
+
+[cols="2,1,3",options="header"]
+|===
+|Property
+|Default
+|Meaning
+
+|`authserver.keys.rotation-interval`
+|`P30D`
+|How long a key signs before it is replaced.
+
+|`authserver.keys.retention`
+|`PT2H`
+|How long a retired key stays published, so tokens it signed stay verifiable.
+
+|`authserver.keys.rotation.cron`
+|`0 0 * * * *`
+|Schedule of `SigningKeyRotationJob`.
+
+|`authserver.keys.jwks-cache-ttl`
+|`PT30S`
+|How long the published key set is cached.
+
+|`authserver.tokens.cleanup.cron`
+|`0 0 * * * *`
+|Schedule of `ExpiredAuthorizationCleanupJob`, which deletes expired authorizations.
+|===
+
+Two beans are built over the same table: the `JWKSource` publishes `active`, `next` and still-valid `retired` public
+keys at the JWKS endpoint, while the `JwtEncoder` signs only with the `active` key.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/keys/src/main/java/com/irurueta/authserver/authorization/infrastructure/keys/DatabaseJwkSourceConfiguration.java[tag=keys-jwk-source]
+----
+
+`NimbusSignedTokenService` implements the `SignedTokenService` port with that key and is used for the e-mail
+verification token.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/keys/src/main/java/com/irurueta/authserver/authorization/infrastructure/keys/NimbusSignedTokenService.java[tag=jwt-service]
+----
+
+Administrators can list the keys (`GET /api/admin/keys`, never exposing private material) and force a rotation
+(`POST /api/admin/keys/rotate`).
+
+== Token contents
+
+`RolesTenantAudienceTokenCustomizer` adds the `roles`, `tenant` and `aud` claims to access tokens. The audience is the
+logical API identifier configured per client (client setting `audiences`, default the client id).
+Other features add claims, for example `amr` or `acr`, without editing it, by declaring `JwtClaimsContributor`
+beans, applied in `@Order` order.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/JwtClaimsContributor.java[tag=tokens-contributor]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/RolesTenantAudienceTokenCustomizer.java[tag=tokens-customizer]
+----
+
+`UserInfoMapper` builds the OpenID Connect UserInfo response and is registered through a `ProtocolChainCustomizer`.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/UserInfoMapper.java[tag=tokens-userinfo]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/UserInfoConfiguration.java[tag=tokens-userinfo-registration]
+----
+
+== Refresh token reuse detection
+
+Refresh tokens rotate. A decorator over `OAuth2AuthorizationService` records the hash of every rotated-out refresh
+token in `consumed_refresh_tokens`; presenting one of them revokes the whole authorization, because the token was
+stolen or replayed.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/tokens/ReuseDetectingAuthorizationService.java[tag=tokens-reuse-detection]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V230__consumed_refresh_tokens.sql[tag=tokens-reuse-detection]
+----
+

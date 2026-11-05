@@ -33,5 +33,6 @@
   <modules>
     <module>persistence</module>
     <module>keys</module>
+    <module>mail</module>
   </modules>
 </project>
