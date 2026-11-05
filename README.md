@@ -42,6 +42,9 @@ between layers are enforced by the Maven enforcer (`bannedDependencies`) and by 
 
 ## Documentation
 
+- Published documentation: <https://albertoirurueta.github.io/irurueta-auth-server/>, with the generated
+  [Maven site reports](https://albertoirurueta.github.io/irurueta-auth-server/mvn-site/) (Javadoc, JaCoCo, test, Checkstyle,
+  PMD and SpotBugs reports), rebuilt by the *Documentation* workflow on every push to `main`.
 - Antora documentation sources: [`docs/`](docs). Build them locally with
   `cd docs && npm ci && npx antora antora-playbook.yml`; the site is written to `docs/build/site`.
 - The step-by-step guide built on this example will be published in the [Irurueta Docs](https://www.irurueta.com)

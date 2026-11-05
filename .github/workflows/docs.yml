@@ -1,0 +1,81 @@
+name: Documentation
+
+# Publishes the documentation to GitHub Pages (the gh-pages branch), the way the other irurueta repositories do:
+#   /            the Antora site built from docs/
+#   /mvn-site/   the staged multi-module Maven site: aggregated Javadoc, JaCoCo, Surefire/Failsafe, Checkstyle, PMD,
+#                SpotBugs and JXR reports, linked from the Antora Reference page
+#   /openapi/    the committed OpenAPI documents
+# Only documentation is published: the applications themselves are never deployed. Build and test is still the
+# workflow that gates pushes and pull requests; this one runs the same build again so the reports have real data.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the gh-pages branch
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Antora reads the docs from the git repository (url: .., branches: HEAD)
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      # install, not verify: the aggregated Javadoc report of the site resolves the modules from the local repository
+      - name: Build and test
+        run: ./mvnw -B -ntp clean install
+
+      # reports only render the results of the run above; site:stage lays the modules out under target/staging
+      - name: Generate Maven site
+        run: ./mvnw -B -ntp site site:stage -DskipTests
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Build Antora docs
+        working-directory: docs
+        run: |
+          npm ci
+          npx antora antora-playbook.yml
+
+      - name: Merge documentation
+        run: |
+          mkdir public
+          cp -r docs/build/site/. public/
+          cp -r target/staging public/mvn-site
+          cp -r openapi public/openapi
+          touch public/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v5
+        with:
+          target_branch: gh-pages
+          build_dir: public
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
