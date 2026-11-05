@@ -16,36 +16,41 @@
 
 package com.irurueta.authserver.bff.api.web.user;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.irurueta.authserver.bff.api.web.v1.generated.api.UserApi;
+import com.irurueta.authserver.bff.api.web.v1.generated.model.SessionUserResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Exposes the authenticated user.
+ * Exposes the authenticated user, as the contract {@code apis/bff/rest-server/bff-api-v1.yaml} describes it through
+ * the generated {@link UserApi}.
  */
 @RestController
-@Tag(name = "User", description = "The user signed in to the BFF session")
-public class UserController {
+@RequiredArgsConstructor
+public class UserController implements UserApi {
+
+    /** Maps the signed-in user onto the generated DTO. */
+    private final SessionUserDtoMapper sessionUserDtoMapper;
 
     // tag::bff-user[]
     /**
-     * Returns the subject of the authenticated user.
+     * Returns the subject of the authenticated user. The security chain answers 401 before reaching this method when
+     * nobody is signed in, so the principal of the security context is always the OIDC user of the session.
      *
-     * @param user the authenticated OIDC user.
      * @return the signed-in user's subject.
+     * @throws AuthenticationCredentialsNotFoundException if no OIDC user is signed in, answered 401 by the chain.
      */
-    @GetMapping("/bff/user")
-    @Operation(summary = "Returns the signed-in user", responses = {
-            @ApiResponse(responseCode = "200", description = "The signed-in user"),
-            @ApiResponse(responseCode = "401", description = "There is no signed-in user", content = @Content)})
-    public SessionUserResponse user(@Parameter(hidden = true) @AuthenticationPrincipal final OidcUser user) {
-        return new SessionUserResponse(user.getSubject());
+    @Override
+    public ResponseEntity<SessionUserResponse> getSessionUser() {
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof final OidcUser user)) {
+            throw new AuthenticationCredentialsNotFoundException("No OpenID Connect user is signed in");
+        }
+        return ResponseEntity.ok(sessionUserDtoMapper.toResponse(user));
     }
     // end::bff-user[]
 }

@@ -26,7 +26,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * OpenAPI documentation of the HTTP API of the resource server.
+ * Runtime OpenAPI document of the HTTP API of the resource server, served by springdoc at {@value #API_DOCS_PATH}.
+ * The contract {@code apis/resource-server/rest-server/resource-server-api-v1.yaml} is the source of truth: the
+ * operations are described by the interface generated from it, and this class only adds what springdoc cannot read
+ * from it (the info block and the security scheme). {@code OpenApiDriftIT} fails when the document served differs
+ * from the contract.
  */
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfig {

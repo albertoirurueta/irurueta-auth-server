@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.api.web.clients;
 
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
 import com.irurueta.authserver.authorization.domain.clients.ClientAlreadyExistsException;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
 import java.net.URI;
@@ -24,14 +25,13 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Translates the failures of {@link ClientAdminController} to RFC 9457 problem details. Request validation failures
- * are handled by the parent class.
+ * Translates the failures of {@link ClientAdminController} to RFC 9457 problem details, answered as
+ * {@code application/problem+json}. Request validation failures are handled by the parent class.
  */
 @RestControllerAdvice(assignableTypes = ClientAdminController.class)
-public class ClientExceptionHandler extends ResponseEntityExceptionHandler {
+public class ClientExceptionHandler extends ProblemJsonExceptionHandler {
 
     /** Base of the problem type URNs. */
     private static final String TYPE_BASE = "urn:problem:client:";
@@ -83,6 +83,6 @@ public class ClientExceptionHandler extends ResponseEntityExceptionHandler {
         final var problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(URI.create(TYPE_BASE + type));
         problem.setTitle(title);
-        return ResponseEntity.status(status).body(problem);
+        return problemResponse(problem);
     }
 }
