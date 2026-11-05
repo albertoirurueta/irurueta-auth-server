@@ -16,37 +16,62 @@
 
 package com.irurueta.authserver.testsupport;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import javax.sql.DataSource;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 
+/**
+ * Checks that {@link PostgresIT} wires the test context to the PostgreSQL container of
+ * {@link PostgresTestConfiguration}.
+ */
 @PostgresIT
 class PostgresTestConfigurationIT {
 
+    /**
+     * Server major version expected from {@link PostgresTestConfiguration#POSTGRES_IMAGE}.
+     */
+    private static final String EXPECTED_MAJOR_VERSION = "18";
+
+    /**
+     * Minimal application hosting the auto-configuration of the test context.
+     */
     @SpringBootConfiguration
     @EnableAutoConfiguration
     static class TestApplication {
     }
 
+    /**
+     * Data source created from the container's service connection.
+     */
     @Autowired
     private DataSource dataSource;
 
+    /**
+     * Fails if the data source is unreachable or not backed by the expected PostgreSQL version.
+     *
+     * @throws SQLException if the database cannot be queried.
+     */
     @Test
-    void dataSourceIsReachableAndBackedByPostgres18() throws SQLException {
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement();
-             ResultSet result = statement.executeQuery("SHOW server_version")) {
-            assertThat(result.next()).isTrue();
-            assertThat(result.getString(1)).startsWith("18");
+    void postgresContainer_whenContextStarts_dataSourceIsBackedByPostgres18() throws SQLException {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.createStatement();
+             var result = statement.executeQuery("SHOW server_version")) {
+            assertTrue(result.next());
+            assertTrue(result.getString(1).startsWith(EXPECTED_MAJOR_VERSION));
         }
+    }
+
+    /**
+     * Fails if the image constant drifts from the version the test expects.
+     */
+    @Test
+    void postgresImage_whenRead_namesMajorVersion18() {
+        assertEquals("postgres:" + EXPECTED_MAJOR_VERSION, PostgresTestConfiguration.POSTGRES_IMAGE);
     }
 }

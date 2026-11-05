@@ -29,13 +29,41 @@
   <description>End-to-end browser tests: the packaged auth-server and bff applications driven through headless Chromium.</description>
 
   <dependencies>
-    <!-- the only module dependency: PostgreSQL Testcontainers harness and the JUnit/AssertJ test stack.
-         The applications under test are launched from their packaged jars, never put on this classpath. -->
+    <!-- shared test harness: PostgreSQL Testcontainers support and the JUnit test stack -->
     <dependency>
       <groupId>com.irurueta.authserver</groupId>
       <artifactId>test-support</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
+    </dependency>
+    <!--
+      The packaged applications under test. They are declared only so the reactor builds (and packages) them before
+      this module; the tests launch their jars in child JVMs, so transitive dependencies are excluded and the fat
+      jars contribute nothing but their loader classes to this module's classpath.
+    -->
+    <dependency>
+      <groupId>com.irurueta.authserver</groupId>
+      <artifactId>auth-server-boot</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.irurueta.authserver</groupId>
+      <artifactId>bff-boot</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!--
       Playwright for Java was chosen over Selenium because it manages its own browser binaries, auto-waits for
@@ -57,8 +85,8 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <systemPropertyVariables>
-            <authserver.jar>${project.basedir}/../auth-server/target/auth-server-${project.version}.jar</authserver.jar>
-            <bff.jar>${project.basedir}/../bff/target/bff-${project.version}.jar</bff.jar>
+            <authserver.jar>${project.basedir}/../auth-server/boot/target/auth-server-boot-${project.version}.jar</authserver.jar>
+            <bff.jar>${project.basedir}/../bff/boot/target/bff-boot-${project.version}.jar</bff.jar>
           </systemPropertyVariables>
         </configuration>
       </plugin>

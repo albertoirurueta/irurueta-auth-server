@@ -22,66 +22,17 @@
     <groupId>com.irurueta.authserver</groupId>
     <artifactId>irurueta-auth-server-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>bff</artifactId>
+  <artifactId>bff-parent</artifactId>
+  <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Backend-for-Frontend that signs a browser SPA in through the authorization server and relays its API calls, so tokens never reach JavaScript.</description>
+  <description>Aggregator of the bff modules: Backend-for-Frontend that signs a browser SPA in through the authorization server and relays its API calls, so tokens never reach JavaScript. Pure grouping, no sources of its own.</description>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webmvc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security-oauth2-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webmvc-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security-oauth2-client-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- test-scope only: lets the shared PostgreSQL container publish its @ServiceConnection details;
-         the module has no main-code persistence (the datasource auto-configuration is excluded in tests) -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.irurueta.authserver</groupId>
-      <artifactId>test-support</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
+  <modules>
+    <module>domain</module>
+    <module>api</module>
+    <module>boot</module>
+  </modules>
 </project>

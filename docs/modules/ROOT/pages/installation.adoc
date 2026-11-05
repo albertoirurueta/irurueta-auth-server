@@ -6,7 +6,7 @@ Irurueta Auth Server is an example project, so it is not published as a package.
 
 == Prerequisites
 
-* *JDK 21* or newer. The build enforces Java 21 as the minimum.
+* *JDK 21 to 25*. The build enforces `[21,26)`: SpotBugs cannot parse class files of JDK 26 or newer.
 * *Docker*, for the integration tests (Testcontainers) and for the local services the applications will use.
 * Maven is optional: the repository ships the Maven wrapper (`./mvnw`).
 
@@ -19,13 +19,22 @@ cd irurueta-auth-server
 ./mvnw verify
 ----
 
-`verify` compiles every module, runs the unit tests (`*Test`, Surefire) and the integration tests (`*IT`,
-Failsafe), and writes the JaCoCo coverage reports. The current version is `1.0.0-SNAPSHOT`.
+`./mvnw -B clean verify` compiles every module, runs the unit tests (`*Test`, Surefire) and the integration tests
+(`*IT`, Failsafe), runs every build gate (see xref:reference.adoc#_build_gates[Build gates]) and writes the reports.
+It must be green before pushing. `./mvnw test` is the fast loop: unit tests only, no Spring context and no Docker.
+The current version is `1.0.0-SNAPSHOT`.
+
+To run a single test class in a single module:
+
+[source,bash]
+----
+./mvnw -pl auth-server/api/web -am test -Dtest=LoginControllerTest
+----
 
 The root `compose.yaml` starts PostgreSQL 18 and Mailpit for local development. The integration tests do not use it:
 they start their own PostgreSQL container through the `test-support` module (`@PostgresIT`). The `e2e-tests` module
-is built last and runs a Playwright sign-in smoke test (`SignInSmokeIT`) against the other modules; Playwright
-downloads its Chromium build on first use.
+is built after the applications and runs a Playwright sign-in smoke test (`SignInSmokeIT`) against the packaged
+`auth-server/boot` and `bff/boot` jars; Playwright downloads its Chromium build on first use.
 
 == Run the applications
 
@@ -38,16 +47,16 @@ WARNING: The `dev` profile data and the compose credentials are throwaway develo
 temporarily generated in memory at each start.
 
 Start each application in its own terminal, `auth-server` first. The `dev` profile finds `compose.yaml` at
-`../compose.yaml`, relative to the working directory, which `spring-boot:run` sets to the module directory. When starting
+`../../compose.yaml`, relative to the working directory, which `spring-boot:run` sets to the `auth-server/boot` module directory. When starting
 the jar or an IDE run configuration from elsewhere, point to the file with
 `SPRING_DOCKER_COMPOSE_FILE=<repository>/compose.yaml`.
 
 [source,bash]
 ----
-./mvnw -pl auth-server spring-boot:run -Dspring-boot.run.profiles=dev
-./mvnw -pl resource-server spring-boot:run
-./mvnw -pl bff spring-boot:run
-./mvnw -pl service-client spring-boot:run
+./mvnw -pl auth-server/boot -am spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw -pl resource-server/boot -am spring-boot:run
+./mvnw -pl bff/boot -am spring-boot:run
+./mvnw -pl service-client/boot -am spring-boot:run
 ----
 
 [cols="1,2",options="header"]

@@ -31,6 +31,11 @@ extension points described in xref:architecture.adoc[].
 
 == Modules
 
+Each application below is a Maven sub-reactor split into hexagonal modules (`domain`, `application`,
+`infrastructure/<adapter>`, `api/<adapter>`, `boot`); only its `boot` module is runnable. The layout and the rules
+that enforce it are in xref:architecture.adoc[]. The root reactor also holds `test-support`, `e2e-tests` and
+`coverage`.
+
 [cols="1,1,3",options="header"]
 |===
 |Module

@@ -16,16 +16,18 @@
 
 package com.irurueta.authserver.e2e;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.irurueta.authserver.testsupport.PostgresTestConfiguration;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.Playwright;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterAll;
@@ -41,11 +43,25 @@ import org.testcontainers.utility.DockerImageName;
  */
 class SignInSmokeIT {
 
+    /**
+     * Longest wait for an application to log a given startup line.
+     */
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(2);
 
+    /**
+     * Matches the log line carrying the generated demo user password.
+     */
     private static final Pattern PASSWORD_LOG = Pattern.compile("demo user 'demo' with generated password: (\\S+)");
 
+    /**
+     * Matches the log line carrying the generated {@code bff} client secret.
+     */
     private static final Pattern SECRET_LOG = Pattern.compile("client 'bff' with generated secret: (\\S+)");
+
+    /**
+     * Matches the log line printed once the BFF is up.
+     */
+    private static final Pattern BFF_STARTED = Pattern.compile("Started BffApplication in");
 
     /**
      * Cookies are shared between ports of the same host, so the BFF is reached through a different host name than
@@ -53,18 +69,46 @@ class SignInSmokeIT {
      */
     private static final String BFF_HOST = "127.0.0.1";
 
+    /**
+     * HTTP status of a successful response.
+     */
+    private static final int HTTP_OK = 200;
+
+    /**
+     * PostgreSQL container shared by the authorization server.
+     */
     private static PostgreSQLContainer postgres;
 
+    /**
+     * The packaged authorization server.
+     */
     private static ManagedApp authServer;
 
+    /**
+     * The packaged backend-for-frontend.
+     */
     private static ManagedApp bff;
 
+    /**
+     * Port of the authorization server.
+     */
     private static int authPort;
 
+    /**
+     * Port of the BFF.
+     */
     private static int bffPort;
 
+    /**
+     * Generated password of the demo user.
+     */
     private static String demoPassword;
 
+    /**
+     * Starts the database and both applications, and points the seeded {@code bff} client at the BFF's port.
+     *
+     * @throws Exception if an application or the container cannot be started.
+     */
     @BeforeAll
     static void startApplications() throws Exception {
         final var authJar = jar("authserver.jar");
@@ -92,13 +136,16 @@ class SignInSmokeIT {
         final var update = postgres.execInContainer("psql", "-U", postgres.getUsername(), "-d",
                 postgres.getDatabaseName(), "-c",
                 "UPDATE oauth2_registered_client SET redirect_uris = '" + redirect + "' WHERE client_id = 'bff'");
-        assertThat(update.getExitCode()).as(update.getStderr()).isZero();
+        assertEquals(0, update.getExitCode(), update.getStderr());
 
         bff = ManagedApp.start(bffJar, List.of("--server.port=" + bffPort),
                 List.of("AUTH_ISSUER=" + issuer, "BFF_CLIENT_SECRET=" + clientSecret));
-        bff.await(Pattern.compile("Started BffApplication in"), STARTUP_TIMEOUT);
+        bff.await(BFF_STARTED, STARTUP_TIMEOUT);
     }
 
+    /**
+     * Stops both applications and the database.
+     */
     @AfterAll
     static void stopApplications() {
         if (bff != null) {
@@ -112,8 +159,11 @@ class SignInSmokeIT {
         }
     }
 
+    /**
+     * Signs the demo user in through the BFF and reads the BFF's user endpoint.
+     */
     @Test
-    void demoUserSignsInThroughBff_bffUserContainsSubject() {
+    void bffUser_whenDemoUserSignsIn_containsSubject() {
         try (var playwright = Playwright.create(); var browser = launch(playwright)) {
             final var page = browser.newPage();
             page.navigate("http://" + BFF_HOST + ":" + bffPort + "/oauth2/authorization/bff");
@@ -125,106 +175,45 @@ class SignInSmokeIT {
             page.waitForURL(url -> url.startsWith("http://" + BFF_HOST + ":" + bffPort));
 
             final var response = page.navigate("http://" + BFF_HOST + ":" + bffPort + "/bff/user");
-            assertThat(response.status()).isEqualTo(200);
-            assertThat(response.text()).contains("\"subject\":\"demo\"");
+            assertEquals(HTTP_OK, response.status());
+            assertTrue(response.text().contains("\"subject\":\"demo\""));
         }
     }
 
+    /**
+     * Launches headless Chromium.
+     *
+     * @param playwright the Playwright instance.
+     * @return the browser.
+     */
     private static Browser launch(final Playwright playwright) {
         return playwright.chromium().launch();
     }
 
+    /**
+     * Resolves a packaged application jar from a system property set by Failsafe.
+     *
+     * @param property the system property naming the jar.
+     * @return the jar's path.
+     */
     private static Path jar(final String property) {
         final var value = System.getProperty(property);
-        assertThat(value).as("system property " + property + " (set by Failsafe)").isNotBlank();
+        assertFalse(value == null || value.isBlank(), "system property " + property + " (set by Failsafe)");
         final var path = Path.of(value).normalize();
-        assertThat(path).as("packaged application, run './mvnw verify' from the repository root").exists();
+        assertTrue(Files.exists(path),
+                "packaged application " + path + ", run './mvnw verify' from the repository root");
         return path;
     }
 
+    /**
+     * Finds a free local TCP port.
+     *
+     * @return a port that was free a moment ago.
+     * @throws IOException if no socket can be opened.
+     */
     private static int freePort() throws IOException {
         try (var socket = new ServerSocket(0)) {
             return socket.getLocalPort();
-        }
-    }
-
-    /** A Spring Boot application launched from its packaged jar, with its output captured. */
-    private static final class ManagedApp {
-
-        private final Process process;
-
-        private final List<String> output = new ArrayList<>();
-
-        private ManagedApp(final Process process) {
-            this.process = process;
-        }
-
-        static ManagedApp start(final Path jar, final List<String> args, final List<String> environment)
-                throws IOException {
-            final var command = new ArrayList<String>();
-            command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
-            command.add("-jar");
-            command.add(jar.toString());
-            command.addAll(args);
-            final var builder = new ProcessBuilder(command).redirectErrorStream(true);
-            for (final var entry : environment) {
-                final var idx = entry.indexOf('=');
-                builder.environment().put(entry.substring(0, idx), entry.substring(idx + 1));
-            }
-            final var app = new ManagedApp(builder.start());
-            final var reader = new Thread(app::pump, "e2e-output-" + jar.getFileName());
-            reader.setDaemon(true);
-            reader.start();
-            return app;
-        }
-
-        private void pump() {
-            try (var lines = new java.io.BufferedReader(new java.io.InputStreamReader(
-                    process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = lines.readLine()) != null) {
-                    synchronized (output) {
-                        output.add(line);
-                        output.notifyAll();
-                    }
-                }
-            } catch (final IOException ignored) {
-                // process ended
-            }
-        }
-
-        /** Waits until a log line matches and returns its first group (or the whole match). */
-        String await(final Pattern pattern, final Duration timeout) throws InterruptedException {
-            final var deadline = System.nanoTime() + timeout.toNanos();
-            int seen = 0;
-            synchronized (output) {
-                while (true) {
-                    while (seen < output.size()) {
-                        final var matcher = pattern.matcher(output.get(seen++));
-                        if (matcher.find()) {
-                            return matcher.groupCount() > 0 ? matcher.group(1) : matcher.group();
-                        }
-                    }
-                    final var remaining = deadline - System.nanoTime();
-                    if (remaining <= 0 || !process.isAlive() && seen >= output.size()) {
-                        throw new IllegalStateException("Application did not log " + pattern + ". Output tail:\n"
-                                + String.join("\n", output.subList(Math.max(0, output.size() - 40), output.size())));
-                    }
-                    output.wait(Math.min(remaining / 1_000_000, 500));
-                }
-            }
-        }
-
-        void stop() {
-            process.destroy();
-            try {
-                if (!process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)) {
-                    process.destroyForcibly();
-                }
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                process.destroyForcibly();
-            }
         }
     }
 }
