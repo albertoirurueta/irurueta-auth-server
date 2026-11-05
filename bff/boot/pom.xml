@@ -32,10 +32,6 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>bff-domain</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>bff-api-web</artifactId>
     </dependency>
     <dependency>

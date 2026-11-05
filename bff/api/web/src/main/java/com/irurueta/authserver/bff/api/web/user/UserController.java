@@ -16,7 +16,6 @@
 
 package com.irurueta.authserver.bff.api.web.user;
 
-import com.irurueta.authserver.bff.domain.user.SessionUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,7 +45,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "The signed-in user"),
             @ApiResponse(responseCode = "401", description = "There is no signed-in user", content = @Content)})
     public SessionUserResponse user(@Parameter(hidden = true) @AuthenticationPrincipal final OidcUser user) {
-        return SessionUserResponse.from(new SessionUser(user.getSubject()));
+        return new SessionUserResponse(user.getSubject());
     }
     // end::bff-user[]
 }

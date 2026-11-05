@@ -16,6 +16,8 @@
 
 package com.irurueta.authserver.authorization.api.web;
 
+import static com.irurueta.authserver.authorization.api.web.login.LoginController.LOGIN_PATH;
+
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
@@ -31,9 +33,6 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
  */
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfig {
-
-    /** Path of the login page. */
-    static final String LOGIN_PATH = "/login";
 
     // tag::security-chains[]
     /**

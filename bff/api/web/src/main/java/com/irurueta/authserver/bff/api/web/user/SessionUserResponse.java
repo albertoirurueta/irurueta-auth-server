@@ -16,7 +16,6 @@
 
 package com.irurueta.authserver.bff.api.web.user;
 
-import com.irurueta.authserver.bff.domain.user.SessionUser;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -27,14 +26,4 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "The user signed in to the BFF session")
 public record SessionUserResponse(
         @Schema(description = "Identifier of the signed-in user", example = "demo-user") String subject) {
-
-    /**
-     * Maps a domain user onto its web representation.
-     *
-     * @param user the signed-in user.
-     * @return the response body.
-     */
-    public static SessionUserResponse from(final SessionUser user) {
-        return new SessionUserResponse(user.subject());
-    }
 }

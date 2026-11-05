@@ -63,11 +63,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>bff-domain</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>bff-api-web</artifactId>
       <scope>test</scope>
     </dependency>

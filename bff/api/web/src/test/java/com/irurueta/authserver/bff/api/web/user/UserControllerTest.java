@@ -17,7 +17,6 @@
 package com.irurueta.authserver.bff.api.web.user;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
@@ -52,15 +51,5 @@ class UserControllerTest {
         when(oidcUser.getSubject()).thenReturn(SUBJECT);
 
         assertEquals(SUBJECT, controller.user(oidcUser).subject());
-    }
-
-    /**
-     * Verifies that a user without a subject is rejected rather than exposed.
-     */
-    @Test
-    void user_whenSubjectIsBlank_throwsIllegalArgumentException() {
-        when(oidcUser.getSubject()).thenReturn(" ");
-
-        assertThrows(IllegalArgumentException.class, () -> controller.user(oidcUser));
     }
 }

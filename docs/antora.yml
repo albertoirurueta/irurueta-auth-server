@@ -29,9 +29,6 @@ ext:
         - dir: auth-server/boot
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/boot
-        - dir: bff/domain
-          files: 'src/**'
-          into: modules/ROOT/examples/bff/domain
         - dir: bff/api/web
           files: 'src/**'
           into: modules/ROOT/examples/bff/api/web

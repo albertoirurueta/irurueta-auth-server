@@ -14,24 +14,7 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.bff.domain.user;
-
 /**
- * The user signed in to the BFF session.
- *
- * @param subject identifier of the user, as issued by the authorization server (the OpenID Connect {@code sub}
- *                claim).
+ * Development-only data: the {@code dev} profile seeds a demo user and the BFF client.
  */
-public record SessionUser(String subject) {
-
-    /**
-     * Validates the user.
-     *
-     * @throws IllegalArgumentException if the subject is null or blank.
-     */
-    public SessionUser {
-        if (subject == null || subject.isBlank()) {
-            throw new IllegalArgumentException("subject must not be blank");
-        }
-    }
-}
+package com.irurueta.authserver.authorization.infrastructure.persistence.dev;

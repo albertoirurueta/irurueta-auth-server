@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.authorization;
+package com.irurueta.authserver.authorization.infrastructure.persistence.dev;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -49,6 +49,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Why it lives in {@code src/main} although it only seeds demo data: the end-to-end tests run the real jar, and
  * a class under {@code src/test} never reaches it. It is inert everywhere else: without the {@code dev} profile the
  * bean is not even created. Never activate that profile outside local development.
+ *
+ * <p>It lives in the persistence adapter, next to the Flyway migrations, because it writes the tables those
+ * migrations create: a schema change that breaks it is then caught by this module's own tests.
  *
  * <p>Secrets are generated at first start and logged once as {@code DEV ONLY} warnings; nothing is committed.
  * Running it again does not change existing data.

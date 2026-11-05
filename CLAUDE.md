@@ -68,7 +68,7 @@ module (package granularity). Never weaken either to make code fit; move the cod
   stays a single `boot` module until #8 gives it a domain.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
   or adapter that exists only so a test has something to call lives in `src/test`. The one exception is
-  `DevDataInitializer` (its Javadoc says why).
+  `DevDataInitializer` in `infrastructure/persistence` (its Javadoc says why).
 - `test-support` (shared Testcontainers base), `e2e-tests` and `coverage` (JaCoCo aggregate) are root modules
   outside the applications.
 

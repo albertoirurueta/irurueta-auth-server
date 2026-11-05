@@ -31,7 +31,6 @@
   <description>Aggregator of the bff modules: Backend-for-Frontend that signs a browser SPA in through the authorization server and relays its API calls, so tokens never reach JavaScript. Pure grouping, no sources of its own.</description>
 
   <modules>
-    <module>domain</module>
     <module>api</module>
     <module>boot</module>
   </modules>

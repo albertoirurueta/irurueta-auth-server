@@ -23,7 +23,7 @@
 <main>
   <h1>Sign in</h1>
   <!-- tag::login-form[] -->
-  <form method="post" th:action="@{/login}">
+  <form method="post" th:action="@{${loginPath}}">
     <div th:if="${param.error}" role="alert">Invalid username or password.</div>
     <div th:if="${param.logout}" role="status">You have been signed out.</div>
     <p>

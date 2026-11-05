@@ -31,6 +31,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class LoginController {
 
+    /**
+     * Path of the login page, which also receives the form post. The single source of the path: the security
+     * chains and the template use it too.
+     */
+    public static final String LOGIN_PATH = "/login";
+
+    /** Name of the model attribute that holds the path the login form posts to. */
+    static final String LOGIN_PATH_ATTRIBUTE = "loginPath";
+
     /** Fragments contributed by the authentication methods, sorted by order. */
     private final List<LoginMethodFragment> fragments;
 
@@ -49,8 +58,9 @@ public class LoginController {
      * @param model model of the view.
      * @return the login template name.
      */
-    @GetMapping("/login")
+    @GetMapping(LOGIN_PATH)
     public String login(final Model model) {
+        model.addAttribute(LOGIN_PATH_ATTRIBUTE, LOGIN_PATH);
         model.addAttribute("fragments", fragments);
         return "login";
     }

@@ -60,6 +60,7 @@ class LoginControllerTest {
         final var view = new LoginController(List.of()).login(model);
 
         assertEquals("login", view);
+        assertEquals(LoginController.LOGIN_PATH, model.get(LoginController.LOGIN_PATH_ATTRIBUTE));
         assertTrue(((List<?>) model.get(FRAGMENTS)).isEmpty());
     }
 

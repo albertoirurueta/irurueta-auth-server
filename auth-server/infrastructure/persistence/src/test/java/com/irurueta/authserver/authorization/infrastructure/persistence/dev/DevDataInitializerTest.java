@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.authorization;
+package com.irurueta.authserver.authorization.infrastructure.persistence.dev;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

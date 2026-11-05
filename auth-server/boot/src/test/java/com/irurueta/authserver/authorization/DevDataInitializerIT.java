@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.irurueta.authserver.authorization.infrastructure.persistence.dev.DevDataInitializer;
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.util.List;
 import org.junit.jupiter.api.Test;
