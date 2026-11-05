@@ -17,93 +17,58 @@
 package com.irurueta.authserver.resourceserver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.irurueta.authserver.resourceserver.api.web.OpenApiConfig;
+import com.irurueta.authserver.testsupport.OpenApiContract;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.core.util.DefaultIndenter;
-import tools.jackson.core.util.DefaultPrettyPrinter;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Fails when the published OpenAPI document differs from the committed {@code openapi/resource-server.json}, so API
- * changes are always reviewed. Run with {@code -Dopenapi.update=true} to rewrite the committed file. The document
- * is always written and compared with {@code \n} line endings, so the result does not depend on the platform.
+ * Fails when the API the running application serves drifts from its contract
+ * {@code apis/resource-server/rest-server/resource-server-api-v1.yaml}: an endpoint mapped by hand outside the
+ * generated interface, a contract operation no controller implements, or a different status code, parameter, body,
+ * security requirement or schema. The OpenAPI document springdoc serves is built from the running application's
+ * mappings and the annotations generated from the contract, and both are compared through {@link OpenApiContract}.
+ * Only {@code /api/**} is compared, so the test-only endpoints of this module's integration tests are left out.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 class OpenApiDriftIT {
 
-    /** Name of the system property that rewrites the committed file instead of comparing with it. */
-    private static final String UPDATE_PROPERTY = "openapi.update";
+    /** The contract, relative to the directory of this module. */
+    private static final Path CONTRACT = Path.of("..", "..", "apis", "resource-server", "rest-server",
+            "resource-server-api-v1.yaml");
 
-    /** Line ending of the committed file, never the platform's own. */
-    private static final String LINE_FEED = "\n";
-
-    /** Indentation of the committed file. */
-    private static final String INDENT = "  ";
-
-    /** Committed OpenAPI file, relative to the directory of this module. */
-    private static final Path COMMITTED = Path.of("..", "..", "openapi", "resource-server.json");
+    /** Prefix of the paths of the REST API. */
+    private static final String API_PREFIX = "/api/";
 
     /** MockMvc bound to the application context. */
     @Autowired
     private MockMvc mockMvc;
 
     /**
-     * Verifies that the published OpenAPI document equals the committed one.
+     * Verifies that the served OpenAPI document describes exactly the API of the contract.
      *
-     * @throws Exception if the document cannot be read or written.
+     * @throws Exception if the document cannot be fetched or the contract cannot be read.
      */
     @Test
-    void apiDocs_whenApiIsUnchanged_matchCommittedOpenApiFile() throws Exception {
+    void apiDocs_whenApplicationRuns_matchContract() throws Exception {
         final var body = mockMvc.perform(get(OpenApiConfig.API_DOCS_PATH))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        final var actual = normalize(body);
 
-        if (Boolean.getBoolean(UPDATE_PROPERTY)) {
-            Files.createDirectories(COMMITTED.getParent());
-            Files.writeString(COMMITTED, actual, StandardCharsets.UTF_8);
-            return;
-        }
+        final var expected = OpenApiContract.summarize(OpenApiContract.read(CONTRACT), API_PREFIX);
+        final var actual = OpenApiContract.summarize(OpenApiContract.parse(body), API_PREFIX);
 
-        assertTrue(Files.exists(COMMITTED), "committed OpenAPI file missing; regenerate it with: "
-                + "./mvnw -pl resource-server/boot -am verify -D" + UPDATE_PROPERTY + "=true -Dit.test=OpenApiDriftIT");
-        assertEquals(Files.readString(COMMITTED, StandardCharsets.UTF_8), actual,
-                "The published API differs from " + COMMITTED + ". If the change is intended, regenerate the file "
-                        + "with: ./mvnw -pl resource-server/boot -am verify -D" + UPDATE_PROPERTY
-                        + "=true -Dit.test=OpenApiDriftIT and commit it.");
-    }
-
-    /**
-     * Pretty-prints the document with sorted keys, {@code \n} line endings and without the server list, which
-     * depends on the test port.
-     *
-     * @param json document as published.
-     * @return the normalized document.
-     */
-    private static String normalize(final String json) {
-        final var mapper = JsonMapper.builder()
-                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-                .build();
-        final var printer = new DefaultPrettyPrinter()
-                .withObjectIndenter(new DefaultIndenter(INDENT, LINE_FEED))
-                .withArrayIndenter(new DefaultIndenter(INDENT, LINE_FEED));
-        final Map<String, Object> document = mapper.readValue(json, new TypeReference<>() { });
-        document.remove("servers");
-        return mapper.writer().with(printer).writeValueAsString(document) + LINE_FEED;
+        assertEquals(expected, OpenApiContract.restrictTo(actual, expected),
+                "The served API differs from " + CONTRACT + ". Change the contract (the interface and DTOs are "
+                        + "generated from it) instead of mapping an endpoint by hand.");
     }
 }

@@ -16,17 +16,17 @@
 
 package com.irurueta.authserver.resourceserver.api.web.documents;
 
+import com.irurueta.authserver.resourceserver.api.web.v1.generated.model.DocumentResponse;
 import com.irurueta.authserver.resourceserver.domain.documents.Document;
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
- * Maps domain documents onto their web representation, so a domain model is never returned from a controller.
+ * Maps domain documents onto the DTO generated from the contract, so a domain model is never returned from
+ * {@link DocumentController}.
  */
-final class DocumentMapper {
-
-    /** Utility class: not meant to be instantiated. */
-    private DocumentMapper() {
-    }
+@Component
+public class DocumentDtoMapper {
 
     /**
      * Maps one document.
@@ -34,7 +34,7 @@ final class DocumentMapper {
      * @param document the domain document.
      * @return its web representation.
      */
-    static DocumentResponse toResponse(final Document document) {
+    public DocumentResponse toResponse(final Document document) {
         return new DocumentResponse(document.id(), document.owner(), document.title(), document.content());
     }
 
@@ -44,7 +44,7 @@ final class DocumentMapper {
      * @param documents the domain documents.
      * @return their web representations.
      */
-    static List<DocumentResponse> toResponses(final List<Document> documents) {
-        return documents.stream().map(DocumentMapper::toResponse).toList();
+    public List<DocumentResponse> toResponses(final List<Document> documents) {
+        return documents.stream().map(this::toResponse).toList();
     }
 }

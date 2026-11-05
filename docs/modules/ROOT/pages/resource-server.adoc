@@ -41,7 +41,15 @@ include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/r
 include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/documents/DocumentController.java[tag=resource-server-method-security]
 ----
 
-The API is described by the committed document `openapi/resource-server.json`; the Swagger UI is not shipped.
+The API is defined by the contract `apis/resource-server/rest-server/resource-server-api-v1.yaml`: `DocumentController`
+implements the `DocumentsApi` interface generated from it, and `DocumentDtoMapper` maps the domain documents onto the
+generated `DocumentResponse`. The running server publishes the matching OpenAPI document at `/v3/api-docs`, which
+`OpenApiDriftIT` compares with the contract; the Swagger UI is not shipped.
+
+[source,yaml]
+----
+include::example$apis/resource-server/rest-server/resource-server-api-v1.yaml[tag=resource-server-documents-api]
+----
 
 == Token validation
 

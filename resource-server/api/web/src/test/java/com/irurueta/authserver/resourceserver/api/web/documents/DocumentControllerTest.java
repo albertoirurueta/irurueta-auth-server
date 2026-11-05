@@ -17,21 +17,27 @@
 package com.irurueta.authserver.resourceserver.api.web.documents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.resourceserver.api.web.v1.generated.model.DocumentResponse;
 import com.irurueta.authserver.resourceserver.application.documents.DeleteDocumentUseCase;
 import com.irurueta.authserver.resourceserver.application.documents.ListDocumentsUseCase;
 import com.irurueta.authserver.resourceserver.domain.documents.Document;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Unit tests for {@link DocumentController}.
@@ -53,18 +59,31 @@ class DocumentControllerTest {
     @Mock
     private DeleteDocumentUseCase deleteDocumentUseCase;
 
+    /** Real mapper onto the generated DTO, spied so the controller is wired with it. */
+    @Spy
+    private DocumentDtoMapper documentDtoMapper = new DocumentDtoMapper();
+
     /** Subject under test. */
     @InjectMocks
     private DocumentController controller;
+
+    /** Clears the caller set by a test, so it never leaks into another one. */
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
 
     /** A regular caller only sees their own documents. */
     @Test
     void list_whenCallerIsNotAdministrator_listsOwnDocuments() {
         when(listDocumentsUseCase.listOwn(SUBJECT)).thenReturn(List.of(new Document(ID, SUBJECT, "T", "C")));
 
-        final var response = controller.list(new TestingAuthenticationToken(SUBJECT, null, "SCOPE_documents.read"));
+        signIn("SCOPE_documents.read");
 
-        assertEquals(List.of(new DocumentResponse(ID, SUBJECT, "T", "C")), response);
+        final var response = controller.listDocuments();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(List.of(new DocumentResponse(ID, SUBJECT, "T", "C")), response.getBody());
         verifyNoInteractions(deleteDocumentUseCase);
     }
 
@@ -73,9 +92,11 @@ class DocumentControllerTest {
     void list_whenCallerIsAdministrator_listsAllDocuments() {
         when(listDocumentsUseCase.listAll()).thenReturn(List.of(new Document(ID, "bob", "T", "C")));
 
-        final var response = controller.list(new TestingAuthenticationToken(SUBJECT, null, "ROLE_ADMIN"));
+        signIn("ROLE_ADMIN");
 
-        assertEquals(List.of(new DocumentResponse(ID, "bob", "T", "C")), response);
+        final var response = controller.listDocuments();
+
+        assertEquals(List.of(new DocumentResponse(ID, "bob", "T", "C")), response.getBody());
     }
 
     /** Deleting a document passes the caller and whether they are an administrator, and answers 204. */
@@ -83,7 +104,9 @@ class DocumentControllerTest {
     void delete_whenDocumentIsDeleted_returnsNoContent() {
         when(deleteDocumentUseCase.execute(ID, SUBJECT, false)).thenReturn(true);
 
-        assertEquals(HttpStatus.NO_CONTENT, controller.delete(ID, caller("SCOPE_documents.delete")).getStatusCode());
+        signIn("SCOPE_documents.delete");
+
+        assertEquals(HttpStatus.NO_CONTENT, controller.deleteDocument(ID).getStatusCode());
         verify(deleteDocumentUseCase).execute(ID, SUBJECT, false);
     }
 
@@ -92,7 +115,9 @@ class DocumentControllerTest {
     void delete_whenCallerIsAdministrator_passesTheAdministratorFlag() {
         when(deleteDocumentUseCase.execute(ID, SUBJECT, true)).thenReturn(true);
 
-        assertEquals(HttpStatus.NO_CONTENT, controller.delete(ID, caller("ROLE_ADMIN")).getStatusCode());
+        signIn("ROLE_ADMIN");
+
+        assertEquals(HttpStatus.NO_CONTENT, controller.deleteDocument(ID).getStatusCode());
     }
 
     /** A missing document, or someone else's, answers 404. */
@@ -100,16 +125,25 @@ class DocumentControllerTest {
     void delete_whenDocumentIsMissingOrNotOwned_returnsNotFound() {
         when(deleteDocumentUseCase.execute(ID, SUBJECT, false)).thenReturn(false);
 
-        assertEquals(HttpStatus.NOT_FOUND, controller.delete(ID, caller("SCOPE_documents.delete")).getStatusCode());
+        signIn("SCOPE_documents.delete");
+
+        assertEquals(HttpStatus.NOT_FOUND, controller.deleteDocument(ID).getStatusCode());
+    }
+
+    /** Without an authenticated caller nothing is listed: the request is rejected as unauthenticated. */
+    @Test
+    void listDocuments_whenNobodyIsAuthenticated_throwsAuthenticationCredentialsNotFoundException() {
+        assertThrows(AuthenticationCredentialsNotFoundException.class, controller::listDocuments);
+        verifyNoInteractions(listDocumentsUseCase);
     }
 
     /**
-     * Builds an authenticated caller.
+     * Authenticates the caller in the security context, as the bearer token filter does.
      *
      * @param authorities authorities of the caller.
-     * @return the caller.
      */
-    private static TestingAuthenticationToken caller(final String... authorities) {
-        return new TestingAuthenticationToken(SUBJECT, null, authorities);
+    private static void signIn(final String... authorities) {
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(SUBJECT, null,
+                authorities));
     }
 }

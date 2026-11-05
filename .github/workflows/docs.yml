@@ -4,7 +4,8 @@ name: Documentation
 #   /            the Antora site built from docs/
 #   /mvn-site/   the staged multi-module Maven site: aggregated Javadoc, JaCoCo, Surefire/Failsafe, Checkstyle, PMD,
 #                SpotBugs and JXR reports, linked from the Antora Reference page
-#   /openapi/    the committed OpenAPI documents
+#   /openapi/    the API contracts under apis/ (<app>-api-v1.yaml) and their HTML reference (<app>/v1/index.html),
+#                rendered by the html2 execution of each api/web module during the build
 # Only documentation is published: the applications themselves are never deployed. Build and test is still the
 # workflow that gates pushes and pull requests; this one runs the same build again so the reports have real data.
 on:
@@ -69,7 +70,12 @@ jobs:
           mkdir public
           cp -r docs/build/site/. public/
           cp -r target/staging public/mvn-site
-          cp -r openapi public/openapi
+          mkdir -p public/openapi
+          for app in auth-server resource-server bff; do
+            cp "apis/$app/rest-server/$app-api-v1.yaml" public/openapi/
+            mkdir -p "public/openapi/$app"
+            cp -r "$app/api/web/target/generated-docs/rest-server/v1" "public/openapi/$app/v1"
+          done
           touch public/.nojekyll
 
       - name: Deploy to GitHub Pages

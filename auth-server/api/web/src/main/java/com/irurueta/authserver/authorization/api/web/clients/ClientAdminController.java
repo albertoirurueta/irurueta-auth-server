@@ -16,6 +16,11 @@
 
 package com.irurueta.authserver.authorization.api.web.clients;
 
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.ClientsApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientRequest;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientResponse;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientSecretResponse;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.CreatedClientResponse;
 import com.irurueta.authserver.authorization.application.clients.CreateClientUseCase;
 import com.irurueta.authserver.authorization.application.clients.DeleteClientUseCase;
 import com.irurueta.authserver.authorization.application.clients.GetClientUseCase;
@@ -23,33 +28,21 @@ import com.irurueta.authserver.authorization.application.clients.ListClientsUseC
 import com.irurueta.authserver.authorization.application.clients.RotateClientSecretUseCase;
 import com.irurueta.authserver.authorization.application.clients.UpdateClientUseCase;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Administration of the registered clients. Secrets are never returned, except once when a confidential client is
- * created or its secret is rotated. Failures are answered as problem details by {@link ClientExceptionHandler}.
+ * Administration of the registered clients, as the contract
+ * {@code apis/auth-server/rest-server/auth-server-api-v1.yaml} describes it through the generated {@link ClientsApi}.
+ * Secrets are never returned, except once when a confidential client is created or its secret is rotated. Failures
+ * are answered as problem details by {@link ClientExceptionHandler}.
  */
 @RestController
-@RequestMapping("/api/admin/clients")
-@Tag(name = "Clients", description = "Administration of the registered clients")
 @RequiredArgsConstructor
-public class ClientAdminController {
+public class ClientAdminController implements ClientsApi {
 
     /** Lists the clients. */
     private final ListClientsUseCase listClientsUseCase;
@@ -69,16 +62,17 @@ public class ClientAdminController {
     /** Rotates client secrets. */
     private final RotateClientSecretUseCase rotateClientSecretUseCase;
 
+    /** Maps between the generated DTOs and the domain. */
+    private final ClientDtoMapper clientDtoMapper;
+
     /**
      * Lists the clients.
      *
      * @return every client, without secrets.
      */
-    @GetMapping
-    @Operation(summary = "Lists the registered clients")
-    @ApiResponse(responseCode = "200", description = "The clients")
-    public List<ClientResponse> list() {
-        return listClientsUseCase.execute().stream().map(ClientResponse::from).toList();
+    @Override
+    public ResponseEntity<List<ClientResponse>> listClients() {
+        return ResponseEntity.ok(clientDtoMapper.toResponses(listClientsUseCase.execute()));
     }
 
     /**
@@ -88,33 +82,22 @@ public class ClientAdminController {
      * @return the client, without secret.
      * @throws ClientNotFoundException if no such client exists.
      */
-    @GetMapping("/{clientId}")
-    @Operation(summary = "Gets a registered client")
-    @ApiResponse(responseCode = "200", description = "The client")
-    @ApiResponse(responseCode = "404", description = "No such client",
-            content = @Content(mediaType = "application/problem+json"))
-    public ClientResponse get(@PathVariable final String clientId) {
-        return getClientUseCase.execute(clientId).map(ClientResponse::from)
-                .orElseThrow(() -> new ClientNotFoundException(clientId));
+    @Override
+    public ResponseEntity<ClientResponse> getClient(final String clientId) {
+        return ResponseEntity.ok(getClientUseCase.execute(clientId).map(clientDtoMapper::toResponse)
+                .orElseThrow(() -> new ClientNotFoundException(clientId)));
     }
 
     /**
      * Creates a client.
      *
      * @param request definition of the client.
-     * @return the client and, when confidential, its generated secret (shown only once).
+     * @return {@code 201 Created} with the client and, when confidential, its generated secret (shown only once).
      */
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Creates a client",
-            description = "The generated secret of a confidential client is returned only in this answer.")
-    @ApiResponse(responseCode = "201", description = "The created client")
-    @ApiResponse(responseCode = "400", description = "Invalid definition",
-            content = @Content(mediaType = "application/problem+json"))
-    @ApiResponse(responseCode = "409", description = "The client identifier is already registered",
-            content = @Content(mediaType = "application/problem+json"))
-    public CreatedClientResponse create(@Valid @RequestBody final ClientRequest request) {
-        return CreatedClientResponse.from(createClientUseCase.execute(request.toRegistration()));
+    @Override
+    public ResponseEntity<CreatedClientResponse> createClient(final ClientRequest request) {
+        final var created = createClientUseCase.execute(clientDtoMapper.toRegistration(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(clientDtoMapper.toCreatedResponse(created));
     }
 
     /**
@@ -125,35 +108,26 @@ public class ClientAdminController {
      * @return the updated client.
      * @throws IllegalArgumentException if the identifier in the body differs from the path.
      */
-    @PutMapping("/{clientId}")
-    @Operation(summary = "Updates a client", description = "The secret of the client is not changed.")
-    @ApiResponse(responseCode = "200", description = "The updated client")
-    @ApiResponse(responseCode = "400", description = "Invalid definition",
-            content = @Content(mediaType = "application/problem+json"))
-    @ApiResponse(responseCode = "404", description = "No such client",
-            content = @Content(mediaType = "application/problem+json"))
-    public ClientResponse update(@PathVariable final String clientId, @Valid @RequestBody final ClientRequest request) {
+    @Override
+    public ResponseEntity<ClientResponse> updateClient(final String clientId, final ClientRequest request) {
         if (!clientId.equals(request.clientId())) {
             throw new IllegalArgumentException("The clientId of the body must match the path");
         }
-        final var registration = request.toRegistration();
+        final var registration = clientDtoMapper.toRegistration(request);
         updateClientUseCase.execute(registration);
-        return ClientResponse.from(registration);
+        return ResponseEntity.ok(clientDtoMapper.toResponse(registration));
     }
 
     /**
      * Deletes a client.
      *
      * @param clientId identifier of the client.
+     * @return {@code 204 No Content}.
      */
-    @DeleteMapping("/{clientId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Deletes a client")
-    @ApiResponse(responseCode = "204", description = "Client deleted")
-    @ApiResponse(responseCode = "404", description = "No such client",
-            content = @Content(mediaType = "application/problem+json"))
-    public void delete(@PathVariable final String clientId) {
+    @Override
+    public ResponseEntity<Void> deleteClient(final String clientId) {
         deleteClientUseCase.execute(clientId);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -162,15 +136,8 @@ public class ClientAdminController {
      * @param clientId identifier of the client.
      * @return the new secret (shown only once).
      */
-    @PostMapping("/{clientId}/secret")
-    @Operation(summary = "Rotates the secret of a confidential client",
-            description = "The new secret is returned only in this answer.")
-    @ApiResponse(responseCode = "200", description = "The new secret")
-    @ApiResponse(responseCode = "400", description = "The client is public",
-            content = @Content(mediaType = "application/problem+json"))
-    @ApiResponse(responseCode = "404", description = "No such client",
-            content = @Content(mediaType = "application/problem+json"))
-    public ClientSecretResponse rotateSecret(@PathVariable final String clientId) {
-        return new ClientSecretResponse(rotateClientSecretUseCase.execute(clientId));
+    @Override
+    public ResponseEntity<ClientSecretResponse> rotateClientSecret(final String clientId) {
+        return ResponseEntity.ok(clientDtoMapper.toSecretResponse(rotateClientSecretUseCase.execute(clientId)));
     }
 }

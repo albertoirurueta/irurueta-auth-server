@@ -48,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -94,6 +95,10 @@ class ClientAdminControllerTest {
     /** Rotates secrets. */
     @Mock
     private RotateClientSecretUseCase rotateClientSecretUseCase;
+
+    /** Real mapper between the generated DTOs and the domain, spied so the controller is wired with it. */
+    @Spy
+    private ClientDtoMapper clientDtoMapper = new ClientDtoMapper();
 
     /** Controller under test. */
     @InjectMocks

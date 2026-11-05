@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.api.web.account;
 
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
 import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import com.irurueta.authserver.authorization.domain.account.InvalidAccountTokenException;
 import com.irurueta.authserver.authorization.domain.password.CompromisedPasswordException;
@@ -29,15 +30,14 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Translates the failures of {@link AccountController} to RFC 9457 problem details. Request validation failures are
- * handled by the parent class, which already answers problem details. The messages never say whether an e-mail
- * address exists.
+ * Translates the failures of {@link AccountController} to RFC 9457 problem details, answered as
+ * {@code application/problem+json}. Request validation failures are handled by the parent class, which already
+ * answers problem details. The messages never say whether an e-mail address exists.
  */
 @RestControllerAdvice(assignableTypes = AccountController.class)
-public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
+public class AccountExceptionHandler extends ProblemJsonExceptionHandler {
 
     /** Base of the problem type URNs. */
     private static final String TYPE_BASE = "urn:problem:account:";
@@ -104,9 +104,9 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         final var problem = problem(HttpStatus.TOO_MANY_REQUESTS, "rate-limited", "Too many requests",
                 exception.getMessage());
         final var seconds = Math.max(1, exception.getRetryAfter().toSeconds());
-        return ResponseEntity.status(problem.getStatus())
-                .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
-                .body(problem);
+        final var headers = new HttpHeaders();
+        headers.set(HttpHeaders.RETRY_AFTER, Long.toString(seconds));
+        return problemResponse(problem, headers);
     }
 
     /**
@@ -157,6 +157,6 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
      * @return the response carrying the problem's status.
      */
     private static ResponseEntity<ProblemDetail> respond(final ProblemDetail problem) {
-        return ResponseEntity.status(problem.getStatus()).body(problem);
+        return problemResponse(problem);
     }
 }

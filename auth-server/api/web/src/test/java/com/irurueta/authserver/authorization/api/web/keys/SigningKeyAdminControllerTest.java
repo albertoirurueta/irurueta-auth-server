@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -50,6 +51,10 @@ class SigningKeyAdminControllerTest {
     /** Rotates the keys. */
     @Mock
     private SigningKeyRotator signingKeyRotator;
+
+    /** Real mapper onto the generated DTO, spied so the controller is wired with it. */
+    @Spy
+    private SigningKeyDtoMapper signingKeyDtoMapper = new SigningKeyDtoMapper();
 
     /** Subject under test. */
     @InjectMocks
