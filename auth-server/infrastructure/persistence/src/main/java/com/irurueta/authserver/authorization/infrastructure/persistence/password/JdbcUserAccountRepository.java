@@ -23,7 +23,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * {@link UserAccountRepository} reading user accounts from the {@code users}, {@code user_authorities} and
@@ -91,6 +90,9 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
     /** JDBC client used to run the queries. */
     private final JdbcClient jdbcClient;
 
+    /** Maps a user row, without its authorities. */
+    private final UserAccountRowMapper userAccountRowMapper;
+
     // tag::password-load-user[]
     @Override
     public Optional<UserAccount> findByUsername(final String username) {
@@ -114,8 +116,13 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
                 .query(Integer.class).single() > 0;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Several statements: runs in the caller's transaction, which the use case opens (transactions are
+     * demarcated by the use cases, never by the adapters).
+     */
     @Override
-    @Transactional
     public void save(final UserAccount account) {
         jdbcClient.sql(UPSERT_USER)
                 .params(account.id(), account.username(), account.enabled(), account.email(),
@@ -150,28 +157,10 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
      */
     private Optional<UserAccount> findOne(final String sql, final Object value) {
         return jdbcClient.sql(sql).param(value)
-                .query((rs, rowNum) -> new UserRow(rs.getObject("id", UUID.class), rs.getString("username"),
-                        rs.getString("encoded_password"), rs.getBoolean("enabled"), rs.getString("email"),
-                        rs.getBoolean("email_verified"), rs.getString("tenant")))
+                .query(userAccountRowMapper)
                 .optional()
-                .map(row -> new UserAccount(row.id(), row.username(), row.password(), row.enabled(),
-                        jdbcClient.sql(FIND_AUTHORITIES).param(row.id()).query(String.class).list(),
-                        row.email(), row.emailVerified(), row.tenant()));
+                .map(row -> row.toUserAccount(
+                        jdbcClient.sql(FIND_AUTHORITIES).param(row.id()).query(String.class).list()));
     }
     // end::password-load-user[]
-
-    /**
-     * Columns of the user row, before its authorities are loaded.
-     *
-     * @param id            identifier of the user.
-     * @param username      name the user signs in with.
-     * @param password      encoded password.
-     * @param enabled       whether the account is enabled.
-     * @param email         e-mail address, or {@code null} when the user has none.
-     * @param emailVerified whether the e-mail address was verified.
-     * @param tenant        tenant the user belongs to.
-     */
-    private record UserRow(UUID id, String username, String password, boolean enabled, String email,
-                           boolean emailVerified, String tenant) {
-    }
 }

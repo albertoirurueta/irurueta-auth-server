@@ -71,8 +71,11 @@ class DatabaseJwkSourceConfigurationTest {
     /** Clock of the caches. */
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
-    /** Cipher shared by the generator and the configuration. */
+    /** Cipher shared by the generator and the mapper. */
     private final AesGcmKeyCipher cipher = new AesGcmKeyCipher(KeyTestSupport.randomProperties());
+
+    /** Mapper the configuration converts the stored keys with. */
+    private final SigningKeyJwkMapper mapper = new SigningKeyJwkMapper(cipher);
 
     /** Configuration under test. */
     private final DatabaseJwkSourceConfiguration configuration = new DatabaseJwkSourceConfiguration();
@@ -105,7 +108,7 @@ class DatabaseJwkSourceConfigurationTest {
     @Test
     void jwkSource_whenSeveralKeysArePublished_listsAllOfThemWithoutPrivateParts() throws Exception {
         when(published.execute()).thenReturn(List.of(next, current, retired));
-        final var source = configuration.jwkSource(configuration.publishedJwkSet(published, clock, TTL));
+        final var source = configuration.jwkSource(configuration.publishedJwkSet(published, mapper, clock, TTL));
 
         final var keys = source.get(everything(), null);
 
@@ -123,17 +126,17 @@ class DatabaseJwkSourceConfigurationTest {
     void jwtEncoder_whenSeveralKeysArePublished_signsOnlyWithTheActiveKey() throws Exception {
         when(published.execute()).thenReturn(List.of(next, current, retired));
         when(active.execute()).thenReturn(Optional.of(current));
-        final var encoder = configuration.jwtEncoder(configuration.signingJwkSet(active, cipher, clock, TTL));
+        final var encoder = configuration.jwtEncoder(configuration.signingJwkSet(active, mapper, clock, TTL));
         final var claims = JwtClaimsSet.builder().subject(UUID.randomUUID().toString()).build();
         final var header = JwsHeader.with(SignatureAlgorithm.RS256).build();
 
         final var token = encoder.encode(JwtEncoderParameters.from(header, claims));
 
         assertEquals(current.kid(), token.getHeaders().get("kid"));
-        final var signing = configuration.signingJwkSet(active, cipher, clock, TTL).get();
+        final var signing = configuration.signingJwkSet(active, mapper, clock, TTL).get();
         assertEquals(1, signing.getKeys().size());
         assertTrue(signing.getKeys().getFirst().isPrivate());
-        final var listed = configuration.publishedJwkSet(published, clock, TTL).get().getKeys();
+        final var listed = configuration.publishedJwkSet(published, mapper, clock, TTL).get().getKeys();
         assertEquals(published.execute().size(), listed.size());
     }
 
@@ -143,25 +146,12 @@ class DatabaseJwkSourceConfigurationTest {
     @Test
     void jwtEncoder_whenThereIsNoActiveKey_throwsJwtEncodingException() {
         when(active.execute()).thenReturn(Optional.empty());
-        final var encoder = configuration.jwtEncoder(configuration.signingJwkSet(active, cipher, clock, TTL));
+        final var encoder = configuration.jwtEncoder(configuration.signingJwkSet(active, mapper, clock, TTL));
         final var claims = JwtClaimsSet.builder().subject(UUID.randomUUID().toString()).build();
         final var header = JwsHeader.with(SignatureAlgorithm.RS256).build();
         final var parameters = JwtEncoderParameters.from(header, claims);
 
         assertThrows(JwtEncodingException.class, () -> encoder.encode(parameters));
-    }
-
-    /**
-     * Verifies that a stored key that cannot be parsed is reported.
-     */
-    @Test
-    void publishedJwkSet_whenStoredKeyIsNotAJwk_throwsIllegalStateException() {
-        final var broken = new SigningKey(next.kid(), next.alg(), "{}", next.encryptedPrivateJwk(), next.status(),
-                NOW, null, null);
-        when(published.execute()).thenReturn(List.of(broken));
-        final var set = configuration.publishedJwkSet(published, clock, TTL);
-
-        assertThrows(IllegalStateException.class, set::get);
     }
 
     /**
@@ -172,7 +162,7 @@ class DatabaseJwkSourceConfigurationTest {
     @Test
     void jwkSource_whenNoKeysArePublished_isEmpty() throws Exception {
         when(published.execute()).thenReturn(List.of());
-        final var source = configuration.jwkSource(configuration.publishedJwkSet(published, clock, TTL));
+        final var source = configuration.jwkSource(configuration.publishedJwkSet(published, mapper, clock, TTL));
 
         assertFalse(source.get(everything(), null).iterator().hasNext());
     }

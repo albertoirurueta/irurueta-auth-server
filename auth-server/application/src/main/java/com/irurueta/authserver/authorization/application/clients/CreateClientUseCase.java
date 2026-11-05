@@ -22,12 +22,14 @@ import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRe
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that registers a client. A confidential client gets a generated secret, stored encoded and returned in
  * clear text only once.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class CreateClientUseCase {
 

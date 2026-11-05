@@ -21,11 +21,13 @@ import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRe
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that looks a client up by its identifier.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class GetClientUseCase {
 

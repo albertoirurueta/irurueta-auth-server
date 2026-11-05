@@ -49,7 +49,7 @@ public class ChangePasswordUseCase {
     private final RevokeUserAuthorizationsUseCase revokeUserAuthorizationsUseCase;
 
     /** Rules a new password must follow. */
-    private final PasswordPolicy passwordPolicy = new PasswordPolicy();
+    private final PasswordPolicy passwordPolicy;
 
     /**
      * Changes the password of a user.

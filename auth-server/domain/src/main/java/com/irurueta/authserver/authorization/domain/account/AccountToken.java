@@ -16,6 +16,8 @@
 
 package com.irurueta.authserver.authorization.domain.account;
 
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -48,12 +50,8 @@ public record AccountToken(
         if (id == null || userId == null) {
             throw new IllegalArgumentException("id and userId must not be null");
         }
-        if (purpose == null || purpose.isBlank()) {
-            throw new IllegalArgumentException("purpose must not be blank");
-        }
-        if (hashedToken == null || hashedToken.isBlank()) {
-            throw new IllegalArgumentException("hashedToken must not be blank");
-        }
+        requireText(purpose, "purpose");
+        requireText(hashedToken, "hashedToken");
         if (expiresAt == null) {
             throw new IllegalArgumentException("expiresAt must not be null");
         }

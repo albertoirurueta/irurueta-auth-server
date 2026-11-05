@@ -282,7 +282,22 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameter deliberately shares the field's name (removing it there is a silent self-assignment).
 - **Utility predicates over multi-branch conditions**: Spring's `StringUtils.hasText(value)` instead of
   `value == null || value.isBlank()`, `CollectionUtils.isEmpty(list)` instead of `list == null || list.isEmpty()`.
-  They are on every module's classpath except `domain`, which uses plain JDK checks.
+  They are on every module's classpath except `domain`, which uses its own `domain.Preconditions`
+  (`requireText`, `requireTextIfPresent`, `isBlank`) so a compact constructor has no null-or-blank branches.
+- **Transactions belong to the use cases.** Every `*UseCase` is `@Transactional` (`readOnly = true` when it only
+  reads), on the class or on each public method; `HexagonalArchitectureTest` fails the build otherwise. Adapters never
+  open a transaction of their own: a repository method with several statements runs in its caller's (the advisory
+  lock's `TransactionTemplate` in `JdbcSigningKeyRepository` joins it). Only non-use-case entry points such as
+  `DevDataInitializer` demarcate their own.
+- **Mappers are classes.** A conversion between layers or types (domain model ↔ web DTO, ↔ framework type such as
+  `UserDetails`, `RegisteredClient` or `JWK`, ↔ database row) lives in an explicit mapper of the adapter (a
+  `@Component` named `*Mapper`, or a `RowMapper<T>` class), injected and unit-tested on its own; never a private
+  static `toX`/`map` method inside a controller, repository or `@Configuration`. Mappers never live in `domain`.
+- **Collaborators are beans.** A use case never `new`s a policy, generator or strategy: it is declared as a `@Bean`
+  (for a domain type, in a `@Configuration` of `application`) and injected, so it can be replaced and mocked. Tests
+  that need the real behaviour use `@Spy` with a real instance.
+- **Don't reinvent infrastructure.** Rate limiting, retries, circuit breakers and caches use an established library
+  (Bucket4j, Resilience4j, Caffeine), never hand-written counters, maps or loops; check for one before writing it.
 
 ### Lombok
 

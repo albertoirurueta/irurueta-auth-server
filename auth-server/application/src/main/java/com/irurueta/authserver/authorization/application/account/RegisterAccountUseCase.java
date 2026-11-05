@@ -73,7 +73,7 @@ public class RegisterAccountUseCase {
     private final AccountMailer accountMailer;
 
     /** Rules a new password must follow. */
-    private final PasswordPolicy passwordPolicy = new PasswordPolicy();
+    private final PasswordPolicy passwordPolicy;
 
     // tag::account-register[]
     /**

@@ -16,6 +16,8 @@
 
 package com.irurueta.authserver.authorization.domain.password;
 
+import static com.irurueta.authserver.authorization.domain.Preconditions.isBlank;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -52,7 +54,7 @@ public final class PasswordPolicy {
         if (length > MAX_LENGTH) {
             violations.add(PasswordViolation.TOO_LONG);
         }
-        if (username != null && !username.isBlank()
+        if (!isBlank(username)
                 && candidate.toLowerCase(Locale.ROOT).contains(username.toLowerCase(Locale.ROOT))) {
             violations.add(PasswordViolation.CONTAINS_USERNAME);
         }

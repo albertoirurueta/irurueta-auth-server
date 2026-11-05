@@ -55,7 +55,7 @@ class JdbcAccountTokenRepositoryIT {
     @BeforeAll
     static void connect() {
         jdbcClient = JdbcClient.create(MigratedPostgres.dataSource());
-        repository = new JdbcAccountTokenRepository(jdbcClient);
+        repository = new JdbcAccountTokenRepository(jdbcClient, new AccountTokenRowMapper());
     }
 
     /**

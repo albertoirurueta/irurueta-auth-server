@@ -64,7 +64,7 @@ public class ResetPasswordUseCase {
     private final Clock clock;
 
     /** Rules a new password must follow. */
-    private final PasswordPolicy passwordPolicy = new PasswordPolicy();
+    private final PasswordPolicy passwordPolicy;
 
     // tag::account-reset-password[]
     /**

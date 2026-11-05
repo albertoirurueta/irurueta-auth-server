@@ -16,6 +16,8 @@
 
 package com.irurueta.authserver.authorization.domain.clients;
 
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -58,15 +60,9 @@ public record ClientRegistration(
      *                                  require PKCE.
      */
     public ClientRegistration {
-        if (clientId == null || clientId.isBlank()) {
-            throw new IllegalArgumentException("clientId must not be blank");
-        }
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("name must not be blank");
-        }
-        if (accessTokenFormat == null || accessTokenFormat.isBlank()) {
-            throw new IllegalArgumentException("accessTokenFormat must not be blank");
-        }
+        requireText(clientId, "clientId");
+        requireText(name, "name");
+        requireText(accessTokenFormat, "accessTokenFormat");
         requireNoNulls(authMethods, "authMethods");
         authMethods = List.copyOf(authMethods);
         requireNoNulls(grantTypes, "grantTypes");

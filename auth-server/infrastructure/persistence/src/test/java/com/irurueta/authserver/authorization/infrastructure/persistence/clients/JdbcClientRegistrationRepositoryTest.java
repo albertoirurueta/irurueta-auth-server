@@ -17,10 +17,12 @@
 package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,12 +44,11 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Unit tests of {@link JdbcClientRegistrationRepository}, with the registered client repository and the JDBC
- * client mocked. The mapping through the real JDBC repository runs against PostgreSQL in
- * {@link JdbcClientRegistrationRepositoryIT}.
+ * Unit tests of {@link JdbcClientRegistrationRepository}, with the registered client repository, the JDBC client and
+ * the mapper mocked. The mapping itself is covered by {@link RegisteredClientMapperTest}, and the mapping through the
+ * real JDBC repository runs against PostgreSQL in {@link JdbcClientRegistrationRepositoryIT}.
  */
 @ExtendWith(MockitoExtension.class)
 class JdbcClientRegistrationRepositoryTest {
@@ -58,8 +59,11 @@ class JdbcClientRegistrationRepositoryTest {
     /** Client id used by the tests. */
     private static final String CLIENT_ID = "bff";
 
-    /** Audience used by the tests. */
-    private static final String AUDIENCE = "resource-server";
+    /** Client id listed in the table whose client is no longer found. */
+    private static final String GONE_CLIENT_ID = "gone";
+
+    /** Internal identifier of the stored client. */
+    private static final String ROW_ID = "row-id";
 
     /** Lifetime of access tokens used by the tests. */
     private static final Duration ACCESS_TTL = Duration.ofMinutes(10);
@@ -75,79 +79,71 @@ class JdbcClientRegistrationRepositoryTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private JdbcClient client;
 
+    /** Maps between registrations and registered clients. */
+    @Mock
+    private RegisteredClientMapper registeredClientMapper;
+
     /** Repository under test. */
     @InjectMocks
     private JdbcClientRegistrationRepository repository;
 
     /**
-     * Verifies that an empty result is returned when the client is not registered.
+     * Verifies that an empty result is returned, and nothing is mapped, when the client is not registered.
      */
     @Test
     void findByClientId_whenClientIsMissing_returnsEmpty() {
         assertTrue(repository.findByClientId(CLIENT_ID).isEmpty());
+
+        verify(registeredClientMapper, never()).toRegistration(any());
     }
 
     /**
-     * Verifies that a client saved by the repository is read back as the same registration.
+     * Verifies that a registered client is returned as the registration the mapper builds from it.
      */
     @Test
-    void findByClientId_whenClientWasSaved_roundTripsTheRegistration() {
-        final var registration = confidential();
-        final var saved = save(registration, encoded());
-        when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(saved);
+    void findByClientId_whenClientExists_returnsMappedRegistration() {
+        final var registered = registeredClient(null);
+        final var registration = registration();
+        when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(registered);
+        when(registeredClientMapper.toRegistration(registered)).thenReturn(registration);
 
-        assertEquals(registration, repository.findByClientId(CLIENT_ID).orElseThrow());
+        assertSame(registration, repository.findByClientId(CLIENT_ID).orElseThrow());
     }
 
     /**
-     * Verifies that a public client round-trips as public, with no client authentication.
-     */
-    @Test
-    void findByClientId_whenClientIsPublic_isNotConfidential() {
-        final var registration = new ClientRegistration("spa", "Single-page application", false, List.of("none"),
-                List.of("authorization_code"), List.of("http://localhost:3000/callback"), List.of("openid"), true,
-                List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL, ClientRegistration.FORMAT_REFERENCE, true);
-        final var saved = save(registration, null);
-        when(registeredClientRepository.findByClientId("spa")).thenReturn(saved);
-
-        final var found = repository.findByClientId("spa").orElseThrow();
-
-        assertFalse(found.confidential());
-        assertEquals(registration, found);
-    }
-
-    /**
-     * Verifies that every client id of the table is loaded through the registered client repository.
+     * Verifies that every client id of the table is loaded through the registered client repository, skipping the
+     * ones that are no longer found.
      */
     @Test
     void findAll_whenClientsExist_returnsAllRegistrations() {
-        final var first = save(confidential(), encoded());
-        when(client.sql(any(String.class)).query(String.class).list()).thenReturn(List.of(CLIENT_ID, "gone"));
-        when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(first);
+        final var registered = registeredClient(null);
+        final var registration = registration();
+        when(client.sql(any(String.class)).query(String.class).list()).thenReturn(List.of(CLIENT_ID, GONE_CLIENT_ID));
+        when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(registered);
+        when(registeredClientMapper.toRegistration(registered)).thenReturn(registration);
 
-        final var all = repository.findAll();
-
-        assertEquals(List.of(confidential()), all);
+        assertEquals(List.of(registration), repository.findAll());
     }
 
     /**
-     * Verifies that a new client is stored with a generated identifier, the given secret, its audiences as a
-     * custom setting and its token settings.
+     * Verifies that a new client is mapped with a generated identifier, an issue instant and the given secret, and
+     * that the mapped client is stored.
      */
     @Test
     void save_whenClientIsNew_storesTheMappedClient() {
-        final var storedValue = encoded();
+        final var registration = registration();
+        final var secret = encoded();
+        final var mapped = registeredClient(secret);
+        when(registeredClientMapper.toRegisteredClient(eq(registration), any(String.class), any(Instant.class),
+                eq(secret))).thenReturn(mapped);
 
-        final var stored = save(confidential(), storedValue);
+        repository.save(registration, secret);
 
-        assertNotNull(stored.getId());
-        assertEquals(storedValue, stored.getClientSecret());
-        assertEquals(List.of(AUDIENCE), stored.getClientSettings().getSetting(
-                JdbcClientRegistrationRepository.AUDIENCES_SETTING));
-        assertTrue(stored.getClientSettings().isRequireProofKey());
-        assertEquals(ACCESS_TTL, stored.getTokenSettings().getAccessTokenTimeToLive());
-        assertEquals(REFRESH_TTL, stored.getTokenSettings().getRefreshTokenTimeToLive());
-        assertFalse(stored.getTokenSettings().isReuseRefreshTokens());
+        final var id = ArgumentCaptor.<String>captor();
+        verify(registeredClientMapper).toRegisteredClient(eq(registration), id.capture(), any(Instant.class),
+                eq(secret));
+        assertNotNull(UUID.fromString(id.getValue()));
+        verify(registeredClientRepository).save(mapped);
     }
 
     /**
@@ -157,19 +153,37 @@ class JdbcClientRegistrationRepositoryTest {
     void save_whenClientExistsAndSecretIsNull_keepsStoredSecretAndIdentifier() {
         final var issuedAt = Instant.parse("2025-06-01T00:00:00Z");
         final var storedValue = encoded();
-        final var existing = RegisteredClient.withId("row-id").clientId(CLIENT_ID).clientIdIssuedAt(issuedAt)
-                .clientSecret(storedValue).clientAuthenticationMethod(
-                        new ClientAuthenticationMethod("client_secret_basic"))
-                .authorizationGrantType(
-                        new AuthorizationGrantType("client_credentials"))
+        final var existing = RegisteredClient.withId(ROW_ID).clientId(CLIENT_ID).clientIdIssuedAt(issuedAt)
+                .clientSecret(storedValue)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .build();
+        final var registration = registration();
         when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(existing);
+        when(registeredClientMapper.toRegisteredClient(registration, ROW_ID, issuedAt, storedValue))
+                .thenReturn(existing);
 
-        final var stored = save(confidential(), null);
+        repository.save(registration, null);
 
-        assertEquals("row-id", stored.getId());
-        assertEquals(storedValue, stored.getClientSecret());
-        assertEquals(issuedAt, stored.getClientIdIssuedAt());
+        verify(registeredClientRepository).save(existing);
+    }
+
+    /**
+     * Verifies that saving an existing client with a new secret replaces the secret but keeps the identifier.
+     */
+    @Test
+    void save_whenClientExistsAndSecretIsGiven_replacesTheSecret() {
+        final var existing = registeredClient(encoded());
+        final var registration = registration();
+        final var secret = encoded();
+        final var mapped = registeredClient(secret);
+        when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(existing);
+        when(registeredClientMapper.toRegisteredClient(eq(registration), eq(ROW_ID), any(Instant.class),
+                eq(secret))).thenReturn(mapped);
+
+        repository.save(registration, secret);
+
+        verify(registeredClientRepository).save(mapped);
     }
 
     /**
@@ -187,18 +201,6 @@ class JdbcClientRegistrationRepositoryTest {
     }
 
     /**
-     * Verifies that the three deletions run in one transaction.
-     *
-     * @throws NoSuchMethodException if the method is missing.
-     */
-    @Test
-    void deleteByClientId_whenInspected_isTransactional() throws NoSuchMethodException {
-        final var method = JdbcClientRegistrationRepository.class.getMethod("deleteByClientId", String.class);
-
-        assertNotNull(method.getAnnotation(Transactional.class));
-    }
-
-    /**
      * Verifies that the secret is replaced for the client id.
      */
     @Test
@@ -211,20 +213,6 @@ class JdbcClientRegistrationRepositoryTest {
     }
 
     /**
-     * Saves a registration and captures the registered client handed to the registered client repository.
-     *
-     * @param registration the registration.
-     * @param storedValue  encoded secret, or {@code null}.
-     * @return the captured registered client.
-     */
-    private RegisteredClient save(final ClientRegistration registration, final String storedValue) {
-        repository.save(registration, storedValue);
-        final var captor = ArgumentCaptor.<RegisteredClient>captor();
-        verify(registeredClientRepository).save(captor.capture());
-        return captor.getValue();
-    }
-
-    /**
      * Builds a runtime-generated placeholder for an encoded value.
      *
      * @return the placeholder.
@@ -234,14 +222,27 @@ class JdbcClientRegistrationRepositoryTest {
     }
 
     /**
-     * Builds a confidential registration with refresh tokens and rotation.
+     * Builds a registered client stored under {@link #ROW_ID}.
+     *
+     * @param secret encoded secret, or {@code null}.
+     * @return the registered client.
+     */
+    private static RegisteredClient registeredClient(final String secret) {
+        return RegisteredClient.withId(ROW_ID).clientId(CLIENT_ID).clientSecret(secret)
+                .clientIdIssuedAt(Instant.now())
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .build();
+    }
+
+    /**
+     * Builds a confidential registration.
      *
      * @return the registration.
      */
-    private static ClientRegistration confidential() {
+    private static ClientRegistration registration() {
         return new ClientRegistration(CLIENT_ID, "Backend for Frontend", true, List.of("client_secret_basic"),
-                List.of("authorization_code", "refresh_token"), List.of("http://localhost:8080/login/oauth2/code/bff"),
-                List.of("openid", "profile"), true, List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                List.of("client_credentials"), List.of(), List.of("openid"), true, List.of(), ACCESS_TTL,
+                REFRESH_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false);
     }
 }

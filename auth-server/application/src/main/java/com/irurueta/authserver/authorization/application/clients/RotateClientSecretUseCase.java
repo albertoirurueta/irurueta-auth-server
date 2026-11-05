@@ -21,11 +21,13 @@ import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRe
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that replaces the secret of a confidential client with a new generated one.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class RotateClientSecretUseCase {
 

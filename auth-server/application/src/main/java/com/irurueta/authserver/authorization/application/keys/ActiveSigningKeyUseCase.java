@@ -22,11 +22,13 @@ import com.irurueta.authserver.authorization.domain.keys.SigningKeyStatus;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that finds the one key that signs new tokens.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ActiveSigningKeyUseCase {
 

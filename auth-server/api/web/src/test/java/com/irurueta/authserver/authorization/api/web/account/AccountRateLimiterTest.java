@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web.account;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -117,20 +118,31 @@ class AccountRateLimiterTest {
     }
 
     /**
-     * Verifies that the counters stay bounded: tracking more keys than allowed forgets the oldest, whose count
-     * starts again.
+     * Verifies that the buckets stay bounded: tracking more keys than allowed evicts some, so memory cannot grow
+     * with the number of distinct clients.
      */
     @Test
-    void check_whenMoreKeysThanTrackedArrive_forgetsTheOldest() {
+    void check_whenMoreKeysThanTrackedArrive_staysBounded() {
         final var limiter = limiter(true);
         when(clock.instant()).thenReturn(NOW);
-        for (var i = 0; i < PER_CLIENT; i++) {
-            limiter.check(CLIENT, null);
-        }
+        limiter.check(CLIENT, null);
         limiter.check(OTHER_CLIENT, null);
         limiter.check(THIRD_CLIENT, null);
 
-        assertDoesNotThrow(() -> limiter.check(CLIENT, null));
+        assertTrue(limiter.trackedKeys() <= MAX_KEYS);
+    }
+
+    /**
+     * Verifies that a bucket idle for a whole window is dropped, since it would be full again anyway.
+     */
+    @Test
+    void check_whenKeyIsIdleForAWindow_isNoLongerTracked() {
+        final var limiter = limiter(true);
+        when(clock.instant()).thenReturn(NOW);
+        limiter.check(CLIENT, EMAIL);
+        when(clock.instant()).thenReturn(NOW.plus(WINDOW));
+
+        assertEquals(0L, limiter.trackedKeys());
     }
 
     /**

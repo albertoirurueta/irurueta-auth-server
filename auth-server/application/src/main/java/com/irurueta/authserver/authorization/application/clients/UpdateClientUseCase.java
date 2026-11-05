@@ -21,11 +21,13 @@ import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that replaces the settings of a registered client; its secret is kept.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class UpdateClientUseCase {
 

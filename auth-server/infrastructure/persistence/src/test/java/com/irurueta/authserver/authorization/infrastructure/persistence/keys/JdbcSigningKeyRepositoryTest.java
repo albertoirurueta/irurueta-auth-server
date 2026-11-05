@@ -26,16 +26,12 @@ import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.keys.SigningKey;
 import com.irurueta.authserver.authorization.domain.keys.SigningKeyStatus;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -76,34 +72,26 @@ class JdbcSigningKeyRepositoryTest {
     @Mock
     private TransactionTemplate transactionTemplate;
 
+    /** Maps a row to a key; mocked so the tests control the mapped keys. */
+    @Mock
+    private SigningKeyRowMapper signingKeyRowMapper;
+
     /** Repository under test. */
     @InjectMocks
     private JdbcSigningKeyRepository repository;
 
     /**
-     * Verifies that the rows are mapped to keys, including a null activation and retirement.
-     *
-     * @throws SQLException never; declared by the mocked result set.
+     * Verifies that the rows are read with the signing key row mapper and returned as they are mapped.
      */
     @Test
-    void findAll_whenRowsExist_mapsKeys() throws SQLException {
-        final var resultSet = mock(ResultSet.class);
-        when(resultSet.getString("kid")).thenReturn(KID);
-        when(resultSet.getString("alg")).thenReturn(ALG);
-        when(resultSet.getString("public_jwk")).thenReturn(PUBLIC_JWK);
-        when(resultSet.getString("private_jwk_encrypted")).thenReturn(ENCRYPTED_JWK);
-        when(resultSet.getString("status")).thenReturn("NEXT");
-        when(resultSet.getObject("created_at", OffsetDateTime.class)).thenReturn(CREATED.atOffset(ZoneOffset.UTC));
-        when(resultSet.getObject("activated_at", OffsetDateTime.class)).thenReturn(null);
-        when(resultSet.getObject("retired_at", OffsetDateTime.class)).thenReturn(null);
-        final var captor = ArgumentCaptor.<RowMapper<Object>>captor();
-        when(client.sql(any(String.class)).query(captor.capture()).list())
-                .thenAnswer(invocation -> List.of(captor.getValue().mapRow(resultSet, 0)));
+    void findAll_whenRowsExist_returnsMappedKeys() {
+        final var key = new SigningKey(KID, ALG, PUBLIC_JWK, ENCRYPTED_JWK, SigningKeyStatus.NEXT, CREATED, null,
+                null);
+        when(client.sql(any(String.class)).query(signingKeyRowMapper).list()).thenReturn(List.of(key));
 
         final var keys = repository.findAll();
 
-        assertEquals(List.of(new SigningKey(KID, ALG, PUBLIC_JWK, ENCRYPTED_JWK, SigningKeyStatus.NEXT, CREATED,
-                null, null)), keys);
+        assertEquals(List.of(key), keys);
     }
 
     /**

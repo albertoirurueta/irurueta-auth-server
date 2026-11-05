@@ -16,6 +16,8 @@
 
 package com.irurueta.authserver.authorization.domain.keys;
 
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+
 import java.time.Instant;
 
 /**
@@ -69,17 +71,5 @@ public record SigningKey(
     public SigningKey retire(final Instant now) {
         return new SigningKey(kid, alg, publicJwk, encryptedPrivateJwk, SigningKeyStatus.RETIRED, createdAt,
                 activatedAt, now);
-    }
-
-    /**
-     * Rejects a null or blank text.
-     *
-     * @param value value to check.
-     * @param name  name of the value, for the message.
-     */
-    private static void requireText(final String value, final String name) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(name + " must not be blank");
-        }
     }
 }

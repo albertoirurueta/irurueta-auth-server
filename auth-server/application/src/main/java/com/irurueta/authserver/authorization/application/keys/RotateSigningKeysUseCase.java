@@ -27,6 +27,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that keeps the signing keys rotating. One call, made at start-up and then on a schedule, does whatever is
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Service;
  * administrator's path: it replaces the active key immediately, whatever its age.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class RotateSigningKeysUseCase {
 

@@ -65,7 +65,7 @@ class JdbcSigningKeyRepositoryIT {
         final var dataSource = MigratedPostgres.dataSource();
         jdbcClient = JdbcClient.create(dataSource);
         repository = new JdbcSigningKeyRepository(jdbcClient,
-                new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
+                new TransactionTemplate(new DataSourceTransactionManager(dataSource)), new SigningKeyRowMapper());
     }
 
     /**

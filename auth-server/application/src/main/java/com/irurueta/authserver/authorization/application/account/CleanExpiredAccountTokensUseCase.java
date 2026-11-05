@@ -20,12 +20,14 @@ import com.irurueta.authserver.authorization.domain.account.AccountTokenReposito
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that deletes the account tokens (password reset links) that have expired, used or not: once expired they
  * can never be consumed, so keeping them only grows the table.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class CleanExpiredAccountTokensUseCase {
 

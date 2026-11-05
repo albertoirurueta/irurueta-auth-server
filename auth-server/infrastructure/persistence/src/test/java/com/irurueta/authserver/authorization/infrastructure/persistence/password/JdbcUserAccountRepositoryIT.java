@@ -81,7 +81,7 @@ class JdbcUserAccountRepositoryIT {
         final var dataSource = new DriverManagerDataSource(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         jdbcClient = JdbcClient.create(dataSource);
-        repository = new JdbcUserAccountRepository(jdbcClient);
+        repository = new JdbcUserAccountRepository(jdbcClient, new UserAccountRowMapper());
     }
 
     /**

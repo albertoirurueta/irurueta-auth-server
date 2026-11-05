@@ -89,8 +89,10 @@ class NimbusSignedTokenServiceTest {
         lenient().when(active.execute()).thenReturn(Optional.of(key));
         final var clock = Clock.fixed(NOW, ZoneOffset.UTC);
         final var configuration = new DatabaseJwkSourceConfiguration();
-        encoder = configuration.jwtEncoder(configuration.signingJwkSet(active, cipher, clock, Duration.ofMinutes(1)));
-        jwkSource = configuration.jwkSource(configuration.publishedJwkSet(published, clock, Duration.ofMinutes(1)));
+        final var mapper = new SigningKeyJwkMapper(cipher);
+        encoder = configuration.jwtEncoder(configuration.signingJwkSet(active, mapper, clock, Duration.ofMinutes(1)));
+        jwkSource = configuration.jwkSource(configuration.publishedJwkSet(published, mapper, clock,
+                Duration.ofMinutes(1)));
         service = serviceAt(NOW, ISSUER);
     }
 

@@ -20,11 +20,13 @@ import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundExcept
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that deletes a registered client.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class DeleteClientUseCase {
 

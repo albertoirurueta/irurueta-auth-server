@@ -23,12 +23,14 @@ import java.time.Clock;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that finds the keys to publish in the JWKS: the active key, the next key (so relying parties can cache it
  * before it signs) and every retired key whose tokens may still be unexpired.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PublishedSigningKeysUseCase {
 

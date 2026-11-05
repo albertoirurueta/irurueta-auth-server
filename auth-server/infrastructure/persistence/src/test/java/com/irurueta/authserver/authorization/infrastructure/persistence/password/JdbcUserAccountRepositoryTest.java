@@ -20,14 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -71,6 +68,10 @@ class JdbcUserAccountRepositoryTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private JdbcClient client;
 
+    /** Maps a user row; mocked so the tests control the row. */
+    @Mock
+    private UserAccountRowMapper userAccountRowMapper;
+
     /** Repository under test. */
     @InjectMocks
     private JdbcUserAccountRepository repository;
@@ -88,34 +89,20 @@ class JdbcUserAccountRepositoryTest {
     }
 
     /**
-     * Verifies that the row and the authorities of an existing user are mapped to an account.
-     *
-     * @throws SQLException never; declared by the mocked result set.
+     * Verifies that the row of an existing user is completed with its authorities.
      */
     @Test
-    void findByUsername_whenUserExists_returnsAccount() throws SQLException {
+    void findByUsername_whenUserExists_returnsAccountWithAuthorities() {
         final var id = UUID.randomUUID();
-        final var resultSet = mock(ResultSet.class);
-        when(resultSet.getObject("id", UUID.class)).thenReturn(id);
-        when(resultSet.getString("username")).thenReturn(USERNAME);
-        when(resultSet.getString("encoded_password")).thenReturn(ENCODED_PASSWORD);
-        when(resultSet.getBoolean("enabled")).thenReturn(false);
-        when(resultSet.getString("email")).thenReturn(null);
-        when(resultSet.getBoolean("email_verified")).thenReturn(false);
-        when(resultSet.getString("tenant")).thenReturn(UserAccount.DEFAULT_TENANT);
-        final var captor = ArgumentCaptor.<RowMapper<Object>>captor();
+        final var row = new UserAccountRow(id, USERNAME, ENCODED_PASSWORD, false, null, false,
+                UserAccount.DEFAULT_TENANT);
         final var spec = client.sql(any(String.class)).param(any());
-        when(spec.query(captor.capture()).optional())
-                .thenAnswer(invocation -> Optional.of(captor.getValue().mapRow(resultSet, 0)));
+        when(spec.query(userAccountRowMapper).optional()).thenReturn(Optional.of(row));
         when(spec.query(String.class).list()).thenReturn(List.of(ROLE_USER));
 
         final var account = repository.findByUsername(USERNAME).orElseThrow();
 
-        assertEquals(id, account.id());
-        assertEquals(USERNAME, account.username());
-        assertEquals(ENCODED_PASSWORD, account.encodedPassword());
-        assertFalse(account.enabled());
-        assertEquals(List.of(ROLE_USER), account.authorities());
+        assertEquals(row.toUserAccount(List.of(ROLE_USER)), account);
     }
 
     /**
@@ -175,17 +162,13 @@ class JdbcUserAccountRepositoryTest {
     }
 
     /**
-     * Verifies that the e-mail columns of the row are mapped to the account.
-     *
-     * @throws SQLException never; declared by the mocked result set.
+     * Verifies that a user found by e-mail address keeps the e-mail columns of its row.
      */
     @Test
-    void findByEmail_whenUserExists_mapsEmailColumns() throws SQLException {
-        final var resultSet = mockRow(UUID.randomUUID());
-        final var captor = ArgumentCaptor.<RowMapper<Object>>captor();
+    void findByEmail_whenUserExists_returnsAccountWithEmailColumns() {
+        final var row = new UserAccountRow(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, EMAIL, true, TENANT);
         final var spec = client.sql(any(String.class)).param(any());
-        when(spec.query(captor.capture()).optional())
-                .thenAnswer(invocation -> Optional.of(captor.getValue().mapRow(resultSet, 0)));
+        when(spec.query(userAccountRowMapper).optional()).thenReturn(Optional.of(row));
         when(spec.query(String.class).list()).thenReturn(List.of());
 
         final var account = repository.findByEmail(EMAIL).orElseThrow();
@@ -234,24 +217,5 @@ class JdbcUserAccountRepositoryTest {
         when(client.sql(any(String.class)).param(id).update()).thenReturn(0);
 
         assertFalse(repository.markEmailVerified(id));
-    }
-
-    /**
-     * Mocks a result set row with the columns of an account.
-     *
-     * @param id identifier returned for the user.
-     * @return the mocked row.
-     * @throws SQLException never; declared by the mocked result set.
-     */
-    private static ResultSet mockRow(final UUID id) throws SQLException {
-        final var resultSet = mock(ResultSet.class);
-        when(resultSet.getObject("id", UUID.class)).thenReturn(id);
-        when(resultSet.getString("username")).thenReturn(USERNAME);
-        when(resultSet.getString("encoded_password")).thenReturn(ENCODED_PASSWORD);
-        when(resultSet.getBoolean("enabled")).thenReturn(true);
-        when(resultSet.getString("email")).thenReturn(EMAIL);
-        when(resultSet.getBoolean("email_verified")).thenReturn(true);
-        when(resultSet.getString("tenant")).thenReturn(TENANT);
-        return resultSet;
     }
 }

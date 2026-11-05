@@ -19,11 +19,13 @@ package com.irurueta.authserver.authorization.application.tokens;
 import com.irurueta.authserver.authorization.domain.tokens.UserAuthorizationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that revokes every token of a user, for example after a password change or reset.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class RevokeUserAuthorizationsUseCase {
 

@@ -16,8 +16,7 @@
 
 package com.irurueta.authserver.authorization.api.web.password;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,7 +35,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -66,38 +64,27 @@ class UserAccountUserDetailsServiceTest {
     @Mock
     private UpgradePasswordHashUseCase upgradePasswordHashUseCase;
 
+    /** Maps an account onto user details. */
+    @Mock
+    private UserDetailsMapper userDetailsMapper;
+
     /** Service under test. */
     @InjectMocks
     private UserAccountUserDetailsService service;
 
     /**
-     * Verifies that an enabled account is mapped to enabled user details.
+     * Verifies that a found account is mapped through the mapper with its stored password.
      */
     @Test
-    void loadUserByUsername_whenAccountIsEnabled_returnsEnabledUser() {
-        when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.of(
-                new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, List.of(ROLE_USER))));
+    void loadUserByUsername_whenAccountExists_returnsMappedUser() {
+        final var account = new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, List.of(ROLE_USER));
+        final var details = User.withUsername(USERNAME).password(ENCODED_PASSWORD).authorities(ROLE_USER).build();
+        when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.of(account));
+        when(userDetailsMapper.toUserDetails(account, ENCODED_PASSWORD)).thenReturn(details);
 
         final var user = service.loadUserByUsername(USERNAME);
 
-        assertEquals(USERNAME, user.getUsername());
-        assertEquals(ENCODED_PASSWORD, user.getPassword());
-        assertTrue(user.isEnabled());
-        assertEquals(List.of(ROLE_USER), user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
-    }
-
-    /**
-     * Verifies that a disabled account is mapped to disabled user details.
-     */
-    @Test
-    void loadUserByUsername_whenAccountIsDisabled_returnsDisabledUser() {
-        when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.of(
-                new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, false, List.of())));
-
-        final var user = service.loadUserByUsername(USERNAME);
-
-        assertFalse(user.isEnabled());
-        assertTrue(user.getAuthorities().isEmpty());
+        assertSame(details, user);
     }
 
     /**
@@ -121,11 +108,14 @@ class UserAccountUserDetailsServiceTest {
         when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.of(account));
         final var current = User.withUsername(USERNAME).password(ENCODED_PASSWORD).authorities(ROLE_USER).build();
 
+        final var details = User.withUsername(USERNAME).password(NEW_ENCODED_PASSWORD).authorities(ROLE_USER)
+                .build();
+        when(userDetailsMapper.toUserDetails(account, NEW_ENCODED_PASSWORD)).thenReturn(details);
+
         final var updated = service.updatePassword(current, NEW_ENCODED_PASSWORD);
 
         verify(upgradePasswordHashUseCase).replaceHash(account, NEW_ENCODED_PASSWORD);
-        assertEquals(NEW_ENCODED_PASSWORD, updated.getPassword());
-        assertEquals(USERNAME, updated.getUsername());
+        assertSame(details, updated);
     }
 
     /**

@@ -18,10 +18,7 @@ package com.irurueta.authserver.authorization.api.web.password;
 
 import com.irurueta.authserver.authorization.application.password.FindUserAccountUseCase;
 import com.irurueta.authserver.authorization.application.password.UpgradePasswordHashUseCase;
-import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -30,9 +27,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Spring Security {@link UserDetailsService} adapter over the {@link FindUserAccountUseCase} use case: it maps the
- * domain {@code UserAccount} onto Spring Security's {@link User}. As a {@link UserDetailsPasswordService} it also
- * stores the stronger hash that the authentication provider produces after a successful sign-in with an outdated
- * encoding, through the {@link UpgradePasswordHashUseCase} use case.
+ * domain {@code UserAccount} onto Spring Security's {@link UserDetails} through the {@link UserDetailsMapper}. As
+ * a {@link UserDetailsPasswordService} it also stores the stronger hash that the authentication provider produces
+ * after a successful sign-in with an outdated encoding, through the {@link UpgradePasswordHashUseCase} use case.
  */
 @Component
 @RequiredArgsConstructor
@@ -44,10 +41,13 @@ public class UserAccountUserDetailsService implements UserDetailsService, UserDe
     /** Use case that stores the upgraded hash. */
     private final UpgradePasswordHashUseCase upgradePasswordHashUseCase;
 
+    /** Maps an account onto Spring Security's user details. */
+    private final UserDetailsMapper userDetailsMapper;
+
     @Override
     public UserDetails loadUserByUsername(final String username) throws UsernameNotFoundException {
         return findUserAccountUseCase.execute(username)
-                .map(account -> toUserDetails(account, account.encodedPassword()))
+                .map(account -> userDetailsMapper.toUserDetails(account, account.encodedPassword()))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
@@ -57,22 +57,7 @@ public class UserAccountUserDetailsService implements UserDetailsService, UserDe
         final var account = findUserAccountUseCase.execute(user.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + user.getUsername()));
         upgradePasswordHashUseCase.replaceHash(account, newPassword);
-        return toUserDetails(account, newPassword);
+        return userDetailsMapper.toUserDetails(account, newPassword);
     }
     // end::password-upgrade[]
-
-    /**
-     * Maps an account onto Spring Security's user details.
-     *
-     * @param account         the account.
-     * @param encodedPassword the encoded password the details carry.
-     * @return the user details.
-     */
-    private static UserDetails toUserDetails(final UserAccount account, final String encodedPassword) {
-        return User.withUsername(account.username())
-                .password(encodedPassword)
-                .disabled(!account.enabled())
-                .authorities(AuthorityUtils.createAuthorityList(account.authorities()))
-                .build();
-    }
 }

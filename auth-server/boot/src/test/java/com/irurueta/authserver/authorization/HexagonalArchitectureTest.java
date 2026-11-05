@@ -19,12 +19,18 @@ package com.irurueta.authserver.authorization;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.library.Architectures;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Architecture rules of the hexagon, checked at package granularity over the classes of every module. They
@@ -103,6 +109,15 @@ class HexagonalArchitectureTest {
             .that().haveSimpleNameEndingWith("UseCase")
             .should().resideInAPackage(APPLICATION);
 
+    /**
+     * Every use case demarcates its own transaction, on the class or on each of its public methods: transactions
+     * are a use-case concern, so an adapter never has to open one and a port call never runs without one.
+     */
+    @ArchTest
+    static final ArchRule USE_CASES_ARE_TRANSACTIONAL = classes()
+            .that().haveSimpleNameEndingWith("UseCase")
+            .should(beTransactional());
+
     /** Classes named {@code *Controller} live in the api layer. */
     @ArchTest
     static final ArchRule CONTROLLERS_LIVE_IN_API = classes()
@@ -122,6 +137,25 @@ class HexagonalArchitectureTest {
             .whereLayer("Application").mayOnlyBeAccessedByLayers("Infrastructure", "Api", "Boot")
             .whereLayer("Infrastructure").mayOnlyBeAccessedByLayers("Boot")
             .whereLayer("Api").mayOnlyBeAccessedByLayers("Boot");
+
+    /**
+     * Condition met by a class annotated with {@link Transactional}, or whose public methods all are.
+     *
+     * @return the condition.
+     */
+    private static ArchCondition<JavaClass> beTransactional() {
+        return new ArchCondition<>("be annotated with @Transactional on the class or on every public method") {
+            @Override
+            public void check(final JavaClass item, final ConditionEvents events) {
+                final var transactional = item.isAnnotatedWith(Transactional.class)
+                        || item.getMethods().stream()
+                        .filter(method -> method.getModifiers().contains(JavaModifier.PUBLIC))
+                        .allMatch(method -> method.isAnnotatedWith(Transactional.class));
+                events.add(new SimpleConditionEvent(item, transactional,
+                        item.getName() + " does not demarcate a transaction"));
+            }
+        };
+    }
 
     /**
      * Not instantiable: ArchUnit collects the rules from the static fields annotated with {@code @ArchTest}.

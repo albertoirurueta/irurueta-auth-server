@@ -16,6 +16,9 @@
 
 package com.irurueta.authserver.authorization.domain.password;
 
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireTextIfPresent;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -64,21 +67,13 @@ public record UserAccount(
         if (id == null) {
             throw new IllegalArgumentException("id must not be null");
         }
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("username must not be blank");
-        }
-        if (encodedPassword == null || encodedPassword.isBlank()) {
-            throw new IllegalArgumentException("encodedPassword must not be blank");
-        }
+        requireText(username, "username");
+        requireText(encodedPassword, "encodedPassword");
         if (authorities == null || authorities.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("authorities must not be null or contain null elements");
         }
-        if (email != null && email.isBlank()) {
-            throw new IllegalArgumentException("email must not be blank");
-        }
-        if (tenant == null || tenant.isBlank()) {
-            throw new IllegalArgumentException("tenant must not be blank");
-        }
+        requireTextIfPresent(email, "email");
+        requireText(tenant, "tenant");
         authorities = List.copyOf(authorities);
     }
 }

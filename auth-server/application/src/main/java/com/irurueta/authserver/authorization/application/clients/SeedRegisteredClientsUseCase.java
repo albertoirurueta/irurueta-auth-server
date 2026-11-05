@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
@@ -31,6 +32,7 @@ import org.springframework.util.StringUtils;
  * is idempotent: a client that already exists is left untouched, including its secret.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class SeedRegisteredClientsUseCase {
 

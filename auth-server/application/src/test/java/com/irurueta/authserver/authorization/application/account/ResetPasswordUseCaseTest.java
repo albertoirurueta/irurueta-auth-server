@@ -34,6 +34,7 @@ import com.irurueta.authserver.authorization.domain.password.CompromisedPassword
 import com.irurueta.authserver.authorization.domain.password.CompromisedPasswordException;
 import com.irurueta.authserver.authorization.domain.password.InvalidPasswordException;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
+import com.irurueta.authserver.authorization.domain.password.PasswordPolicy;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.time.Clock;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,6 +101,10 @@ class ResetPasswordUseCaseTest {
     /** Source of the current time. */
     @Mock
     private Clock clock;
+
+    /** Real password policy, spied so the use case is injected with it like with the bean. */
+    @Spy
+    private PasswordPolicy passwordPolicy = new PasswordPolicy();
 
     /** Use case under test. */
     @InjectMocks

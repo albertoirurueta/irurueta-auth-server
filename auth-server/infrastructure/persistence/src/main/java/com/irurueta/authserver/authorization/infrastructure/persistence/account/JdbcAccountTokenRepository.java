@@ -16,15 +16,12 @@
 
 package com.irurueta.authserver.authorization.infrastructure.persistence.account;
 
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
 import com.irurueta.authserver.authorization.domain.account.AccountToken;
 import com.irurueta.authserver.authorization.domain.account.AccountTokenRepository;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -60,6 +57,9 @@ public class JdbcAccountTokenRepository implements AccountTokenRepository {
     /** JDBC client used to run the statements. */
     private final JdbcClient jdbcClient;
 
+    /** Maps a row to a token. */
+    private final AccountTokenRowMapper accountTokenRowMapper;
+
     @Override
     public void store(final AccountToken token) {
         jdbcClient.sql(INSERT_TOKEN)
@@ -71,7 +71,7 @@ public class JdbcAccountTokenRepository implements AccountTokenRepository {
     @Override
     public Optional<AccountToken> findUsable(final String hashedToken, final String purpose, final Instant now) {
         return jdbcClient.sql(FIND_USABLE_TOKEN).params(hashedToken, purpose, toTimestamp(now))
-                .query((rs, rowNum) -> mapToken(rs))
+                .query(accountTokenRowMapper)
                 .optional();
     }
 
@@ -79,37 +79,12 @@ public class JdbcAccountTokenRepository implements AccountTokenRepository {
     public Optional<AccountToken> consume(final String hashedToken, final String purpose, final Instant now) {
         final var timestamp = toTimestamp(now);
         return jdbcClient.sql(CONSUME_TOKEN).params(timestamp, hashedToken, purpose, timestamp)
-                .query((rs, rowNum) -> mapToken(rs))
+                .query(accountTokenRowMapper)
                 .optional();
     }
 
     @Override
     public int deleteExpired(final Instant now) {
         return jdbcClient.sql("DELETE FROM account_tokens WHERE expires_at <= ?").param(toTimestamp(now)).update();
-    }
-
-    /**
-     * Converts an instant to the value bound to a {@code timestamp with time zone} column.
-     *
-     * @param instant the instant, or {@code null}.
-     * @return the equivalent UTC date time, or {@code null}.
-     */
-    private static OffsetDateTime toTimestamp(final Instant instant) {
-        return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
-    }
-
-    /**
-     * Maps a row of {@code account_tokens} to a token.
-     *
-     * @param rs     result set positioned on the row.
-     * @return the token.
-     * @throws SQLException if a column cannot be read.
-     */
-    private static AccountToken mapToken(final ResultSet rs) throws SQLException {
-        final var usedAt = rs.getObject("used_at", OffsetDateTime.class);
-        return new AccountToken(rs.getObject("id", UUID.class), rs.getObject("user_id", UUID.class),
-                rs.getString("purpose"), rs.getString("hashed_token"),
-                rs.getObject("expires_at", OffsetDateTime.class).toInstant(),
-                usedAt == null ? null : usedAt.toInstant());
     }
 }

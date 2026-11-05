@@ -16,14 +16,10 @@
 
 package com.irurueta.authserver.authorization.infrastructure.persistence.keys;
 
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
 import com.irurueta.authserver.authorization.domain.keys.SigningKey;
 import com.irurueta.authserver.authorization.domain.keys.SigningKeyRepository;
-import com.irurueta.authserver.authorization.domain.keys.SigningKeyStatus;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -63,9 +59,12 @@ public class JdbcSigningKeyRepository implements SigningKeyRepository {
     /** Template that runs the rotation inside a transaction. */
     private final TransactionTemplate transactionTemplate;
 
+    /** Maps a row to a key. */
+    private final SigningKeyRowMapper signingKeyRowMapper;
+
     @Override
     public List<SigningKey> findAll() {
-        return jdbcClient.sql(FIND_ALL).query((rs, rowNum) -> mapKey(rs)).list();
+        return jdbcClient.sql(FIND_ALL).query(signingKeyRowMapper).list();
     }
 
     @Override
@@ -92,40 +91,4 @@ public class JdbcSigningKeyRepository implements SigningKeyRepository {
         });
     }
     // end::keys-rotation-lock[]
-
-    /**
-     * Converts an instant to the value bound to a {@code timestamp with time zone} column.
-     *
-     * @param instant the instant, or {@code null}.
-     * @return the equivalent UTC date time, or {@code null}.
-     */
-    private static OffsetDateTime toTimestamp(final Instant instant) {
-        return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
-    }
-
-    /**
-     * Reads an optional timestamp column.
-     *
-     * @param rs     result set positioned on a row.
-     * @param column name of the column.
-     * @return the instant, or {@code null} when the column is null.
-     * @throws SQLException if the column cannot be read.
-     */
-    private static Instant readInstant(final ResultSet rs, final String column) throws SQLException {
-        final var value = rs.getObject(column, OffsetDateTime.class);
-        return value == null ? null : value.toInstant();
-    }
-
-    /**
-     * Maps a row of {@code signing_keys} to a key.
-     *
-     * @param rs     result set positioned on the row.
-     * @return the key.
-     * @throws SQLException if a column cannot be read.
-     */
-    private static SigningKey mapKey(final ResultSet rs) throws SQLException {
-        return new SigningKey(rs.getString("kid"), rs.getString("alg"), rs.getString("public_jwk"),
-                rs.getString("private_jwk_encrypted"), SigningKeyStatus.valueOf(rs.getString("status")),
-                readInstant(rs, "created_at"), readInstant(rs, "activated_at"), readInstant(rs, "retired_at"));
-    }
 }

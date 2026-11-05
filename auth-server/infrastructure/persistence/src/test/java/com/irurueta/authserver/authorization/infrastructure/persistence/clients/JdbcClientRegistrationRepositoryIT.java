@@ -60,7 +60,8 @@ class JdbcClientRegistrationRepositoryIT {
         final var dataSource = MigratedPostgres.dataSource();
         jdbcClient = JdbcClient.create(dataSource);
         repository = new JdbcClientRegistrationRepository(
-                new JdbcRegisteredClientRepository(new JdbcTemplate(dataSource)), jdbcClient);
+                new JdbcRegisteredClientRepository(new JdbcTemplate(dataSource)), jdbcClient,
+                new RegisteredClientMapper());
     }
 
     /**

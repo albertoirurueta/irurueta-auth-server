@@ -21,11 +21,13 @@ import com.irurueta.authserver.authorization.domain.keys.SigningKeyRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that lists every stored signing key, whatever its state, for administration.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ListSigningKeysUseCase {
 

@@ -20,6 +20,7 @@ import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that replaces the stored password hash of a user with one made by the current algorithm, right after a
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
  * the stored encoding is outdated and re-encodes the verified password itself; this use case only stores the result.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class UpgradePasswordHashUseCase {
 
