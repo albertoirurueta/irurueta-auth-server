@@ -62,6 +62,11 @@ ext:
         - dir: e2e-tests
           files: 'src/**'
           into: modules/ROOT/examples/e2e-tests
+        # the API contracts, so the guide can include tagged regions of them, for example
+        # include::irurueta-auth-server::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=account-api]
+        - dir: apis
+          files: '**/*.yaml'
+          into: modules/ROOT/examples/apis
         # '~+' is the repository root; a plain '.' would mean the docs/ start path
         - dir: '~+'
           files: '{pom.xml,compose.yaml}'

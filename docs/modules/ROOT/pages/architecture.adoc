@@ -52,6 +52,14 @@ its implementation lives in an `infrastructure/*` adapter. Domain models are nev
 `api/*` adapter maps them onto its own DTOs. Spring Security and Spring Authorization Server types are framework
 adapters and live in `api/*` or `infrastructure/*`.
 
+The REST APIs are contract first. Each application's OpenAPI contract lives under `apis/` at the repository root
+(`apis/<app>/rest-server/<app>-api-v1.yaml`); `openapi-generator` turns it into Spring interfaces and DTO records in
+the `api/web` module at build time (`target/generated-sources`, never committed), and the hand-written controllers
+implement those interfaces by calling use cases. A `@Component` mapper per feature (for example `ClientDtoMapper`)
+converts between the generated DTOs and the domain. `OpenApiDriftIT`, in each `boot` module, fails when the running
+application serves an operation, status code or schema the contract does not declare. `apis/README.md` describes the
+layout, the generator options and how to version a contract.
+
 `test-support` (shared Testcontainers base), `e2e-tests` (Playwright) and `coverage` (JaCoCo aggregate) are root
 modules outside the applications.
 
