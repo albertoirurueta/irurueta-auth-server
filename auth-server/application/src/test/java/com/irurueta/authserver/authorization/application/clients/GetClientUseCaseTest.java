@@ -19,6 +19,8 @@ package com.irurueta.authserver.authorization.application.clients;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class GetClientUseCaseTest {
 
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
     /** Port that stores the clients. */
     @Mock
     private ClientRegistrationRepository clientRegistrationRepository;
@@ -46,9 +51,18 @@ class GetClientUseCaseTest {
      */
     @Test
     void execute_whenCalled_returnsWhatTheRepositoryFinds() {
-        final var bff = Optional.of(DefaultClientDefinitions.bff());
+        final var bff = Optional.of(bff());
         when(clientRegistrationRepository.findByClientId("bff")).thenReturn(bff);
 
         assertEquals(bff, useCase.execute("bff"));
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

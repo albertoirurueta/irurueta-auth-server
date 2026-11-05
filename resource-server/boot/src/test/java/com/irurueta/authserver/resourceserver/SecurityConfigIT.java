@@ -79,6 +79,9 @@ class SecurityConfigIT {
     /** Audience the resource server accepts by default. */
     private static final String ACCEPTED_AUDIENCE = "resource-server";
 
+    /** Owner of the documents that are not the caller's. */
+    private static final String OTHER_OWNER = "someone-else";
+
     /** Audience of a token issued to another client. */
     private static final String OTHER_AUDIENCE = "bff";
 
@@ -259,6 +262,39 @@ class SecurityConfigIT {
     }
 
     /**
+     * Verifies that a caller with the delete scope cannot delete someone else's document: the answer is the same
+     * {@code 404} as for a missing document, and the document stays.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenDeletingSomeoneElsesDocument_returnsNotFoundAndKeepsIt() throws Exception {
+        documentRepository.save(new Document("it-foreign-delete", OTHER_OWNER, "Foreign", "text"));
+
+        mockMvc.perform(delete(DocumentController.PATH + "/it-foreign-delete").header(HttpHeaders.AUTHORIZATION,
+                        bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE)))
+                .andExpect(status().isNotFound());
+        assertEquals(1, documentRepository.findByOwner(OTHER_OWNER).stream()
+                .filter(document -> "it-foreign-delete".equals(document.id())).count());
+    }
+
+    /**
+     * Verifies that an administrator with the delete scope deletes someone else's document.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenAnAdministratorDeletesSomeoneElsesDocument_returnsNoContent() throws Exception {
+        documentRepository.save(new Document("it-admin-delete", OTHER_OWNER, "Foreign", "text"));
+
+        mockMvc.perform(delete(DocumentController.PATH + "/it-admin-delete").header(HttpHeaders.AUTHORIZATION,
+                        bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE, List.of("ROLE_ADMIN"))))
+                .andExpect(status().isNoContent());
+        assertEquals(0, documentRepository.findByOwner(OTHER_OWNER).stream()
+                .filter(document -> "it-admin-delete".equals(document.id())).count());
+    }
+
+    /**
      * Builds an {@code Authorization} header value carrying a token signed with the generated key.
      *
      * @param issuer    issuer claim of the token.
@@ -278,6 +314,20 @@ class SecurityConfigIT {
      * @return the header value.
      */
     private static String bearer(final String issuer, final List<String> audiences, final String scope) {
+        return bearer(issuer, audiences, scope, List.of());
+    }
+
+    /**
+     * Builds an {@code Authorization} header value carrying a token signed with the generated key.
+     *
+     * @param issuer    issuer claim of the token.
+     * @param audiences audience claim of the token; empty to leave the claim out.
+     * @param scope     space-separated scopes of the token; empty to leave the claim out.
+     * @param roles     roles of the caller; empty to leave the claim out.
+     * @return the header value.
+     */
+    private static String bearer(final String issuer, final List<String> audiences, final String scope,
+                                 final List<String> roles) {
         final var rsaKey = new RSAKey.Builder((RSAPublicKey) KEY_PAIR.getPublic())
                 .privateKey((RSAPrivateKey) KEY_PAIR.getPrivate())
                 .build();
@@ -293,6 +343,9 @@ class SecurityConfigIT {
         }
         if (!scope.isEmpty()) {
             claims.claim("scope", scope);
+        }
+        if (!roles.isEmpty()) {
+            claims.claim("roles", roles);
         }
         return "Bearer " + encoder.encode(JwtEncoderParameters.from(claims.build())).getTokenValue();
     }

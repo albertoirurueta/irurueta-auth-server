@@ -24,7 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.SecureRandom;
 import java.util.HexFormat;
-import lombok.extern.apachecommons.CommonsLog;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,7 +42,7 @@ import org.springframework.context.annotation.Profile;
  * demo data initializer of the persistence adapter). It is inert everywhere else: without the {@code dev} profile
  * the bean is not created and the inputs must be configured. Nothing is ever written inside the repository.
  */
-@CommonsLog
+@Slf4j
 @Configuration(proxyBeanMethods = false)
 @Profile("dev")
 public class DevKeyEncryptionSecret {
@@ -97,7 +97,7 @@ public class DevKeyEncryptionSecret {
                 create(file);
             }
             final var lines = Files.readAllLines(file);
-            return new KeyEncryptionProperties(lines.get(0), lines.get(1));
+            return new KeyEncryptionProperties(lines.getFirst(), lines.getLast());
         } catch (final IOException e) {
             throw new UncheckedIOException("Cannot read or create the development key-encryption secret", e);
         }
@@ -125,7 +125,7 @@ public class DevKeyEncryptionSecret {
                 Files.createFile(file);
             }
             Files.writeString(file, passphrase + "\n" + salt + "\n");
-            log.warn("DEV ONLY: generated a key-encryption secret in " + file);
+            log.warn("DEV ONLY: generated a key-encryption secret in {}", file);
         } catch (final FileAlreadyExistsException e) {
             log.debug("The key-encryption secret was created concurrently", e);
         }

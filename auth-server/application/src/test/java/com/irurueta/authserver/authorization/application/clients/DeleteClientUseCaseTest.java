@@ -21,6 +21,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import java.util.Optional;
@@ -36,6 +38,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DeleteClientUseCaseTest {
 
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
     /** Port that stores the clients. */
     @Mock
     private ClientRegistrationRepository clientRegistrationRepository;
@@ -50,7 +55,7 @@ class DeleteClientUseCaseTest {
     @Test
     void execute_whenClientExists_deletesIt() {
         when(clientRegistrationRepository.findByClientId("bff"))
-                .thenReturn(Optional.of(DefaultClientDefinitions.bff()));
+                .thenReturn(Optional.of(bff()));
 
         useCase.execute("bff");
 
@@ -67,5 +72,14 @@ class DeleteClientUseCaseTest {
         assertThrows(ClientNotFoundException.class, () -> useCase.execute("bff"));
 
         verify(clientRegistrationRepository, never()).deleteByClientId("bff");
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

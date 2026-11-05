@@ -18,9 +18,13 @@ package com.irurueta.authserver.resourceserver.application.documents;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.resourceserver.domain.documents.Document;
 import com.irurueta.authserver.resourceserver.domain.documents.DocumentRepository;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,6 +40,12 @@ class DeleteDocumentUseCaseTest {
     /** Identifier used by the tests. */
     private static final String ID = "d1";
 
+    /** Owner of the document. */
+    private static final String OWNER = "alice";
+
+    /** A caller who does not own the document. */
+    private static final String OTHER = "mallory";
+
     /** Mocked port. */
     @Mock
     private DocumentRepository documentRepository;
@@ -44,19 +54,59 @@ class DeleteDocumentUseCaseTest {
     @InjectMocks
     private DeleteDocumentUseCase useCase;
 
-    /** An existing document is deleted. */
+    /** The owner deletes their document. */
     @Test
-    void execute_whenDocumentExists_returnsTrue() {
+    void execute_whenCallerOwnsTheDocument_deletesIt() {
+        when(documentRepository.findById(ID)).thenReturn(Optional.of(document()));
         when(documentRepository.deleteById(ID)).thenReturn(true);
 
-        assertTrue(useCase.execute(ID));
+        assertTrue(useCase.execute(ID, OWNER, false));
+    }
+
+    /** An administrator deletes someone else's document. */
+    @Test
+    void execute_whenCallerIsAdministrator_deletesAnyDocument() {
+        when(documentRepository.findById(ID)).thenReturn(Optional.of(document()));
+        when(documentRepository.deleteById(ID)).thenReturn(true);
+
+        assertTrue(useCase.execute(ID, OTHER, true));
+    }
+
+    /** Someone else's document is left alone and reported like a missing one. */
+    @Test
+    void execute_whenCallerDoesNotOwnTheDocument_keepsItAndReturnsFalse() {
+        when(documentRepository.findById(ID)).thenReturn(Optional.of(document()));
+
+        assertFalse(useCase.execute(ID, OTHER, false));
+
+        verify(documentRepository, never()).deleteById(ID);
     }
 
     /** A missing document reports false. */
     @Test
     void execute_whenDocumentIsMissing_returnsFalse() {
+        when(documentRepository.findById(ID)).thenReturn(Optional.empty());
+
+        assertFalse(useCase.execute(ID, OWNER, true));
+
+        verify(documentRepository, never()).deleteById(ID);
+    }
+
+    /** A document deleted concurrently, between the look-up and the deletion, reports false. */
+    @Test
+    void execute_whenDocumentVanishesBeforeTheDeletion_returnsFalse() {
+        when(documentRepository.findById(ID)).thenReturn(Optional.of(document()));
         when(documentRepository.deleteById(ID)).thenReturn(false);
 
-        assertFalse(useCase.execute(ID));
+        assertFalse(useCase.execute(ID, OWNER, false));
+    }
+
+    /**
+     * Builds the document of {@link #OWNER}.
+     *
+     * @return the document.
+     */
+    private static Document document() {
+        return new Document(ID, OWNER, "Title", "Content");
     }
 }

@@ -43,11 +43,4 @@ public interface AccountMailer {
      * @param token single-use reset token to include in the message.
      */
     void sendPasswordReset(String email, String token);
-
-    /**
-     * Tells the owner of an address that a reset was requested but no account uses that address.
-     *
-     * @param email address the message is sent to.
-     */
-    void sendNoAccountFound(String email);
 }

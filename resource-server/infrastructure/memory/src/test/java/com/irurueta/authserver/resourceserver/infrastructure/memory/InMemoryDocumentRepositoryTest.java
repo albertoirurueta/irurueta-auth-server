@@ -67,6 +67,16 @@ class InMemoryDocumentRepositoryTest {
         assertEquals(List.of(replacement), repository.findAll());
     }
 
+    /** A stored document is found by its id, and an unknown id finds nothing. */
+    @Test
+    void findById_whenDocumentIsStoredOrNot_findsOnlyTheStoredOne() {
+        final var document = new Document("d1", ALICE, "T", "C");
+        repository.save(document);
+
+        assertEquals(document, repository.findById("d1").orElseThrow());
+        assertTrue(repository.findById("missing").isEmpty());
+    }
+
     /** Only the documents of the requested owner are returned. */
     @Test
     void findByOwner_whenSeveralOwners_returnsOnlyOwnDocuments() {

@@ -35,9 +35,12 @@
  * <p><strong>{@link com.irurueta.authserver.authorization.domain.account.AccountMailer}</strong>
  *
  * <p>Sends the transactional e-mails of the account lifecycle. The messages are plain text and the implementation
- * chooses the wording and the language, never the platform's default locale. Every method is fire-and-forget from
- * the caller's point of view: a delivery failure is the implementation's to log and must not change what the caller
- * answers to the user, otherwise the response would reveal whether an address is registered. The methods receive the
- * raw token or the link material the message must contain and never a password.
+ * chooses the wording and the language, never the platform's default locale. A delivery failure is reported as an
+ * {@link com.irurueta.authserver.authorization.domain.account.AccountMailException} (never the mail framework's own
+ * type, and never with the address or the token in it), so that the calling use case's transaction rolls back and
+ * nothing is left stored for a message that was never delivered. The callers keep their answer independent of
+ * whether an address is registered: every registration path sends a message, and the reset-request endpoint answers
+ * the same even when its message cannot be delivered. The methods receive the raw token or the link material the
+ * message must contain and never a password.
  */
 package com.irurueta.authserver.authorization.domain.account;

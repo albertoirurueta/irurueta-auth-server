@@ -31,12 +31,21 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that registers an account. The account starts disabled and unverified; a signed verification token is
- * e-mailed to the address. Registering an address or username that is already taken sends the owner a neutral
- * message instead and does the same hashing work, so neither the answer nor its timing reveals whether the
- * address is registered.
+ * e-mailed to the address. The answer is always the same and the password is always hashed, so neither the answer
+ * nor its timing reveals whether the address or the username is taken. What the address receives differs only where
+ * its owner learns nothing new:
+ * <ul>
+ *     <li>a registered address gets a neutral "already registered" message: its owner already knows it has an
+ *     account;</li>
+ *     <li>a new address with a taken username gets the usual verification message, whose token names no account, so
+ *     following it fails exactly like an expired link. The username is never confirmed to whoever controls the
+ *     address, so the endpoint cannot be used to find out which usernames exist.</li>
+ * </ul>
+ * The account is saved and the message sent in one transaction: if the mail cannot be sent, nothing is registered.
  */
 @Service
 @RequiredArgsConstructor
@@ -76,6 +85,7 @@ public class RegisterAccountUseCase {
      * @throws InvalidPasswordException     if the password breaks the policy.
      * @throws CompromisedPasswordException if the password is known to be compromised.
      */
+    @Transactional
     public void execute(final String username, final String email, final String password) {
         final var violations = passwordPolicy.violations(username, password);
         if (!violations.isEmpty()) {
@@ -84,17 +94,20 @@ public class RegisterAccountUseCase {
         if (compromisedPasswordCheck.isCompromised(password)) {
             throw new CompromisedPasswordException("The chosen password is known to be compromised");
         }
-        // hashed in every case, so that an existing address costs the same as a new one
+        // hashed in every case, so that a taken address or username costs the same as a new one
         final var encodedPassword = passwordHasher.encode(password);
-        if (userAccountRepository.existsByUsername(username) || userAccountRepository.findByEmail(email).isPresent()) {
+        if (userAccountRepository.findByEmail(email).isPresent()) {
             accountMailer.sendAlreadyRegistered(email);
             return;
         }
-        final var account = new UserAccount(UUID.randomUUID(), username, encodedPassword, false,
-                List.of(DEFAULT_AUTHORITY), email, false, UserAccount.DEFAULT_TENANT);
-        userAccountRepository.save(account);
-        final var token = signedTokenService.issue(account.id().toString(), AccountToken.PURPOSE_EMAIL_VERIFICATION,
+        final var id = UUID.randomUUID();
+        // issued in every remaining case; with a taken username it names no account and verifies nothing
+        final var token = signedTokenService.issue(id.toString(), AccountToken.PURPOSE_EMAIL_VERIFICATION,
                 VERIFICATION_TTL);
+        if (!userAccountRepository.existsByUsername(username)) {
+            userAccountRepository.save(new UserAccount(id, username, encodedPassword, false,
+                    List.of(DEFAULT_AUTHORITY), email, false, UserAccount.DEFAULT_TENANT));
+        }
         accountMailer.sendEmailVerification(email, token);
     }
     // end::account-register[]

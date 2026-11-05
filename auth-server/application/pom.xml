@@ -39,6 +39,11 @@
       <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
+      <!-- @Transactional on the use cases that change several rows (and mail) as one unit -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-tx</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>

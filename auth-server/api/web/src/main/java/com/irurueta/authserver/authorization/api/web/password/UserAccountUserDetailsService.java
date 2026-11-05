@@ -51,6 +51,7 @@ public class UserAccountUserDetailsService implements UserDetailsService, UserDe
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
+    // tag::password-upgrade[]
     @Override
     public UserDetails updatePassword(final UserDetails user, final String newPassword) {
         final var account = findUserAccountUseCase.execute(user.getUsername())
@@ -58,6 +59,7 @@ public class UserAccountUserDetailsService implements UserDetailsService, UserDe
         upgradePasswordHashUseCase.replaceHash(account, newPassword);
         return toUserDetails(account, newPassword);
     }
+    // end::password-upgrade[]
 
     /**
      * Maps an account onto Spring Security's user details.

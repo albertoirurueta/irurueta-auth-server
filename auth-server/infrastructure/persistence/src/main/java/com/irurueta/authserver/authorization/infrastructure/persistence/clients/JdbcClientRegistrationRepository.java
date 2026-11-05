@@ -34,6 +34,7 @@ import org.springframework.security.oauth2.server.authorization.settings.OAuth2T
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * {@link ClientRegistrationRepository} over Spring Authorization Server's {@link RegisteredClientRepository}
@@ -46,6 +47,17 @@ public class JdbcClientRegistrationRepository implements ClientRegistrationRepos
 
     /** Name of the custom client setting that holds the audiences of the access tokens issued to the client. */
     public static final String AUDIENCES_SETTING = "settings.client.audiences";
+
+    /** Sub-query selecting the internal id of a client by its client id. */
+    private static final String CLIENT_ROW_ID = "(SELECT id FROM oauth2_registered_client WHERE client_id = ?)";
+
+    /** Statement deleting the authorizations of a client. */
+    private static final String DELETE_AUTHORIZATIONS =
+            "DELETE FROM oauth2_authorization WHERE registered_client_id = " + CLIENT_ROW_ID;
+
+    /** Statement deleting the consents granted to a client. */
+    private static final String DELETE_CONSENTS =
+            "DELETE FROM oauth2_authorization_consent WHERE registered_client_id = " + CLIENT_ROW_ID;
 
     /** Authentication method that marks a public client. */
     private static final String AUTH_METHOD_NONE = ClientAuthenticationMethod.NONE.getValue();
@@ -82,8 +94,18 @@ public class JdbcClientRegistrationRepository implements ClientRegistrationRepos
         registeredClientRepository.save(toRegisteredClient(registration, id, issuedAt, secret));
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The authorizations (with their consumed refresh tokens, by cascade) and the consents granted to the client
+     * reference it by its internal id without a foreign key, so they are deleted first, in the same transaction:
+     * otherwise loading one of them later fails because its client is gone.
+     */
     @Override
+    @Transactional
     public void deleteByClientId(final String clientId) {
+        jdbcClient.sql(DELETE_AUTHORIZATIONS).param(clientId).update();
+        jdbcClient.sql(DELETE_CONSENTS).param(clientId).update();
         jdbcClient.sql("DELETE FROM oauth2_registered_client WHERE client_id = ?").param(clientId).update();
     }
 

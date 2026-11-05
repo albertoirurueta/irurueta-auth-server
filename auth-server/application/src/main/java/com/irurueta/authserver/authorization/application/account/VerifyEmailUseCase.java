@@ -23,10 +23,12 @@ import com.irurueta.authserver.authorization.domain.password.UserAccountReposito
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that confirms an e-mail address from the signed token that was mailed to it, which also enables the
- * account.
+ * account. A token is effective once: presenting it again, even before it expires, is rejected as an invalid token,
+ * so a replayed link can never re-enable an account that was disabled after its verification.
  */
 @Service
 @RequiredArgsConstructor
@@ -42,12 +44,16 @@ public class VerifyEmailUseCase {
      * Verifies the e-mail address the token was issued for.
      *
      * @param token the signed verification token.
-     * @throws InvalidAccountTokenException if the token is not valid.
+     * @throws InvalidAccountTokenException if the token is not valid, or the address was already verified.
      */
+    @Transactional
     public void execute(final String token) {
         final var subject = signedTokenService.verify(token, AccountToken.PURPOSE_EMAIL_VERIFICATION)
                 .orElseThrow(InvalidAccountTokenException::new);
-        userAccountRepository.markEmailVerified(parseUserId(subject));
+        // single effective use: a replayed (still unexpired) token finds the address already verified
+        if (!userAccountRepository.markEmailVerified(parseUserId(subject))) {
+            throw new InvalidAccountTokenException();
+        }
     }
 
     /**

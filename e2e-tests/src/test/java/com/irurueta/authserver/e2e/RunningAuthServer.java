@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -93,18 +94,32 @@ final class RunningAuthServer implements AutoCloseable {
      * @throws Exception if the container or the server cannot be started.
      */
     static RunningAuthServer start() throws Exception {
+        return start(List.of());
+    }
+
+    /**
+     * Starts the database and the server with extra command-line arguments (for example the redirect URIs of the
+     * seeded clients), and waits until the seeded credentials are logged.
+     *
+     * @param extraArguments arguments added after the default ones, so they win over them.
+     * @return the running server.
+     * @throws Exception if the container or the server cannot be started.
+     */
+    static RunningAuthServer start(final List<String> extraArguments) throws Exception {
         final var port = freePort();
         final var postgres = new PostgreSQLContainer(DockerImageName.parse(PostgresTestConfiguration.POSTGRES_IMAGE));
         postgres.start();
         final var salt = new byte[SALT_BYTES];
         new SecureRandom().nextBytes(salt);
-        final var app = ManagedApp.start(jar("authserver.jar"), List.of(
+        final var arguments = new ArrayList<>(List.of(
                 "--spring.profiles.active=dev",
                 "--spring.docker.compose.enabled=false",
                 "--server.port=" + port,
                 "--spring.datasource.url=" + postgres.getJdbcUrl(),
                 "--spring.datasource.username=" + postgres.getUsername(),
-                "--spring.datasource.password=" + postgres.getPassword()),
+                "--spring.datasource.password=" + postgres.getPassword()));
+        arguments.addAll(extraArguments);
+        final var app = ManagedApp.start(jar("authserver.jar"), arguments,
                 List.of("AUTHSERVER_ISSUER_URL=http://localhost:" + port,
                         "AUTHSERVER_KEYS_ENCRYPTION_PASSWORD=" + UUID.randomUUID(),
                         "AUTHSERVER_KEYS_ENCRYPTION_SALT=" + HexFormat.of().formatHex(salt)));

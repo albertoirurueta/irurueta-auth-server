@@ -23,9 +23,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Periodically deletes the expired authorizations. The schedule is the cron expression
- * {@code authserver.tokens.cleanup.cron} (default: every hour). Scheduling is enabled by
- * {@link com.irurueta.authserver.authorization.api.web.keys.KeyRotationSchedulingConfiguration}.
+ * Periodically deletes the expired and the abandoned authorizations. The schedule is the cron expression
+ * {@code authserver.tokens.cleanup.cron} (default: every hour). Scheduling is enabled by the feature-neutral
+ * {@link com.irurueta.authserver.authorization.api.web.SchedulingConfiguration}.
  */
 @Slf4j
 @Component
@@ -36,11 +36,11 @@ public class ExpiredAuthorizationCleanupJob {
     private final CleanExpiredAuthorizationsUseCase cleanExpiredAuthorizationsUseCase;
 
     /**
-     * Deletes the expired authorizations.
+     * Deletes the expired and the abandoned authorizations.
      */
     @Scheduled(cron = "${authserver.tokens.cleanup.cron:0 0 * * * *}")
     public void run() {
         final var deleted = cleanExpiredAuthorizationsUseCase.execute();
-        log.debug("Deleted {} expired authorizations", deleted);
+        log.debug("Deleted {} expired or abandoned authorizations", deleted);
     }
 }

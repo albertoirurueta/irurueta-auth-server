@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.application.account;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unit tests of {@link VerifyEmailUseCase}.
@@ -63,10 +65,25 @@ class VerifyEmailUseCaseTest {
         final var id = UUID.randomUUID();
         when(signedTokenService.verify(TOKEN, AccountToken.PURPOSE_EMAIL_VERIFICATION))
                 .thenReturn(Optional.of(id.toString()));
+        when(userAccountRepository.markEmailVerified(id)).thenReturn(true);
 
         useCase.execute(TOKEN);
 
         verify(userAccountRepository).markEmailVerified(id);
+    }
+
+    /**
+     * Verifies that a replayed token (still unexpired, but its address is already verified) is rejected as an
+     * invalid token, so it can never re-enable an account disabled in between.
+     */
+    @Test
+    void execute_whenAddressIsAlreadyVerified_throwsInvalidAccountTokenException() {
+        final var id = UUID.randomUUID();
+        when(signedTokenService.verify(TOKEN, AccountToken.PURPOSE_EMAIL_VERIFICATION))
+                .thenReturn(Optional.of(id.toString()));
+        when(userAccountRepository.markEmailVerified(id)).thenReturn(false);
+
+        assertThrows(InvalidAccountTokenException.class, () -> useCase.execute(TOKEN));
     }
 
     /**
@@ -91,5 +108,17 @@ class VerifyEmailUseCaseTest {
                 .thenReturn(Optional.of("not-a-uuid"));
 
         assertThrows(InvalidAccountTokenException.class, () -> useCase.execute(TOKEN));
+    }
+
+    /**
+     * Verifies that the use case runs in one transaction: the verification is one unit.
+     *
+     * @throws NoSuchMethodException if the method is missing.
+     */
+    @Test
+    void execute_whenInspected_isTransactional() throws NoSuchMethodException {
+        final var method = VerifyEmailUseCase.class.getMethod("execute", String.class);
+
+        assertNotNull(method.getAnnotation(Transactional.class));
     }
 }

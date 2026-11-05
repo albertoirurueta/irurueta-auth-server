@@ -38,4 +38,13 @@ public interface UserAuthorizationRepository {
      * @return the number of deleted authorizations.
      */
     int deleteExpired(Instant now);
+
+    /**
+     * Deletes the abandoned authorizations: those that never got any token (an authorization or consent request
+     * the user never completed) and were created before an instant.
+     *
+     * @param createdBefore instant before which an abandoned authorization is deleted.
+     * @return the number of deleted authorizations.
+     */
+    int deleteAbandoned(Instant createdBefore);
 }

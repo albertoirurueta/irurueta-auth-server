@@ -5,10 +5,24 @@ NOTE: This documentation was generated with the assistance of AI. Please report 
 == Default clients and seeding
 
 `DefaultClientDefinitions` (module `application`) is the single definition of the confidential `bff` client and the
-public `spa-public` client; both carry the audience `resource-server`. The idempotent `ClientSeeder` seeds them at
-start. The `bff` secret comes from the environment variable `AUTHSERVER_BFF_CLIENT_SECRET`
-(`authserver.clients.bff-secret`); when it is empty the confidential client is not seeded. Secrets are stored encoded
-and never committed. The `dev` profile data initializer uses the same definitions with a generated secret that it logs.
+public `spa-public` client. Both carry the audiences `resource-server` and the authorization server's own API
+(`authserver.api.audience`, default `auth-server`, so their users can change their password), the scopes `openid`,
+`profile`, `documents.read` and `documents.delete`, and never `admin`. Nothing environment-specific lives in the
+definitions: the redirect URIs come from configuration.
+
+The idempotent `ClientSeeder` seeds, at start, only the clients whose redirect URIs are configured
+(`authserver.clients.bff.redirect-uris` / `AUTHSERVER_BFF_REDIRECT_URIS` and
+`authserver.clients.spa-public.redirect-uris` / `AUTHSERVER_SPA_REDIRECT_URIS`, comma-separated). Nothing is configured
+by default, so a deployment never gets a client, or a `localhost` redirect URI, it did not ask for; the `dev` profile
+(`application-dev.yml`) sets the local ones. The `bff` secret comes from the environment variable
+`AUTHSERVER_BFF_CLIENT_SECRET` (`authserver.clients.bff-secret`); when it is empty the confidential client is not
+seeded. Secrets are stored encoded and never committed. The `dev` profile data initializer uses the same definition and
+the configured redirect URIs with a generated secret that it logs.
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=clients-seed-config]
+----
 
 [source,java]
 ----
@@ -25,7 +39,8 @@ include::example$auth-server/infrastructure/persistence/src/main/java/com/irurue
 
 == Administration API
 
-`/api/admin/clients` manages registered clients and needs scope `admin` or role `ROLE_ADMIN`.
+`/api/admin/clients` manages registered clients and needs a bearer token for the API audience with the scope `admin`
+(the `ADMIN` role alone does not suffice; see xref:tokens-and-keys.adoc[]).
 
 [cols="2,3",options="header"]
 |===
@@ -42,7 +57,7 @@ include::example$auth-server/infrastructure/persistence/src/main/java/com/irurue
 |Updates a client; its secret is not changed.
 
 |`DELETE /api/admin/clients/\{clientId}`
-|Deletes a client.
+|Deletes a client, with its authorizations (and so its tokens) and the consents granted to it, in one transaction.
 
 |`POST /api/admin/clients/\{clientId}/secret`
 |Rotates the secret of a confidential client.

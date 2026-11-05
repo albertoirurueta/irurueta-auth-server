@@ -130,6 +130,26 @@ class JdbcAccountTokenRepositoryTest {
     }
 
     /**
+     * Verifies that the look-up maps the usable row it finds to a token, without consuming it.
+     *
+     * @throws SQLException never; declared by the mocked result set.
+     */
+    @Test
+    void findUsable_whenRowMatches_returnsMappedToken() throws SQLException {
+        final var id = UUID.randomUUID();
+        final var userId = UUID.randomUUID();
+        final var resultSet = mockRow(id, userId, null);
+        final var captor = ArgumentCaptor.<RowMapper<Object>>captor();
+        when(client.sql(any(String.class)).params(HASHED_TOKEN, PURPOSE, NOW.atOffset(ZoneOffset.UTC))
+                .query(captor.capture()).optional())
+                .thenAnswer(invocation -> Optional.of(captor.getValue().mapRow(resultSet, 0)));
+
+        final var token = repository.findUsable(HASHED_TOKEN, PURPOSE, NOW).orElseThrow();
+
+        assertEquals(new AccountToken(id, userId, PURPOSE, HASHED_TOKEN, NOW.plusSeconds(TTL_SECONDS), null), token);
+    }
+
+    /**
      * Verifies that the number of deleted rows is returned.
      */
     @Test

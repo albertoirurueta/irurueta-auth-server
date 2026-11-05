@@ -80,20 +80,26 @@ public class DocumentController {
 
     // tag::resource-server-method-security[]
     /**
-     * Deletes a document.
+     * Deletes a document of the caller; an administrator ({@code ROLE_ADMIN}) may delete any document. Someone
+     * else's document is answered like a missing one, so the answer never reveals that it exists.
      *
-     * @param id identifier of the document.
-     * @return 204 when the document was deleted, 404 when it did not exist.
+     * @param id             identifier of the document.
+     * @param authentication the authenticated caller.
+     * @return 204 when the document was deleted, 404 when it does not exist or belongs to someone else.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_documents.delete')")
-    @Operation(summary = "Deletes a document", description = "Needs scope documents.delete.")
+    @Operation(summary = "Deletes a document",
+            description = "Deletes one of the caller's documents; an administrator may delete any. Needs scope "
+                    + "documents.delete. Someone else's document is answered 404, like a missing one.")
     @ApiResponse(responseCode = "204", description = "The document was deleted.", content = @Content)
     @ApiResponse(responseCode = "401", description = "Missing or invalid bearer token.", content = @Content)
     @ApiResponse(responseCode = "403", description = "The token lacks the documents.delete scope.", content = @Content)
-    @ApiResponse(responseCode = "404", description = "The document does not exist.", content = @Content)
-    public ResponseEntity<Void> delete(@PathVariable final String id) {
-        return deleteDocumentUseCase.execute(id)
+    @ApiResponse(responseCode = "404", description = "The document does not exist or belongs to someone else.",
+            content = @Content)
+    public ResponseEntity<Void> delete(@PathVariable final String id, final Authentication authentication) {
+        return deleteDocumentUseCase.execute(id, authentication.getName(),
+                BearerAuthorities.isAdministrator(authentication))
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }

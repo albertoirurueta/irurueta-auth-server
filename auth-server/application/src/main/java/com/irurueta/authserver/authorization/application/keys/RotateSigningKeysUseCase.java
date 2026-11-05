@@ -32,9 +32,10 @@ import org.springframework.stereotype.Service;
  * Use case that keeps the signing keys rotating. One call, made at start-up and then on a schedule, does whatever is
  * due: it creates the {@code active} and {@code next} keys when they are missing, promotes {@code next} to
  * {@code active} and retires the old {@code active} key once the rotation interval has elapsed, always leaves a
- * fresh {@code next} key behind, and deletes keys retired for longer than the retention. A second call right after
- * the first changes nothing, and the whole call runs under the repository's rotation lock, so several instances can
- * call it safely.
+ * fresh {@code next} key behind, and deletes keys retired for longer than the effective retention (see
+ * {@link SigningKeyRetention}). A second call right after the first changes nothing, and the whole call runs under
+ * the repository's rotation lock, so several instances can call it safely. {@link #executeForced()} is the
+ * administrator's path: it replaces the active key immediately, whatever its age.
  */
 @Service
 @RequiredArgsConstructor
@@ -53,35 +54,52 @@ public class RotateSigningKeysUseCase {
     @Value("${authserver.keys.rotation-interval:P30D}")
     private final Duration rotationInterval;
 
-    /**
-     * How long a retired key stays published: the longest token lifetime plus the clock skew
-     * ({@code authserver.keys.retention}, default 2 hours).
-     */
-    @Value("${authserver.keys.retention:PT2H}")
-    private final Duration retention;
+    /** Decides how long a retired key stays published. */
+    private final SigningKeyRetention signingKeyRetention;
 
     // tag::keys-rotation[]
     /**
-     * Does whatever the key lifecycle requires at the current instant.
+     * Does whatever the key lifecycle requires at the current instant: the scheduled path, which only rotates a key
+     * that has signed for the whole rotation interval.
      */
     public void execute() {
+        run(false);
+    }
+
+    /**
+     * Rotates now, whatever the age of the active key: the active key is retired, the next key promoted and a new
+     * next key generated (for example after a suspected key compromise). Expired retired keys are deleted too.
+     */
+    public void executeForced() {
+        run(true);
+    }
+
+    /**
+     * Applies the lifecycle transitions while holding the rotation lock.
+     *
+     * @param force whether the active key is replaced even when it is not due.
+     */
+    private void run(final boolean force) {
         final var now = clock.instant();
+        final var retention = signingKeyRetention.effective();
         signingKeyRepository.withRotationLock(() -> {
-            rotate(now);
+            rotate(now, force, retention);
             return null;
         });
     }
 
     /**
-     * Applies the lifecycle transitions that are due.
+     * Applies the lifecycle transitions that are due, or forced.
      *
-     * @param now current instant.
+     * @param now       current instant.
+     * @param force     whether the active key is replaced even when it is not due.
+     * @param retention how long a retired key stays published.
      */
-    private void rotate(final Instant now) {
+    private void rotate(final Instant now, final boolean force, final Duration retention) {
         final var keys = signingKeyRepository.findAll();
         var active = first(keys, SigningKeyStatus.ACTIVE);
         var next = first(keys, SigningKeyStatus.NEXT);
-        if (active != null && isDue(active, now)) {
+        if (active != null && (force || isDue(active, now))) {
             signingKeyRepository.save(active.retire(now));
             active = null;
         }
@@ -94,7 +112,7 @@ public class RotateSigningKeysUseCase {
             signingKeyRepository.save(signingKeyGenerator.generate(now));
         }
         keys.stream()
-                .filter(key -> key.status() == SigningKeyStatus.RETIRED && isExpired(key, now))
+                .filter(key -> key.status() == SigningKeyStatus.RETIRED && isExpired(key, now, retention))
                 .forEach(key -> signingKeyRepository.deleteByKid(key.kid()));
     }
     // end::keys-rotation[]
@@ -125,11 +143,12 @@ public class RotateSigningKeysUseCase {
     /**
      * Tells whether a retired key has been retired for longer than the retention.
      *
-     * @param retired the retired key.
-     * @param now     current instant.
+     * @param retired   the retired key.
+     * @param now       current instant.
+     * @param retention how long a retired key stays published.
      * @return {@code true} when it can be deleted.
      */
-    private boolean isExpired(final SigningKey retired, final Instant now) {
+    private static boolean isExpired(final SigningKey retired, final Instant now, final Duration retention) {
         final var since = retired.retiredAt() == null ? retired.createdAt() : retired.retiredAt();
         return !since.plus(retention).isAfter(now);
     }

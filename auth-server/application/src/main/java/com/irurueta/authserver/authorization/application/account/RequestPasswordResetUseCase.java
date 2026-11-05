@@ -27,11 +27,13 @@ import java.time.Duration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Use case that starts a password reset. It always succeeds from the caller's point of view: an unknown address
- * receives a neutral message and costs the same work (a token is generated and hashed either way), so the response
- * never reveals whether an address is registered.
+ * Use case that starts a password reset. It always succeeds from the caller's point of view: an unknown address is
+ * never mailed (so the endpoint cannot be used to send mail to arbitrary addresses) and costs the same token work (a
+ * token is generated and hashed either way), so the response never reveals whether an address is registered. The
+ * token is stored and mailed in one transaction: if the mail cannot be sent, no usable token is left behind.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,12 +63,13 @@ public class RequestPasswordResetUseCase {
      *
      * @param email e-mail address of the user.
      */
+    @Transactional
     public void execute(final String email) {
         final var token = tokenGenerator.generate();
         final var hashedToken = tokenGenerator.hash(token);
-        userAccountRepository.findByEmail(email).ifPresentOrElse(
-                account -> sendReset(account, email, token, hashedToken),
-                () -> accountMailer.sendNoAccountFound(email));
+        // an unknown address gets nothing: the token above was generated and hashed all the same
+        userAccountRepository.findByEmail(email)
+                .ifPresent(account -> sendReset(account, email, token, hashedToken));
     }
 
     /**

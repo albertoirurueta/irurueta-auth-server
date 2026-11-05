@@ -78,20 +78,38 @@ class DocumentControllerTest {
         assertEquals(List.of(new DocumentResponse(ID, "bob", "T", "C")), response);
     }
 
-    /** Deleting an existing document answers 204. */
+    /** Deleting a document passes the caller and whether they are an administrator, and answers 204. */
     @Test
-    void delete_whenDocumentExists_returnsNoContent() {
-        when(deleteDocumentUseCase.execute(ID)).thenReturn(true);
+    void delete_whenDocumentIsDeleted_returnsNoContent() {
+        when(deleteDocumentUseCase.execute(ID, SUBJECT, false)).thenReturn(true);
 
-        assertEquals(HttpStatus.NO_CONTENT, controller.delete(ID).getStatusCode());
-        verify(deleteDocumentUseCase).execute(ID);
+        assertEquals(HttpStatus.NO_CONTENT, controller.delete(ID, caller("SCOPE_documents.delete")).getStatusCode());
+        verify(deleteDocumentUseCase).execute(ID, SUBJECT, false);
     }
 
-    /** Deleting a missing document answers 404. */
+    /** An administrator is passed as such. */
     @Test
-    void delete_whenDocumentIsMissing_returnsNotFound() {
-        when(deleteDocumentUseCase.execute(ID)).thenReturn(false);
+    void delete_whenCallerIsAdministrator_passesTheAdministratorFlag() {
+        when(deleteDocumentUseCase.execute(ID, SUBJECT, true)).thenReturn(true);
 
-        assertEquals(HttpStatus.NOT_FOUND, controller.delete(ID).getStatusCode());
+        assertEquals(HttpStatus.NO_CONTENT, controller.delete(ID, caller("ROLE_ADMIN")).getStatusCode());
+    }
+
+    /** A missing document, or someone else's, answers 404. */
+    @Test
+    void delete_whenDocumentIsMissingOrNotOwned_returnsNotFound() {
+        when(deleteDocumentUseCase.execute(ID, SUBJECT, false)).thenReturn(false);
+
+        assertEquals(HttpStatus.NOT_FOUND, controller.delete(ID, caller("SCOPE_documents.delete")).getStatusCode());
+    }
+
+    /**
+     * Builds an authenticated caller.
+     *
+     * @param authorities authorities of the caller.
+     * @return the caller.
+     */
+    private static TestingAuthenticationToken caller(final String... authorities) {
+        return new TestingAuthenticationToken(SUBJECT, null, authorities);
     }
 }

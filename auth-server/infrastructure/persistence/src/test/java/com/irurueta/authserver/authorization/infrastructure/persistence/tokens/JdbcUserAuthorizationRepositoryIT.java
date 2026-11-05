@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.irurueta.authserver.authorization.infrastructure.persistence.MigratedPostgres;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
@@ -119,6 +121,41 @@ class JdbcUserAuthorizationRepositoryIT {
         assertEquals(1, repository.deleteExpired(now));
         assertEquals(1, jdbcClient.sql("SELECT count(*) FROM oauth2_authorization WHERE principal_name = 'alice'")
                 .query(Integer.class).single());
+    }
+
+    /**
+     * Verifies that an authorization that never got a token (all its expiry columns are null) is deleted once it is
+     * older than the threshold, while a recent one and one with tokens are kept.
+     */
+    @Test
+    void deleteAbandoned_whenAuthorizationNeverGotATokenAndIsOld_deletesOnlyThatOne() {
+        final var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        final var old = abandoned("alice");
+        final var recent = abandoned("bob");
+        authorizationService.save(old);
+        authorizationService.save(recent);
+        authorizationService.save(authorization("carol", now, now.plusSeconds(ONE_MINUTE), now.plusSeconds(ONE_HOUR)));
+        jdbcClient.sql("UPDATE oauth2_authorization SET created_at = created_at - interval '2 days' WHERE id = ?")
+                .param(old.getId()).update();
+
+        assertEquals(1, repository.deleteAbandoned(now.minus(1, ChronoUnit.DAYS)));
+        assertEquals(List.of("bob", "carol"), jdbcClient.sql(
+                        "SELECT principal_name FROM oauth2_authorization ORDER BY principal_name")
+                .query(String.class).list());
+        assertEquals(0, repository.deleteExpired(now), "an authorization without expiry is never \"expired\"");
+    }
+
+    /**
+     * Builds an authorization that never got a token, as an authorization request waiting for consent is stored.
+     *
+     * @param principal principal of the authorization.
+     * @return the authorization.
+     */
+    private static OAuth2Authorization abandoned(final String principal) {
+        return OAuth2Authorization.withRegisteredClient(registeredClient).id(UUID.randomUUID().toString())
+                .principalName(principal).authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .attribute(OAuth2ParameterNames.STATE, UUID.randomUUID().toString())
+                .build();
     }
 
     /**

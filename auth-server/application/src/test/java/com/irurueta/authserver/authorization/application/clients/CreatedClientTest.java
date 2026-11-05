@@ -19,12 +19,17 @@ package com.irurueta.authserver.authorization.application.clients;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests of {@link CreatedClient}.
  */
 class CreatedClientTest {
+
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
 
     /** Clear-text secret used by the tests; not a real credential. */
     private static final String SECRET = "super-secret-value";
@@ -34,9 +39,18 @@ class CreatedClientTest {
      */
     @Test
     void toString_whenSecretIsSet_doesNotContainIt() {
-        final var created = new CreatedClient(DefaultClientDefinitions.bff(), SECRET);
+        final var created = new CreatedClient(bff(), SECRET);
 
         assertEquals(SECRET, created.clientSecret());
         assertFalse(created.toString().contains(SECRET));
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

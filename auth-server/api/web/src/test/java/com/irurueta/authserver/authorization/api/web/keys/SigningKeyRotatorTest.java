@@ -18,6 +18,8 @@ package com.irurueta.authserver.authorization.api.web.keys;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.keys.RotateSigningKeysUseCase;
@@ -71,5 +73,22 @@ class SigningKeyRotatorTest {
         order.verify(rotateSigningKeysUseCase).execute();
         order.verify(eventPublisher).publishEvent(captor.capture());
         assertEquals(new SigningKeysRotatedEvent(NOW), captor.getValue());
+    }
+
+    /**
+     * A forced rotation runs the forced path of the use case, never the due-only one, then publishes the event.
+     */
+    @Test
+    void rotateNow_whenCalled_forcesTheRotationThenPublishesEvent() {
+        when(clock.instant()).thenReturn(NOW);
+        final var captor = ArgumentCaptor.<Object>captor();
+
+        rotator.rotateNow();
+
+        final var order = inOrder(rotateSigningKeysUseCase, eventPublisher);
+        order.verify(rotateSigningKeysUseCase).executeForced();
+        order.verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals(new SigningKeysRotatedEvent(NOW), captor.getValue());
+        verify(rotateSigningKeysUseCase, never()).execute();
     }
 }

@@ -24,10 +24,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.irurueta.authserver.authorization.AuthServerFixtures.TestClient;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,7 +115,8 @@ class TokenFlowIT {
                 .decode(tokens.get(ACCESS_TOKEN).asString());
 
         assertEquals(user.username(), claims.getSubject());
-        assertEquals(List.of("resource-server"), claims.getAudience());
+        assertEquals(List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE, AuthServerFixtures.API_AUDIENCE),
+                claims.getAudience());
         assertEquals(List.of("ROLE_USER"), claims.getClaimAsStringList("roles"));
         assertEquals(AuthServerFixtures.TENANT, claims.getClaimAsString("tenant"));
         assertTrue(claims.getClaimAsStringList("scope").containsAll(List.of("openid", "profile", "email")));
@@ -238,6 +241,32 @@ class TokenFlowIT {
     }
 
     /**
+     * Verifies that a reference (opaque) access token carries the same claims as a JWT one: introspected by another
+     * client (as a resource server does), it lists the client's audiences, the roles and the tenant of the user.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void introspect_whenTokenIsAReferenceToken_returnsAudienceRolesAndTenant() throws Exception {
+        final var user = fixtures.createUser();
+        final var client = fixtures.createClient(List.of("authorization_code", "refresh_token"),
+                List.of("openid", "profile", "email"), List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE),
+                ClientRegistration.FORMAT_REFERENCE);
+        final var accessToken = fixtures.authorizationCodeTokens(user, client).get(ACCESS_TOKEN).asString();
+        assertFalse(accessToken.contains("."), "a reference token is not a JWT");
+        final var resourceServer = fixtures.createClient(List.of("client_credentials"), List.of("read"),
+                List.of(AuthServerFixtures.API_AUDIENCE));
+
+        final var introspected = introspect(resourceServer, accessToken);
+
+        assertTrue(introspected.get("active").asBoolean());
+        assertEquals(user.username(), introspected.get("sub").asString());
+        assertEquals(List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE), strings(introspected.get("aud")));
+        assertEquals(List.of("ROLE_USER"), strings(introspected.get("roles")));
+        assertEquals(AuthServerFixtures.TENANT, introspected.get("tenant").asString());
+    }
+
+    /**
      * Verifies that the UserInfo endpoint answers with the claims the granted scopes allow.
      *
      * @throws Exception if a request cannot be performed.
@@ -272,6 +301,18 @@ class TokenFlowIT {
         mockMvc.perform(get("/userinfo").header(AuthServerFixtures.AUTHORIZATION,
                         "Bearer " + AuthServerFixtures.randomValue()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Reads a JSON array of strings.
+     *
+     * @param array the array.
+     * @return its values.
+     */
+    private static List<String> strings(final JsonNode array) {
+        final var values = new ArrayList<String>();
+        array.forEach(value -> values.add(value.asString()));
+        return values;
     }
 
     /**

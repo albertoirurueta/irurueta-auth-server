@@ -100,12 +100,18 @@ placeholder package holds a `package-info.java` saying which issue fills it.
   own `@Configuration` to add a converter or provider to a protocol endpoint (for example `x509` or `implicit`);
   `SecurityConfig` is never edited.
 - `api.web.tokens.JwtClaimsContributor` (introduced by the token customisation task): every bean of this type adds
-  claims to the access and ID tokens through `RolesTenantAudienceTokenCustomizer`, the one
-  `OAuth2TokenCustomizer<JwtEncodingContext>` of the server, so a feature (for example `mfa` adding `amr`) contributes
-  claims without owning a second customizer.
-- `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, bearer JWTs validated by the local
-  `JwtDecoder`, errors per RFC 6750). Its public paths and the `/api/admin/**` rule are fixed there; a feature only
-  adds controllers under `/api/**`.
+  claims, through `IssuedTokenClaims`, to the access tokens of both formats and to the ID tokens:
+  `RolesTenantAudienceTokenCustomizer` (the one `OAuth2TokenCustomizer<JwtEncodingContext>`) applies it to the JWTs and
+  `ReferenceTokenClaimsCustomizer` (the one `OAuth2TokenCustomizer<OAuth2TokenClaimsContext>`) to the reference tokens,
+  so a feature (for example `mfa` adding `amr`) contributes claims without owning a customizer. A contributor checks
+  `context.getTokenType()` when a claim belongs to one kind of token only.
+- `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
+  own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
+  and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
+  uses for tokens of other audiences. Its public paths and the `/api/admin/**` rule (scope `admin` only) are fixed
+  there; a feature only adds controllers under `/api/**`.
+- `api.web.SchedulingConfiguration` enables `@Scheduled` once for every feature; a feature declares its job (a
+  `@Component` with a `@Scheduled` method calling a use case) and never enables scheduling itself.
 
 A later issue therefore adds a login method by creating its feature packages (domain model and port, use case,
 persistence adapter, web `@Configuration` with its controller, a `templates/<method>.html`, a `LoginChainCustomizer`

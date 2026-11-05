@@ -21,13 +21,16 @@ import com.irurueta.authserver.authorization.application.account.RegisterAccount
 import com.irurueta.authserver.authorization.application.account.RequestPasswordResetUseCase;
 import com.irurueta.authserver.authorization.application.account.ResetPasswordUseCase;
 import com.irurueta.authserver.authorization.application.account.VerifyEmailUseCase;
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
  * are answered as RFC 9457 problem details by {@link AccountExceptionHandler}. No answer reveals whether an e-mail
  * address belongs to an account.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/account")
 @Tag(name = "Account", description = "Self-service account management")
@@ -63,35 +67,50 @@ public class AccountController {
     /** Resets forgotten passwords. */
     private final ResetPasswordUseCase resetPasswordUseCase;
 
+    /** Limits the unauthenticated requests per client and per e-mail address. */
+    private final AccountRateLimiter accountRateLimiter;
+
     /**
-     * Registers an account. The answer is the same whether or not the address was already registered.
+     * Registers an account. The answer is the same whether or not the address or the username was already taken.
      *
-     * @param request registration data.
+     * @param request     registration data.
+     * @param httpRequest the HTTP request, for the client address.
      */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Registers an account",
-            description = "The answer is the same whether or not the e-mail address is already registered.",
+            description = "The answer is the same whether or not the e-mail address or the username is already "
+                    + "taken. Rate limited per client address and per e-mail address.",
             security = {})
     @ApiResponse(responseCode = "202", description = "Registration accepted; an e-mail is sent")
     @ApiResponse(responseCode = "400", description = "Invalid request or rejected password",
             content = @Content(mediaType = "application/problem+json"))
-    public void register(@Valid @RequestBody final RegisterRequest request) {
+    @ApiResponse(responseCode = "429", description = "Too many requests from this client or for this address",
+            content = @Content(mediaType = "application/problem+json"))
+    @ApiResponse(responseCode = "503", description = "The e-mail could not be sent; nothing was registered",
+            content = @Content(mediaType = "application/problem+json"))
+    public void register(@Valid @RequestBody final RegisterRequest request, final HttpServletRequest httpRequest) {
+        accountRateLimiter.check(httpRequest.getRemoteAddr(), request.email());
         registerAccountUseCase.execute(request.username(), request.email(), request.password());
     }
 
     /**
      * Verifies an e-mail address.
      *
-     * @param token verification token received by e-mail.
+     * @param token       verification token received by e-mail.
+     * @param httpRequest the HTTP request, for the client address.
      */
     @GetMapping("/verify")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Verifies an e-mail address", security = {})
+    @Operation(summary = "Verifies an e-mail address",
+            description = "A verification link works once. Rate limited per client address.", security = {})
     @ApiResponse(responseCode = "204", description = "E-mail address verified")
     @ApiResponse(responseCode = "400", description = "The token is invalid, expired or already used",
             content = @Content(mediaType = "application/problem+json"))
-    public void verify(@RequestParam("token") final String token) {
+    @ApiResponse(responseCode = "429", description = "Too many requests from this client or for this address",
+            content = @Content(mediaType = "application/problem+json"))
+    public void verify(@RequestParam("token") final String token, final HttpServletRequest httpRequest) {
+        accountRateLimiter.check(httpRequest.getRemoteAddr(), null);
         verifyEmailUseCase.execute(token);
     }
 
@@ -114,34 +133,54 @@ public class AccountController {
     }
 
     /**
-     * Asks for a password reset link. The answer is the same whether or not the address belongs to an account.
+     * Asks for a password reset link. The answer is the same whether or not the address belongs to an account, and
+     * even when the link cannot be delivered: only a registered address is ever mailed, so a delivery failure must
+     * not tell the caller that the address is registered (the use case has rolled back its token by then).
      *
-     * @param request e-mail address of the account.
+     * @param request     e-mail address of the account.
+     * @param httpRequest the HTTP request, for the client address.
      */
     @PostMapping("/password/reset-request")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Requests a password reset link",
-            description = "The answer is the same whether or not the e-mail address belongs to an account.",
+            description = "The answer is the same whether or not the e-mail address belongs to an account; only a "
+                    + "registered address receives a message. Rate limited per client address and per e-mail "
+                    + "address.",
             security = {})
-    @ApiResponse(responseCode = "202", description = "Request accepted; an e-mail is sent")
+    @ApiResponse(responseCode = "202", description = "Request accepted; a registered address is sent a link")
     @ApiResponse(responseCode = "400", description = "Invalid request",
             content = @Content(mediaType = "application/problem+json"))
-    public void requestPasswordReset(@Valid @RequestBody final PasswordResetRequest request) {
-        requestPasswordResetUseCase.execute(request.email());
+    @ApiResponse(responseCode = "429", description = "Too many requests from this client or for this address",
+            content = @Content(mediaType = "application/problem+json"))
+    public void requestPasswordReset(@Valid @RequestBody final PasswordResetRequest request,
+                                     final HttpServletRequest httpRequest) {
+        accountRateLimiter.check(httpRequest.getRemoteAddr(), request.email());
+        try {
+            requestPasswordResetUseCase.execute(request.email());
+        } catch (final AccountMailException e) {
+            log.warn("A password reset link could not be delivered: {}", e.getMessage());
+        }
     }
 
     /**
      * Resets a forgotten password.
      *
-     * @param request reset token and new password.
+     * @param request     reset token and new password.
+     * @param httpRequest the HTTP request, for the client address.
      */
     @PostMapping("/password/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Resets a forgotten password", security = {})
+    @Operation(summary = "Resets a forgotten password",
+            description = "A rejected password does not use up the token. Rate limited per client address.",
+            security = {})
     @ApiResponse(responseCode = "204", description = "Password reset")
     @ApiResponse(responseCode = "400", description = "Invalid token or rejected password",
             content = @Content(mediaType = "application/problem+json"))
-    public void resetPassword(@Valid @RequestBody final ResetPasswordRequest request) {
+    @ApiResponse(responseCode = "429", description = "Too many requests from this client or for this address",
+            content = @Content(mediaType = "application/problem+json"))
+    public void resetPassword(@Valid @RequestBody final ResetPasswordRequest request,
+                              final HttpServletRequest httpRequest) {
+        accountRateLimiter.check(httpRequest.getRemoteAddr(), null);
         resetPasswordUseCase.execute(request.token(), request.newPassword());
     }
 }

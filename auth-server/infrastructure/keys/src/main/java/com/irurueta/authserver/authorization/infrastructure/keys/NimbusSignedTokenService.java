@@ -48,9 +48,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class NimbusSignedTokenService implements SignedTokenService {
 
-    /** Name of the claim that holds the purpose of the token. */
-    static final String PURPOSE_CLAIM = "purpose";
-
     /** Source of the current time. */
     private final Clock clock;
 

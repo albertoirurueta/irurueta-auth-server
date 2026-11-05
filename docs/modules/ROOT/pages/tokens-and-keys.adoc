@@ -22,8 +22,10 @@ include::example$auth-server/infrastructure/persistence/src/main/resources/db/mi
 
 `RotateSigningKeysUseCase` applies the lifecycle: it creates the `ACTIVE` and `NEXT` keys when missing, promotes
 `NEXT` and retires the old `ACTIVE` key when the rotation interval has elapsed, always leaves a fresh `NEXT` key, and
-deletes keys retired for longer than the retention. Rotation runs in one transaction guarded by a PostgreSQL advisory
-lock, so two instances never rotate at once.
+deletes keys retired for longer than the retention. The start-up runner and `SigningKeyRotationJob` call `execute()`,
+which only rotates a key that is due; `POST /api/admin/keys/rotate` calls `executeForced()`, which retires the active
+key now whatever its age (for example after a suspected compromise). Rotation runs in one transaction guarded by a
+PostgreSQL advisory lock, so two instances never rotate at once.
 
 [source,java]
 ----
@@ -33,6 +35,18 @@ include::example$auth-server/application/src/main/java/com/irurueta/authserver/a
 [source,java]
 ----
 include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/keys/JdbcSigningKeyRepository.java[tag=keys-rotation-lock]
+----
+
+A retired key must stay published for as long as any token it signed can still be presented. `SigningKeyRetention`
+therefore computes the *effective* retention as the longest of the configured retention and the longest signed-token
+lifetime plus the clock skew. The signed tokens are the access tokens of the clients with self-contained tokens and
+the ID tokens (reported by the `SignedTokenLifetimes` port, implemented over the registered clients by
+`RegisteredClientTokenLifetimes`; Spring Authorization Server fixes the ID-token lifetime at 30 minutes) and the
+24-hour e-mail verification tokens. Registering a client with longer-lived tokens lengthens it automatically.
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/keys/SigningKeyRetention.java[tag=keys-retention]
 ----
 
 [cols="2,1,3",options="header"]
@@ -47,7 +61,12 @@ include::example$auth-server/infrastructure/persistence/src/main/java/com/irurue
 
 |`authserver.keys.retention`
 |`PT2H`
-|How long a retired key stays published, so tokens it signed stay verifiable.
+|Minimum time a retired key stays published; the effective retention is never shorter than the longest signed-token
+lifetime plus the clock skew.
+
+|`authserver.keys.clock-skew`
+|`PT60S`
+|Clock skew the token consumers tolerate, added to the longest signed-token lifetime.
 
 |`authserver.keys.rotation.cron`
 |`0 0 * * * *`
@@ -59,8 +78,27 @@ include::example$auth-server/infrastructure/persistence/src/main/java/com/irurue
 
 |`authserver.tokens.cleanup.cron`
 |`0 0 * * * *`
-|Schedule of `ExpiredAuthorizationCleanupJob`, which deletes expired authorizations.
+|Schedule of `ExpiredAuthorizationCleanupJob`, which deletes expired and abandoned authorizations.
+
+|`authserver.tokens.cleanup.abandoned-after`
+|`P1D`
+|Age after which an authorization that never got a token (an authorization or consent request the user abandoned)
+is deleted.
+
+|`authserver.account.cleanup.cron`
+|`0 30 * * * *`
+|Schedule of `ExpiredAccountTokenCleanupJob`, which deletes expired account (password reset) tokens.
 |===
+
+Scheduling is switched on once, for every feature, by `SchedulingConfiguration` in the root `api.web` package.
+
+An expired authorization has every token expiry in the past. An authorization that never got a token has no expiry
+at all, so a `created_at` column (migration `V240`) dates it:
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V240__authorization_created_at.sql[tag=tokens-authorization-created]
+----
 
 Two beans are built over the same table: the `JWKSource` publishes `active`, `next` and still-valid `retired` public
 keys at the JWKS endpoint, while the `JwtEncoder` signs only with the `active` key.
@@ -79,14 +117,29 @@ include::example$auth-server/infrastructure/keys/src/main/java/com/irurueta/auth
 ----
 
 Administrators can list the keys (`GET /api/admin/keys`, never exposing private material) and force a rotation
-(`POST /api/admin/keys/rotate`).
+(`POST /api/admin/keys/rotate`, the forced path above).
+
+== Bearer tokens of the API
+
+The `/api/**` chain (`ApiSecurityConfig`) has a decoder of its own, separate from the one the UserInfo endpoint uses.
+It accepts a token only when this server signed it (published keys), its issuer is this server, its timestamps are
+valid, its `aud` lists the API audience (`authserver.api.audience`, default `auth-server`) and it does not carry the
+`purpose` claim of the account tokens, so a user's access token for the resource server, or an e-mail verification
+JWT, is answered `401`. `/api/admin/**` needs the `admin` scope; the `ADMIN` role alone does not open it. The seeded
+`bff` and `spa-public` clients carry the API audience (so their users can change their password) but never the
+`admin` scope.
 
 == Token contents
 
-`RolesTenantAudienceTokenCustomizer` adds the `roles`, `tenant` and `aud` claims to access tokens. The audience is the
-logical API identifier configured per client (client setting `audiences`, default the client id).
-Other features add claims, for example `amr` or `acr`, without editing it, by declaring `JwtClaimsContributor`
-beans, applied in `@Order` order.
+`IssuedTokenClaims` adds the `roles`, `tenant` and `aud` claims to access tokens, whatever their format. The audience
+is the logical API identifier configured per client (client setting `audiences`, default the client id).
+`RolesTenantAudienceTokenCustomizer` applies it to the JWTs (access and ID tokens) and
+`ReferenceTokenClaimsCustomizer` to the claims stored for a reference (opaque) access token, which the introspection
+endpoint returns, so a resource server that introspects sees the same claims as one that decodes a JWT. Other
+features add claims, for example `amr` or `acr`, without editing them, by declaring `JwtClaimsContributor` beans,
+applied in `@Order` order to the access tokens of both formats and to the ID tokens (a contributor checks
+`context.getTokenType()` when a claim belongs to one kind only). ID tokens get the contributed claims but none of
+`roles`, `tenant` or `aud`.
 
 [source,java]
 ----
@@ -95,7 +148,17 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 
 [source,java]
 ----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/IssuedTokenClaims.java[tag=tokens-claims]
+----
+
+[source,java]
+----
 include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/RolesTenantAudienceTokenCustomizer.java[tag=tokens-customizer]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/tokens/ReferenceTokenClaimsCustomizer.java[tag=tokens-reference-customizer]
 ----
 
 `UserInfoMapper` builds the OpenID Connect UserInfo response and is registered through a `ProtocolChainCustomizer`.

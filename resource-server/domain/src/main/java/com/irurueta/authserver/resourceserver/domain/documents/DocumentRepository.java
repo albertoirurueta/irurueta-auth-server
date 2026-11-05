@@ -17,6 +17,7 @@
 package com.irurueta.authserver.resourceserver.domain.documents;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Port that provides and stores documents. An implementation never returns {@code null}.
@@ -30,6 +31,14 @@ public interface DocumentRepository {
      * @return the documents of the owner, empty when there are none.
      */
     List<Document> findByOwner(String owner);
+
+    /**
+     * Finds a document by its identifier.
+     *
+     * @param id identifier of the document.
+     * @return the document, or an empty optional when there is none.
+     */
+    Optional<Document> findById(String id);
 
     /**
      * Finds every document.

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import java.util.List;
@@ -47,6 +48,20 @@ class SeedRegisteredClientsUseCaseTest {
     /** Encoded secret returned by the mocked hasher. */
     private static final String ENCODED = "{argon2}encoded";
 
+    /** Redirect URI of the clients the tests seed. */
+    private static final String REDIRECT_URI = "https://app.example.test/callback";
+
+    /** The {@code bff} client the tests seed. */
+    private static final ClientRegistration BFF = DefaultClientDefinitions.bff(List.of(REDIRECT_URI),
+            DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+
+    /** The {@code spa-public} client the tests seed. */
+    private static final ClientRegistration SPA = DefaultClientDefinitions.spaPublic(List.of(REDIRECT_URI),
+            DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+
+    /** Both clients, as a deployment that configures both seeds them. */
+    private static final List<ClientRegistration> BOTH = List.of(BFF, SPA);
+
     /** Port that stores the clients. */
     @Mock
     private ClientRegistrationRepository clientRegistrationRepository;
@@ -67,12 +82,12 @@ class SeedRegisteredClientsUseCaseTest {
         when(clientRegistrationRepository.findByClientId(any())).thenReturn(Optional.empty());
         when(passwordHasher.encode(SECRET)).thenReturn(ENCODED);
 
-        final var created = useCase.execute(Map.of("bff", SECRET));
+        final var created = useCase.execute(BOTH, Map.of("bff", SECRET));
 
         assertEquals(List.of("bff", "spa-public"), created.created());
         assertTrue(created.skipped().isEmpty());
-        verify(clientRegistrationRepository).save(DefaultClientDefinitions.bff(), ENCODED);
-        verify(clientRegistrationRepository).save(DefaultClientDefinitions.spaPublic(), null);
+        verify(clientRegistrationRepository).save(BFF, ENCODED);
+        verify(clientRegistrationRepository).save(SPA, null);
     }
 
     /**
@@ -81,11 +96,11 @@ class SeedRegisteredClientsUseCaseTest {
     @Test
     void execute_whenClientsExist_createsNothing() {
         when(clientRegistrationRepository.findByClientId("bff"))
-                .thenReturn(Optional.of(DefaultClientDefinitions.bff()));
+                .thenReturn(Optional.of(BFF));
         when(clientRegistrationRepository.findByClientId("spa-public"))
-                .thenReturn(Optional.of(DefaultClientDefinitions.spaPublic()));
+                .thenReturn(Optional.of(SPA));
 
-        assertTrue(useCase.execute(Map.of()).created().isEmpty());
+        assertTrue(useCase.execute(BOTH, Map.of()).created().isEmpty());
 
         verify(clientRegistrationRepository, never()).save(any(), any());
     }
@@ -97,12 +112,12 @@ class SeedRegisteredClientsUseCaseTest {
     void execute_whenSecretIsMissing_skipsConfidentialClientAndSeedsTheOthers() {
         when(clientRegistrationRepository.findByClientId(any())).thenReturn(Optional.empty());
 
-        final var created = useCase.execute(Map.of());
+        final var created = useCase.execute(BOTH, Map.of());
 
         assertEquals(List.of("spa-public"), created.created());
         assertEquals(List.of("bff"), created.skipped());
-        verify(clientRegistrationRepository).save(DefaultClientDefinitions.spaPublic(), null);
-        verify(clientRegistrationRepository, never()).save(eq(DefaultClientDefinitions.bff()), any());
+        verify(clientRegistrationRepository).save(SPA, null);
+        verify(clientRegistrationRepository, never()).save(eq(BFF), any());
     }
 
     /**
@@ -112,10 +127,25 @@ class SeedRegisteredClientsUseCaseTest {
     void execute_whenSecretIsBlank_skipsConfidentialClient() {
         when(clientRegistrationRepository.findByClientId(any())).thenReturn(Optional.empty());
 
-        final var created = useCase.execute(Map.of("bff", " "));
+        final var created = useCase.execute(BOTH, Map.of("bff", " "));
 
         assertEquals(List.of("spa-public"), created.created());
         assertEquals(List.of("bff"), created.skipped());
         verify(passwordHasher, never()).encode(any());
+    }
+
+    /**
+     * Verifies that only the given definitions are seeded: a client the deployment does not configure is never
+     * created.
+     */
+    @Test
+    void execute_whenOnlyOneClientIsConfigured_seedsOnlyThatClient() {
+        when(clientRegistrationRepository.findByClientId("spa-public")).thenReturn(Optional.empty());
+
+        final var created = useCase.execute(List.of(SPA), Map.of("bff", SECRET));
+
+        assertEquals(List.of("spa-public"), created.created());
+        verify(clientRegistrationRepository).save(SPA, null);
+        verify(clientRegistrationRepository, never()).save(eq(BFF), any());
     }
 }

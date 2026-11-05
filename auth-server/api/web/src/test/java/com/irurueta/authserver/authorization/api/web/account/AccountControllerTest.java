@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,11 +32,13 @@ import com.irurueta.authserver.authorization.application.account.RegisterAccount
 import com.irurueta.authserver.authorization.application.account.RequestPasswordResetUseCase;
 import com.irurueta.authserver.authorization.application.account.ResetPasswordUseCase;
 import com.irurueta.authserver.authorization.application.account.VerifyEmailUseCase;
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import com.irurueta.authserver.authorization.domain.account.InvalidAccountTokenException;
 import com.irurueta.authserver.authorization.domain.password.InvalidCredentialsException;
 import com.irurueta.authserver.authorization.domain.password.InvalidPasswordException;
 import com.irurueta.authserver.authorization.domain.password.PasswordViolation;
 import java.security.Principal;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +47,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -59,6 +63,12 @@ class AccountControllerTest {
 
     /** E-mail address used by the tests. */
     private static final String EMAIL = "alice@example.com";
+
+    /** Client address of the requests made by MockMvc. */
+    private static final String CLIENT_ADDRESS = "127.0.0.1";
+
+    /** Seconds until a rate-limited client may retry. */
+    private static final long RETRY_SECONDS = 42;
 
     /** Registers accounts. */
     @Mock
@@ -79,6 +89,10 @@ class AccountControllerTest {
     /** Resets passwords. */
     @Mock
     private ResetPasswordUseCase resetPasswordUseCase;
+
+    /** Limits the unauthenticated requests. */
+    @Mock
+    private AccountRateLimiter accountRateLimiter;
 
     /** Controller under test. */
     @InjectMocks
@@ -112,7 +126,45 @@ class AccountControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(content().string(""));
 
+        verify(accountRateLimiter).check(CLIENT_ADDRESS, EMAIL);
         verify(registerAccountUseCase).execute(USERNAME, EMAIL, secret);
+    }
+
+    /**
+     * Checks that a registration over the limit is answered {@code 429} with a {@code Retry-After} header and never
+     * reaches the use case.
+     *
+     * @throws Exception if the request fails.
+     */
+    @Test
+    void register_whenRateLimitIsExceeded_answersTooManyRequests() throws Exception {
+        doThrow(new AccountRateLimitExceededException(Duration.ofSeconds(RETRY_SECONDS)))
+                .when(accountRateLimiter).check(CLIENT_ADDRESS, EMAIL);
+
+        mockMvc.perform(post("/api/account/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(json("username", USERNAME, "email", EMAIL, "password", secret)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, Long.toString(RETRY_SECONDS)))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+
+        verifyNoInteractions(registerAccountUseCase);
+    }
+
+    /**
+     * Checks that a registration whose e-mail cannot be delivered is answered {@code 503}: the use case rolled the
+     * registration back, so the user can retry.
+     *
+     * @throws Exception if the request fails.
+     */
+    @Test
+    void register_whenMailCannotBeDelivered_answersServiceUnavailable() throws Exception {
+        doThrow(new AccountMailException("down", new IllegalStateException("relay")))
+                .when(registerAccountUseCase).execute(USERNAME, EMAIL, secret);
+
+        mockMvc.perform(post("/api/account/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(json("username", USERNAME, "email", EMAIL, "password", secret)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     /**
@@ -157,6 +209,7 @@ class AccountControllerTest {
         mockMvc.perform(get("/api/account/verify").param("token", secret))
                 .andExpect(status().isNoContent());
 
+        verify(accountRateLimiter).check(CLIENT_ADDRESS, null);
         verify(verifyEmailUseCase).execute(secret);
     }
 
@@ -241,7 +294,25 @@ class AccountControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(content().string(""));
 
+        verify(accountRateLimiter).check(CLIENT_ADDRESS, EMAIL);
         verify(requestPasswordResetUseCase).execute(EMAIL);
+    }
+
+    /**
+     * Checks that a reset request whose link cannot be delivered is answered exactly like any other: only a
+     * registered address is mailed, so a delivery failure must not reveal that the address is registered.
+     *
+     * @throws Exception if the request fails.
+     */
+    @Test
+    void requestPasswordReset_whenMailCannotBeDelivered_stillAnswersAccepted() throws Exception {
+        doThrow(new AccountMailException("down", new IllegalStateException("relay")))
+                .when(requestPasswordResetUseCase).execute(EMAIL);
+
+        mockMvc.perform(post("/api/account/password/reset-request").contentType(MediaType.APPLICATION_JSON)
+                        .content(json("email", EMAIL)))
+                .andExpect(status().isAccepted())
+                .andExpect(content().string(""));
     }
 
     /**
@@ -271,6 +342,7 @@ class AccountControllerTest {
                         .content(json("token", token, "newPassword", secret)))
                 .andExpect(status().isNoContent());
 
+        verify(accountRateLimiter).check(CLIENT_ADDRESS, null);
         verify(resetPasswordUseCase).execute(token, secret);
     }
 

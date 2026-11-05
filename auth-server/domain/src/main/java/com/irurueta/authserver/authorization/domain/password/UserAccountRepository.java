@@ -73,9 +73,13 @@ public interface UserAccountRepository {
     void updatePassword(UUID userId, String encodedPassword);
 
     /**
-     * Marks the e-mail address of an account as verified and enables the account.
+     * Marks the e-mail address of an account as verified and enables the account, but only while the address is
+     * still unverified: the transition happens once, so a replayed verification never re-enables an account that
+     * was disabled after its address had been verified.
      *
      * @param userId identifier of the account.
+     * @return {@code true} when the address was unverified and is now verified, {@code false} when the account
+     *         does not exist or its address had already been verified (nothing changes then).
      */
-    void markEmailVerified(UUID userId);
+    boolean markEmailVerified(UUID userId);
 }

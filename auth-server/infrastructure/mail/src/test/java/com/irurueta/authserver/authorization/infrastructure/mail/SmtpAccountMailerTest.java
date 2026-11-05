@@ -16,8 +16,9 @@
 
 package com.irurueta.authserver.authorization.infrastructure.mail;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,40 +121,34 @@ class SmtpAccountMailerTest {
     }
 
     /**
-     * The no-account message does not contain any link material besides the base URL.
-     */
-    @Test
-    void sendNoAccountFound_whenCalled_sendsMessageWithBaseUrl() {
-        mailer.sendNoAccountFound(RECIPIENT);
-
-        final var message = captureMessage();
-        assertEquals("Reset requested for this e-mail address", message.getSubject());
-        assertNotNull(message.getText());
-        assertTrue(message.getText().contains(BASE_URL));
-    }
-
-    /**
      * The configured locale is used, not the thread or platform locale.
      */
     @Test
-    void sendNoAccountFound_whenLocaleIsConfigured_usesConfiguredLocaleNotThreadLocale() {
+    void sendAlreadyRegistered_whenLocaleIsConfigured_usesConfiguredLocaleNotThreadLocale() {
         LocaleContextHolder.setLocale(Locale.GERMAN);
         final var other = new SmtpAccountMailer(mailSender, MailConfiguration.mailMessages(),
                 new MailProperties(SENDER, BASE_URL, Locale.ENGLISH));
 
-        other.sendNoAccountFound(RECIPIENT);
+        other.sendAlreadyRegistered(RECIPIENT);
 
-        assertEquals("Reset requested for this e-mail address", captureMessage().getSubject());
+        assertEquals("Your e-mail address is already registered", captureMessage().getSubject());
     }
 
     /**
-     * A delivery failure is swallowed.
+     * A delivery failure is reported as the domain's exception, without the address or the token in its message.
      */
     @Test
-    void sendEmailVerification_whenDeliveryFails_doesNotPropagate() {
-        doThrow(new MailSendException("down")).when(mailSender).send(any(SimpleMailMessage.class));
+    void sendEmailVerification_whenDeliveryFails_throwsAccountMailException() {
+        final var failure = new MailSendException("down");
+        doThrow(failure).when(mailSender).send(any(SimpleMailMessage.class));
+        final var value = Long.toHexString(System.nanoTime());
 
-        assertDoesNotThrow(() -> mailer.sendEmailVerification(RECIPIENT, "x"));
+        final var error = assertThrows(AccountMailException.class,
+                () -> mailer.sendEmailVerification(RECIPIENT, value));
+
+        assertSame(failure, error.getCause());
+        assertFalse(error.getMessage().contains(RECIPIENT));
+        assertFalse(error.getMessage().contains(value));
     }
 
     /**

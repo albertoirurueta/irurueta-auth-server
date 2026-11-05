@@ -17,16 +17,20 @@
 package com.irurueta.authserver.authorization.api.web.account;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import com.irurueta.authserver.authorization.domain.account.InvalidAccountTokenException;
 import com.irurueta.authserver.authorization.domain.password.CompromisedPasswordException;
 import com.irurueta.authserver.authorization.domain.password.InvalidCredentialsException;
 import com.irurueta.authserver.authorization.domain.password.InvalidPasswordException;
 import com.irurueta.authserver.authorization.domain.password.PasswordViolation;
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -90,5 +94,34 @@ class AccountExceptionHandlerTest {
         assertNotNull(body);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(URI.create("urn:problem:account:invalid-token"), body.getType());
+    }
+
+    /**
+     * Checks that a rate-limited request is answered {@code 429} with the seconds to wait, rounded up to one.
+     */
+    @Test
+    void handleRateLimited_whenCalled_answersTooManyRequestsWithRetryAfter() {
+        final var response = handler.handleRateLimited(new AccountRateLimitExceededException(Duration.ofMillis(1)));
+
+        final var body = response.getBody();
+        assertNotNull(body);
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        assertEquals(URI.create("urn:problem:account:rate-limited"), body.getType());
+        assertEquals("1", response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER));
+    }
+
+    /**
+     * Checks that an undelivered e-mail is answered {@code 503} without the failure's own message.
+     */
+    @Test
+    void handleMailFailure_whenCalled_answersServiceUnavailable() {
+        final var response = handler.handleMailFailure(
+                new AccountMailException("internal detail", new IllegalStateException("relay")));
+
+        final var body = response.getBody();
+        assertNotNull(body);
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals(URI.create("urn:problem:account:mail-unavailable"), body.getType());
+        assertFalse(String.valueOf(body.getDetail()).contains("internal detail"));
     }
 }

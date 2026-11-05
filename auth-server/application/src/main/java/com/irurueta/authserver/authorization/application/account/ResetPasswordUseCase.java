@@ -30,10 +30,13 @@ import com.irurueta.authserver.authorization.domain.password.UserAccountReposito
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Use case that chooses a new password with the single-use token received by e-mail. Every token of the user is
- * revoked afterwards.
+ * Use case that chooses a new password with the single-use token received by e-mail. Every check (token, account,
+ * password policy including the username rule, compromised-password check) runs before the token is consumed, so a
+ * rejected password never burns the token; consuming it, storing the new hash and revoking every token of the user
+ * then happen in one transaction.
  */
 @Service
 @RequiredArgsConstructor
@@ -63,9 +66,11 @@ public class ResetPasswordUseCase {
     /** Rules a new password must follow. */
     private final PasswordPolicy passwordPolicy = new PasswordPolicy();
 
+    // tag::account-reset-password[]
     /**
-     * Resets the password of the user the token was issued to. The password is checked first, without the username
-     * rule, so a rejected password does not burn the token; the token is single-use once it is consumed.
+     * Resets the password of the user the token was issued to. The token is looked up without being consumed, every
+     * check runs, and only then is the token consumed; the consumption is atomic, so of two concurrent resets with
+     * the same token only one succeeds.
      *
      * @param token       the reset token received by e-mail.
      * @param newPassword the clear-text new password.
@@ -73,23 +78,28 @@ public class ResetPasswordUseCase {
      * @throws CompromisedPasswordException if the password is known to be compromised.
      * @throws InvalidAccountTokenException if the token is unknown, expired, used or its account is gone.
      */
+    @Transactional
     public void execute(final String token, final String newPassword) {
-        requirePolicy(null, newPassword);
-        requireNotCompromised(newPassword);
-        final var consumed = accountTokenRepository
-                .consume(tokenGenerator.hash(token), AccountToken.PURPOSE_PASSWORD_RESET, clock.instant())
+        final var hashedToken = tokenGenerator.hash(token);
+        final var now = clock.instant();
+        final var stored = accountTokenRepository
+                .findUsable(hashedToken, AccountToken.PURPOSE_PASSWORD_RESET, now)
                 .orElseThrow(InvalidAccountTokenException::new);
-        final var account = userAccountRepository.findById(consumed.userId())
+        final var account = userAccountRepository.findById(stored.userId())
                 .orElseThrow(InvalidAccountTokenException::new);
         requirePolicy(account.username(), newPassword);
+        requireNotCompromised(newPassword);
+        accountTokenRepository.consume(hashedToken, AccountToken.PURPOSE_PASSWORD_RESET, now)
+                .orElseThrow(InvalidAccountTokenException::new);
         userAccountRepository.updatePassword(account.id(), passwordHasher.encode(newPassword));
         revokeUserAuthorizationsUseCase.execute(account.username());
     }
+    // end::account-reset-password[]
 
     /**
      * Rejects a password that breaks the policy.
      *
-     * @param username name of the account the password is for, or {@code null} when it is not known yet.
+     * @param username name of the account the password is for.
      * @param password the clear-text password.
      */
     private void requirePolicy(final String username, final String password) {

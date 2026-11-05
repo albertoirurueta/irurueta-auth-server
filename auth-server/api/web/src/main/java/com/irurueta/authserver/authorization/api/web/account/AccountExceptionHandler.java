@@ -16,12 +16,14 @@
 
 package com.irurueta.authserver.authorization.api.web.account;
 
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import com.irurueta.authserver.authorization.domain.account.InvalidAccountTokenException;
 import com.irurueta.authserver.authorization.domain.password.CompromisedPasswordException;
 import com.irurueta.authserver.authorization.domain.password.InvalidCredentialsException;
 import com.irurueta.authserver.authorization.domain.password.InvalidPasswordException;
 import com.irurueta.authserver.authorization.domain.password.PasswordViolation;
 import java.net.URI;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -92,6 +94,34 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Answers a client or an e-mail address that made too many account requests, telling when to retry.
+     *
+     * @param exception the failure.
+     * @return the {@code 429} problem detail, with a {@code Retry-After} header in seconds.
+     */
+    @ExceptionHandler(AccountRateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimited(final AccountRateLimitExceededException exception) {
+        final var problem = problem(HttpStatus.TOO_MANY_REQUESTS, "rate-limited", "Too many requests",
+                exception.getMessage());
+        final var seconds = Math.max(1, exception.getRetryAfter().toSeconds());
+        return ResponseEntity.status(problem.getStatus())
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
+                .body(problem);
+    }
+
+    /**
+     * Answers an account e-mail that could not be delivered: the use case stored nothing, so the user can retry.
+     *
+     * @param exception the failure.
+     * @return the {@code 503} problem detail.
+     */
+    @ExceptionHandler(AccountMailException.class)
+    public ResponseEntity<ProblemDetail> handleMailFailure(final AccountMailException exception) {
+        return respond(problem(HttpStatus.SERVICE_UNAVAILABLE, "mail-unavailable", "E-mail unavailable",
+                "The e-mail could not be sent; nothing was changed, try again later"));
+    }
+
+    /**
      * Builds a bad request problem.
      *
      * @param type   last segment of the problem type.
@@ -100,7 +130,21 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
      * @return the problem detail.
      */
     private static ProblemDetail problem(final String type, final String title, final String detail) {
-        final var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        return problem(HttpStatus.BAD_REQUEST, type, title, detail);
+    }
+
+    /**
+     * Builds a problem.
+     *
+     * @param status HTTP status of the answer.
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the problem detail.
+     */
+    private static ProblemDetail problem(final HttpStatus status, final String type, final String title,
+                                         final String detail) {
+        final var problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(URI.create(TYPE_BASE + type));
         problem.setTitle(title);
         return problem;

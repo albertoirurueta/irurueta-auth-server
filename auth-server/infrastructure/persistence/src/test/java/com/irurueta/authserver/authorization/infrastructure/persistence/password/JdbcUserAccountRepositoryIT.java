@@ -209,11 +209,38 @@ class JdbcUserAccountRepositoryIT {
         repository.save(new UserAccount(id, USERNAME, ENCODED_PASSWORD, false, List.of(), "alice@example.com", false,
                 UserAccount.DEFAULT_TENANT));
 
-        repository.markEmailVerified(id);
+        assertTrue(repository.markEmailVerified(id));
 
         final var verified = repository.findById(id).orElseThrow();
         assertTrue(verified.emailVerified());
         assertTrue(verified.enabled());
+    }
+
+    /**
+     * Verifies that the transition happens once: an account disabled after its address was verified stays
+     * disabled when the verification is replayed, and the replay is reported as unchanged.
+     */
+    @Test
+    void markEmailVerified_whenAddressIsAlreadyVerified_doesNotReEnableTheAccount() {
+        final var id = UUID.randomUUID();
+        repository.save(new UserAccount(id, USERNAME, ENCODED_PASSWORD, false, List.of(), "alice@example.com", false,
+                UserAccount.DEFAULT_TENANT));
+        assertTrue(repository.markEmailVerified(id));
+        jdbcClient.sql("UPDATE users SET enabled = FALSE WHERE id = ?").param(id).update();
+
+        assertFalse(repository.markEmailVerified(id));
+
+        final var account = repository.findById(id).orElseThrow();
+        assertTrue(account.emailVerified());
+        assertFalse(account.enabled());
+    }
+
+    /**
+     * Verifies that an unknown account is reported as unchanged.
+     */
+    @Test
+    void markEmailVerified_whenUserIsUnknown_returnsFalse() {
+        assertFalse(repository.markEmailVerified(UUID.randomUUID()));
     }
 
     /**

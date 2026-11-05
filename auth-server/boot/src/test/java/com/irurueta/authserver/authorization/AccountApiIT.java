@@ -22,18 +22,25 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.authorization.api.web.account.AccountRateLimitProperties;
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import com.irurueta.authserver.authorization.domain.account.AccountMailer;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import com.irurueta.authserver.authorization.domain.password.CompromisedPasswordCheck;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import com.irurueta.authserver.testsupport.PostgresIT;
+import java.security.SecureRandom;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +49,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -49,6 +57,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -73,6 +83,12 @@ class AccountApiIT {
     /** Path of the endpoint that resets a password. */
     private static final String RESET_PATH = "/api/account/password/reset";
 
+    /** Path of the endpoint that verifies an e-mail address. */
+    private static final String VERIFY_PATH = "/api/account/verify";
+
+    /** Number of values of an octet of an IPv4 address. */
+    private static final int OCTET = 256;
+
     /** Writes the request bodies. */
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -95,6 +111,10 @@ class AccountApiIT {
     /** Port that stores client registrations. */
     @Autowired
     private ClientRegistrationRepository clientRegistrations;
+
+    /** Limits of the unauthenticated account endpoints. */
+    @Autowired
+    private AccountRateLimitProperties rateLimit;
 
     /** Mailer whose messages the tests read. */
     @MockitoBean
@@ -133,7 +153,7 @@ class AccountApiIT {
         mockMvc.perform(post("/login").with(csrf()).param("username", username).param("password", credential))
                 .andExpect(redirectedUrl("/login?error"));
 
-        mockMvc.perform(get("/api/account/verify").param("token", token.getValue()))
+        mockMvc.perform(verifyRequest(token.getValue()))
                 .andExpect(status().isNoContent());
 
         assertTrue(isEnabled(username));
@@ -150,7 +170,7 @@ class AccountApiIT {
      */
     @Test
     void verify_whenTokenIsInvalid_returnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/account/verify").param("token", AuthServerFixtures.randomValue()))
+        mockMvc.perform(verifyRequest(AuthServerFixtures.randomValue()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -255,7 +275,7 @@ class AccountApiIT {
     void resetPassword_whenTokenIsUsedTwice_succeedsOnlyTheFirstTime() throws Exception {
         final var user = fixtures.createUser();
         fixtures.authorizationCodeTokens(user, fixtures.createCodeClient());
-        mockMvc.perform(post(RESET_REQUEST_PATH).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post(RESET_REQUEST_PATH).with(fromNewClient()).contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.writeValueAsString(Map.of("email", user.email()))))
                 .andExpect(status().isAccepted());
         final var token = ArgumentCaptor.<String>captor();
@@ -281,8 +301,8 @@ class AccountApiIT {
     }
 
     /**
-     * Verifies that asking for a reset link of an unknown address is answered exactly like a known one, and sends
-     * the owner no link.
+     * Verifies that asking for a reset link of an unknown address is answered exactly like a known one, and that
+     * the unknown address is never mailed (the endpoint cannot be used to mail arbitrary addresses).
      *
      * @throws Exception if a request cannot be performed.
      */
@@ -291,18 +311,193 @@ class AccountApiIT {
         final var known = fixtures.createUser();
         final var unknown = "nobody-" + UUID.randomUUID() + "@example.com";
 
-        final var knownAnswer = mockMvc.perform(post(RESET_REQUEST_PATH).contentType(MediaType.APPLICATION_JSON)
+        final var knownAnswer = mockMvc.perform(post(RESET_REQUEST_PATH).with(fromNewClient())
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.writeValueAsString(Map.of("email", known.email()))))
                 .andReturn().getResponse();
-        final var unknownAnswer = mockMvc.perform(post(RESET_REQUEST_PATH).contentType(MediaType.APPLICATION_JSON)
+        final var unknownAnswer = mockMvc.perform(post(RESET_REQUEST_PATH).with(fromNewClient())
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.writeValueAsString(Map.of("email", unknown))))
                 .andReturn().getResponse();
 
         assertEquals(knownAnswer.getStatus(), unknownAnswer.getStatus());
         assertEquals(HttpStatus.ACCEPTED.value(), unknownAnswer.getStatus());
         assertEquals(knownAnswer.getContentAsString(), unknownAnswer.getContentAsString());
-        verify(accountMailer).sendNoAccountFound(unknown);
-        verify(accountMailer, never()).sendPasswordReset(eq(unknown), anyString());
+        verify(accountMailer).sendPasswordReset(eq(known.email()), anyString());
+        verifyNoMoreInteractions(accountMailer);
+    }
+
+    /**
+     * Verifies that a verification link works once: replayed after the account was disabled, it is rejected as an
+     * invalid token and the account stays disabled.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void verify_whenTokenIsReplayedAfterTheAccountWasDisabled_isRejectedAndKeepsItDisabled() throws Exception {
+        final var username = "user-" + UUID.randomUUID();
+        final var email = username + "@example.com";
+        register(username, email, AuthServerFixtures.randomValue()).andExpect(status().isAccepted());
+        final var token = ArgumentCaptor.<String>captor();
+        verify(accountMailer).sendEmailVerification(eq(email), token.capture());
+        mockMvc.perform(verifyRequest(token.getValue())).andExpect(status().isNoContent());
+        jdbcClient.sql("UPDATE users SET enabled = FALSE WHERE username = ?").param(username).update();
+
+        mockMvc.perform(verifyRequest(token.getValue())).andExpect(status().isBadRequest());
+
+        assertFalse(isEnabled(username));
+    }
+
+    /**
+     * Verifies that a taken username is never revealed to the address used to probe it: the answer is the same,
+     * the address gets the usual verification message instead of an "already registered" one, following it fails
+     * like an expired link, and nothing is stored for that address.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void register_whenOnlyTheUsernameIsTaken_mailsNothingThatRevealsIt() throws Exception {
+        final var username = "user-" + UUID.randomUUID();
+        register(username, username + "@example.com", AuthServerFixtures.randomValue())
+                .andExpect(status().isAccepted());
+        final var probe = "probe-" + UUID.randomUUID() + "@example.com";
+
+        register(username, probe, AuthServerFixtures.randomValue()).andExpect(status().isAccepted());
+
+        verify(accountMailer, never()).sendAlreadyRegistered(anyString());
+        final var token = ArgumentCaptor.<String>captor();
+        verify(accountMailer).sendEmailVerification(eq(probe), token.capture());
+        mockMvc.perform(verifyRequest(token.getValue())).andExpect(status().isBadRequest());
+        assertEquals(0, jdbcClient.sql("SELECT count(*) FROM users WHERE lower(email) = ?").param(probe)
+                .query(Integer.class).single());
+    }
+
+    /**
+     * Verifies that a registration whose e-mail cannot be delivered is answered {@code 503} and rolled back, so the
+     * username and the address stay free for a retry.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void register_whenTheMailCannotBeDelivered_rollsTheRegistrationBack() throws Exception {
+        final var username = "user-" + UUID.randomUUID();
+        final var email = username + "@example.com";
+        doThrow(new AccountMailException("not delivered", new IllegalStateException("relay down")))
+                .when(accountMailer).sendEmailVerification(eq(email), anyString());
+
+        register(username, email, AuthServerFixtures.randomValue()).andExpect(status().isServiceUnavailable());
+
+        assertEquals(0, jdbcClient.sql("SELECT count(*) FROM users WHERE username = ?").param(username)
+                .query(Integer.class).single());
+    }
+
+    /**
+     * Verifies that a rejected password (here, one containing the username) does not use up the reset token: the
+     * same token then resets the password.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void resetPassword_whenThePasswordIsRejected_keepsTheTokenUsable() throws Exception {
+        final var user = fixtures.createUser();
+        mockMvc.perform(post(RESET_REQUEST_PATH).with(fromNewClient()).contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(Map.of("email", user.email()))))
+                .andExpect(status().isAccepted());
+        final var token = ArgumentCaptor.<String>captor();
+        verify(accountMailer).sendPasswordReset(eq(user.email()), token.capture());
+
+        reset(token.getValue(), "my " + user.username() + " secret").andExpect(status().isBadRequest());
+
+        final var replacement = AuthServerFixtures.randomValue();
+        reset(token.getValue(), replacement).andExpect(status().isNoContent());
+        assertTrue(passwordEncoder.matches(replacement, storedHash(user.username())));
+    }
+
+    /**
+     * Verifies that an e-mail verification JWT, although signed by this server, is never accepted as a bearer
+     * token of the API.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void changePassword_whenTheBearerIsAVerificationToken_returnsUnauthorized() throws Exception {
+        final var username = "user-" + UUID.randomUUID();
+        final var email = username + "@example.com";
+        register(username, email, AuthServerFixtures.randomValue()).andExpect(status().isAccepted());
+        final var token = ArgumentCaptor.<String>captor();
+        verify(accountMailer).sendEmailVerification(eq(email), token.capture());
+
+        mockMvc.perform(post(CHANGE_PATH).header("Authorization", "Bearer " + token.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(Map.of("currentPassword", AuthServerFixtures.randomValue(),
+                                "newPassword", AuthServerFixtures.randomValue()))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Verifies that one client address is limited: past its requests of the window it gets {@code 429} with a
+     * {@code Retry-After} header.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void verify_whenOneClientExceedsItsLimit_returnsTooManyRequests() throws Exception {
+        final var client = fromNewClient();
+        for (var i = 0; i < rateLimit.perClient(); i++) {
+            mockMvc.perform(get(VERIFY_PATH).with(client).param("token", AuthServerFixtures.randomValue()))
+                    .andExpect(status().isBadRequest());
+        }
+
+        mockMvc.perform(get(VERIFY_PATH).with(client).param("token", AuthServerFixtures.randomValue()))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
+    }
+
+    /**
+     * Verifies that one e-mail address is limited across client addresses, and that a limited request mails
+     * nothing.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void requestPasswordReset_whenOneAddressIsNamedTooOften_returnsTooManyRequests() throws Exception {
+        final var user = fixtures.createUser();
+        final var body = JSON.writeValueAsString(Map.of("email", user.email()));
+        for (var i = 0; i < rateLimit.perEmail(); i++) {
+            mockMvc.perform(post(RESET_REQUEST_PATH).with(fromNewClient()).contentType(MediaType.APPLICATION_JSON)
+                    .content(body)).andExpect(status().isAccepted());
+        }
+
+        mockMvc.perform(post(RESET_REQUEST_PATH).with(fromNewClient()).contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isTooManyRequests());
+
+        verify(accountMailer, times(rateLimit.perEmail())).sendPasswordReset(eq(user.email()), anyString());
+    }
+
+    /**
+     * Builds a verification request from a new client address.
+     *
+     * @param token verification token.
+     * @return the request.
+     */
+    private static MockHttpServletRequestBuilder verifyRequest(final String token) {
+        return get(VERIFY_PATH).with(fromNewClient()).param("token", token);
+    }
+
+    /**
+     * Makes a request come from a new, random client address, so that the tests do not share a rate-limit counter.
+     *
+     * @return the request post-processor.
+     */
+    private static RequestPostProcessor fromNewClient() {
+        final var random = new SecureRandom();
+        final var address = "10." + random.nextInt(OCTET) + "." + random.nextInt(OCTET) + "."
+                + random.nextInt(OCTET);
+        return request -> {
+            request.setRemoteAddr(address);
+            return request;
+        };
     }
 
     /**
@@ -316,7 +511,7 @@ class AccountApiIT {
      */
     private ResultActions register(final String username, final String email, final String credential)
             throws Exception {
-        return mockMvc.perform(post(REGISTER_PATH).contentType(MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post(REGISTER_PATH).with(fromNewClient()).contentType(MediaType.APPLICATION_JSON)
                 .content(JSON.writeValueAsString(
                         Map.of("username", username, "email", email, "password", credential))));
     }
@@ -330,7 +525,7 @@ class AccountApiIT {
      * @throws Exception if the request cannot be performed.
      */
     private ResultActions reset(final String token, final String replacement) throws Exception {
-        return mockMvc.perform(post(RESET_PATH).contentType(MediaType.APPLICATION_JSON)
+        return mockMvc.perform(post(RESET_PATH).with(fromNewClient()).contentType(MediaType.APPLICATION_JSON)
                 .content(JSON.writeValueAsString(Map.of("token", token, "newPassword", replacement))));
     }
 

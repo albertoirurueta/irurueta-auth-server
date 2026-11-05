@@ -72,11 +72,9 @@ class SignInSmokeIT {
     @BeforeAll
     static void startApplications() throws Exception {
         bffPort = RunningAuthServer.freePort();
-        authServer = RunningAuthServer.start();
-
-        // the dev client is registered for http://localhost:8080; point it at the random BFF port instead
-        authServer.sql("UPDATE oauth2_registered_client SET redirect_uris = 'http://" + BFF_HOST + ":" + bffPort
-                + "/login/oauth2/code/bff' WHERE client_id = 'bff'");
+        // the dev profile registers the client for http://localhost:8080; point it at the random BFF port instead
+        authServer = RunningAuthServer.start(List.of("--authserver.clients.bff.redirect-uris=http://" + BFF_HOST
+                + ":" + bffPort + "/login/oauth2/code/bff"));
 
         bff = ManagedApp.start(RunningAuthServer.jar("bff.jar"), List.of("--server.port=" + bffPort),
                 List.of("AUTH_ISSUER=" + authServer.issuer(), "BFF_CLIENT_SECRET=" + authServer.clientSecret()));

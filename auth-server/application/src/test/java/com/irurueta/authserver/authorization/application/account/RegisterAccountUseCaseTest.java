@@ -18,9 +18,11 @@ package com.irurueta.authserver.authorization.application.account;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -44,6 +46,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unit tests of {@link RegisterAccountUseCase}.
@@ -118,7 +121,6 @@ class RegisterAccountUseCaseTest {
     @Test
     void execute_whenAddressIsRegistered_mailsNeutralMessageAfterHashing() {
         when(passwordHasher.encode(PASSWORD)).thenReturn(ENCODED);
-        when(userAccountRepository.existsByUsername(USERNAME)).thenReturn(false);
         when(userAccountRepository.findByEmail(EMAIL)).thenReturn(Optional.of(
                 new UserAccount(UUID.randomUUID(), "bob", ENCODED, true, List.of())));
 
@@ -131,17 +133,27 @@ class RegisterAccountUseCaseTest {
     }
 
     /**
-     * Verifies that an existing username is treated like an existing address.
+     * Verifies that a taken username with a new address is never revealed to whoever controls the address: after
+     * the same hashing work, the address gets the usual verification message, whose token names no account, and
+     * nothing is stored.
      */
     @Test
-    void execute_whenUsernameIsTaken_mailsNeutralMessage() {
+    void execute_whenOnlyUsernameIsTaken_mailsAVerificationThatVerifiesNothing() {
         when(passwordHasher.encode(PASSWORD)).thenReturn(ENCODED);
+        when(userAccountRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
         when(userAccountRepository.existsByUsername(USERNAME)).thenReturn(true);
+        when(signedTokenService.issue(any(), any(), any())).thenReturn("signed");
 
         useCase.execute(USERNAME, EMAIL, PASSWORD);
 
-        verify(accountMailer).sendAlreadyRegistered(EMAIL);
+        verify(passwordHasher).encode(PASSWORD);
         verify(userAccountRepository, never()).save(any());
+        verify(accountMailer, never()).sendAlreadyRegistered(any());
+        verify(accountMailer).sendEmailVerification(EMAIL, "signed");
+        final var subject = ArgumentCaptor.<String>captor();
+        verify(signedTokenService).issue(subject.capture(), eq(AccountToken.PURPOSE_EMAIL_VERIFICATION),
+                eq(RegisterAccountUseCase.VERIFICATION_TTL));
+        assertNotNull(UUID.fromString(subject.getValue()));
     }
 
     /**
@@ -164,5 +176,18 @@ class RegisterAccountUseCaseTest {
         assertThrows(CompromisedPasswordException.class, () -> useCase.execute(USERNAME, EMAIL, PASSWORD));
 
         verifyNoInteractions(passwordHasher, userAccountRepository, accountMailer);
+    }
+
+    /**
+     * Verifies that the use case runs in one transaction: the account and the e-mail are one unit, so a mail
+     * failure rolls the registration back.
+     *
+     * @throws NoSuchMethodException if the method is missing.
+     */
+    @Test
+    void execute_whenInspected_isTransactional() throws NoSuchMethodException {
+        final var method = RegisterAccountUseCase.class.getMethod("execute", String.class, String.class, String.class);
+
+        assertNotNull(method.getAnnotation(Transactional.class));
     }
 }

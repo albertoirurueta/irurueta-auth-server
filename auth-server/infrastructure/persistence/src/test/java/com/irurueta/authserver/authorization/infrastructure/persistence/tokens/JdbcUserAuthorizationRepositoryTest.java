@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -69,5 +70,16 @@ class JdbcUserAuthorizationRepositoryTest {
         when(client.sql(any(String.class)).param(Timestamp.from(NOW)).update()).thenReturn(DELETED);
 
         assertEquals(DELETED, repository.deleteExpired(NOW));
+    }
+
+    /**
+     * Verifies that the number of abandoned authorizations deleted is returned, with the threshold bound as an
+     * offset date time (the column is a {@code timestamp with time zone}).
+     */
+    @Test
+    void deleteAbandoned_whenCalled_returnsDeletedCount() {
+        when(client.sql(any(String.class)).param(NOW.atOffset(ZoneOffset.UTC)).update()).thenReturn(DELETED);
+
+        assertEquals(DELETED, repository.deleteAbandoned(NOW));
     }
 }

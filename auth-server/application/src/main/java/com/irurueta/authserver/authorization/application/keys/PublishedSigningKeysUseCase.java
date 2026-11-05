@@ -20,10 +20,8 @@ import com.irurueta.authserver.authorization.domain.keys.SigningKey;
 import com.irurueta.authserver.authorization.domain.keys.SigningKeyRepository;
 import com.irurueta.authserver.authorization.domain.keys.SigningKeyStatus;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -40,9 +38,8 @@ public class PublishedSigningKeysUseCase {
     /** Source of the current time. */
     private final Clock clock;
 
-    /** How long a retired key stays published ({@code authserver.keys.retention}, default 2 hours). */
-    @Value("${authserver.keys.retention:PT2H}")
-    private final Duration retention;
+    /** Decides how long a retired key stays published. */
+    private final SigningKeyRetention signingKeyRetention;
 
     /**
      * Finds the keys to publish.
@@ -51,6 +48,7 @@ public class PublishedSigningKeysUseCase {
      */
     public List<SigningKey> execute() {
         final var now = clock.instant();
+        final var retention = signingKeyRetention.effective();
         return signingKeyRepository.findAll().stream()
                 .filter(key -> key.status() != SigningKeyStatus.RETIRED
                         || (key.retiredAt() != null && key.retiredAt().plus(retention).isAfter(now)))

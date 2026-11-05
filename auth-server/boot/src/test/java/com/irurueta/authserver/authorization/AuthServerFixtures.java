@@ -60,6 +60,12 @@ final class AuthServerFixtures {
     /** Name of the token endpoint parameter that carries the grant type. */
     static final String GRANT_TYPE = "grant_type";
 
+    /** Audience of the resource server. */
+    static final String RESOURCE_SERVER_AUDIENCE = "resource-server";
+
+    /** Audience of this server's own API. */
+    static final String API_AUDIENCE = "auth-server";
+
     /** Tenant of the generated users. */
     static final String TENANT = "acme";
 
@@ -143,23 +149,38 @@ final class AuthServerFixtures {
      * @return the client and its generated credential.
      */
     TestClient createClient(final List<String> grantTypes, final List<String> scopes, final List<String> audiences) {
+        return createClient(grantTypes, scopes, audiences, ClientRegistration.FORMAT_SELF_CONTAINED);
+    }
+
+    /**
+     * Creates a confidential client whose access tokens have the given format.
+     *
+     * @param grantTypes        grant types of the client.
+     * @param scopes            scopes of the client.
+     * @param audiences         audiences of the tokens issued to the client.
+     * @param accessTokenFormat format of the access tokens ({@code self-contained} or {@code reference}).
+     * @return the client and its generated credential.
+     */
+    TestClient createClient(final List<String> grantTypes, final List<String> scopes, final List<String> audiences,
+                            final String accessTokenFormat) {
         final var clientId = "client-" + UUID.randomUUID();
         final var credential = randomValue();
         clientRegistrations.save(new ClientRegistration(clientId, "Test client", true,
                 List.of("client_secret_basic"), grantTypes, List.of(REDIRECT_URI), scopes, true, audiences,
-                TOKEN_TTL, REFRESH_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false),
+                TOKEN_TTL, REFRESH_TTL, accessTokenFormat, false),
                 passwordEncoder.encode(credential));
         return new TestClient(clientId, credential);
     }
 
     /**
-     * Creates a client for the authorization code flow with refresh tokens, whose audience is the resource server.
+     * Creates a client for the authorization code flow with refresh tokens, whose audiences are the resource server
+     * and this server's own API (so its users can change their password), like the seeded clients.
      *
      * @return the client and its generated credential.
      */
     TestClient createCodeClient() {
         return createClient(List.of("authorization_code", "refresh_token"),
-                List.of("openid", "profile", "email"), List.of("resource-server"));
+                List.of("openid", "profile", "email"), List.of(RESOURCE_SERVER_AUDIENCE, API_AUDIENCE));
     }
 
     /**
@@ -186,7 +207,7 @@ final class AuthServerFixtures {
      */
     String adminToken() throws Exception {
         return clientCredentialsToken(
-                createClient(List.of("client_credentials"), List.of("admin"), List.of("auth-server")), "admin");
+                createClient(List.of("client_credentials"), List.of("admin"), List.of(API_AUDIENCE)), "admin");
     }
 
     /**

@@ -20,6 +20,7 @@ import com.irurueta.authserver.resourceserver.domain.documents.Document;
 import com.irurueta.authserver.resourceserver.domain.documents.DocumentRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Repository;
 
@@ -35,6 +36,11 @@ public class InMemoryDocumentRepository implements DocumentRepository {
     @Override
     public List<Document> findByOwner(final String owner) {
         return documents.values().stream().filter(document -> document.owner().equals(owner)).toList();
+    }
+
+    @Override
+    public Optional<Document> findById(final String id) {
+        return Optional.ofNullable(documents.get(id));
     }
 
     @Override

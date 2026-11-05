@@ -52,6 +52,10 @@ class PublishedSigningKeysUseCaseTest {
     @Mock
     private Clock clock;
 
+    /** Decides how long a retired key stays published. */
+    @Mock
+    private SigningKeyRetention signingKeyRetention;
+
     /** Use case under test. */
     private PublishedSigningKeysUseCase useCase;
 
@@ -60,7 +64,7 @@ class PublishedSigningKeysUseCaseTest {
      */
     @BeforeEach
     void setUp() {
-        useCase = new PublishedSigningKeysUseCase(signingKeyRepository, clock, RETENTION);
+        useCase = new PublishedSigningKeysUseCase(signingKeyRepository, clock, signingKeyRetention);
     }
 
     /**
@@ -69,6 +73,7 @@ class PublishedSigningKeysUseCaseTest {
     @Test
     void execute_whenKeysAreInEveryState_publishesActiveNextAndValidRetired() {
         when(clock.instant()).thenReturn(NOW);
+        when(signingKeyRetention.effective()).thenReturn(RETENTION);
         final var active = key("a", SigningKeyStatus.ACTIVE, null);
         final var next = key("n", SigningKeyStatus.NEXT, null);
         final var valid = key("valid", SigningKeyStatus.RETIRED, NOW.minus(RETENTION).plusSeconds(1));

@@ -20,10 +20,12 @@ import com.irurueta.authserver.authorization.application.clients.DefaultClientDe
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -75,6 +77,17 @@ public class DevDataInitializer implements ApplicationRunner {
     private final ClientRegistrationRepository clients;
 
     /**
+     * Redirect URIs of the BFF client ({@code authserver.clients.bff.redirect-uris}, which the {@code dev} profile
+     * sets to the local BFF); empty when not configured.
+     */
+    @Value("${authserver.clients.bff.redirect-uris:}")
+    private final List<String> bffRedirectUris;
+
+    /** Audience of the authorization server's own API ({@code authserver.api.audience}). */
+    @Value("${authserver.api.audience:" + DefaultClientDefinitions.DEFAULT_API_AUDIENCE + "}")
+    private final String apiAudience;
+
+    /**
      * Creates the demo user and the BFF client when they do not exist yet.
      *
      * @param args application arguments (unused).
@@ -107,14 +120,20 @@ public class DevDataInitializer implements ApplicationRunner {
     }
 
     /**
-     * Creates the BFF client from its default definition, with a generated secret, unless it already exists.
+     * Creates the BFF client from its default definition and the configured redirect URIs, with a generated secret,
+     * unless it already exists or no redirect URI is configured.
      */
     private void createBffClient() {
         if (clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID).isPresent()) {
             return;
         }
+        if (bffRedirectUris.isEmpty()) {
+            log.warn("DEV ONLY: client '{}' not created, authserver.clients.bff.redirect-uris is not configured",
+                    DefaultClientDefinitions.BFF_CLIENT_ID);
+            return;
+        }
         final var secret = generateSecret();
-        clients.save(DefaultClientDefinitions.bff(), encoder.encode(secret));
+        clients.save(DefaultClientDefinitions.bff(bffRedirectUris, apiAudience), encoder.encode(secret));
         log.warn("DEV ONLY, never use outside local development: created client '{}' with generated secret: {}",
                 DefaultClientDefinitions.BFF_CLIENT_ID, secret);
     }

@@ -16,15 +16,16 @@
 
 package com.irurueta.authserver.authorization.api.web.tokens;
 
-import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import java.util.Map;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenContext;
 
 // tag::tokens-contributor[]
 /**
- * Extension point that lets a feature add claims to the access tokens (JWT) issued by the authorization server.
- * Every bean of this type is applied by {@link RolesTenantAudienceTokenCustomizer}, in
+ * Extension point that lets a feature add claims to the tokens issued by the authorization server: the access tokens,
+ * whether self-contained (JWT) or reference (their claims are returned by the introspection endpoint), and the ID
+ * tokens. Every bean of this type is applied by {@link IssuedTokenClaims}, in
  * {@link org.springframework.core.annotation.Order} order, after the built-in claims, so a later contributor may
- * override them.
+ * override them. A contributor that only concerns one kind of token checks {@link OAuth2TokenContext#getTokenType()}.
  */
 @FunctionalInterface
 public interface JwtClaimsContributor {
@@ -32,9 +33,9 @@ public interface JwtClaimsContributor {
     /**
      * Adds claims to the token being issued.
      *
-     * @param context the encoding context, with the principal, the client and the grant type.
-     * @param claims  the claims being built.
+     * @param context the token context, with the token type, the principal, the client and the grant type.
+     * @param claims  the mutable claims of the token being built.
      */
-    void contribute(JwtEncodingContext context, JwtClaimsSet.Builder claims);
+    void contribute(OAuth2TokenContext context, Map<String, Object> claims);
 }
 // end::tokens-contributor[]

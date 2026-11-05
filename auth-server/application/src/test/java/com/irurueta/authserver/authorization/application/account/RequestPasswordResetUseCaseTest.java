@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.application.account;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -38,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unit tests of {@link RequestPasswordResetUseCase}.
@@ -105,10 +107,11 @@ class RequestPasswordResetUseCaseTest {
     }
 
     /**
-     * Verifies that an unknown address does the same token work, stores nothing and gets a neutral message.
+     * Verifies that an unknown address does the same token work, stores nothing and is never mailed, so the
+     * endpoint cannot be used to send mail to arbitrary addresses.
      */
     @Test
-    void execute_whenAddressIsUnknown_mailsNeutralMessageAfterSameWork() {
+    void execute_whenAddressIsUnknown_mailsNothingAfterSameWork() {
         when(tokenGenerator.generate()).thenReturn(TOKEN);
         when(tokenGenerator.hash(TOKEN)).thenReturn(HASH);
         when(userAccountRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
@@ -116,7 +119,19 @@ class RequestPasswordResetUseCaseTest {
         useCase.execute(EMAIL);
 
         verify(tokenGenerator).hash(TOKEN);
-        verify(accountMailer).sendNoAccountFound(EMAIL);
-        verifyNoInteractions(accountTokenRepository);
+        verifyNoInteractions(accountTokenRepository, accountMailer);
+    }
+
+    /**
+     * Verifies that the use case runs in one transaction: the stored token and its e-mail are one unit, so a mail
+     * failure leaves no usable token.
+     *
+     * @throws NoSuchMethodException if the method is missing.
+     */
+    @Test
+    void execute_whenInspected_isTransactional() throws NoSuchMethodException {
+        final var method = RequestPasswordResetUseCase.class.getMethod("execute", String.class);
+
+        assertNotNull(method.getAnnotation(Transactional.class));
     }
 }

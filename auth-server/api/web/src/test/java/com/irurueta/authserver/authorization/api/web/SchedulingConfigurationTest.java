@@ -14,15 +14,25 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.authorization.api.web.keys;
+package com.irurueta.authserver.authorization.api.web;
 
-import org.springframework.context.annotation.Configuration;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Enables scheduled tasks, which runs {@link SigningKeyRotationJob}.
+ * Unit tests of {@link SchedulingConfiguration}.
  */
-@Configuration(proxyBeanMethods = false)
-@EnableScheduling
-public class KeyRotationSchedulingConfiguration {
+class SchedulingConfigurationTest {
+
+    /**
+     * The configuration enables scheduling.
+     */
+    @Test
+    void class_whenInspected_enablesScheduling() {
+        final var configuration = new SchedulingConfiguration();
+
+        assertNotNull(configuration.getClass().getAnnotation(EnableScheduling.class));
+    }
 }

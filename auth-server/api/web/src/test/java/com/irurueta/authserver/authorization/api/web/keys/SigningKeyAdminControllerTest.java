@@ -83,12 +83,12 @@ class SigningKeyAdminControllerTest {
     }
 
     /**
-     * Rotating rotates first and then answers the keys.
+     * Rotating forces a rotation first, never the due-only one, and then answers the keys.
      *
      * @throws Exception if the request fails.
      */
     @Test
-    void rotate_whenPosted_rotatesAndReturnsKeys() throws Exception {
+    void rotate_whenPosted_forcesARotationAndReturnsKeys() throws Exception {
         when(listSigningKeysUseCase.execute()).thenReturn(List.of(key()));
 
         mockMvc.perform(post("/api/admin/keys/rotate"))
@@ -96,7 +96,7 @@ class SigningKeyAdminControllerTest {
                 .andExpect(jsonPath("$[0].kid").value("kid-1"));
 
         final var order = inOrder(signingKeyRotator, listSigningKeysUseCase);
-        order.verify(signingKeyRotator).rotate();
+        order.verify(signingKeyRotator).rotateNow();
         order.verify(listSigningKeysUseCase).execute();
     }
 

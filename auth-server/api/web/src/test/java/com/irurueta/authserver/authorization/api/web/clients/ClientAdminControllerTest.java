@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.application.clients.CreateClientUseCase;
 import com.irurueta.authserver.authorization.application.clients.CreatedClient;
 import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
@@ -57,6 +58,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
  */
 @ExtendWith(MockitoExtension.class)
 class ClientAdminControllerTest {
+
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
 
     /** Base path of the endpoints. */
     private static final String BASE = "/api/admin/clients";
@@ -114,7 +118,7 @@ class ClientAdminControllerTest {
      */
     @Test
     void list_whenClientsExist_returnsClientsWithoutSecrets() throws Exception {
-        when(listClientsUseCase.execute()).thenReturn(List.of(DefaultClientDefinitions.bff()));
+        when(listClientsUseCase.execute()).thenReturn(List.of(bff()));
 
         mockMvc.perform(get(BASE))
                 .andExpect(status().isOk())
@@ -129,7 +133,7 @@ class ClientAdminControllerTest {
      */
     @Test
     void get_whenClientExists_returnsIt() throws Exception {
-        when(getClientUseCase.execute("bff")).thenReturn(Optional.of(DefaultClientDefinitions.bff()));
+        when(getClientUseCase.execute("bff")).thenReturn(Optional.of(bff()));
 
         mockMvc.perform(get(BASE + "/bff"))
                 .andExpect(status().isOk())
@@ -159,7 +163,7 @@ class ClientAdminControllerTest {
     void create_whenConfidential_returnsCreatedWithSecret() throws Exception {
         final var secret = UUID.randomUUID().toString();
         when(createClientUseCase.execute(any()))
-                .thenReturn(new CreatedClient(DefaultClientDefinitions.bff(), secret));
+                .thenReturn(new CreatedClient(bff(), secret));
 
         mockMvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(BODY.formatted("bff")))
                 .andExpect(status().isCreated())
@@ -302,5 +306,14 @@ class ClientAdminControllerTest {
         when(rotateClientSecretUseCase.execute("spa-public")).thenThrow(new IllegalArgumentException("public"));
 
         mockMvc.perform(post(BASE + "/spa-public/secret")).andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

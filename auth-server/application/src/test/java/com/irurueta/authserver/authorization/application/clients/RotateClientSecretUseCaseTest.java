@@ -23,6 +23,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
@@ -38,6 +40,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 class RotateClientSecretUseCaseTest {
+
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
 
     /** Generated secret returned by the mocked generator. */
     private static final String SECRET = "generated-secret";
@@ -67,7 +72,7 @@ class RotateClientSecretUseCaseTest {
     @Test
     void execute_whenClientIsConfidential_storesNewEncodedSecret() {
         when(clientRegistrationRepository.findByClientId("bff"))
-                .thenReturn(Optional.of(DefaultClientDefinitions.bff()));
+                .thenReturn(Optional.of(bff()));
         when(clientSecretGenerator.generate()).thenReturn(SECRET);
         when(passwordHasher.encode(SECRET)).thenReturn(ENCODED);
 
@@ -92,10 +97,29 @@ class RotateClientSecretUseCaseTest {
     @Test
     void execute_whenClientIsPublic_throwsIllegalArgumentException() {
         when(clientRegistrationRepository.findByClientId("spa-public"))
-                .thenReturn(Optional.of(DefaultClientDefinitions.spaPublic()));
+                .thenReturn(Optional.of(spaPublic()));
 
         assertThrows(IllegalArgumentException.class, () -> useCase.execute("spa-public"));
 
         verify(clientRegistrationRepository, never()).updateSecret(any(), any());
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+    }
+
+    /**
+     * Builds the default {@code spa-public} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration spaPublic() {
+        return DefaultClientDefinitions.spaPublic(List.of(TEST_REDIRECT_URI),
+                DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

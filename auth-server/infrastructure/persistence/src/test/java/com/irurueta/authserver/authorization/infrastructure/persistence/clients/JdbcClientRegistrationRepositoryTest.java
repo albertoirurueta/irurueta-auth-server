@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unit tests of {@link JdbcClientRegistrationRepository}, with the registered client repository and the JDBC
@@ -49,6 +51,9 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
  */
 @ExtendWith(MockitoExtension.class)
 class JdbcClientRegistrationRepositoryTest {
+
+    /** Number of statements that delete a client: its authorizations, its consents and its row. */
+    private static final int DELETE_STATEMENTS = 3;
 
     /** Client id used by the tests. */
     private static final String CLIENT_ID = "bff";
@@ -171,10 +176,26 @@ class JdbcClientRegistrationRepositoryTest {
      * Verifies that the client is deleted by its client id.
      */
     @Test
-    void deleteByClientId_whenCalled_deletesTheRow() {
+    void deleteByClientId_whenCalled_deletesAuthorizationsConsentsAndTheRow() {
         repository.deleteByClientId(CLIENT_ID);
 
-        verify(client.sql(any(String.class)).param(CLIENT_ID)).update();
+        final var statements = ArgumentCaptor.<String>captor();
+        verify(client, times(DELETE_STATEMENTS)).sql(statements.capture());
+        assertEquals(List.of("DELETE FROM oauth2_authorization ", "DELETE FROM oauth2_authorization_consent ",
+                        "DELETE FROM oauth2_registered_client "),
+                statements.getAllValues().stream().map(sql -> sql.substring(0, sql.indexOf("WHERE"))).toList());
+    }
+
+    /**
+     * Verifies that the three deletions run in one transaction.
+     *
+     * @throws NoSuchMethodException if the method is missing.
+     */
+    @Test
+    void deleteByClientId_whenInspected_isTransactional() throws NoSuchMethodException {
+        final var method = JdbcClientRegistrationRepository.class.getMethod("deleteByClientId", String.class);
+
+        assertNotNull(method.getAnnotation(Transactional.class));
     }
 
     /**

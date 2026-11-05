@@ -16,13 +16,8 @@
 
 package com.irurueta.authserver.authorization.application.password;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
-import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.util.List;
@@ -39,18 +34,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class UpgradePasswordHashUseCaseTest {
 
-    /** Clear-text password used by the tests; not a real credential. */
-    private static final String RAW = "raw-password";
-
     /** Outdated encoded password used by the tests. */
     private static final String OLD = "{bcrypt}old";
 
     /** Current encoded password used by the tests. */
     private static final String NEW = "{argon2}new";
-
-    /** Port that hashes passwords. */
-    @Mock
-    private PasswordHasher passwordHasher;
 
     /** Port that stores the accounts. */
     @Mock
@@ -61,42 +49,15 @@ class UpgradePasswordHashUseCaseTest {
     private UpgradePasswordHashUseCase useCase;
 
     /**
-     * Verifies that an outdated hash is replaced.
+     * Verifies that an already encoded hash is stored as given.
      */
     @Test
-    void execute_whenEncodingIsOutdated_storesNewHash() {
-        final var account = account();
-        when(passwordHasher.upgradeEncoding(OLD)).thenReturn(true);
-        when(passwordHasher.encode(RAW)).thenReturn(NEW);
-
-        assertTrue(useCase.execute(account, RAW));
-
-        verify(userAccountRepository).updatePassword(account.id(), NEW);
-    }
-
-    /**
-     * Verifies that a current hash is left alone.
-     */
-    @Test
-    void execute_whenEncodingIsCurrent_doesNothing() {
-        when(passwordHasher.upgradeEncoding(OLD)).thenReturn(false);
-
-        assertFalse(useCase.execute(account(), RAW));
-
-        verifyNoInteractions(userAccountRepository);
-    }
-
-    /**
-     * Verifies that an already encoded hash is stored as given, without re-encoding it.
-     */
-    @Test
-    void replaceHash_whenCalled_storesGivenHashWithoutEncoding() {
+    void replaceHash_whenCalled_storesGivenHash() {
         final var account = account();
 
         useCase.replaceHash(account, NEW);
 
         verify(userAccountRepository).updatePassword(account.id(), NEW);
-        verifyNoInteractions(passwordHasher);
     }
 
     /**

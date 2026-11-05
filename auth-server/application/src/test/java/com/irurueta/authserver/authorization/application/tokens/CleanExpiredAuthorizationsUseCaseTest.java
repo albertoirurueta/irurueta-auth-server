@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.tokens.UserAuthorizationRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -37,8 +37,14 @@ class CleanExpiredAuthorizationsUseCaseTest {
     /** Current instant used by the tests. */
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
-    /** Number of authorizations the mocked port reports as deleted. */
+    /** Number of expired authorizations the mocked port reports as deleted. */
     private static final int DELETED = 2;
+
+    /** Number of abandoned authorizations the mocked port reports as deleted. */
+    private static final int ABANDONED = 3;
+
+    /** Age after which an authorization without tokens is abandoned. */
+    private static final Duration ABANDONED_AFTER = Duration.ofDays(1);
 
     /** Port that removes stored authorizations. */
     @Mock
@@ -48,18 +54,17 @@ class CleanExpiredAuthorizationsUseCaseTest {
     @Mock
     private Clock clock;
 
-    /** Use case under test. */
-    @InjectMocks
-    private CleanExpiredAuthorizationsUseCase useCase;
-
     /**
-     * Verifies that the authorizations expired at the current instant are deleted.
+     * Verifies that the authorizations expired at the current instant and those abandoned before the threshold are
+     * deleted, and that both counts are added up.
      */
     @Test
-    void execute_whenCalled_deletesAuthorizationsExpiredNow() {
+    void execute_whenCalled_deletesExpiredAndAbandonedAuthorizations() {
         when(clock.instant()).thenReturn(NOW);
         when(userAuthorizationRepository.deleteExpired(NOW)).thenReturn(DELETED);
+        when(userAuthorizationRepository.deleteAbandoned(NOW.minus(ABANDONED_AFTER))).thenReturn(ABANDONED);
+        final var useCase = new CleanExpiredAuthorizationsUseCase(userAuthorizationRepository, clock, ABANDONED_AFTER);
 
-        assertEquals(DELETED, useCase.execute());
+        assertEquals(DELETED + ABANDONED, useCase.execute());
     }
 }

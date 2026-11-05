@@ -16,7 +16,6 @@
 
 package com.irurueta.authserver.authorization.application.password;
 
-import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,34 +23,17 @@ import org.springframework.stereotype.Service;
 
 /**
  * Use case that replaces the stored password hash of a user with one made by the current algorithm, right after a
- * successful sign-in (the only moment the clear-text password is known).
+ * successful sign-in (the only moment the clear-text password is known). The authentication framework decides that
+ * the stored encoding is outdated and re-encodes the verified password itself; this use case only stores the result.
  */
 @Service
 @RequiredArgsConstructor
 public class UpgradePasswordHashUseCase {
 
-    /** Port that hashes passwords. */
-    private final PasswordHasher passwordHasher;
-
     /** Port that stores the accounts. */
     private final UserAccountRepository userAccountRepository;
 
     // tag::password-upgrade[]
-    /**
-     * Re-encodes the password of an account when its stored encoding is outdated.
-     *
-     * @param account     the account that just signed in.
-     * @param rawPassword the clear-text password the user presented, already verified.
-     * @return {@code true} when a new hash was stored, {@code false} when the stored one was already current.
-     */
-    public boolean execute(final UserAccount account, final String rawPassword) {
-        if (!passwordHasher.upgradeEncoding(account.encodedPassword())) {
-            return false;
-        }
-        userAccountRepository.updatePassword(account.id(), passwordHasher.encode(rawPassword));
-        return true;
-    }
-
     /**
      * Stores a password hash that was already produced by the current algorithm, as the authentication framework
      * does after a sign-in (it re-encodes the verified clear-text password itself).

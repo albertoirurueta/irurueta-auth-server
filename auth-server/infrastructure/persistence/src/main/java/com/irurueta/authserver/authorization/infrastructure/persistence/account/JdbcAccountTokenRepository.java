@@ -42,6 +42,12 @@ public class JdbcAccountTokenRepository implements AccountTokenRepository {
             VALUES (?, ?, ?, ?, ?, ?)
             """;
 
+    /** Query returning a token only when it is unused and not expired, without changing it. */
+    private static final String FIND_USABLE_TOKEN = """
+            SELECT id, user_id, purpose, hashed_token, expires_at, used_at FROM account_tokens
+            WHERE hashed_token = ? AND purpose = ? AND used_at IS NULL AND expires_at > ?
+            """;
+
     // tag::account-token-consume[]
     /** Statement that marks a token as used and returns it, only when it is unused and not expired. */
     private static final String CONSUME_TOKEN = """
@@ -60,6 +66,13 @@ public class JdbcAccountTokenRepository implements AccountTokenRepository {
                 .params(token.id(), token.userId(), token.purpose(), token.hashedToken(),
                         toTimestamp(token.expiresAt()), toTimestamp(token.usedAt()))
                 .update();
+    }
+
+    @Override
+    public Optional<AccountToken> findUsable(final String hashedToken, final String purpose, final Instant now) {
+        return jdbcClient.sql(FIND_USABLE_TOKEN).params(hashedToken, purpose, toTimestamp(now))
+                .query((rs, rowNum) -> mapToken(rs))
+                .optional();
     }
 
     @Override

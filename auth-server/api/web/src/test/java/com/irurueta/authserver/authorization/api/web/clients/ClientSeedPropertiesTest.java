@@ -18,7 +18,12 @@ package com.irurueta.authserver.authorization.api.web.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.irurueta.authserver.authorization.api.web.clients.ClientSeedProperties.SeededClient;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +32,9 @@ import org.junit.jupiter.api.Test;
  */
 class ClientSeedPropertiesTest {
 
+    /** Redirect URI used by the tests. */
+    private static final String REDIRECT_URI = "https://bff.example.test/login/oauth2/code/bff";
+
     /**
      * The secret is kept but never printed.
      */
@@ -34,9 +42,43 @@ class ClientSeedPropertiesTest {
     void toString_whenCalled_hidesSecret() {
         final var secret = UUID.randomUUID().toString();
 
-        final var properties = new ClientSeedProperties(secret);
+        final var properties = new ClientSeedProperties(secret, null, null);
 
         assertEquals(secret, properties.bffSecret());
         assertFalse(properties.toString().contains(secret));
+    }
+
+    /**
+     * Missing client sections become unconfigured ones, so nothing is seeded by default.
+     */
+    @Test
+    void constructor_whenClientSectionsAreMissing_leavesBothUnconfigured() {
+        final var properties = new ClientSeedProperties(null, null, null);
+
+        assertFalse(properties.bff().isConfigured());
+        assertFalse(properties.spaPublic().isConfigured());
+    }
+
+    /**
+     * A client with redirect URIs is configured, and its list is a defensive copy.
+     */
+    @Test
+    void seededClient_whenRedirectUrisAreGiven_isConfiguredWithACopy() {
+        final var uris = new ArrayList<>(List.of(REDIRECT_URI));
+
+        final var client = new SeededClient(uris);
+        uris.clear();
+
+        assertTrue(client.isConfigured());
+        assertEquals(List.of(REDIRECT_URI), client.redirectUris());
+        assertThrows(UnsupportedOperationException.class, () -> client.redirectUris().add(REDIRECT_URI));
+    }
+
+    /**
+     * A client without a list of redirect URIs is not configured.
+     */
+    @Test
+    void seededClient_whenRedirectUrisAreNull_isNotConfigured() {
+        assertFalse(new SeededClient(null).isConfigured());
     }
 }

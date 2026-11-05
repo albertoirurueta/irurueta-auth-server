@@ -110,6 +110,26 @@ class JdbcAccountTokenRepositoryIT {
     }
 
     /**
+     * Verifies that a usable token is found without being consumed, so it can still be consumed afterwards, and
+     * that a consumed, expired or other-purpose token is not found.
+     */
+    @Test
+    void findUsable_whenTokenIsUsable_findsItWithoutConsumingIt() {
+        final var now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        final var hash = hash();
+        repository.store(token(hash, now.plusSeconds(TTL_SECONDS)));
+        final var expired = hash();
+        repository.store(token(expired, now.minusSeconds(1)));
+
+        assertTrue(repository.findUsable(hash, PURPOSE, now).isPresent());
+        assertTrue(repository.findUsable(hash, PURPOSE, now).isPresent());
+        assertTrue(repository.findUsable(hash, AccountToken.PURPOSE_PASSWORD_RESET, now).isEmpty());
+        assertTrue(repository.findUsable(expired, PURPOSE, now).isEmpty());
+        assertTrue(repository.consume(hash, PURPOSE, now).isPresent());
+        assertTrue(repository.findUsable(hash, PURPOSE, now).isEmpty());
+    }
+
+    /**
      * Verifies that only the expired tokens are deleted.
      */
     @Test

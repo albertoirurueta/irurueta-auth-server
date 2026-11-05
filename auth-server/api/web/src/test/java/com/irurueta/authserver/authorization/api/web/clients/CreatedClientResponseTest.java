@@ -19,6 +19,8 @@ package com.irurueta.authserver.authorization.api.web.clients;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.application.clients.CreatedClient;
 import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
 import java.util.UUID;
@@ -29,6 +31,9 @@ import org.junit.jupiter.api.Test;
  */
 class CreatedClientResponseTest {
 
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
     /**
      * The response carries the secret but never prints it.
      */
@@ -36,10 +41,19 @@ class CreatedClientResponseTest {
     void from_whenSecretGiven_keepsSecretAndHidesItInToString() {
         final var secret = UUID.randomUUID().toString();
 
-        final var response = CreatedClientResponse.from(new CreatedClient(DefaultClientDefinitions.bff(), secret));
+        final var response = CreatedClientResponse.from(new CreatedClient(bff(), secret));
 
         assertEquals(secret, response.clientSecret());
         assertEquals("bff", response.client().clientId());
         assertFalse(response.toString().contains(secret));
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

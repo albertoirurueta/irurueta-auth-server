@@ -32,6 +32,17 @@ public interface AccountTokenRepository {
     void store(AccountToken token);
 
     /**
+     * Finds an unused, unexpired token with the given hash and purpose, without consuming it, so that a caller can
+     * run every check before spending the token.
+     *
+     * @param hashedToken hash of the token value.
+     * @param purpose     purpose the token must have.
+     * @param now         current instant, compared against the expiry.
+     * @return the token, or an empty optional when there is no such usable token.
+     */
+    Optional<AccountToken> findUsable(String hashedToken, String purpose, Instant now);
+
+    /**
      * Consumes a token: finds an unused, unexpired token with the given hash and purpose and marks it as used, in
      * one atomic step, so that two concurrent calls can never both succeed.
      *

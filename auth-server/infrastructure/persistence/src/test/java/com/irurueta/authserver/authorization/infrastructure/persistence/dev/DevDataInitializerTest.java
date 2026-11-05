@@ -23,12 +23,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -47,6 +49,13 @@ class DevDataInitializerTest {
     /** Result of the mocked password encoder; not a real credential. */
     private static final String ENCODED = "encoded";
 
+    /** Redirect URIs configured for the BFF client. */
+    private static final List<String> REDIRECT_URIS = List.of("http://localhost:8080/login/oauth2/code/bff");
+
+    /** The BFF client the initializer creates from the configured values. */
+    private static final ClientRegistration BFF = DefaultClientDefinitions.bff(REDIRECT_URIS,
+            DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+
     /** JDBC client that stores the demo user. */
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private JdbcClient jdbc;
@@ -60,8 +69,17 @@ class DevDataInitializerTest {
     private ClientRegistrationRepository clients;
 
     /** Initializer under test. */
-    @InjectMocks
     private DevDataInitializer initializer;
+
+    /**
+     * Creates the initializer with the mocks and the configured BFF values; the configured values are no mocks, so
+     * the initializer cannot be injected.
+     */
+    @BeforeEach
+    void setUp() {
+        initializer = new DevDataInitializer(jdbc, encoder, clients, REDIRECT_URIS,
+                DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+    }
 
     /**
      * Verifies that the user and the client are created when nothing exists yet.
@@ -75,7 +93,7 @@ class DevDataInitializerTest {
         initializer.run(new DefaultApplicationArguments());
 
         verify(jdbc).sql(INSERT_USER);
-        verify(clients).save(DefaultClientDefinitions.bff(), ENCODED);
+        verify(clients).save(BFF, ENCODED);
     }
 
     /**
@@ -85,7 +103,7 @@ class DevDataInitializerTest {
     void run_whenDataExists_doesNotCreateAnything() {
         userCount(1);
         when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID))
-                .thenReturn(Optional.of(DefaultClientDefinitions.bff()));
+                .thenReturn(Optional.of(BFF));
 
         initializer.run(new DefaultApplicationArguments());
 
@@ -105,7 +123,7 @@ class DevDataInitializerTest {
         initializer.run(new DefaultApplicationArguments());
 
         verify(jdbc, never()).sql(INSERT_USER);
-        verify(clients).save(DefaultClientDefinitions.bff(), ENCODED);
+        verify(clients).save(BFF, ENCODED);
     }
 
     /**
@@ -116,9 +134,26 @@ class DevDataInitializerTest {
         userCount(0);
         when(encoder.encode(anyString())).thenReturn(ENCODED);
         when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID))
-                .thenReturn(Optional.of(DefaultClientDefinitions.bff()));
+                .thenReturn(Optional.of(BFF));
 
         initializer.run(new DefaultApplicationArguments());
+
+        verify(jdbc).sql(INSERT_USER);
+        verify(clients, never()).save(any(), any());
+    }
+
+    /**
+     * Verifies that the client is not created when no redirect URI is configured, while the user still is.
+     */
+    @Test
+    void run_whenNoRedirectUriIsConfigured_createsOnlyUser() {
+        userCount(0);
+        when(encoder.encode(anyString())).thenReturn(ENCODED);
+        when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID)).thenReturn(Optional.empty());
+        final var unconfigured = new DevDataInitializer(jdbc, encoder, clients, List.of(),
+                DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+
+        unconfigured.run(new DefaultApplicationArguments());
 
         verify(jdbc).sql(INSERT_USER);
         verify(clients, never()).save(any(), any());

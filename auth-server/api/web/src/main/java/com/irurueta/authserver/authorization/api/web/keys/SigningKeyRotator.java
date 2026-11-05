@@ -41,10 +41,27 @@ public class SigningKeyRotator {
     private final Clock clock;
 
     /**
-     * Rotates the keys and publishes a {@link SigningKeysRotatedEvent}.
+     * Applies the lifecycle transitions that are due and publishes a {@link SigningKeysRotatedEvent}: the path of
+     * the start-up runner and the scheduled job.
      */
     public void rotate() {
         rotateSigningKeysUseCase.execute();
+        published();
+    }
+
+    /**
+     * Replaces the active key now, whatever its age, and publishes a {@link SigningKeysRotatedEvent}: the path of
+     * the administration endpoint.
+     */
+    public void rotateNow() {
+        rotateSigningKeysUseCase.executeForced();
+        published();
+    }
+
+    /**
+     * Publishes the rotation event, so the cached key sets are refreshed.
+     */
+    private void published() {
         eventPublisher.publishEvent(new SigningKeysRotatedEvent(clock.instant()));
     }
 }

@@ -99,7 +99,8 @@ class KeyRotationIT {
     }
 
     /**
-     * Verifies that, right after start, the key set holds the active key and the next one, and no private part.
+     * Verifies that the key set holds the active key and the next one (and only keys that are stored), and no
+     * private part.
      *
      * @throws Exception if a request cannot be performed.
      */
@@ -109,7 +110,9 @@ class KeyRotationIT {
                 .andReturn().getResponse().getContentAsString();
 
         final var published = kids(AuthServerFixtures.parse(body).get("keys"));
-        assertEquals(kidsWithStatus("ACTIVE", "NEXT"), published);
+        // other tests of this class may have left a retired key behind, still within its retention
+        assertTrue(published.containsAll(kidsWithStatus("ACTIVE", "NEXT")));
+        assertTrue(kidsWithStatus("ACTIVE", "NEXT", "RETIRED").containsAll(published));
         assertEquals(1, kidsWithStatus("ACTIVE").size());
         assertEquals(1, kidsWithStatus("NEXT").size());
         assertFalse(body.contains("\"d\""), "private exponent is never published");
@@ -129,9 +132,8 @@ class KeyRotationIT {
         assertEquals(kidsWithStatus("ACTIVE"), Set.of(oldKid));
         final var nextKid = kidsWithStatus("NEXT").iterator().next();
 
-        // 1. the active key is due: it is retired, the next key is promoted and a new next key is generated
-        jdbcClient.sql("UPDATE signing_keys SET activated_at = now() - interval '31 days' WHERE status = 'ACTIVE'")
-                .update();
+        // 1. the administrator forces a rotation of a key that is not due: it is retired, the next key is promoted
+        // and a new next key is generated
         rotate(admin);
 
         assertEquals(Set.of(oldKid), kidsWithStatus("RETIRED"));
@@ -141,15 +143,36 @@ class KeyRotationIT {
         assertEquals(nextKid, kidOf(fixtures.adminToken()), "new tokens use the new active key");
         decode(oldToken);
 
-        // 2. the retired key outlives its retention: it is removed and no longer published
-        jdbcClient.sql("UPDATE signing_keys SET retired_at = now() - interval '3 hours' WHERE kid = ?")
+        // 2. the old key outlives the effective retention (at least the 24 hours of the e-mail verification tokens
+        // it may have signed): the next rotation removes it, and retires the key that was promoted in step 1
+        jdbcClient.sql("UPDATE signing_keys SET retired_at = now() - interval '2 days' WHERE kid = ?")
                 .param(oldKid).update();
         rotate(admin);
 
-        assertEquals(Set.of(), kidsWithStatus("RETIRED"));
+        assertEquals(Set.of(nextKid), kidsWithStatus("RETIRED"));
         assertFalse(publishedKids().contains(oldKid));
-        assertTrue(publishedKids().contains(nextKid));
+        assertTrue(publishedKids().contains(nextKid), "a freshly retired key stays published");
         assertThrows(BadJwtException.class, () -> decode(oldToken));
+    }
+
+    /**
+     * Verifies that a retired key stays published for longer than the configured two-hour retention, because the
+     * e-mail verification tokens it signed live for a day: the effective retention covers the longest signed token.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void rotate_whenKeyWasRetiredLongerThanTheConfiguredRetention_keepsItWhileItsTokensMayLive() throws Exception {
+        final var admin = fixtures.adminToken();
+        final var activeKid = kidsWithStatus("ACTIVE").iterator().next();
+        rotate(admin);
+        jdbcClient.sql("UPDATE signing_keys SET retired_at = now() - interval '3 hours' WHERE kid = ?")
+                .param(activeKid).update();
+
+        rotate(admin);
+
+        assertTrue(kidsWithStatus("RETIRED").contains(activeKid));
+        assertTrue(publishedKids().contains(activeKid));
     }
 
     /**

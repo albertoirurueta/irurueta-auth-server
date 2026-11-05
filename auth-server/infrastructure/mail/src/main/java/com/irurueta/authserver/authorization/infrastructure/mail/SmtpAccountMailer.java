@@ -16,9 +16,9 @@
 
 package com.irurueta.authserver.authorization.infrastructure.mail;
 
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
 import com.irurueta.authserver.authorization.domain.account.AccountMailer;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -30,10 +30,9 @@ import java.nio.charset.StandardCharsets;
 /**
  * {@link AccountMailer} that sends plain-text messages through SMTP. Subject and body come from a
  * {@link MessageSource} resolved with the explicitly configured locale, never the platform's default. A delivery
- * failure is logged without the address or the token and never propagates, so the caller's answer cannot reveal
- * whether an address is registered.
+ * failure is reported as an {@link AccountMailException} that carries neither the address nor the token, so the
+ * calling use case rolls back whatever it stored for the message.
  */
-@Slf4j
 @RequiredArgsConstructor
 public class SmtpAccountMailer implements AccountMailer {
 
@@ -45,9 +44,6 @@ public class SmtpAccountMailer implements AccountMailer {
 
     /** Message key prefix of the reset message. */
     static final String RESET = "mail.reset";
-
-    /** Message key prefix of the no-account-found message. */
-    static final String NO_ACCOUNT = "mail.no-account";
 
     /** Path of the verification endpoint. */
     static final String VERIFY_PATH = "/api/account/verify?token=";
@@ -79,17 +75,13 @@ public class SmtpAccountMailer implements AccountMailer {
         send(email, RESET, properties.baseUrl() + RESET_PATH + encode(token));
     }
 
-    @Override
-    public void sendNoAccountFound(final String email) {
-        send(email, NO_ACCOUNT, properties.baseUrl());
-    }
-
     /**
-     * Builds and sends one message, swallowing delivery failures.
+     * Builds and sends one message.
      *
      * @param email recipient address.
      * @param prefix message key prefix; {@code .subject} and {@code .body} are appended.
      * @param link link inserted as the first argument of the body.
+     * @throws AccountMailException if the message cannot be delivered.
      */
     private void send(final String email, final String prefix, final String link) {
         final var locale = properties.locale();
@@ -101,7 +93,7 @@ public class SmtpAccountMailer implements AccountMailer {
         try {
             mailSender.send(message);
         } catch (final MailException e) {
-            log.warn("Could not deliver the {} message: {}", prefix, e.getClass().getSimpleName());
+            throw new AccountMailException("Could not deliver the " + prefix + " message", e);
         }
     }
 

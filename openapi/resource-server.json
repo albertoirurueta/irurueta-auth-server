@@ -81,7 +81,7 @@
     },
     "/api/documents/{id}" : {
       "delete" : {
-        "description" : "Needs scope documents.delete.",
+        "description" : "Deletes one of the caller's documents; an administrator may delete any. Needs scope documents.delete. Someone else's document is answered 404, like a missing one.",
         "operationId" : "delete",
         "parameters" : [
           {
@@ -104,7 +104,7 @@
             "description" : "The token lacks the documents.delete scope."
           },
           "404" : {
-            "description" : "The document does not exist."
+            "description" : "The document does not exist or belongs to someone else."
           }
         },
         "security" : [

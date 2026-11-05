@@ -25,6 +25,12 @@ import java.util.Optional;
 public interface SignedTokenService {
 
     /**
+     * Name of the claim that carries the purpose of a signed token. A bearer-token consumer can reject any token
+     * carrying it, so a purpose-bound token is never mistaken for an access token.
+     */
+    String PURPOSE_CLAIM = "purpose";
+
+    /**
      * Issues a signed token.
      *
      * @param subject who or what the token is about.

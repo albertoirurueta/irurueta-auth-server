@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +32,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 class ListClientsUseCaseTest {
+
+    /** Redirect URI of the default clients built by the test. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
 
     /** Port that stores the clients. */
     @Mock
@@ -45,8 +49,12 @@ class ListClientsUseCaseTest {
      */
     @Test
     void execute_whenCalled_returnsEveryClient() {
-        when(clientRegistrationRepository.findAll()).thenReturn(DefaultClientDefinitions.all());
+        final var clients = List.of(
+                DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE),
+                DefaultClientDefinitions.spaPublic(List.of(TEST_REDIRECT_URI),
+                        DefaultClientDefinitions.DEFAULT_API_AUDIENCE));
+        when(clientRegistrationRepository.findAll()).thenReturn(clients);
 
-        assertEquals(DefaultClientDefinitions.all(), useCase.execute());
+        assertEquals(clients, useCase.execute());
     }
 }

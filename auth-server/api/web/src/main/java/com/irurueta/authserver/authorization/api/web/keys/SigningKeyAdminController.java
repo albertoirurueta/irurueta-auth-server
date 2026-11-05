@@ -55,16 +55,19 @@ public class SigningKeyAdminController {
     }
 
     /**
-     * Applies the key lifecycle transitions that are due.
+     * Rotates the keys now, whatever the age of the active key.
      *
      * @return the keys after the rotation, without their private half.
      */
     @PostMapping("/rotate")
-    @Operation(summary = "Rotates the signing keys",
-            description = "Applies the lifecycle transitions that are due and refreshes the published keys.")
+    @Operation(summary = "Rotates the signing keys now",
+            description = "Forces a rotation whatever the age of the active key: the active key is retired (it stays "
+                    + "published until the tokens it signed expire), the next key becomes active and a new next key "
+                    + "is generated. Keys retired for longer than the retention are deleted, and the published keys "
+                    + "are refreshed. The scheduled rotation, in contrast, only rotates a key that is due.")
     @ApiResponse(responseCode = "200", description = "The keys after the rotation")
     public List<SigningKeyResponse> rotate() {
-        signingKeyRotator.rotate();
+        signingKeyRotator.rotateNow();
         return list();
     }
 }

@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.irurueta.authserver.authorization.api.web.password.PasswordConfiguration;
+import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
 import com.irurueta.authserver.authorization.application.clients.SeedRegisteredClientsUseCase;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
@@ -65,6 +66,12 @@ class ClientAdminIT {
     /** Secret seeded for the {@code bff} client, generated for this test run. */
     private static final String BFF_SEED_SECRET = AuthServerFixtures.randomValue();
 
+    /** Redirect URI configured for the {@code bff} client. */
+    private static final String BFF_REDIRECT_URI = "https://bff.example.test/login/oauth2/code/bff";
+
+    /** Redirect URI configured for the {@code spa-public} client. */
+    private static final String SPA_REDIRECT_URI = "https://spa.example.test/callback";
+
     /** Prefix of an Argon2 hash in the delegating encoder's format. */
     private static final String ARGON2_PREFIX = "{" + PasswordConfiguration.DEFAULT_ENCODING_ID + "}";
 
@@ -96,13 +103,16 @@ class ClientAdminIT {
     private AuthServerFixtures fixtures;
 
     /**
-     * Seeds the {@code bff} client with the generated secret and enables dynamic client registration.
+     * Configures both default clients (the {@code bff} one with the generated secret) and enables dynamic client
+     * registration.
      *
      * @param registry registry of the test properties.
      */
     @DynamicPropertySource
     static void properties(final DynamicPropertyRegistry registry) {
         registry.add("authserver.clients.bff-secret", () -> BFF_SEED_SECRET);
+        registry.add("authserver.clients.bff.redirect-uris", () -> BFF_REDIRECT_URI);
+        registry.add("authserver.clients.spa-public.redirect-uris", () -> SPA_REDIRECT_URI);
         registry.add("authserver.oidc.client-registration.enabled", () -> "true");
     }
 
@@ -113,12 +123,22 @@ class ClientAdminIT {
     }
 
     /**
-     * Verifies that the default clients exist after start, that seeding again creates nothing and that the stored
-     * secret is encoded, never the raw value.
+     * Verifies that the configured default clients exist after start with the configured redirect URIs and both
+     * audiences, that seeding again creates nothing and that the stored secret is encoded, never the raw value.
      */
     @Test
     void seeding_whenRepeated_isIdempotentAndStoresEncodedSecrets() {
-        final var again = seedUseCase.execute(Map.of("bff", BFF_SEED_SECRET));
+        final var again = seedUseCase.execute(List.of(
+                DefaultClientDefinitions.bff(List.of(BFF_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE),
+                DefaultClientDefinitions.spaPublic(List.of(SPA_REDIRECT_URI),
+                        DefaultClientDefinitions.DEFAULT_API_AUDIENCE)), Map.of("bff", BFF_SEED_SECRET));
+        final var bff = clientRegistrations.findByClientId("bff").orElseThrow();
+        assertEquals(List.of(BFF_REDIRECT_URI), bff.redirectUris());
+        assertEquals(List.of(DefaultClientDefinitions.RESOURCE_SERVER_AUDIENCE,
+                DefaultClientDefinitions.DEFAULT_API_AUDIENCE), bff.audiences());
+        assertFalse(bff.scopes().contains("admin"));
+        assertEquals(List.of(SPA_REDIRECT_URI),
+                clientRegistrations.findByClientId("spa-public").orElseThrow().redirectUris());
 
         assertEquals(List.of(), again.created());
         assertEquals(List.of(), again.skipped());
@@ -210,6 +230,58 @@ class ClientAdminIT {
         mockMvc.perform(get(CLIENTS_PATH)).andExpect(status().isUnauthorized());
         mockMvc.perform(get(CLIENTS_PATH).header(AuthServerFixtures.AUTHORIZATION, "Bearer " + reader))
                 .andExpect(status().isForbidden());
+    }
+
+    /**
+     * Verifies that a token issued for the resource server only is rejected by the administration API, even with
+     * the {@code admin} scope: the API requires its own audience.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void adminApi_whenTokenIsForTheResourceServerOnly_returnsUnauthorized() throws Exception {
+        final var token = fixtures.clientCredentialsToken(fixtures.createClient(List.of("client_credentials"),
+                List.of("admin"), List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE)), "admin");
+
+        mockMvc.perform(get(CLIENTS_PATH).header(AuthServerFixtures.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Verifies that deleting a client also deletes its authorizations and consents, so a token it was issued is
+     * later introspected as inactive instead of failing with a server error.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void delete_whenClientHasAuthorizations_removesThemAndItsTokensBecomeInactive() throws Exception {
+        final var admin = fixtures.adminToken();
+        final var doomed = fixtures.createClient(List.of("client_credentials"), List.of("read"),
+                List.of(AuthServerFixtures.API_AUDIENCE));
+        final var token = fixtures.clientCredentialsToken(doomed, "read");
+        final var internalId = jdbcClient.sql("SELECT id FROM oauth2_registered_client WHERE client_id = ?")
+                .param(doomed.clientId()).query(String.class).single();
+        jdbcClient.sql("""
+                INSERT INTO oauth2_authorization_consent (registered_client_id, principal_name, authorities)
+                VALUES (?, 'alice', 'SCOPE_read')
+                """).param(internalId).update();
+
+        mockMvc.perform(delete(CLIENTS_PATH + "/" + doomed.clientId()).header(AuthServerFixtures.AUTHORIZATION,
+                "Bearer " + admin)).andExpect(status().isNoContent());
+
+        assertEquals(0, jdbcClient.sql("SELECT count(*) FROM oauth2_authorization WHERE registered_client_id = ?")
+                .param(internalId).query(Integer.class).single());
+        assertEquals(0, jdbcClient.sql(
+                        "SELECT count(*) FROM oauth2_authorization_consent WHERE registered_client_id = ?")
+                .param(internalId).query(Integer.class).single());
+        final var introspector = fixtures.createClient(List.of("client_credentials"), List.of("read"),
+                List.of(AuthServerFixtures.API_AUDIENCE));
+        mockMvc.perform(post("/oauth2/introspect")
+                        .header(AuthServerFixtures.AUTHORIZATION,
+                                AuthServerFixtures.basic(introspector.clientId(), introspector.credential()))
+                        .param("token", token))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"active\":false")));
     }
 
     /**

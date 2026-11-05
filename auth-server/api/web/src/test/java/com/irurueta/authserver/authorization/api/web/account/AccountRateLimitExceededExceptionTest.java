@@ -14,25 +14,29 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.authorization.api.web.keys;
+package com.irurueta.authserver.authorization.api.web.account;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Unit tests of {@link KeyRotationSchedulingConfiguration}.
+ * Unit tests of {@link AccountRateLimitExceededException}.
  */
-class KeyRotationSchedulingConfigurationTest {
+class AccountRateLimitExceededExceptionTest {
 
     /**
-     * The configuration enables scheduling.
+     * Verifies that the exception keeps the time to wait and has a message.
      */
     @Test
-    void class_whenInspected_enablesScheduling() {
-        final var configuration = new KeyRotationSchedulingConfiguration();
+    void constructor_whenCreated_keepsTheRetryAfter() {
+        final var retryAfter = Duration.ofMinutes(1);
 
-        assertNotNull(configuration.getClass().getAnnotation(EnableScheduling.class));
+        final var exception = new AccountRateLimitExceededException(retryAfter);
+
+        assertEquals(retryAfter, exception.getRetryAfter());
+        assertNotNull(exception.getMessage());
     }
 }

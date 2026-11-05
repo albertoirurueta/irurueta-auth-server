@@ -16,6 +16,7 @@
 package com.irurueta.authserver.e2e;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.microsoft.playwright.Browser;
@@ -42,7 +43,8 @@ import org.junit.jupiter.api.Test;
  * ports against a PostgreSQL container, the demo user signs in with the authorization code flow and PKCE in
  * headless Chromium (the redirect to the client is intercepted, no client application is needed), the code is
  * exchanged for an access token, and that token is presented to the resource server. A token issued for another
- * audience must be rejected.
+ * audience must be rejected. A second resource server runs the {@code opaque} profile and validates reference tokens
+ * through the authorization server's introspection endpoint.
  */
 class ResourceServerEndToEndIT {
 
@@ -60,6 +62,11 @@ class ResourceServerEndToEndIT {
      * Client that gets tokens for an audience the resource server does not accept.
      */
     private static final String OTHER_AUDIENCE_CLIENT = "bff-other-audience";
+
+    /**
+     * Client that gets reference (opaque) access tokens for the audience the resource server accepts.
+     */
+    private static final String REFERENCE_CLIENT = "bff-reference";
 
     /**
      * Matches the log line printed once the resource server is up.
@@ -102,6 +109,16 @@ class ResourceServerEndToEndIT {
     private static int resourcePort;
 
     /**
+     * The packaged resource server in its {@code opaque} profile, validating tokens by introspection.
+     */
+    private static ManagedApp opaqueResourceServer;
+
+    /**
+     * Port of the opaque-token resource server.
+     */
+    private static int opaquePort;
+
+    /**
      * Starts the authorization server, registers the test clients and starts the resource server.
      *
      * @throws Exception if an application or the container cannot be started.
@@ -109,22 +126,27 @@ class ResourceServerEndToEndIT {
     @BeforeAll
     static void startApplications() throws Exception {
         resourcePort = RunningAuthServer.freePort();
-        authServer = RunningAuthServer.start();
+        opaquePort = RunningAuthServer.freePort();
+        // the seeded bff client may read documents as it is; only its redirect URI is the intercepted one
+        authServer = RunningAuthServer.start(List.of("--authserver.clients.bff.redirect-uris=" + REDIRECT_URI));
 
-        // the seeded bff client may read documents and redirects to the intercepted URI; a copy of it, for another
-        // audience, shows that the resource server tells the audiences apart
-        authServer.sql("UPDATE oauth2_registered_client SET redirect_uris = '" + REDIRECT_URI
-                + "', scopes = 'openid,documents.read' WHERE client_id = '" + ACCEPTED_CLIENT + "'");
-        authServer.sql("INSERT INTO oauth2_registered_client (id, client_id, client_secret, client_name, "
-                + "client_authentication_methods, authorization_grant_types, redirect_uris, scopes, "
-                + "client_settings, token_settings) SELECT gen_random_uuid()::text, '" + OTHER_AUDIENCE_CLIENT
-                + "', client_secret, client_name, client_authentication_methods, authorization_grant_types, "
-                + "redirect_uris, scopes, replace(client_settings, 'resource-server', 'another-api'), "
-                + "token_settings FROM oauth2_registered_client WHERE client_id = '" + ACCEPTED_CLIENT + "'");
+        // a copy of the bff client for another audience shows that the resource server tells the audiences apart;
+        // another copy gets reference tokens, for the resource server in its opaque profile
+        copyClient(OTHER_AUDIENCE_CLIENT, "replace(client_settings, 'resource-server', 'another-api')",
+                "token_settings");
+        copyClient(REFERENCE_CLIENT, "client_settings", "replace(token_settings, 'self-contained', 'reference')");
 
         resourceServer = ManagedApp.start(RunningAuthServer.jar("resourceserver.jar"),
                 List.of("--server.port=" + resourcePort), List.of("AUTH_ISSUER=" + authServer.issuer()));
+        // the opaque variant introspects with the bff client's own credentials: any confidential client will do
+        opaqueResourceServer = ManagedApp.start(RunningAuthServer.jar("resourceserver.jar"),
+                List.of("--server.port=" + opaquePort, "--spring.profiles.active=opaque"),
+                List.of("AUTH_ISSUER=" + authServer.issuer(),
+                        "AUTH_INTROSPECTION_URI=" + authServer.issuer() + "/oauth2/introspect",
+                        "INTROSPECTION_CLIENT_ID=" + ACCEPTED_CLIENT,
+                        "INTROSPECTION_CLIENT_SECRET=" + authServer.clientSecret()));
         resourceServer.await(RESOURCE_SERVER_STARTED, RunningAuthServer.STARTUP_TIMEOUT);
+        opaqueResourceServer.await(RESOURCE_SERVER_STARTED, RunningAuthServer.STARTUP_TIMEOUT);
     }
 
     /**
@@ -134,6 +156,9 @@ class ResourceServerEndToEndIT {
     static void stopApplications() {
         if (resourceServer != null) {
             resourceServer.stop();
+        }
+        if (opaqueResourceServer != null) {
+            opaqueResourceServer.stop();
         }
         if (authServer != null) {
             authServer.close();
@@ -162,6 +187,22 @@ class ResourceServerEndToEndIT {
         final var token = obtainAccessToken(OTHER_AUDIENCE_CLIENT);
 
         assertEquals(HTTP_UNAUTHORIZED, listDocuments(token));
+    }
+
+    /**
+     * Verifies that the resource server in its {@code opaque} profile accepts a real reference token for its
+     * audience: the authorization server introspects it with its audience and roles, and rejects a JWT for another
+     * audience as well.
+     *
+     * @throws Exception if a flow step fails.
+     */
+    @Test
+    void documents_whenOpaqueProfileGetsAReferenceTokenForTheAudience_returnsOk() throws Exception {
+        final var token = obtainAccessToken(REFERENCE_CLIENT);
+
+        assertFalse(token.contains("."), "a reference token is not a JWT");
+        assertEquals(HTTP_OK, listDocuments(opaqueUri(), token));
+        assertEquals(HTTP_UNAUTHORIZED, listDocuments(opaqueUri(), obtainAccessToken(OTHER_AUDIENCE_CLIENT)));
     }
 
     /**
@@ -244,7 +285,19 @@ class ResourceServerEndToEndIT {
      * @throws Exception if the request fails.
      */
     private static int listDocuments(final String token) throws Exception {
-        final var request = HttpRequest.newBuilder(documentsUri()).header("Authorization", "Bearer " + token)
+        return listDocuments(documentsUri(), token);
+    }
+
+    /**
+     * Lists the documents of a resource server with a bearer token.
+     *
+     * @param uri   URI of the documents endpoint.
+     * @param token the access token.
+     * @return the HTTP status of the answer.
+     * @throws Exception if the request fails.
+     */
+    private static int listDocuments(final URI uri, final String token) throws Exception {
+        final var request = HttpRequest.newBuilder(uri).header("Authorization", "Bearer " + token)
                 .GET().build();
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
     }
@@ -256,6 +309,33 @@ class ResourceServerEndToEndIT {
      */
     private static URI documentsUri() {
         return URI.create("http://localhost:" + resourcePort + "/api/documents");
+    }
+
+    /**
+     * Returns the URI of the documents endpoint of the opaque-token resource server.
+     *
+     * @return the URI.
+     */
+    private static URI opaqueUri() {
+        return URI.create("http://localhost:" + opaquePort + "/api/documents");
+    }
+
+    /**
+     * Registers a copy of the seeded {@code bff} client under another id, with the same secret.
+     *
+     * @param clientId       id of the copy.
+     * @param clientSettings SQL expression of the copy's client settings.
+     * @param tokenSettings  SQL expression of the copy's token settings.
+     * @throws Exception if the statement cannot be run.
+     */
+    private static void copyClient(final String clientId, final String clientSettings, final String tokenSettings)
+            throws Exception {
+        authServer.sql("INSERT INTO oauth2_registered_client (id, client_id, client_secret, client_name, "
+                + "client_authentication_methods, authorization_grant_types, redirect_uris, scopes, "
+                + "client_settings, token_settings) SELECT gen_random_uuid()::text, '" + clientId
+                + "', client_secret, client_name, client_authentication_methods, authorization_grant_types, "
+                + "redirect_uris, scopes, " + clientSettings + ", " + tokenSettings
+                + " FROM oauth2_registered_client WHERE client_id = '" + ACCEPTED_CLIENT + "'");
     }
 
     /**

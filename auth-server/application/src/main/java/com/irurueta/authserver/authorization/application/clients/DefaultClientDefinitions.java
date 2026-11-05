@@ -21,9 +21,12 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * The single definition of the clients every deployment starts with: the confidential {@code bff} (backend for
+ * The single definition of the clients a deployment can start with: the confidential {@code bff} (backend for
  * frontend) and the public {@code spa-public}. Used by the seeder and by the development data initializer, so they
- * never drift apart. Both carry the audience of the resource server.
+ * never drift apart. Nothing environment-specific lives here: the redirect URIs come from configuration (the
+ * {@code dev} profile supplies the local ones) and so does the audience of the authorization server's own API. Both
+ * clients carry the audience of the resource server and of that API (so a user can change their password through
+ * them), may read and delete documents, and never get the {@code admin} scope.
  */
 public final class DefaultClientDefinitions {
 
@@ -33,14 +36,14 @@ public final class DefaultClientDefinitions {
     /** Client id of the public single-page application. */
     public static final String SPA_PUBLIC_CLIENT_ID = "spa-public";
 
-    /** Redirect URI of the backend for frontend. */
-    public static final String BFF_REDIRECT_URI = "http://localhost:8080/login/oauth2/code/bff";
-
-    /** Redirect URI of the single-page application. */
-    public static final String SPA_REDIRECT_URI = "http://localhost:3000/callback";
-
     /** Audience of the resource server. */
     public static final String RESOURCE_SERVER_AUDIENCE = "resource-server";
+
+    /** Default audience of the authorization server's own REST API ({@code authserver.api.audience}). */
+    public static final String DEFAULT_API_AUDIENCE = "auth-server";
+
+    /** Scopes of both default clients. */
+    private static final List<String> SCOPES = List.of("openid", "profile", "documents.read", "documents.delete");
 
     /** Lifetime of access tokens. */
     private static final Duration ACCESS_TOKEN_TTL = Duration.ofMinutes(10);
@@ -57,36 +60,29 @@ public final class DefaultClientDefinitions {
      * Defines the {@code bff} client: confidential, {@code client_secret_basic}, authorization code with PKCE and
      * refresh tokens, with refresh token rotation on.
      *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
      * @return the client.
      */
-    public static ClientRegistration bff() {
+    public static ClientRegistration bff(final List<String> redirectUris, final String apiAudience) {
         return new ClientRegistration(BFF_CLIENT_ID, "Backend for Frontend", true,
                 List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
-                List.of(BFF_REDIRECT_URI), List.of("openid", "profile"), true,
-                List.of(RESOURCE_SERVER_AUDIENCE), ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false);
     }
 
     /**
      * Defines the {@code spa-public} client: public, authorization code with PKCE, no client authentication.
      *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
      * @return the client.
      */
-    public static ClientRegistration spaPublic() {
+    public static ClientRegistration spaPublic(final List<String> redirectUris, final String apiAudience) {
         return new ClientRegistration(SPA_PUBLIC_CLIENT_ID, "Single-page application", false,
                 List.of("none"), List.of("authorization_code", "refresh_token"),
-                List.of(SPA_REDIRECT_URI), List.of("openid", "profile"), true,
-                List.of(RESOURCE_SERVER_AUDIENCE), ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false);
-    }
-
-    /**
-     * Lists every default client.
-     *
-     * @return the clients.
-     */
-    public static List<ClientRegistration> all() {
-        return List.of(bff(), spaPublic());
+                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false);
     }
     // end::clients-seed[]
 }

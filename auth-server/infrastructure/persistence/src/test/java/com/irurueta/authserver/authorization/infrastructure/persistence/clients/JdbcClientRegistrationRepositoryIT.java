@@ -64,10 +64,12 @@ class JdbcClientRegistrationRepositoryIT {
     }
 
     /**
-     * Removes the clients of the previous test.
+     * Removes the clients, authorizations and consents of the previous test.
      */
     @BeforeEach
     void cleanUp() {
+        jdbcClient.sql("DELETE FROM oauth2_authorization").update();
+        jdbcClient.sql("DELETE FROM oauth2_authorization_consent").update();
         jdbcClient.sql("DELETE FROM oauth2_registered_client").update();
     }
 
@@ -130,6 +132,62 @@ class JdbcClientRegistrationRepositoryIT {
                 .query(String.class).single());
         repository.deleteByClientId(CLIENT_ID);
         assertTrue(repository.findByClientId(CLIENT_ID).isEmpty());
+    }
+
+    /**
+     * Verifies that deleting a client also deletes, in the same call, the authorizations and the consents that
+     * reference it, and leaves those of other clients alone.
+     */
+    @Test
+    void deleteByClientId_whenClientHasAuthorizationsAndConsents_deletesThemToo() {
+        repository.save(confidential(CLIENT_ID), encoded());
+        repository.save(confidential("other"), encoded());
+        final var deletedId = internalId(CLIENT_ID);
+        final var keptId = internalId("other");
+        for (final var registeredClientId : List.of(deletedId, keptId)) {
+            jdbcClient.sql("""
+                    INSERT INTO oauth2_authorization (id, registered_client_id, principal_name,
+                                                      authorization_grant_type)
+                    VALUES (?, ?, 'alice', 'authorization_code')
+                    """).params(UUID.randomUUID().toString(), registeredClientId).update();
+            jdbcClient.sql("""
+                    INSERT INTO oauth2_authorization_consent (registered_client_id, principal_name, authorities)
+                    VALUES (?, 'alice', 'SCOPE_openid')
+                    """).param(registeredClientId).update();
+        }
+
+        repository.deleteByClientId(CLIENT_ID);
+
+        assertTrue(repository.findByClientId(CLIENT_ID).isEmpty());
+        assertEquals(0, countFor("oauth2_authorization", deletedId));
+        assertEquals(0, countFor("oauth2_authorization_consent", deletedId));
+        assertEquals(1, countFor("oauth2_authorization", keptId));
+        assertEquals(1, countFor("oauth2_authorization_consent", keptId));
+    }
+
+    /**
+     * Reads the internal id of a stored client.
+     *
+     * @param clientId client id.
+     * @return the internal id.
+     */
+    private static String internalId(final String clientId) {
+        return jdbcClient.sql("SELECT id FROM oauth2_registered_client WHERE client_id = ?").param(clientId)
+                .query(String.class).single();
+    }
+
+    /**
+     * Counts the rows of a table that reference a client.
+     *
+     * @param table              table name, one of the two fixed names above.
+     * @param registeredClientId internal id of the client.
+     * @return the number of rows.
+     */
+    private static int countFor(final String table, final String registeredClientId) {
+        final var sql = "oauth2_authorization".equals(table)
+                ? "SELECT count(*) FROM oauth2_authorization WHERE registered_client_id = ?"
+                : "SELECT count(*) FROM oauth2_authorization_consent WHERE registered_client_id = ?";
+        return jdbcClient.sql(sql).param(registeredClientId).query(Integer.class).single();
     }
 
     /**

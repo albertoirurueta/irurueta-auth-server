@@ -18,11 +18,14 @@ package com.irurueta.authserver.authorization.application.tokens;
 
 import com.irurueta.authserver.authorization.domain.tokens.UserAuthorizationRepository;
 import java.time.Clock;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Use case that deletes the authorizations whose tokens have all expired.
+ * Use case that deletes the authorizations whose tokens have all expired, and the abandoned ones: authorization or
+ * consent requests that never got a token and are older than a threshold.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,11 +38,20 @@ public class CleanExpiredAuthorizationsUseCase {
     private final Clock clock;
 
     /**
-     * Deletes the expired authorizations.
+     * Age after which an authorization that never got a token is deleted
+     * ({@code authserver.tokens.cleanup.abandoned-after}, default 1 day).
+     */
+    @Value("${authserver.tokens.cleanup.abandoned-after:P1D}")
+    private final Duration abandonedAfter;
+
+    /**
+     * Deletes the expired and the abandoned authorizations.
      *
      * @return the number of deleted authorizations.
      */
     public int execute() {
-        return userAuthorizationRepository.deleteExpired(clock.instant());
+        final var now = clock.instant();
+        return userAuthorizationRepository.deleteExpired(now)
+                + userAuthorizationRepository.deleteAbandoned(now.minus(abandonedAfter));
     }
 }

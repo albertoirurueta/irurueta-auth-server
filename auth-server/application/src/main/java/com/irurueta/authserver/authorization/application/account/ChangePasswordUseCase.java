@@ -26,9 +26,11 @@ import com.irurueta.authserver.authorization.domain.password.PasswordPolicy;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Use case that lets a signed-in user choose a new password. Every token of the user is revoked afterwards.
+ * Use case that lets a signed-in user choose a new password. Every token of the user is revoked afterwards, in the
+ * same transaction as the password update, so a failed revocation never leaves the new password with the old tokens.
  */
 @Service
 @RequiredArgsConstructor
@@ -59,6 +61,7 @@ public class ChangePasswordUseCase {
      * @throws InvalidPasswordException     if the new password breaks the policy.
      * @throws CompromisedPasswordException if the new password is known to be compromised.
      */
+    @Transactional
     public void execute(final String username, final String currentPassword, final String newPassword) {
         final var account = userAccountRepository.findByUsername(username)
                 .filter(found -> passwordHasher.matches(currentPassword, found.encodedPassword()))

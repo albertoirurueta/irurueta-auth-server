@@ -53,8 +53,8 @@ public class UserInfoMapper implements Function<OidcUserInfoAuthenticationContex
         findUserAccountUseCase.execute(username).ifPresent(account -> {
             if (scopes.contains(PROFILE_SCOPE)) {
                 claims.put(StandardClaimNames.PREFERRED_USERNAME, account.username());
-                claims.put(RolesTenantAudienceTokenCustomizer.ROLES_CLAIM, account.authorities());
-                claims.put(RolesTenantAudienceTokenCustomizer.TENANT_CLAIM, account.tenant());
+                claims.put(IssuedTokenClaims.ROLES_CLAIM, account.authorities());
+                claims.put(IssuedTokenClaims.TENANT_CLAIM, account.tenant());
             }
             if (scopes.contains(EMAIL_SCOPE) && account.email() != null) {
                 claims.put(StandardClaimNames.EMAIL, account.email());

@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.tokens;
 import com.irurueta.authserver.authorization.domain.tokens.UserAuthorizationRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -32,12 +33,25 @@ public class JdbcUserAuthorizationRepository implements UserAuthorizationReposit
 
     /**
      * Statement deleting the authorizations whose every token has expired. {@code GREATEST} ignores the tokens an
-     * authorization does not have, and is null for an authorization without any expiry, which is kept.
+     * authorization does not have, and is null for an authorization without any expiry, which is kept here and
+     * removed by {@link #deleteAbandoned(Instant)} once it is old enough.
      */
     private static final String DELETE_EXPIRED = """
             DELETE FROM oauth2_authorization
             WHERE GREATEST(authorization_code_expires_at, access_token_expires_at, oidc_id_token_expires_at,
                            refresh_token_expires_at, user_code_expires_at, device_code_expires_at) < ?
+            """;
+
+    /**
+     * Statement deleting the abandoned authorizations: no token was ever issued for them, so every expiry column is
+     * null, and they were created before the given instant.
+     */
+    private static final String DELETE_ABANDONED = """
+            DELETE FROM oauth2_authorization
+            WHERE authorization_code_expires_at IS NULL AND access_token_expires_at IS NULL
+              AND oidc_id_token_expires_at IS NULL AND refresh_token_expires_at IS NULL
+              AND user_code_expires_at IS NULL AND device_code_expires_at IS NULL
+              AND created_at < ?
             """;
 
     /** JDBC client used to run the statements. */
@@ -53,5 +67,11 @@ public class JdbcUserAuthorizationRepository implements UserAuthorizationReposit
     public int deleteExpired(final Instant now) {
         // the SAS columns are "timestamp without time zone", written by the framework in the JVM's default zone
         return jdbcClient.sql(DELETE_EXPIRED).param(Timestamp.from(now)).update();
+    }
+
+    @Override
+    public int deleteAbandoned(final Instant createdBefore) {
+        // created_at is "timestamp with time zone" (V240), so the instant is bound with an explicit offset
+        return jdbcClient.sql(DELETE_ABANDONED).param(createdBefore.atOffset(ZoneOffset.UTC)).update();
     }
 }

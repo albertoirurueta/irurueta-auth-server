@@ -25,6 +25,7 @@ import com.irurueta.authserver.authorization.api.web.password.PasswordConfigurat
 import com.irurueta.authserver.authorization.infrastructure.persistence.dev.DevDataInitializer;
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -83,6 +84,9 @@ class DevDataInitializerIT {
         final var client = clients.findByClientId("bff");
         assertNotNull(client);
         assertTrue(client.getClientSettings().isRequireProofKey());
+        assertEquals(Set.of("http://localhost:8080/login/oauth2/code/bff"), client.getRedirectUris(),
+                "the dev profile supplies the local redirect URI");
+        assertNotNull(clients.findByClientId("spa-public"), "the dev profile configures the public client too");
         assertFalse(passwordEncoder.upgradeEncoding(client.getClientSecret()));
     }
 }

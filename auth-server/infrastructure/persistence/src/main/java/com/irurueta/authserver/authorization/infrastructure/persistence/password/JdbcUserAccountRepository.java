@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class JdbcUserAccountRepository implements UserAccountRepository {
 
+    // tag::password-load-user[]
     /** Columns selected for an account. */
     private static final String SELECT_USER = """
             SELECT u.id, u.username, u.enabled, u.email, u.email_verified, u.tenant, p.encoded_password
@@ -41,6 +42,7 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
 
     /** Query returning the user and its encoded password by username. */
     private static final String FIND_USER = SELECT_USER + "WHERE u.username = ?";
+    // end::password-load-user[]
 
     /** Query returning the user and its encoded password by id. */
     private static final String FIND_USER_BY_ID = SELECT_USER + "WHERE u.id = ?";
@@ -64,6 +66,7 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
                 updated_at = CURRENT_TIMESTAMP
             """;
 
+    // tag::password-load-user[]
     /** Query returning the authorities of a user by user id. */
     private static final String FIND_AUTHORITIES = """
             SELECT authority
@@ -71,6 +74,19 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
             WHERE user_id = ?
             ORDER BY authority
             """;
+    // end::password-load-user[]
+
+    // tag::account-verify-once[]
+    /**
+     * Statement that verifies the e-mail address and enables the account, only while the address is still
+     * unverified: a verification link is effective once, so replaying it cannot re-enable an account that was
+     * disabled afterwards.
+     */
+    private static final String MARK_EMAIL_VERIFIED = """
+            UPDATE users SET email_verified = TRUE, enabled = TRUE, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND email_verified = FALSE
+            """;
+    // end::account-verify-once[]
 
     /** JDBC client used to run the queries. */
     private final JdbcClient jdbcClient;
@@ -120,12 +136,11 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
     }
 
     @Override
-    public void markEmailVerified(final UUID userId) {
-        jdbcClient.sql("UPDATE users SET email_verified = TRUE, enabled = TRUE, updated_at = CURRENT_TIMESTAMP "
-                        + "WHERE id = ?")
-                .param(userId).update();
+    public boolean markEmailVerified(final UUID userId) {
+        return jdbcClient.sql(MARK_EMAIL_VERIFIED).param(userId).update() > 0;
     }
 
+    // tag::password-load-user[]
     /**
      * Loads one account, with its authorities.
      *
@@ -143,6 +158,7 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
                         jdbcClient.sql(FIND_AUTHORITIES).param(row.id()).query(String.class).list(),
                         row.email(), row.emailVerified(), row.tenant()));
     }
+    // end::password-load-user[]
 
     /**
      * Columns of the user row, before its authorities are loaded.

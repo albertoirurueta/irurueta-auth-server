@@ -69,6 +69,10 @@ class RotateSigningKeysUseCaseTest {
     @Mock
     private Clock clock;
 
+    /** Decides how long a retired key stays published. */
+    @Mock
+    private SigningKeyRetention signingKeyRetention;
+
     /** Use case under test. */
     private RotateSigningKeysUseCase useCase;
 
@@ -78,9 +82,11 @@ class RotateSigningKeysUseCaseTest {
     @BeforeEach
     void setUp() {
         when(clock.instant()).thenReturn(NOW);
+        when(signingKeyRetention.effective()).thenReturn(RETENTION);
         when(signingKeyRepository.withRotationLock(any())).thenAnswer(
                 invocation -> invocation.<Supplier<?>>getArgument(0).get());
-        useCase = new RotateSigningKeysUseCase(signingKeyRepository, signingKeyGenerator, clock, INTERVAL, RETENTION);
+        useCase = new RotateSigningKeysUseCase(signingKeyRepository, signingKeyGenerator, clock, INTERVAL,
+                signingKeyRetention);
     }
 
     /**
@@ -140,6 +146,45 @@ class RotateSigningKeysUseCaseTest {
         assertEquals("n", saved.get(1).kid());
         assertEquals(SigningKeyStatus.NEXT, saved.get(2).status());
         assertEquals("new", saved.get(2).kid());
+    }
+
+    /**
+     * Verifies that a forced rotation replaces an active key that is not due yet: it is retired, the next key is
+     * promoted and a new next key is generated.
+     */
+    @Test
+    void executeForced_whenActiveKeyIsNotDue_rotatesKeys() {
+        when(signingKeyRepository.findAll()).thenReturn(List.of(
+                key("a", SigningKeyStatus.ACTIVE, NOW.minusSeconds(1)), key("n", SigningKeyStatus.NEXT, NOW)));
+        when(signingKeyGenerator.generate(NOW)).thenReturn(key("new", SigningKeyStatus.NEXT, NOW));
+
+        useCase.executeForced();
+
+        final var captor = ArgumentCaptor.<SigningKey>captor();
+        verify(signingKeyRepository, times(SAVES_ON_ROTATION)).save(captor.capture());
+        final var saved = captor.getAllValues();
+        assertEquals(List.of("a", "n", "new"), saved.stream().map(SigningKey::kid).toList());
+        assertEquals(List.of(SigningKeyStatus.RETIRED, SigningKeyStatus.ACTIVE, SigningKeyStatus.NEXT),
+                saved.stream().map(SigningKey::status).toList());
+    }
+
+    /**
+     * Verifies that a forced rotation without a next key promotes a freshly generated one and leaves another next
+     * key behind.
+     */
+    @Test
+    void executeForced_whenThereIsNoNextKey_generatesBoth() {
+        when(signingKeyRepository.findAll()).thenReturn(List.of(key("a", SigningKeyStatus.ACTIVE, NOW)));
+        when(signingKeyGenerator.generate(NOW)).thenReturn(key("g1", SigningKeyStatus.NEXT, NOW),
+                key("g2", SigningKeyStatus.NEXT, NOW));
+
+        useCase.executeForced();
+
+        final var captor = ArgumentCaptor.<SigningKey>captor();
+        verify(signingKeyRepository, times(SAVES_ON_ROTATION)).save(captor.capture());
+        assertEquals(List.of(SigningKeyStatus.RETIRED, SigningKeyStatus.ACTIVE, SigningKeyStatus.NEXT),
+                captor.getAllValues().stream().map(SigningKey::status).toList());
+        assertEquals(List.of("a", "g1", "g2"), captor.getAllValues().stream().map(SigningKey::kid).toList());
     }
 
     /**

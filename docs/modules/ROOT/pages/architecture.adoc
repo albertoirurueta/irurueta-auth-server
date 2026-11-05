@@ -58,9 +58,9 @@ modules outside the applications.
 == Security filter chains
 
 `auth-server` defines three `SecurityFilterChain` beans (module `auth-server/api/web`). `ApiSecurityConfig` (order 0)
-secures `/api/**` statelessly: it validates bearer JWTs issued by this server itself (see
-xref:tokens-and-keys.adoc[]), leaves registration, e-mail verification and password reset public, and requires scope
-`admin` or role `ROLE_ADMIN` under `/api/admin/**`. In `SecurityConfig`, the first chain (order 1) applies only to the
+secures `/api/**` statelessly: it validates bearer JWTs issued by this server itself for the API audience, with a
+decoder of its own (see xref:tokens-and-keys.adoc[]), leaves registration, e-mail verification and password reset
+public (rate limited), and requires the scope `admin` under `/api/admin/**`. In `SecurityConfig`, the first chain (order 1) applies only to the
 authorization server protocol endpoints; the second (order 2) secures everything else, including the login page.
 
 [source,java]
@@ -86,7 +86,8 @@ parallel. These extension points avoid editing shared files:
   `OAuth2AuthorizationServerConfigurer` of the protocol chain, in `@Order` order. It is how the UserInfo mapper and the
   optional dynamic client registration are configured. It is also deliberately not a `Customizer`, which Spring
   Security would apply to every chain.
-* `JwtClaimsContributor` (package `api.web.tokens`) adds claims to issued tokens; see xref:tokens-and-keys.adoc[].
+* `JwtClaimsContributor` (package `api.web.tokens`) adds claims to issued tokens: access tokens of both formats and ID
+  tokens; see xref:tokens-and-keys.adoc[].
 
 [source,html]
 ----

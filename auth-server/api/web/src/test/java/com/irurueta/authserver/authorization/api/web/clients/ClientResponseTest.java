@@ -18,6 +18,8 @@ package com.irurueta.authserver.authorization.api.web.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
 import org.junit.jupiter.api.Test;
 
@@ -26,12 +28,15 @@ import org.junit.jupiter.api.Test;
  */
 class ClientResponseTest {
 
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
     /**
      * Mapping keeps every field of the registration.
      */
     @Test
     void from_whenRegistrationGiven_mapsFields() {
-        final var registration = DefaultClientDefinitions.bff();
+        final var registration = bff();
 
         final var response = ClientResponse.from(registration);
 
@@ -48,5 +53,14 @@ class ClientResponseTest {
         assertEquals(registration.refreshTokenTtl(), response.refreshTokenTtl());
         assertEquals(registration.accessTokenFormat(), response.accessTokenFormat());
         assertEquals(registration.reuseRefreshTokens(), response.reuseRefreshTokens());
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }

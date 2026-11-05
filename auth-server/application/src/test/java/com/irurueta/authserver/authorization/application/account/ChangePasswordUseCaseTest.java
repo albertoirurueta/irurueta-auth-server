@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.application.account;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unit tests of {@link ChangePasswordUseCase}.
@@ -148,6 +150,19 @@ class ChangePasswordUseCaseTest {
         assertThrows(CompromisedPasswordException.class, () -> useCase.execute(USERNAME, CURRENT, NEW_PASSWORD));
 
         verifyNoInteractions(revokeUserAuthorizationsUseCase);
+    }
+
+
+    /**
+     * Verifies that the use case runs in one transaction: the new hash and the revocation of the tokens are one unit.
+     *
+     * @throws NoSuchMethodException if the method is missing.
+     */
+    @Test
+    void execute_whenInspected_isTransactional() throws NoSuchMethodException {
+        final var method = ChangePasswordUseCase.class.getMethod("execute", String.class, String.class, String.class);
+
+        assertNotNull(method.getAnnotation(Transactional.class));
     }
 
     /**

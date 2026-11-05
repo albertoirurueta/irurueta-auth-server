@@ -20,8 +20,16 @@ schema) and the REST API in `api/web`.
 
 |`DELETE /api/documents/\{id}`
 |`SCOPE_documents.delete`
-|Deletes a document: 204 when deleted, 404 when it does not exist. Enforced by method security.
+|Deletes one of the caller's documents; an administrator (`ROLE_ADMIN`) may delete any. 204 when deleted, 404 when it does not exist *or belongs to someone else*. The scope is enforced by method security, the ownership by `DeleteDocumentUseCase`.
 |===
+
+Answering someone else's document with `404` rather than `403` is deliberate: the answer is then the same as for an
+identifier that does not exist, so a caller cannot find out which documents exist.
+
+[source,java]
+----
+include::example$resource-server/application/src/main/java/com/irurueta/authserver/resourceserver/application/documents/DeleteDocumentUseCase.java[tag=resource-server-delete-ownership]
+----
 
 [source,java]
 ----
@@ -61,3 +69,12 @@ With the Spring profile `opaque`, the resource server introspects tokens instead
 credentials come from the environment variables `AUTH_INTROSPECTION_URI`, `INTROSPECTION_CLIENT_ID` and
 `INTROSPECTION_CLIENT_SECRET`, with no defaults. `AudienceRolesOpaqueTokenIntrospector` applies the same audience check
 and role mapping, so both variants behave alike.
+
+The resource server authenticates to the introspection endpoint as a client of its own, which must be registered
+first, for example through `POST /api/admin/clients`: a confidential client (say `resource-server`) with the
+`client_secret_basic` method and the `client_credentials` grant, no redirect URI; its generated secret goes into
+`INTROSPECTION_CLIENT_SECRET`, never into a file. The tokens it validates are the reference access tokens
+(`"accessTokenFormat": "reference"`) of clients whose audiences list `resource-server`: the authorization server
+stores their `roles`, `tenant` and `aud` with the authorization (see xref:tokens-and-keys.adoc[]), and the
+introspection answer carries them. The end-to-end test `ResourceServerEndToEndIT` runs this profile against the real
+authorization server.

@@ -215,15 +215,25 @@ class JdbcUserAccountRepositoryTest {
     }
 
     /**
-     * Verifies that the e-mail is marked as verified for the user.
+     * Verifies that the e-mail is marked as verified for the user, and that the change is reported.
      */
     @Test
-    void markEmailVerified_whenCalled_updatesTheRow() {
+    void markEmailVerified_whenRowChanges_returnsTrue() {
         final var id = UUID.randomUUID();
+        when(client.sql(any(String.class)).param(id).update()).thenReturn(1);
 
-        repository.markEmailVerified(id);
+        assertTrue(repository.markEmailVerified(id));
+    }
 
-        verify(client.sql(any(String.class)).param(id)).update();
+    /**
+     * Verifies that an already verified (or missing) user is reported as unchanged.
+     */
+    @Test
+    void markEmailVerified_whenNoRowChanges_returnsFalse() {
+        final var id = UUID.randomUUID();
+        when(client.sql(any(String.class)).param(id).update()).thenReturn(0);
+
+        assertFalse(repository.markEmailVerified(id));
     }
 
     /**

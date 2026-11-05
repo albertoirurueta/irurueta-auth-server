@@ -24,6 +24,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientAlreadyExistsException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
@@ -39,6 +41,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 class CreateClientUseCaseTest {
+
+    /** Redirect URI of the default clients built by the tests. */
+    private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
 
     /** Generated secret returned by the mocked generator. */
     private static final String SECRET = "generated-secret";
@@ -67,7 +72,7 @@ class CreateClientUseCaseTest {
      */
     @Test
     void execute_whenClientIsConfidential_storesEncodedSecretAndReturnsClearOne() {
-        final var bff = DefaultClientDefinitions.bff();
+        final var bff = bff();
         when(clientRegistrationRepository.findByClientId(bff.clientId())).thenReturn(Optional.empty());
         when(clientSecretGenerator.generate()).thenReturn(SECRET);
         when(passwordHasher.encode(SECRET)).thenReturn(ENCODED);
@@ -84,7 +89,7 @@ class CreateClientUseCaseTest {
      */
     @Test
     void execute_whenClientIsPublic_storesNoSecret() {
-        final var spa = DefaultClientDefinitions.spaPublic();
+        final var spa = spaPublic();
         when(clientRegistrationRepository.findByClientId(spa.clientId())).thenReturn(Optional.empty());
 
         final var created = useCase.execute(spa);
@@ -98,11 +103,30 @@ class CreateClientUseCaseTest {
      */
     @Test
     void execute_whenClientExists_throwsClientAlreadyExistsException() {
-        final var bff = DefaultClientDefinitions.bff();
+        final var bff = bff();
         when(clientRegistrationRepository.findByClientId(bff.clientId())).thenReturn(Optional.of(bff));
 
         assertThrows(ClientAlreadyExistsException.class, () -> useCase.execute(bff));
 
         verify(clientRegistrationRepository, never()).save(any(), any());
+    }
+
+    /**
+     * Builds the default {@code bff} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration bff() {
+        return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+    }
+
+    /**
+     * Builds the default {@code spa-public} client with a test redirect URI.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration spaPublic() {
+        return DefaultClientDefinitions.spaPublic(List.of(TEST_REDIRECT_URI),
+                DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 }
