@@ -25,8 +25,8 @@ When complete, the example shows how to:
 * explain the legacy *implicit* flow and migrate away from it
 
 The work is tracked in the repository's issues and the *1.0.0* milestone. The current state is a *walking skeleton*:
-a user can sign in with a username and password through the BFF (authorization code with PKCE), and the BFF can read
-`GET /orders` from the resource server with the user's token. The other authentication methods are added on top of the
+a user can sign in with a username and password through the BFF (authorization code with PKCE), and the resource
+server accepts the access tokens issued to the BFF. The other authentication methods are added on top of the
 extension points described in xref:architecture.adoc[].
 
 == Modules

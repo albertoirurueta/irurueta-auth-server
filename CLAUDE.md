@@ -44,8 +44,8 @@ module (package granularity). Never weaken either to make code fit; move the cod
 
 | Module | May depend on | Must not contain |
 |---|---|---|
-| `domain` | nothing but the JDK (and Lombok, compile-only) | Spring, Jackson, JPA/JDBC, Spring Security types |
-| `application` | `domain` | Spring annotations; use cases are plain classes wired as `@Bean`s in `boot` |
+| `domain` | nothing but the JDK (and Lombok, compile-only) | Spring, Jackson, JPA/JDBC, Spring Security types: the only framework-free module |
+| `application` | `domain`, Spring | Spring Security types; use cases are `@Service` beans found by component scanning |
 | `infrastructure/*` | `domain`, `application` | a sibling adapter, any `api/*` module |
 | `api/*` | `domain`, `application` | any `infrastructure/*` module |
 | `boot` | everything | business logic: it only wires beans, holds `application*.yml` and the integration tests |
@@ -64,8 +64,11 @@ module (package granularity). Never weaken either to make code fit; move the cod
   `SecurityFilterChain`, …) are framework adapters: they live in `api/*` or `infrastructure/*`, never in `domain`
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet (for example
-  `bff` until #3) has no `infrastructure` or `application` module, and `service-client` stays a single `boot` module
-  until #8 gives it a domain.
+  `bff` until #3, `resource-server` until #2) has no `infrastructure` or `application` module, and `service-client`
+  stays a single `boot` module until #8 gives it a domain.
+- **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
+  or adapter that exists only so a test has something to call lives in `src/test`. The one exception is
+  `DevDataInitializer` (its Javadoc says why).
 - `test-support` (shared Testcontainers base), `e2e-tests` and `coverage` (JaCoCo aggregate) are root modules
   outside the applications.
 
@@ -187,6 +190,9 @@ void equalsAndHashCode_whenFieldsMatch_areEqual()
 
 - **One test class per production class.** Do not group several production classes into one test class.
 - **Order methods public → private.** Fields and setup first, then `@Test` methods, then private helpers last.
+- **Nested types go last** (see *Member order* under Java style). A nested configuration class of a test stays
+  package-private: the test class's own `@Import` cannot name a private nested class, and Spring's test context
+  only detects non-private nested configuration classes. Say so in its Javadoc.
 
 ### Unit tests are `*Test`, integration tests are `*IT`
 
@@ -218,6 +224,10 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
 
 ## Java style
 
+- **Member order** (the Java Code Conventions order, plus nested types last as IntelliJ's default arrangement and
+  most style guides do): static fields, instance fields, constructors, methods (public → private), then nested
+  types. A nested type is `private` unless code outside the enclosing class, or a framework that requires it,
+  needs to see it.
 - **Records** for immutable types (domain models, value objects, web DTOs); validate in the compact constructor and
   defensively copy collections (`List.copyOf(...)`), or SpotBugs `EI_EXPOSE_REP` fails the build.
 - **`final`** on parameters (Checkstyle enforces it) and on locals; **`final var`** is the default for locals.
@@ -245,8 +255,9 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
 - **Constructors**: a constructor that only assigns its parameters to `final` fields is replaced by
   `@RequiredArgsConstructor` (or `@AllArgsConstructor`/`@NoArgsConstructor`/`@Value`/`@Data` where they say the same
   thing more briefly). Keep a hand-written constructor only when it does real work: it validates with a specific
-  exception type (a use case rejecting a null port with `IllegalArgumentException`), defensively copies, or derives
-  something once at construction.
+  exception type (a record rejecting a blank value with `IllegalArgumentException`), defensively copies, or derives
+  something once at construction. Spring beans (use cases, adapters) take `@RequiredArgsConstructor`: Spring never
+  injects `null`, so they don't null-check their dependencies.
 - **Loggers**: `@Slf4j`, never a hand-rolled `LoggerFactory.getLogger(Foo.class)` field. The generated field is
   `log`.
 - `@Configuration` classes with only `@Bean` methods need no constructor at all.

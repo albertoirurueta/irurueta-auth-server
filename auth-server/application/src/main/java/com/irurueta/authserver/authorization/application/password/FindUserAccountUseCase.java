@@ -19,29 +19,19 @@ package com.irurueta.authserver.authorization.application.password;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 /**
- * Use case that looks a user account up by username. A plain class (final, so that a constructor that rejects its
- * argument cannot leave a partially initialized subclass behind): the {@code boot} module registers it as a
- * bean.
+ * Use case that looks a user account up by username. A Spring service, so component scanning registers it and
+ * injects its port.
  */
-public final class FindUserAccountUseCase {
+@Service
+@RequiredArgsConstructor
+public class FindUserAccountUseCase {
 
     /** Port that provides the user accounts. */
     private final UserAccountRepository userAccountRepository;
-
-    /**
-     * Creates the use case.
-     *
-     * @param userAccountRepository port that provides the user accounts.
-     * @throws IllegalArgumentException if the port is null.
-     */
-    public FindUserAccountUseCase(final UserAccountRepository userAccountRepository) {
-        if (userAccountRepository == null) {
-            throw new IllegalArgumentException("userAccountRepository must not be null");
-        }
-        this.userAccountRepository = userAccountRepository;
-    }
 
     /**
      * Finds the account of a user.

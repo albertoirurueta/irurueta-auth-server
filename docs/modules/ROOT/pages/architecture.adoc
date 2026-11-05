@@ -29,8 +29,8 @@ Each application is a Maven sub-reactor split into modules by hexagonal layer. T
 |Spring, Jackson, JPA/JDBC or Spring Security types
 
 |`application`
-|`domain`
-|Spring annotations: use cases are plain classes wired as beans in `boot`
+|`domain` and Spring (use cases are `@Service` beans found by component scanning)
+|Spring Security types, or any `infrastructure/*` or `api/*` module
 
 |`infrastructure/*`
 |`domain`, `application`
@@ -115,15 +115,11 @@ include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/s
 include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/user/UserController.java[tag=bff-user]
 ----
 
-The `resource-server` validates JWT access tokens against the issuer and exposes `GET /orders`, backed by the
-`OrderRepository` port and its in-memory demo adapter.
+The `resource-server` validates JWT access tokens against the issuer and accepts only those issued to the `bff`
+audience. It has no API of its own yet (#2 adds one); its integration tests prove the chain against an endpoint that
+exists only in the test sources.
 
 [source,java]
 ----
 include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-security]
-----
-
-[source,java]
-----
-include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/orders/OrdersController.java[tag=resource-server-orders]
 ----

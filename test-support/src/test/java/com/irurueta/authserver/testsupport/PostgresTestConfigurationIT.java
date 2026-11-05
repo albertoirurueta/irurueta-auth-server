@@ -39,14 +39,6 @@ class PostgresTestConfigurationIT {
     private static final String EXPECTED_MAJOR_VERSION = "18";
 
     /**
-     * Minimal application hosting the auto-configuration of the test context.
-     */
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
-    static class TestApplication {
-    }
-
-    /**
      * Data source created from the container's service connection.
      */
     @Autowired
@@ -73,5 +65,14 @@ class PostgresTestConfigurationIT {
     @Test
     void postgresImage_whenRead_namesMajorVersion18() {
         assertEquals("postgres:" + EXPECTED_MAJOR_VERSION, PostgresTestConfiguration.POSTGRES_IMAGE);
+    }
+
+    /**
+     * Minimal application hosting the auto-configuration of the test context. Package-private, not
+     * private: Spring's test context only detects a nested configuration class that is not private.
+     */
+    @SpringBootConfiguration
+    @EnableAutoConfiguration
+    static class TestApplication {
     }
 }

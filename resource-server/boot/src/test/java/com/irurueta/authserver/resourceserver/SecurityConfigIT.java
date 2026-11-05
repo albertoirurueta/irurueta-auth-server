@@ -18,7 +18,7 @@ package com.irurueta.authserver.resourceserver;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
@@ -28,17 +28,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Integration tests of {@code GET /orders} through the whole filter chain.
+ * Integration tests of {@link com.irurueta.authserver.resourceserver.api.web.security.SecurityConfig} through the
+ * whole filter chain, against the test-only {@link ProtectedTestController}.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-class OrdersControllerIT {
+class SecurityConfigIT {
 
-    /** Number of demo orders. */
-    private static final int ORDER_COUNT = 2;
-
-    /** Price of the first demo order. */
-    private static final double FIRST_ORDER_TOTAL = 49.90;
+    /** Subject of the test bearer token. */
+    private static final String SUBJECT = "demo";
 
     /** Entry point to the web layer. */
     @Autowired
@@ -50,23 +48,19 @@ class OrdersControllerIT {
      * @throws Exception if the request cannot be performed.
      */
     @Test
-    void orders_whenThereIsNoToken_returnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/orders")).andExpect(status().isUnauthorized());
+    void resourceServerFilterChain_whenThereIsNoToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(ProtectedTestController.PATH)).andExpect(status().isUnauthorized());
     }
 
     /**
-     * Verifies that a request with a valid JWT lists the demo orders.
+     * Verifies that a request with a valid JWT reaches the endpoint with the token's claims.
      *
      * @throws Exception if the request cannot be performed.
      */
     @Test
-    void orders_whenTokenIsValid_returnsTheDemoOrders() throws Exception {
-        mockMvc.perform(get("/orders").with(jwt()))
+    void resourceServerFilterChain_whenTokenIsValid_exposesTheTokenToTheEndpoint() throws Exception {
+        mockMvc.perform(get(ProtectedTestController.PATH).with(jwt().jwt(token -> token.subject(SUBJECT))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(ORDER_COUNT))
-                .andExpect(jsonPath("$[0].id").value("1001"))
-                .andExpect(jsonPath("$[0].item").value("Keyboard"))
-                .andExpect(jsonPath("$[0].total").value(FIRST_ORDER_TOTAL))
-                .andExpect(jsonPath("$[1].id").value("1002"));
+                .andExpect(content().string(SUBJECT));
     }
 }

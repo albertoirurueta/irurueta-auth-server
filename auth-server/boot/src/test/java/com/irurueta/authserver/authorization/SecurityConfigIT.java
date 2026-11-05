@@ -81,84 +81,6 @@ class SecurityConfigIT {
     /** Path of the endpoint that the first customizer permits. */
     private static final String CUSTOMIZER_PATH = "/test-method/**";
 
-    /** Beans of the slice that are not mocks: real in-memory framework implementations used as test data. */
-    @TestConfiguration(proxyBeanMethods = false)
-    static class TestBeans {
-
-        /**
-         * Creates a repository holding one client.
-         *
-         * @return the repository.
-         */
-        @Bean
-        RegisteredClientRepository registeredClientRepository() {
-            return new InMemoryRegisteredClientRepository(RegisteredClient.withId("1").clientId("c")
-                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                    .redirectUri("http://localhost/cb").build());
-        }
-
-        /**
-         * Creates the default authorization server settings.
-         *
-         * @return the settings.
-         */
-        @Bean
-        AuthorizationServerSettings authorizationServerSettings() {
-            return AuthorizationServerSettings.builder().build();
-        }
-
-        /**
-         * Creates the decoder of the tokens signed with the temporary key.
-         *
-         * @param jwkSource source of the signing keys.
-         * @return the decoder.
-         */
-        @Bean
-        JwtDecoder jwtDecoder(final JWKSource<SecurityContext> jwkSource) {
-            return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
-        }
-
-        /**
-         * Creates a user store holding one user.
-         *
-         * @return the user store.
-         */
-        @Bean
-        UserDetailsService userDetailsService() {
-            return new InMemoryUserDetailsManager(
-                    User.withUsername(USERNAME).password("{noop}" + PASSWORD).roles("USER").build());
-        }
-
-        /**
-         * Creates the customizer that is applied second.
-         *
-         * @return a mock customizer.
-         */
-        @Bean
-        @Order(2)
-        LoginChainCustomizer secondCustomizer() {
-            return mock(LoginChainCustomizer.class);
-        }
-
-        /**
-         * Creates the customizer that is applied first and permits its own endpoint, as passkeys or one-time
-         * tokens will.
-         *
-         * @return a mock customizer.
-         */
-        @Bean
-        @Order(1)
-        LoginChainCustomizer firstCustomizer() {
-            final var customizer = mock(LoginChainCustomizer.class);
-            doAnswer(invocation -> {
-                final HttpSecurity http = invocation.getArgument(0);
-                http.authorizeHttpRequests(authorize -> authorize.requestMatchers(CUSTOMIZER_PATH).permitAll());
-                return null;
-            }).when(customizer).customize(any(HttpSecurity.class));
-            return customizer;
-        }
-    }
-
     /** MockMvc bound to the web slice. */
     @Autowired
     private MockMvc mockMvc;
@@ -292,5 +214,86 @@ class SecurityConfigIT {
 
         order.verify(firstCustomizer).customize(any(HttpSecurity.class));
         order.verify(secondCustomizer).customize(any(HttpSecurity.class));
+    }
+
+    /**
+     * Beans of the slice that are not mocks: real in-memory framework implementations used as test data.
+     * Package-private, not private: the class-level {@code @Import} of the enclosing class names it.
+     */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class TestBeans {
+
+        /**
+         * Creates a repository holding one client.
+         *
+         * @return the repository.
+         */
+        @Bean
+        RegisteredClientRepository registeredClientRepository() {
+            return new InMemoryRegisteredClientRepository(RegisteredClient.withId("1").clientId("c")
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .redirectUri("http://localhost/cb").build());
+        }
+
+        /**
+         * Creates the default authorization server settings.
+         *
+         * @return the settings.
+         */
+        @Bean
+        AuthorizationServerSettings authorizationServerSettings() {
+            return AuthorizationServerSettings.builder().build();
+        }
+
+        /**
+         * Creates the decoder of the tokens signed with the temporary key.
+         *
+         * @param jwkSource source of the signing keys.
+         * @return the decoder.
+         */
+        @Bean
+        JwtDecoder jwtDecoder(final JWKSource<SecurityContext> jwkSource) {
+            return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+        }
+
+        /**
+         * Creates a user store holding one user.
+         *
+         * @return the user store.
+         */
+        @Bean
+        UserDetailsService userDetailsService() {
+            return new InMemoryUserDetailsManager(
+                    User.withUsername(USERNAME).password("{noop}" + PASSWORD).roles("USER").build());
+        }
+
+        /**
+         * Creates the customizer that is applied second.
+         *
+         * @return a mock customizer.
+         */
+        @Bean
+        @Order(2)
+        LoginChainCustomizer secondCustomizer() {
+            return mock(LoginChainCustomizer.class);
+        }
+
+        /**
+         * Creates the customizer that is applied first and permits its own endpoint, as passkeys or one-time
+         * tokens will.
+         *
+         * @return a mock customizer.
+         */
+        @Bean
+        @Order(1)
+        LoginChainCustomizer firstCustomizer() {
+            final var customizer = mock(LoginChainCustomizer.class);
+            doAnswer(invocation -> {
+                final HttpSecurity http = invocation.getArgument(0);
+                http.authorizeHttpRequests(authorize -> authorize.requestMatchers(CUSTOMIZER_PATH).permitAll());
+                return null;
+            }).when(customizer).customize(any(HttpSecurity.class));
+            return customizer;
+        }
     }
 }

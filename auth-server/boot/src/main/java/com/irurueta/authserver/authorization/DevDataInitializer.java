@@ -38,8 +38,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Seeds a demo user and a confidential BFF client when the {@code dev} profile is active. Secrets are generated
- * at first start and logged once; nothing is committed. Running it again does not change existing data.
+ * Seeds a demo user and a confidential BFF client when the {@code dev} profile is active, so a freshly started
+ * authorization server has someone to sign in and a client to sign in through.
+ *
+ * <p>Purpose: local development and the end-to-end tests. Started with
+ * {@code spring-boot:run -Dspring-boot.run.profiles=dev}, it lets a developer sign in through the BFF by hand. The
+ * {@code e2e-tests} module ({@code SignInSmokeIT}) starts the <em>packaged</em> jar with the {@code dev} profile and
+ * reads the generated credentials from the log lines below.
+ *
+ * <p>Why it lives in {@code src/main} although it only seeds demo data: the end-to-end tests run the real jar, and
+ * a class under {@code src/test} never reaches it. It is inert everywhere else: without the {@code dev} profile the
+ * bean is not even created. Never activate that profile outside local development.
+ *
+ * <p>Secrets are generated at first start and logged once as {@code DEV ONLY} warnings; nothing is committed.
+ * Running it again does not change existing data.
  */
 @Slf4j
 @Component

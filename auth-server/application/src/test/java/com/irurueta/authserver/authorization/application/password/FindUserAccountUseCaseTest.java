@@ -18,7 +18,6 @@ package com.irurueta.authserver.authorization.application.password;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,14 +49,6 @@ class FindUserAccountUseCaseTest {
     /** Use case under test. */
     @InjectMocks
     private FindUserAccountUseCase useCase;
-
-    /**
-     * Verifies that a null port is rejected.
-     */
-    @Test
-    void constructor_whenRepositoryIsNull_throwsIllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class, () -> new FindUserAccountUseCase(null));
-    }
 
     /**
      * Verifies that the account found by the port is returned.

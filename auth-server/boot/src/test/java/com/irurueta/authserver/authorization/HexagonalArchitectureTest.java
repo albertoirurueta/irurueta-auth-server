@@ -58,12 +58,18 @@ class HexagonalArchitectureTest {
             .that().resideInAPackage(DOMAIN)
             .should().onlyDependOnClassesThat().resideInAnyPackage(DOMAIN, "java..", "javax..", "lombok..");
 
-    /** Application depends only on domain (and the JDK and Lombok). */
+    /** Application depends only on domain and Spring (and the JDK and Lombok). */
     @ArchTest
-    static final ArchRule APPLICATION_DEPENDS_ONLY_ON_DOMAIN = classes()
+    static final ArchRule APPLICATION_DEPENDS_ONLY_ON_DOMAIN_AND_SPRING = classes()
             .that().resideInAPackage(APPLICATION)
             .should().onlyDependOnClassesThat().resideInAnyPackage(
-                    APPLICATION, DOMAIN, "java..", "javax..", "lombok..");
+                    APPLICATION, DOMAIN, "java..", "javax..", "lombok..", "org.springframework..");
+
+    /** Spring Security types are framework adapters: they never reach the application layer. */
+    @ArchTest
+    static final ArchRule APPLICATION_NEVER_DEPENDS_ON_SPRING_SECURITY = noClasses()
+            .that().resideInAPackage(APPLICATION)
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.security..");
 
     /** A driving adapter never depends on a driven adapter. */
     @ArchTest

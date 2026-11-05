@@ -15,6 +15,6 @@
  */
 
 /**
- * Web adapter of the resource server: JWT bearer security and the orders endpoint.
+ * Web adapter of the resource server: JWT bearer security.
  */
 package com.irurueta.authserver.resourceserver.api.web;
