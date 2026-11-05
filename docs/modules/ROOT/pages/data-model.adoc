@@ -1,0 +1,32 @@
+= Data model
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+`auth-server` stores its state in PostgreSQL. Flyway applies the migrations in
+`auth-server/infrastructure/persistence/src/main/resources/db/migration` (`classpath:db/migration`) at start.
+
+[cols="1,3",options="header"]
+|===
+|Migration
+|Content
+
+|`V100__spring_authorization_server_schema.sql`
+|Tables of Spring Authorization Server: `oauth2_registered_client`, `oauth2_authorization_consent` and
+`oauth2_authorization`.
+
+|`V101__users.sql`
+|Tables `users`, `user_authorities` and `user_passwords`.
+|===
+
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199`. A
+migration is never written outside the range of the issue that adds it.
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V100__spring_authorization_server_schema.sql[tag=sas-schema]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V101__users.sql[tag=users-schema]
+----

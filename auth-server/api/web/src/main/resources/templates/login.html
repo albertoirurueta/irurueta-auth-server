@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign in</title>
+</head>
+<body>
+<main>
+  <h1>Sign in</h1>
+  <!-- tag::login-form[] -->
+  <form method="post" th:action="@{${loginPath}}">
+    <div th:if="${param.error}" role="alert">Invalid username or password.</div>
+    <div th:if="${param.logout}" role="status">You have been signed out.</div>
+    <p>
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required autofocus autocomplete="username">
+    </p>
+    <p>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required autocomplete="current-password">
+    </p>
+    <button type="submit">Sign in</button>
+  </form>
+  <!-- end::login-form[] -->
+  <section th:each="fragment : ${fragments}" class="login-method">
+    <!-- LoginMethodFragment.reference() is the single source of the "template :: fragment" expression -->
+    <div th:replace="~{__${fragment.reference()}__}"></div>
+  </section>
+</main>
+</body>
+</html>

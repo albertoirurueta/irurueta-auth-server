@@ -1,0 +1,125 @@
+= Architecture
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+== Hexagonal layout
+
+Each application is a Maven sub-reactor split into modules by hexagonal layer. The layering is enforced twice: by
+`maven-enforcer-plugin` `bannedDependencies` rules in each module's `pom.xml` (jar granularity) and by a
+`HexagonalArchitectureTest` (ArchUnit) in each application's `boot` module (package granularity).
+
+[source,text]
+----
+<app>/                          aggregator pom, artifactId <app>-parent
+  domain/                       <app>-domain
+  application/                  <app>-application
+  infrastructure/<adapter>/     <app>-infrastructure-<adapter>   (driven adapters: persistence, keys, ...)
+  api/<adapter>/                <app>-api-<adapter>              (driving adapters: web, ...)
+  boot/                         <app>-boot                       (composition root, the only runnable artifact)
+----
+
+[cols="1,2,2",options="header"]
+|===
+|Module
+|May depend on
+|Must not contain
+
+|`domain`
+|Nothing but the JDK (and Lombok, compile-only)
+|Spring, Jackson, JPA/JDBC or Spring Security types
+
+|`application`
+|`domain` and Spring (use cases are `@Service` beans found by component scanning)
+|Spring Security types, or any `infrastructure/*` or `api/*` module
+
+|`infrastructure/*`
+|`domain`, `application`
+|A sibling adapter or any `api/*` module
+
+|`api/*`
+|`domain`, `application`
+|Any `infrastructure/*` module
+
+|`boot`
+|Everything
+|Business logic: it only wires beans, holds `application*.yml` and the integration tests
+|===
+
+A layer is only created once it has code: `bff` has no `application` or `infrastructure` module yet, and
+`service-client` is a single `boot` module. A port is an interface in `domain` (for example `UserAccountRepository`);
+its implementation lives in an `infrastructure/*` adapter. Domain models are never returned from a controller: the
+`api/*` adapter maps them onto its own DTOs. Spring Security and Spring Authorization Server types are framework
+adapters and live in `api/*` or `infrastructure/*`.
+
+`test-support` (shared Testcontainers base), `e2e-tests` (Playwright) and `coverage` (JaCoCo aggregate) are root
+modules outside the applications.
+
+== Security filter chains
+
+`auth-server` defines two `SecurityFilterChain` beans in `SecurityConfig` (module `auth-server/api/web`). The first
+(order 1) applies only to the authorization server protocol endpoints; the second (order 2) secures everything else,
+including the login page.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/SecurityConfig.java[tag=security-chains]
+----
+
+== Extension points for authentication methods
+
+A feature spans the layers with the same package name in each (`...domain.password`, `...application.password`,
+`...infrastructure.persistence.password`, `...api.web.password`), so authentication methods can be developed in
+parallel. Two extension points avoid editing shared files:
+
+* `LoginChainCustomizer` (package `api.web.login`) is a `Customizer<HttpSecurity>`. Every bean of this type is applied
+  to the login chain in `@Order` order, before its catch-all rule.
+* `LoginMethodFragment` contributes a Thymeleaf fragment to the login page, which is `templates/login.html`.
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/login.html[tag=login-form]
+----
+
+== Users and clients
+
+The use case `FindUserAccountUseCase` (module `application`) looks a user up through the `UserAccountRepository` port.
+The `infrastructure/persistence` adapter implements it with JDBC, and `UserAccountUserDetailsService` in `api/web`
+adapts the result to Spring Security.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/password/JdbcUserAccountRepository.java[tag=password-load-user]
+----
+
+Registered clients, authorizations and consents use the JDBC services of Spring Authorization Server.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/clients/JdbcAuthorizationServerConfiguration.java[tag=jdbc-services]
+----
+
+The signing JWK is temporarily generated in memory at each start by the `infrastructure/keys` adapter; persisted,
+rotated keys come later.
+
+== BFF and resource server
+
+The `bff` is an `oauth2Login()` client using the authorization code grant with PKCE, and exposes `GET /bff/user`.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/security/SecurityConfig.java[tag=bff-security]
+----
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/user/UserController.java[tag=bff-user]
+----
+
+The `resource-server` validates JWT access tokens against the issuer and accepts only those issued to the `bff`
+audience. It has no API of its own yet (#2 adds one); its integration tests prove the chain against an endpoint that
+exists only in the test sources.
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-security]
+----

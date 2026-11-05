@@ -3,7 +3,9 @@
 NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
 
 These reports are generated during the build. They are not published anywhere: run the build locally, or download
-the `test-reports` artifact of a *Build and test* workflow run on GitHub Actions.
+the `test-reports` artifact of a *Build and test* workflow run on GitHub Actions. SonarCloud analyses every push
+and pull request when the `SONAR_TOKEN` secret is set (organization `albertoirurueta`, project
+`albertoirurueta_irurueta-auth-server`).
 
 == Generated Reports
 
@@ -24,10 +26,57 @@ the `test-reports` artifact of a *Build and test* workflow run on GitHub Actions
 |`<module>/target/site/jacoco-it/index.html`
 |JaCoCo coverage of the integration tests, written by `./mvnw verify` once a module has integration tests.
 
+|`openapi/auth-server.json`
+|The committed OpenAPI document of `auth-server` (springdoc). `OpenApiDriftIT` fails when the running application no
+longer matches it.
+
+|`coverage/target/site/jacoco-aggregate/index.html`
+|JaCoCo coverage aggregated over every module (unit and integration tests), written by `./mvnw verify`. The same
+`jacoco.xml` feeds SonarCloud.
+
+|`<module>/target/checkstyle-result.xml`, `pmd.xml`, `spotbugsXml.xml`
+|Raw Checkstyle, PMD/CPD and SpotBugs results of each module, written by `./mvnw verify`.
+
 |`<module>/target/site/index.html`
-|Maven site with the Checkstyle, PMD, SpotBugs, JXR, Surefire and JaCoCo reports, written by `./mvnw verify site`.
-The quality reports never fail the build.
+|Browsable Maven site with the Checkstyle, PMD, SpotBugs, JXR, Javadoc, Surefire and JaCoCo reports, written by
+`./mvnw verify site`.
 |===
+
+== Build gates
+
+`./mvnw -B clean verify` fails when any of these fails:
+
+[cols="1,3",options="header"]
+|===
+|Gate
+|Rule
+
+|Checkstyle
+|`checkstyle.xml`, `violationSeverity=warning`, test sources included (full Javadoc, `final` parameters, no magic
+numbers). Runs at the `validate` phase.
+
+|PMD and CPD
+|Static analysis and copy-paste detection, at `verify`.
+
+|SpotBugs
+|`threshold=Medium`, `effort=Max`; exclusions only in `spotbugs-exclude.xml`, each with a reason.
+
+|JaCoCo
+|80% line and 70% branch coverage on the bundle aggregated by the `coverage` module (unit plus integration tests).
+Never lowered: add tests instead.
+
+|Enforcer
+|Java `[21,26)`, Maven 3.9 or newer and the per-module `bannedDependencies` rules of the hexagonal layout.
+
+|ArchUnit
+|`HexagonalArchitectureTest` in the `boot` module of each application.
+|===
+
+== SonarCloud
+
+The `Build and test` workflow runs `./mvnw -B -ntp sonar:sonar` after `verify` when the `SONAR_TOKEN` secret is set. The
+project properties (`sonar.organization`, `sonar.projectKey`, `sonar.host.url` and the aggregated JaCoCo report path)
+live in the root `pom.xml`. The workflow never deploys anything.
 
 == Links
 

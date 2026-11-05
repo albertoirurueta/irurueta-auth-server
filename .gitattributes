@@ -1,0 +1,19 @@
+# Line endings are LF everywhere: in the repository and in the working tree, on every platform.
+#
+# Without this, Git for Windows checks text files out as CRLF by default (core.autocrlf=true), which
+# silently breaks anything that compares file content byte for byte. OpenApiDriftIT is exactly that: it
+# diffs the generated OpenAPI document against the committed openapi/auth-server.json, so a CRLF checkout
+# would fail `mvn verify` on Windows without one character of the contract having changed.
+#
+# `eol=lf` rather than a bare `text=auto` on purpose: `text=auto` alone normalises to LF *in the
+# repository* but still hands Windows a CRLF working copy, which is precisely the case that breaks.
+* text=auto eol=lf
+
+# Shell scripts are LF or they do not run: a CRLF shebang line leaves the interpreter name with a
+# trailing carriage return. Covered by the rule above, restated because the failure is so opaque.
+*.sh text eol=lf
+
+# Binary files are never normalised.
+*.zip binary
+*.jar binary
+*.png binary

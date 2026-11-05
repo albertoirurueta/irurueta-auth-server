@@ -3,3 +3,54 @@ version: 1.0.0
 title: Irurueta Auth Server
 nav:
   - modules/ROOT/nav.adoc
+ext:
+  collector:
+    # dir is relative to the repository root (the worktree), not to docs/. Only src/** is scanned, so target/ and
+    # node_modules/ never reach the site.
+    # One scan per module (its directory from the repository root), so a new module needs a new scan here.
+    # Copies each module's sources into the example$ family so the guide can include tagged regions, for example
+    # include::irurueta-auth-server::example$auth-server/api/web/src/main/java/...[tag=security-chains]
+    - scan:
+        - dir: auth-server/domain
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/domain
+        - dir: auth-server/application
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/application
+        - dir: auth-server/infrastructure/persistence
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/infrastructure/persistence
+        - dir: auth-server/infrastructure/keys
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/infrastructure/keys
+        - dir: auth-server/api/web
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/api/web
+        - dir: auth-server/boot
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/boot
+        - dir: bff/api/web
+          files: 'src/**'
+          into: modules/ROOT/examples/bff/api/web
+        - dir: bff/boot
+          files: 'src/**'
+          into: modules/ROOT/examples/bff/boot
+        - dir: resource-server/api/web
+          files: 'src/**'
+          into: modules/ROOT/examples/resource-server/api/web
+        - dir: resource-server/boot
+          files: 'src/**'
+          into: modules/ROOT/examples/resource-server/boot
+        - dir: service-client/boot
+          files: 'src/**'
+          into: modules/ROOT/examples/service-client/boot
+        - dir: test-support
+          files: 'src/**'
+          into: modules/ROOT/examples/test-support
+        - dir: e2e-tests
+          files: 'src/**'
+          into: modules/ROOT/examples/e2e-tests
+        # '~+' is the repository root; a plain '.' would mean the docs/ start path
+        - dir: '~+'
+          files: '{pom.xml,compose.yaml}'
+          into: modules/ROOT/examples
