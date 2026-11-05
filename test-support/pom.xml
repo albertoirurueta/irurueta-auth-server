@@ -26,7 +26,7 @@
 
   <artifactId>test-support</artifactId>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Shared test harness (Testcontainers PostgreSQL support) for the other modules. </description>
+  <description>Shared test harness for the other modules: Testcontainers PostgreSQL support and the OpenAPI contract comparison of the drift tests.</description>
 
   <dependencies>
     <dependency>
@@ -44,6 +44,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
+      <!-- OpenApiContract reads the contracts under apis/ and the served OpenAPI documents -->
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
     </dependency>
 
     <!-- only needed by this module's own integration test; consumers bring their own persistence stack -->

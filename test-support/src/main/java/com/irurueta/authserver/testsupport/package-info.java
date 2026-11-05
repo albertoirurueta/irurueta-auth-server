@@ -15,6 +15,7 @@
  */
 
 /**
- * Shared test harness: Testcontainers PostgreSQL support for integration tests.
+ * Shared test harness: Testcontainers PostgreSQL support for integration tests, and the comparison of the OpenAPI
+ * contracts under {@code apis/} with the documents the applications serve.
  */
 package com.irurueta.authserver.testsupport;
