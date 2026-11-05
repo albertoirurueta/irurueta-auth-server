@@ -17,33 +17,47 @@
 package com.irurueta.authserver.authorization.api.web.password;
 
 import com.irurueta.authserver.authorization.application.password.FindUserAccountUseCase;
+import com.irurueta.authserver.authorization.application.password.UpgradePasswordHashUseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 /**
  * Spring Security {@link UserDetailsService} adapter over the {@link FindUserAccountUseCase} use case: it maps the
- * domain {@code UserAccount} onto Spring Security's {@link User}.
+ * domain {@code UserAccount} onto Spring Security's {@link UserDetails} through the {@link UserDetailsMapper}. As
+ * a {@link UserDetailsPasswordService} it also stores the stronger hash that the authentication provider produces
+ * after a successful sign-in with an outdated encoding, through the {@link UpgradePasswordHashUseCase} use case.
  */
 @Component
 @RequiredArgsConstructor
-public class UserAccountUserDetailsService implements UserDetailsService {
+public class UserAccountUserDetailsService implements UserDetailsService, UserDetailsPasswordService {
 
     /** Use case that looks the account up. */
     private final FindUserAccountUseCase findUserAccountUseCase;
 
+    /** Use case that stores the upgraded hash. */
+    private final UpgradePasswordHashUseCase upgradePasswordHashUseCase;
+
+    /** Maps an account onto Spring Security's user details. */
+    private final UserDetailsMapper userDetailsMapper;
+
     @Override
     public UserDetails loadUserByUsername(final String username) throws UsernameNotFoundException {
         return findUserAccountUseCase.execute(username)
-                .map(account -> User.withUsername(account.username())
-                        .password(account.encodedPassword())
-                        .disabled(!account.enabled())
-                        .authorities(AuthorityUtils.createAuthorityList(account.authorities()))
-                        .build())
+                .map(account -> userDetailsMapper.toUserDetails(account, account.encodedPassword()))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
+
+    // tag::password-upgrade[]
+    @Override
+    public UserDetails updatePassword(final UserDetails user, final String newPassword) {
+        final var account = findUserAccountUseCase.execute(user.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + user.getUsername()));
+        upgradePasswordHashUseCase.replaceHash(account, newPassword);
+        return userDetailsMapper.toUserDetails(account, newPassword);
+    }
+    // end::password-upgrade[]
 }

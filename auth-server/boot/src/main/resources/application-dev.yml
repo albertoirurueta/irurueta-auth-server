@@ -23,3 +23,11 @@ spring:
   mail:
     host: localhost
     port: 1025
+
+# Local redirect URIs of the default clients: the BFF on port 8080 and a single-page application on port 3000.
+authserver:
+  clients:
+    bff:
+      redirect-uris: http://localhost:8080/login/oauth2/code/bff
+    spa-public:
+      redirect-uris: http://localhost:3000/callback

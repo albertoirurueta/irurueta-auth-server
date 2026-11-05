@@ -34,11 +34,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
 import com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment;
-import com.irurueta.authserver.authorization.infrastructure.keys.TemporaryJwkConfiguration;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +56,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -69,7 +74,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * by Mockito mocks. It is an integration test because it starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, TemporaryJwkConfiguration.class, SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, SecurityConfigIT.TestBeans.class})
 class SecurityConfigIT {
 
     /** Username of the in-memory test user. */
@@ -94,6 +99,16 @@ class SecurityConfigIT {
     @Autowired
     @Qualifier("secondCustomizer")
     private LoginChainCustomizer secondCustomizer;
+
+    /** Protocol customizer applied first. */
+    @Autowired
+    @Qualifier("firstProtocolCustomizer")
+    private ProtocolChainCustomizer firstProtocolCustomizer;
+
+    /** Protocol customizer applied second. */
+    @Autowired
+    @Qualifier("secondProtocolCustomizer")
+    private ProtocolChainCustomizer secondProtocolCustomizer;
 
     /** Fragment rendered by the login page. */
     @MockitoBean
@@ -153,7 +168,7 @@ class SecurityConfigIT {
      */
     @Test
     void protectedPage_whenRequestedAnonymously_redirectsToLogin() throws Exception {
-        mockMvc.perform(get("/account"))
+        mockMvc.perform(get("/account").accept("text/html"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", endsWith("/login")));
     }
@@ -217,11 +232,25 @@ class SecurityConfigIT {
     }
 
     /**
+     * Verifies that the protocol customizers are applied in the order of their {@code @Order}.
+     */
+    @Test
+    void protocolCustomizers_whenChainIsBuilt_areAppliedInOrder() {
+        final var order = inOrder(firstProtocolCustomizer, secondProtocolCustomizer);
+
+        order.verify(firstProtocolCustomizer).customize(any(OAuth2AuthorizationServerConfigurer.class));
+        order.verify(secondProtocolCustomizer).customize(any(OAuth2AuthorizationServerConfigurer.class));
+    }
+
+    /**
      * Beans of the slice that are not mocks: real in-memory framework implementations used as test data.
      * Package-private, not private: the class-level {@code @Import} of the enclosing class names it.
      */
     @TestConfiguration(proxyBeanMethods = false)
     static class TestBeans {
+
+        /** Size in bits of the generated RSA key. */
+        private static final int RSA_KEY_SIZE = 2048;
 
         /**
          * Creates a repository holding one client.
@@ -246,6 +275,17 @@ class SecurityConfigIT {
         }
 
         /**
+         * Creates a source holding one RSA key generated at runtime; no key material is stored anywhere.
+         *
+         * @return the key source.
+         * @throws JOSEException if the key cannot be generated.
+         */
+        @Bean
+        JWKSource<SecurityContext> jwkSource() throws JOSEException {
+            return new ImmutableJWKSet<>(new JWKSet(new RSAKeyGenerator(RSA_KEY_SIZE).keyID("test").generate()));
+        }
+
+        /**
          * Creates the decoder of the tokens signed with the temporary key.
          *
          * @param jwkSource source of the signing keys.
@@ -265,6 +305,28 @@ class SecurityConfigIT {
         UserDetailsService userDetailsService() {
             return new InMemoryUserDetailsManager(
                     User.withUsername(USERNAME).password("{noop}" + PASSWORD).roles("USER").build());
+        }
+
+        /**
+         * Creates the protocol customizer that is applied second.
+         *
+         * @return a mock customizer.
+         */
+        @Bean
+        @Order(2)
+        ProtocolChainCustomizer secondProtocolCustomizer() {
+            return mock(ProtocolChainCustomizer.class);
+        }
+
+        /**
+         * Creates the protocol customizer that is applied first.
+         *
+         * @return a mock customizer.
+         */
+        @Bean
+        @Order(1)
+        ProtocolChainCustomizer firstProtocolCustomizer() {
+            return mock(ProtocolChainCustomizer.class);
         }
 
         /**

@@ -38,17 +38,20 @@ public class SecurityConfig {
     /**
      * Creates the chain of the OAuth 2.1 and OpenID Connect protocol endpoints.
      *
-     * @param http security builder.
+     * @param http        security builder.
+     * @param customizers protocol customizers, applied in order.
      * @return the protocol filter chain.
      * @throws Exception if the chain cannot be built.
      */
     @Bean
     @Order(1)
-    public SecurityFilterChain authorizationServerSecurityFilterChain(final HttpSecurity http) throws Exception {
+    public SecurityFilterChain authorizationServerSecurityFilterChain(
+            final HttpSecurity http, final ObjectProvider<ProtocolChainCustomizer> customizers) throws Exception {
         http
                 .oauth2AuthorizationServer(server -> {
                     http.securityMatcher(server.getEndpointsMatcher());
                     server.oidc(Customizer.withDefaults());
+                    customizers.orderedStream().forEach(customizer -> customizer.customize(server));
                 })
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions

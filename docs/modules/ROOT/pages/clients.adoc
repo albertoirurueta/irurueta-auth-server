@@ -1,0 +1,81 @@
+= Registered clients
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+== Default clients and seeding
+
+`DefaultClientDefinitions` (module `application`) is the single definition of the confidential `bff` client and the
+public `spa-public` client. Both carry the audiences `resource-server` and the authorization server's own API
+(`authserver.api.audience`, default `auth-server`, so their users can change their password), the scopes `openid`,
+`profile`, `documents.read` and `documents.delete`, and never `admin`. Nothing environment-specific lives in the
+definitions: the redirect URIs come from configuration.
+
+The idempotent `ClientSeeder` seeds, at start, only the clients whose redirect URIs are configured
+(`authserver.clients.bff.redirect-uris` / `AUTHSERVER_BFF_REDIRECT_URIS` and
+`authserver.clients.spa-public.redirect-uris` / `AUTHSERVER_SPA_REDIRECT_URIS`, comma-separated). Nothing is configured
+by default, so a deployment never gets a client, or a `localhost` redirect URI, it did not ask for; the `dev` profile
+(`application-dev.yml`) sets the local ones. The `bff` secret comes from the environment variable
+`AUTHSERVER_BFF_CLIENT_SECRET` (`authserver.clients.bff-secret`); when it is empty the confidential client is not
+seeded. Secrets are stored encoded and never committed. The `dev` profile data initializer uses the same definition and
+the configured redirect URIs with a generated secret that it logs.
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=clients-seed-config]
+----
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/clients/DefaultClientDefinitions.java[tag=clients-seed]
+----
+
+Token settings of each client (lifetimes, rotation, `self-contained` or `reference` access token format, audiences) are
+persisted with the registration.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/clients/JdbcClientRegistrationRepository.java[tag=tokens-settings]
+----
+
+== Administration API
+
+`/api/admin/clients` manages registered clients and needs a bearer token for the API audience with the scope `admin`
+(the `ADMIN` role alone does not suffice; see xref:tokens-and-keys.adoc[]).
+
+[cols="2,3",options="header"]
+|===
+|Endpoint
+|Behavior
+
+|`GET /api/admin/clients`, `GET /api/admin/clients/\{clientId}`
+|Lists or reads clients. Secrets are never returned.
+
+|`POST /api/admin/clients`
+|Creates a client. A generated secret of a confidential client is shown once, in the creation response.
+
+|`PUT /api/admin/clients/\{clientId}`
+|Updates a client; its secret is not changed.
+
+|`DELETE /api/admin/clients/\{clientId}`
+|Deletes a client, with its authorizations (and so its tokens) and the consents granted to it, in one transaction.
+
+|`POST /api/admin/clients/\{clientId}/secret`
+|Rotates the secret of a confidential client.
+|===
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/clients/CreateClientUseCase.java[tag=clients-admin]
+----
+
+== Dynamic client registration
+
+OpenID Connect dynamic client registration (`/connect/register`) is supported by Spring Authorization Server and is off
+by default. Set `authserver.oidc.client-registration.enabled=true` to enable it; callers then need an initial access
+token with scope `client.create`.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/clients/DynamicClientRegistrationConfiguration.java[tag=clients-dynamic-registration]
+----
+

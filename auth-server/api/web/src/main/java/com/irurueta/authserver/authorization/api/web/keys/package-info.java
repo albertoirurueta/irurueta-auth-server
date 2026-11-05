@@ -15,7 +15,7 @@
  */
 
 /**
- * Web adapter of the signing keys (rotation endpoints). Filled by issue #2; the temporary in-memory key lives in the
- * keys infrastructure adapter.
+ * Web adapter of the signing keys: the administration endpoints, the scheduled rotation job and the startup
+ * bootstrap.
  */
 package com.irurueta.authserver.authorization.api.web.keys;

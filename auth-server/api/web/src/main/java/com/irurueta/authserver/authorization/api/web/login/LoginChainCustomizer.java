@@ -16,13 +16,22 @@
 
 package com.irurueta.authserver.authorization.api.web.login;
 
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 /**
  * Extension point that lets an authentication method customize the login/UI security filter chain.
  * Every bean of this type is applied to the chain in {@link org.springframework.core.annotation.Order} order.
+ *
+ * <p>It deliberately does not extend {@link org.springframework.security.config.Customizer}: Spring Security applies
+ * every {@code Customizer<HttpSecurity>} bean to <em>every</em> filter chain, not only to the login chain.
  */
 @FunctionalInterface
-public interface LoginChainCustomizer extends Customizer<HttpSecurity> {
+public interface LoginChainCustomizer {
+
+    /**
+     * Customizes the login/UI chain.
+     *
+     * @param http security builder of the chain.
+     */
+    void customize(HttpSecurity http);
 }

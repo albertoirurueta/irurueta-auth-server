@@ -51,6 +51,28 @@
       <artifactId>spring-boot-starter-thymeleaf</artifactId>
     </dependency>
     <dependency>
+      <!-- bearer-token validation of the /api/** chain -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <!-- Argon2 implementation used by Spring Security's Argon2PasswordEncoder -->
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.bucket4j</groupId>
+      <artifactId>bucket4j_jdk17-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.thymeleaf.extras</groupId>
       <artifactId>thymeleaf-extras-springsecurity6</artifactId>
     </dependency>
@@ -67,6 +89,42 @@
 
   <build>
     <plugins>
+      <!-- contract-first REST API: interfaces and DTOs generated from apis/auth-server/rest-server (see apis/README.md);
+           the shared generator options live in the root pom's pluginManagement -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-rest-server-v1</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/apis/auth-server/rest-server/auth-server-api-v1.yaml</inputSpec>
+              <apiPackage>com.irurueta.authserver.authorization.api.web.v1.generated.api</apiPackage>
+              <modelPackage>com.irurueta.authserver.authorization.api.web.v1.generated.model</modelPackage>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- standalone HTML reference of the contract, published by the Documentation workflow -->
+            <id>generate-rest-server-docs</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/apis/auth-server/rest-server/auth-server-api-v1.yaml</inputSpec>
+              <generatorName>html2</generatorName>
+              <output>${project.build.directory}/generated-docs/rest-server/v1</output>
+              <addCompileSourceRoot>false</addCompileSourceRoot>
+              <!-- the page itself is a supporting file of the html2 generator -->
+              <generateSupportingFiles>true</generateSupportingFiles>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>

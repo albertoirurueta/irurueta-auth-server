@@ -1,9 +1,9 @@
 # Line endings are LF everywhere: in the repository and in the working tree, on every platform.
 #
 # Without this, Git for Windows checks text files out as CRLF by default (core.autocrlf=true), which
-# silently breaks anything that compares file content byte for byte. OpenApiDriftIT is exactly that: it
-# diffs the generated OpenAPI document against the committed openapi/auth-server.json, so a CRLF checkout
-# would fail `mvn verify` on Windows without one character of the contract having changed.
+# silently breaks anything that compares file content byte for byte, and makes every file of a Windows
+# checkout differ from the repository: the API contracts under apis/, the generated code built from
+# them and the tagged regions the documentation includes must be the same bytes on every platform.
 #
 # `eol=lf` rather than a bare `text=auto` on purpose: `text=auto` alone normalises to LF *in the
 # repository* but still hands Windows a CRLF working copy, which is precisely the case that breaks.

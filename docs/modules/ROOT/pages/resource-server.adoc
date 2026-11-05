@@ -1,0 +1,88 @@
+= Resource server
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The `resource-server` (port 8081) is hexagonal like `auth-server`: a `Document` (id, title, owner) in `domain`, a list
+and a delete use case in `application`, an in-memory repository in `infrastructure/memory` (a real adapter that needs no
+schema) and the REST API in `api/web`.
+
+== Documents API
+
+[cols="2,2,3",options="header"]
+|===
+|Endpoint
+|Required authority
+|Behavior
+
+|`GET /api/documents`
+|`SCOPE_documents.read`
+|Lists the caller's documents; an administrator (`ROLE_ADMIN`) sees all of them. Enforced by the filter chain.
+
+|`DELETE /api/documents/\{id}`
+|`SCOPE_documents.delete`
+|Deletes one of the caller's documents; an administrator (`ROLE_ADMIN`) may delete any. 204 when deleted, 404 when it does not exist *or belongs to someone else*. The scope is enforced by method security, the ownership by `DeleteDocumentUseCase`.
+|===
+
+Answering someone else's document with `404` rather than `403` is deliberate: the answer is then the same as for an
+identifier that does not exist, so a caller cannot find out which documents exist.
+
+[source,java]
+----
+include::example$resource-server/application/src/main/java/com/irurueta/authserver/resourceserver/application/documents/DeleteDocumentUseCase.java[tag=resource-server-delete-ownership]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/documents/DocumentController.java[tag=resource-server-documents]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/documents/DocumentController.java[tag=resource-server-method-security]
+----
+
+The API is defined by the contract `apis/resource-server/rest-server/resource-server-api-v1.yaml`: `DocumentController`
+implements the `DocumentsApi` interface generated from it, and `DocumentDtoMapper` maps the domain documents onto the
+generated `DocumentResponse`. The running server publishes the matching OpenAPI document at `/v3/api-docs`, which
+`OpenApiDriftIT` compares with the contract; the Swagger UI is not shipped.
+
+[source,yaml]
+----
+include::example$apis/resource-server/rest-server/resource-server-api-v1.yaml[tag=resource-server-documents-api]
+----
+
+== Token validation
+
+By default tokens are JWTs. The decoder is built from `spring.security.oauth2.resourceserver.jwt.issuer-uri`
+(`AUTH_ISSUER`) and only accepts tokens whose `aud` claim lists one of
+`spring.security.oauth2.resourceserver.jwt.audiences` (`RESOURCE_SERVER_AUDIENCES`, default `resource-server`). The
+application refuses to start when that list is empty, instead of accepting every token. Failures answer with the
+RFC 6750 `WWW-Authenticate` challenge (`invalid_token` or `insufficient_scope`).
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-security]
+----
+
+The converter maps the `scope` claim to `SCOPE_*` authorities and the `roles` claim to `ROLE_*` authorities.
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-converter]
+----
+
+== Opaque token profile
+
+With the Spring profile `opaque`, the resource server introspects tokens instead. The introspection URI and client
+credentials come from the environment variables `AUTH_INTROSPECTION_URI`, `INTROSPECTION_CLIENT_ID` and
+`INTROSPECTION_CLIENT_SECRET`, with no defaults. `AudienceRolesOpaqueTokenIntrospector` applies the same audience check
+and role mapping, so both variants behave alike.
+
+The resource server authenticates to the introspection endpoint as a client of its own, which must be registered
+first, for example through `POST /api/admin/clients`: a confidential client (say `resource-server`) with the
+`client_secret_basic` method and the `client_credentials` grant, no redirect URI; its generated secret goes into
+`INTROSPECTION_CLIENT_SECRET`, never into a file. The tokens it validates are the reference access tokens
+(`"accessTokenFormat": "reference"`) of clients whose audiences list `resource-server`: the authorization server
+stores their `roles`, `tenant` and `aud` with the authorization (see xref:tokens-and-keys.adoc[]), and the
+introspection answer carries them. The end-to-end test `ResourceServerEndToEndIT` runs this profile against the real
+authorization server.

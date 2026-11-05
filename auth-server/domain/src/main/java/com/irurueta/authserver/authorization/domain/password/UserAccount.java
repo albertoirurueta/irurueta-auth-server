@@ -16,6 +16,9 @@
 
 package com.irurueta.authserver.authorization.domain.password;
 
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireTextIfPresent;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,29 +31,49 @@ import java.util.UUID;
  * @param encodedPassword password hash, including its encoding prefix; never a clear-text password.
  * @param enabled         whether the account can be used to sign in.
  * @param authorities     authorities (roles and permissions) granted to the account.
+ * @param email           e-mail address of the user; {@code null} when the account has none.
+ * @param emailVerified   whether the user proved to own the e-mail address.
+ * @param tenant          tenant the account belongs to; feeds the {@code tenant} claim of issued tokens.
  */
 public record UserAccount(
-        UUID id, String username, String encodedPassword, boolean enabled, List<String> authorities) {
+        UUID id, String username, String encodedPassword, boolean enabled, List<String> authorities, String email,
+        boolean emailVerified, String tenant) {
+
+    /** Tenant of the accounts that do not name one. */
+    public static final String DEFAULT_TENANT = "default";
+
+    /**
+     * Creates an account without an e-mail address, in the default tenant.
+     *
+     * @param id              unique identifier of the account.
+     * @param username        name the user signs in with.
+     * @param encodedPassword password hash, including its encoding prefix.
+     * @param enabled         whether the account can be used to sign in.
+     * @param authorities     authorities granted to the account.
+     */
+    public UserAccount(final UUID id, final String username, final String encodedPassword, final boolean enabled,
+                       final List<String> authorities) {
+        this(id, username, encodedPassword, enabled, authorities, null, false, DEFAULT_TENANT);
+    }
 
     /**
      * Validates the account and defensively copies its authorities.
      *
      * @throws IllegalArgumentException if the id is null, the username or encoded password is null or blank, or
-     *                                  the authorities are null or contain a null element.
+     *                                  the authorities are null or contain a null element, the e-mail is blank or
+     *                                  the tenant is null or blank.
      */
     public UserAccount {
         if (id == null) {
             throw new IllegalArgumentException("id must not be null");
         }
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("username must not be blank");
-        }
-        if (encodedPassword == null || encodedPassword.isBlank()) {
-            throw new IllegalArgumentException("encodedPassword must not be blank");
-        }
+        requireText(username, "username");
+        requireText(encodedPassword, "encodedPassword");
         if (authorities == null || authorities.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("authorities must not be null or contain null elements");
         }
+        requireTextIfPresent(email, "email");
+        requireText(tenant, "tenant");
         authorities = List.copyOf(authorities);
     }
 }

@@ -1,0 +1,36 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Opaque-token variant (spring.profiles.active=opaque): tokens are validated by calling the introspection endpoint of
+# the authorization server. Every value comes from the environment and none has a default.
+#
+# The resource server authenticates to the introspection endpoint as a client of its own. Register one with the
+# administration API (POST /api/admin/clients) before starting it: a confidential client (for example client id
+# "resource-server") with the "client_secret_basic" method and the "client_credentials" grant, no redirect URI, and
+# keep the generated secret in the environment (INTROSPECTION_CLIENT_SECRET), never in a file. The tokens it
+# introspects are the reference ("accessTokenFormat": "reference") access tokens of the clients whose audiences list
+# "resource-server": the authorization server stores their roles, tenant and aud, and the introspection answer
+# carries them, so the audience check and the role mapping work as with JWTs.
+#
+#   AUTH_INTROSPECTION_URI      e.g. https://auth.example.com/oauth2/introspect
+#   INTROSPECTION_CLIENT_ID     the client id registered above
+#   INTROSPECTION_CLIENT_SECRET its secret
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        opaquetoken:
+          introspection-uri: ${AUTH_INTROSPECTION_URI}
+          client-id: ${INTROSPECTION_CLIENT_ID}
+          client-secret: ${INTROSPECTION_CLIENT_SECRET}

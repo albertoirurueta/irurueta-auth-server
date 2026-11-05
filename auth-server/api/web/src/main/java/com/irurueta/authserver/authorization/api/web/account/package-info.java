@@ -15,6 +15,6 @@
  */
 
 /**
- * User self-service account pages. Filled by the account management issue.
+ * Self-service account REST API: registration, e-mail verification, password change and password reset.
  */
 package com.irurueta.authserver.authorization.api.web.account;

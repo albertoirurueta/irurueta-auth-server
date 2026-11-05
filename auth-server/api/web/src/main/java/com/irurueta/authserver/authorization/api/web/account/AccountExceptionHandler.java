@@ -1,0 +1,162 @@
+/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.account;
+
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
+import com.irurueta.authserver.authorization.domain.account.InvalidAccountTokenException;
+import com.irurueta.authserver.authorization.domain.password.CompromisedPasswordException;
+import com.irurueta.authserver.authorization.domain.password.InvalidCredentialsException;
+import com.irurueta.authserver.authorization.domain.password.InvalidPasswordException;
+import com.irurueta.authserver.authorization.domain.password.PasswordViolation;
+import java.net.URI;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/**
+ * Translates the failures of {@link AccountController} to RFC 9457 problem details, answered as
+ * {@code application/problem+json}. Request validation failures are handled by the parent class, which already
+ * answers problem details. The messages never say whether an e-mail address exists.
+ */
+@RestControllerAdvice(assignableTypes = AccountController.class)
+public class AccountExceptionHandler extends ProblemJsonExceptionHandler {
+
+    /** Base of the problem type URNs. */
+    private static final String TYPE_BASE = "urn:problem:account:";
+
+    /** Name of the property that lists the broken password rules. */
+    static final String VIOLATIONS_PROPERTY = "violations";
+
+    /**
+     * Answers a password that breaks the password policy.
+     *
+     * @param exception the failure.
+     * @return the problem detail, listing the broken rules.
+     */
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidPassword(final InvalidPasswordException exception) {
+        final var problem = problem("invalid-password", "Invalid password",
+                "The password does not satisfy the password policy");
+        problem.setProperty(VIOLATIONS_PROPERTY,
+                exception.getViolations().stream().map(PasswordViolation::name).toList());
+        return respond(problem);
+    }
+
+    /**
+     * Answers a password known to be compromised.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(CompromisedPasswordException.class)
+    public ResponseEntity<ProblemDetail> handleCompromisedPassword(final CompromisedPasswordException exception) {
+        return respond(problem("compromised-password", "Compromised password", exception.getMessage()));
+    }
+
+    /**
+     * Answers a wrong current password.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidCredentials(final InvalidCredentialsException exception) {
+        return respond(problem("invalid-credentials", "Invalid credentials", exception.getMessage()));
+    }
+
+    /**
+     * Answers an invalid, expired or already used token.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(InvalidAccountTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidToken(final InvalidAccountTokenException exception) {
+        return respond(problem("invalid-token", "Invalid token", exception.getMessage()));
+    }
+
+    /**
+     * Answers a client or an e-mail address that made too many account requests, telling when to retry.
+     *
+     * @param exception the failure.
+     * @return the {@code 429} problem detail, with a {@code Retry-After} header in seconds.
+     */
+    @ExceptionHandler(AccountRateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimited(final AccountRateLimitExceededException exception) {
+        final var problem = problem(HttpStatus.TOO_MANY_REQUESTS, "rate-limited", "Too many requests",
+                exception.getMessage());
+        final var seconds = Math.max(1, exception.getRetryAfter().toSeconds());
+        final var headers = new HttpHeaders();
+        headers.set(HttpHeaders.RETRY_AFTER, Long.toString(seconds));
+        return problemResponse(problem, headers);
+    }
+
+    /**
+     * Answers an account e-mail that could not be delivered: the use case stored nothing, so the user can retry.
+     *
+     * @param exception the failure.
+     * @return the {@code 503} problem detail.
+     */
+    @ExceptionHandler(AccountMailException.class)
+    public ResponseEntity<ProblemDetail> handleMailFailure(final AccountMailException exception) {
+        return respond(problem(HttpStatus.SERVICE_UNAVAILABLE, "mail-unavailable", "E-mail unavailable",
+                "The e-mail could not be sent; nothing was changed, try again later"));
+    }
+
+    /**
+     * Builds a bad request problem.
+     *
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the problem detail.
+     */
+    private static ProblemDetail problem(final String type, final String title, final String detail) {
+        return problem(HttpStatus.BAD_REQUEST, type, title, detail);
+    }
+
+    /**
+     * Builds a problem.
+     *
+     * @param status HTTP status of the answer.
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the problem detail.
+     */
+    private static ProblemDetail problem(final HttpStatus status, final String type, final String title,
+                                         final String detail) {
+        final var problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setType(URI.create(TYPE_BASE + type));
+        problem.setTitle(title);
+        return problem;
+    }
+
+    /**
+     * Wraps a problem into its response.
+     *
+     * @param problem the problem.
+     * @return the response carrying the problem's status.
+     */
+    private static ResponseEntity<ProblemDetail> respond(final ProblemDetail problem) {
+        return problemResponse(problem);
+    }
+}

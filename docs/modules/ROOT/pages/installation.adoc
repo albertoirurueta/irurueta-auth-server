@@ -43,8 +43,12 @@ Run `auth-server` with the `dev` profile: it starts the services of `compose.yam
 and a confidential `bff` client with generated secrets, which it writes to its log. Export the client secret as
 `BFF_CLIENT_SECRET` before starting the `bff`.
 
-WARNING: The `dev` profile data and the compose credentials are throwaway development values. The signing key is
-temporarily generated in memory at each start.
+WARNING: The `dev` profile data and the compose credentials are throwaway development values. Signing keys are
+persisted in PostgreSQL, encrypted with a per-machine random secret that the `dev` profile creates once under
+`~/.irurueta-auth-server/`. Outside the `dev` profile, set `authserver.keys.encryption.password` and
+`authserver.keys.encryption.salt` (see xref:tokens-and-keys.adoc[]) and, to seed the `bff` client,
+`AUTHSERVER_BFF_CLIENT_SECRET`. The compromised-password check calls the Have I Been Pwned range API; disable it with
+`authserver.password.compromised-check.enabled=false` when offline.
 
 Start each application in its own terminal, `auth-server` first. The `dev` profile finds `compose.yaml` at
 `../../compose.yaml`, relative to the working directory, which `spring-boot:run` sets to the `auth-server/boot` module directory. When starting

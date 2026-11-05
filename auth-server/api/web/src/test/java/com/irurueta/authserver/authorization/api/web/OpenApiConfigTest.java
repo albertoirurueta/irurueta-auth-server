@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,19 @@ class OpenApiConfigTest {
         assertEquals("Irurueta Auth Server API", info.getTitle());
         assertFalse(info.getVersion().isBlank());
         assertEquals("Apache License 2.0", info.getLicense().getName());
+    }
+
+    /**
+     * Verifies that the document declares the bearer scheme the contract's operations refer to.
+     */
+    @Test
+    void authServerOpenApi_whenCalled_declaresTheBearerScheme() {
+        final var scheme = config.authServerOpenApi().getComponents().getSecuritySchemes()
+                .get(OpenApiConfig.BEARER_SCHEME);
+
+        assertEquals(SecurityScheme.Type.HTTP, scheme.getType());
+        assertEquals("bearer", scheme.getScheme());
+        assertEquals("JWT", scheme.getBearerFormat());
     }
 
     /**

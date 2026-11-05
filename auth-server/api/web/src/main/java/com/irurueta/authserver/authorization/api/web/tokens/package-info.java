@@ -15,6 +15,7 @@
  */
 
 /**
- * Token customization (claims, formats, lifetimes). Filled by issue #2.
+ * Token customization (claims, formats, lifetimes): the claims extension point, the access-token customizer,
+ * the UserInfo mapper and the expired authorization cleanup job.
  */
 package com.irurueta.authserver.authorization.api.web.tokens;

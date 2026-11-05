@@ -53,6 +53,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>auth-server-infrastructure-mail</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>auth-server-api-web</artifactId>
       <scope>test</scope>
     </dependency>
@@ -69,6 +74,21 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>bff-boot</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>resource-server-domain</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>resource-server-application</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>resource-server-infrastructure-memory</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

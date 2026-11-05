@@ -18,14 +18,17 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.passwor
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import java.util.List;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
@@ -78,7 +81,7 @@ class JdbcUserAccountRepositoryIT {
         final var dataSource = new DriverManagerDataSource(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         jdbcClient = JdbcClient.create(dataSource);
-        repository = new JdbcUserAccountRepository(jdbcClient);
+        repository = new JdbcUserAccountRepository(jdbcClient, new UserAccountRowMapper());
     }
 
     /**
@@ -142,6 +145,102 @@ class JdbcUserAccountRepositoryIT {
         insertUser(USERNAME, true);
 
         assertTrue(repository.findByUsername(USERNAME).orElseThrow().authorities().isEmpty());
+    }
+
+    /**
+     * Verifies that a saved account is read back by username and by e-mail address, ignoring the case of the
+     * latter, with its tenant and authorities.
+     */
+    @Test
+    void save_whenAccountIsNew_canBeFoundByUsernameAndEmail() {
+        final var account = new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true,
+                List.of(ROLE_USER), "Alice@Example.com", false, "acme");
+
+        repository.save(account);
+
+        assertEquals(account, repository.findByUsername(USERNAME).orElseThrow());
+        assertEquals(account, repository.findByEmail("alice@example.com").orElseThrow());
+    }
+
+    /**
+     * Verifies that saving an existing account replaces its columns and authorities.
+     */
+    @Test
+    void save_whenAccountExists_replacesItsData() {
+        final var id = UUID.randomUUID();
+        repository.save(new UserAccount(id, USERNAME, ENCODED_PASSWORD, true, List.of(ROLE_USER)));
+
+        repository.save(new UserAccount(id, USERNAME, "{noop}other", false, List.of(ROLE_ADMIN), null, false,
+                UserAccount.DEFAULT_TENANT));
+
+        final var account = repository.findById(id).orElseThrow();
+        assertEquals("{noop}other", account.encodedPassword());
+        assertFalse(account.enabled());
+        assertEquals(List.of(ROLE_ADMIN), account.authorities());
+    }
+
+    /**
+     * Verifies that an unknown e-mail address finds nothing.
+     */
+    @Test
+    void findByEmail_whenNoUserHasIt_returnsEmpty() {
+        assertTrue(repository.findByEmail("nobody@example.com").isEmpty());
+    }
+
+    /**
+     * Verifies that two accounts cannot share an e-mail address, whatever its case.
+     */
+    @Test
+    void save_whenEmailIsTaken_isRejected() {
+        repository.save(new UserAccount(UUID.randomUUID(), USERNAME, ENCODED_PASSWORD, true, List.of(),
+                "shared@example.com", false, UserAccount.DEFAULT_TENANT));
+        final var other = new UserAccount(UUID.randomUUID(), "bob", ENCODED_PASSWORD, true, List.of(),
+                "SHARED@example.com", false, UserAccount.DEFAULT_TENANT);
+
+        assertThrows(DuplicateKeyException.class, () -> repository.save(other));
+    }
+
+    /**
+     * Verifies that an e-mail address is flagged as verified and that the account is enabled, as the port promises.
+     */
+    @Test
+    void markEmailVerified_whenUserExists_setsTheFlagAndEnablesTheAccount() {
+        final var id = UUID.randomUUID();
+        repository.save(new UserAccount(id, USERNAME, ENCODED_PASSWORD, false, List.of(), "alice@example.com", false,
+                UserAccount.DEFAULT_TENANT));
+
+        assertTrue(repository.markEmailVerified(id));
+
+        final var verified = repository.findById(id).orElseThrow();
+        assertTrue(verified.emailVerified());
+        assertTrue(verified.enabled());
+    }
+
+    /**
+     * Verifies that the transition happens once: an account disabled after its address was verified stays
+     * disabled when the verification is replayed, and the replay is reported as unchanged.
+     */
+    @Test
+    void markEmailVerified_whenAddressIsAlreadyVerified_doesNotReEnableTheAccount() {
+        final var id = UUID.randomUUID();
+        repository.save(new UserAccount(id, USERNAME, ENCODED_PASSWORD, false, List.of(), "alice@example.com", false,
+                UserAccount.DEFAULT_TENANT));
+        assertTrue(repository.markEmailVerified(id));
+        jdbcClient.sql("UPDATE users SET enabled = FALSE WHERE id = ?").param(id).update();
+
+        assertFalse(repository.markEmailVerified(id));
+
+        final var account = repository.findById(id).orElseThrow();
+        assertTrue(account.emailVerified());
+        assertFalse(account.enabled());
+    }
+
+    /**
+     * Verifies that an unknown account is reported as unchanged.
+     */
+    @Test
+    void markEmailVerified_whenUserIsUnknown_returnsFalse() {
+        assertFalse(repository.markEmailVerified(UUID.randomUUID()));
     }
 
     /**

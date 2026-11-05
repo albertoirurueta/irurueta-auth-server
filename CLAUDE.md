@@ -9,7 +9,8 @@ An **example** OAuth 2.1 / OpenID Connect authorization server built from scratc
 Security 7.1 (Spring Authorization Server), plus the applications that use it. It backs the step-by-step guide
 *Building an Authorization Server from Scratch* in the docs site (repository `albertoirurueta/docs`, under
 `modules/ROOT/pages/backend/springboot/authorization-server-from-scratch/`), which includes code from this repository
-with tagged regions. It is never deployed: CI only builds, analyses and tests it.
+with tagged regions. The applications are never deployed: CI only builds, analyses and tests them, and publishes the
+documentation (Antora site plus Maven site reports) to GitHub Pages.
 
 ## Commands
 
@@ -21,7 +22,7 @@ Testcontainers.
 ./mvnw test                            # fast unit-test run only, no Spring context starts
 ./mvnw -pl auth-server/api/web -am test -Dtest=LoginControllerTest   # one test class in one module
 ./mvnw -pl auth-server/boot -am spring-boot:run -Dspring-boot.run.profiles=dev   # run one application
-./mvnw verify site                     # adds the browsable Checkstyle/PMD/SpotBugs/JXR/Javadoc reports
+./mvnw install && ./mvnw site site:stage -DskipTests   # browsable reports, staged as published under /mvn-site
 cd docs && npm ci && npx antora antora-playbook.yml            # build this repository's Antora docs
 ```
 
@@ -58,17 +59,21 @@ module (package granularity). Never weaken either to make code fit; move the cod
 - A port is an interface in `domain` (named for what it provides, for example `UserAccountRepository`); its
   implementation lives in an `infrastructure/*` adapter. A port implementation never returns `null` (an empty
   `Optional`/`List` instead) and never lets a JDBC, HTTP or framework type escape through it.
-- **Domain models are never returned from a controller**; map them onto a web DTO (a record in the `api/*`
-  adapter). The mapper belongs to the adapter, never to `domain`.
+- **Domain models are never returned from a controller**; map them onto the DTO generated from the
+  contract (or, for an api adapter without a contract, a record in the adapter). The mapper belongs to the adapter,
+  never to `domain`.
 - Spring Security and Spring Authorization Server types (`UserDetailsService`, `RegisteredClientRepository`,
   `SecurityFilterChain`, …) are framework adapters: they live in `api/*` or `infrastructure/*`, never in `domain`
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet (for example
-  `bff` until #3, `resource-server` until #2) has no `infrastructure` or `application` module, and `service-client`
-  stays a single `boot` module until #8 gives it a domain.
+  `bff` until #3) has no `infrastructure` or `application` module, and `service-client` stays a single `boot` module
+  until #8 gives it a domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and
+  `infrastructure/mail`; `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
   or adapter that exists only so a test has something to call lives in `src/test`. The one exception is
-  `DevDataInitializer` in `infrastructure/persistence` (its Javadoc says why).
+  `DevDataInitializer` in `infrastructure/persistence` and `DevKeyEncryptionSecret` in `infrastructure/keys` (both are
+  `dev`-profile only, inert elsewhere, and their Javadoc says why they cannot live in `src/test`: the end-to-end
+  tests run the packaged jar).
 - `test-support` (shared Testcontainers base), `e2e-tests` and `coverage` (JaCoCo aggregate) are root modules
   outside the applications.
 
@@ -82,13 +87,32 @@ placeholder package holds a `package-info.java` saying which issue fills it.
 
 ### Extension points: adding a login method without editing shared files
 
-- `api.web.login.LoginChainCustomizer` (a `Customizer<HttpSecurity>`): every bean of this type is applied, in
+- `api.web.login.LoginChainCustomizer` (a functional interface over `HttpSecurity`, deliberately **not** a `Customizer<HttpSecurity>`, because Spring Security applies every such bean to every filter chain): every bean of this type is applied, in
   `@Order`, to the login/UI chain by `SecurityConfig`, **before** its catch-all `anyRequest().authenticated()`, so a
   customizer may still permit its own endpoints. A new method declares one in its own `@Configuration` to enable its
   `HttpSecurity` features (for example `http.oneTimeTokenLogin(...)`); `SecurityConfig` is never edited.
 - `api.web.login.LoginMethodFragment`: every bean of this type contributes a Thymeleaf fragment (`templateName()`,
   `fragmentName()`, `order()`; `reference()` builds the `template :: fragment` expression) that `LoginController`
   passes to `templates/login.html`, which renders them below the password form.
+
+- `api.web.ProtocolChainCustomizer` (a functional interface over `OAuth2AuthorizationServerConfigurer`, deliberately **not** a `Customizer<...>` bean type for the same reason): every bean of this type is
+  applied, in `@Order`, to the protocol chain (`/oauth2/**`, `/.well-known/**`, OIDC endpoints) by
+  `SecurityConfig.authorizationServerSecurityFilterChain`, right after OIDC is enabled. A feature declares one in its
+  own `@Configuration` to add a converter or provider to a protocol endpoint (for example `x509` or `implicit`);
+  `SecurityConfig` is never edited.
+- `api.web.tokens.JwtClaimsContributor` (introduced by the token customisation task): every bean of this type adds
+  claims, through `IssuedTokenClaims`, to the access tokens of both formats and to the ID tokens:
+  `RolesTenantAudienceTokenCustomizer` (the one `OAuth2TokenCustomizer<JwtEncodingContext>`) applies it to the JWTs and
+  `ReferenceTokenClaimsCustomizer` (the one `OAuth2TokenCustomizer<OAuth2TokenClaimsContext>`) to the reference tokens,
+  so a feature (for example `mfa` adding `amr`) contributes claims without owning a customizer. A contributor checks
+  `context.getTokenType()` when a claim belongs to one kind of token only.
+- `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
+  own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
+  and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
+  uses for tokens of other audiences. Its public paths and the `/api/admin/**` rule (scope `admin` only) are fixed
+  there; a feature only adds controllers under `/api/**`.
+- `api.web.SchedulingConfiguration` enables `@Scheduled` once for every feature; a feature declares its job (a
+  `@Component` with a `@Scheduled` method calling a use case) and never enables scheduling itself.
 
 A later issue therefore adds a login method by creating its feature packages (domain model and port, use case,
 persistence adapter, web `@Configuration` with its controller, a `templates/<method>.html`, a `LoginChainCustomizer`
@@ -98,7 +122,21 @@ bean and a `LoginMethodFragment` bean), plus its own Flyway migration in its ran
 
 Migrations live in `auth-server/infrastructure/persistence/src/main/resources/db/migration`
 (`classpath:db/migration`). The skeleton (#1) uses `V100`–`V199` (`V100` Spring Authorization Server schema, `V101`
-users). Each issue states its own range in its body; never write a migration outside it.
+users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens. Each issue states its own
+range in its body; never write a migration outside it.
+
+### Key encryption secret and API contracts
+
+- Private signing keys are encrypted at rest from `authserver.keys.encryption.password` and `.salt` (hex). With the
+  `dev` profile `DevKeyEncryptionSecret` generates them once per machine under `~/.irurueta-auth-server/` (owner-only
+  file, never inside the repository). Without `dev` they must be supplied, normally through the environment variables
+  `AUTHSERVER_KEYS_ENCRYPTION_PASSWORD` and `AUTHSERVER_KEYS_ENCRYPTION_SALT`; tests pass runtime-generated values.
+- REST APIs are **contract first**: the OpenAPI 3.1 contracts under `apis/<app>/rest-server/<app>-api-v1.yaml` are
+  the source of truth (see `apis/README.md`). openapi-generator (`spring`, `interfaceOnly`, records, Spring Boot 4,
+  Jackson 3, Bean Validation) generates the interfaces and DTOs into each `api/web` module's
+  `target/generated-sources` (packages `…api.web.v1.generated.{api,model}`); they are never committed or edited, and
+  are excluded from Checkstyle, PMD/CPD, SpotBugs, JaCoCo and Sonar. `OpenApiDriftIT` in each `boot` module fails when
+  the document springdoc serves at `/v3/api-docs` differs from the contract.
 
 ## Conventions
 
@@ -106,8 +144,12 @@ users). Each issue states its own range in its body; never write a migration out
 - Never commit secrets, keys or certificates: generate dev keys at first start and test keys inside the tests.
 - Code shown in the docs guide is wrapped in tag comments, see below. Never rename or remove a tag without updating
   the docs repository.
-- Every new endpoint carries springdoc-openapi annotations, and the committed OpenAPI documents under `openapi/` are
-  regenerated by a drift test (see Testing).
+- A new REST endpoint starts in its contract under `apis/`: add the operation (every operation, schema and property
+  described, every constraint expressed), regenerate (`./mvnw -pl <app>/api/web -am generate-sources`) and implement
+  the generated interface in a controller that calls use cases. Never map a REST endpoint by hand or hand-write a web
+  DTO. A `@Component` mapper per feature (for example `ClientDtoMapper`) in the api adapter converts between generated
+  DTOs and the domain; problem details go through `ProblemJsonExceptionHandler`. A REST client of another service is
+  generated the same way from its contract under `apis/`.
 
 ### Tag-comment convention
 
@@ -208,17 +250,17 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
 
 ### Shared test infrastructure
 
-- `test-support` holds `PostgresTestConfiguration` (a `postgres:18` Testcontainers container exposed through
+- `test-support` holds `OpenApiContract`, `PostgresTestConfiguration` (a `postgres:18` Testcontainers container exposed through
   `@ServiceConnection`) and the `@PostgresIT` meta-annotation: `@SpringBootTest` wired to that container, with a
   `webEnvironment()` attribute for `RANDOM_PORT` tests. Consumers depend on it with `<scope>test</scope>`.
 - `e2e-tests` drives the packaged `auth-server` and `bff` boot jars through headless Chromium with Playwright for
   Java (chosen over Selenium because it manages its own browser binaries, auto-waits for elements and needs no
   driver setup). It must stay last in the reactor, before `coverage`.
-- `openapi/auth-server.json` is the committed OpenAPI contract; `OpenApiDriftIT` fails when `/v3/api-docs` differs.
-  Regenerate with `./mvnw -pl auth-server/boot -am verify -Dopenapi.update=true` and commit the result. springdoc
-  only documents the `api` group (`/api/**`, see `OpenApiConfig`): put every new REST endpoint of `auth-server` under
-  `/api/**`, or widen the group, otherwise the drift test does not cover it. The comparison writes and reads with
-  `\n` line endings (see below).
+- `OpenApiContract` (test-support) summarizes an OpenAPI contract and a served document; `OpenApiDriftIT` in each
+  `boot` module compares `apis/<app>/rest-server/<app>-api-v1.yaml` with `/v3/api-docs` (operations, status codes,
+  parameters, bodies, security, schemas). To change an API, edit the contract; there is nothing else to regenerate or
+  commit. springdoc only documents the api group (`/api/**` in `auth-server` and `resource-server`, `/bff/**` in `bff`,
+  see each `OpenApiConfig`): put every new REST endpoint under it, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 
@@ -248,7 +290,22 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameter deliberately shares the field's name (removing it there is a silent self-assignment).
 - **Utility predicates over multi-branch conditions**: Spring's `StringUtils.hasText(value)` instead of
   `value == null || value.isBlank()`, `CollectionUtils.isEmpty(list)` instead of `list == null || list.isEmpty()`.
-  They are on every module's classpath except `domain`, which uses plain JDK checks.
+  They are on every module's classpath except `domain`, which uses its own `domain.Preconditions`
+  (`requireText`, `requireTextIfPresent`, `isBlank`) so a compact constructor has no null-or-blank branches.
+- **Transactions belong to the use cases.** Every `*UseCase` is `@Transactional` (`readOnly = true` when it only
+  reads), on the class or on each public method; `HexagonalArchitectureTest` fails the build otherwise. Adapters never
+  open a transaction of their own: a repository method with several statements runs in its caller's (the advisory
+  lock's `TransactionTemplate` in `JdbcSigningKeyRepository` joins it). Only non-use-case entry points such as
+  `DevDataInitializer` demarcate their own.
+- **Mappers are classes.** A conversion between layers or types (domain model ↔ web DTO, ↔ framework type such as
+  `UserDetails`, `RegisteredClient` or `JWK`, ↔ database row) lives in an explicit mapper of the adapter (a
+  `@Component` named `*Mapper`, or a `RowMapper<T>` class), injected and unit-tested on its own; never a private
+  static `toX`/`map` method inside a controller, repository or `@Configuration`. Mappers never live in `domain`.
+- **Collaborators are beans.** A use case never `new`s a policy, generator or strategy: it is declared as a `@Bean`
+  (for a domain type, in a `@Configuration` of `application`) and injected, so it can be replaced and mocked. Tests
+  that need the real behaviour use `@Spy` with a real instance.
+- **Don't reinvent infrastructure.** Rate limiting, retries, circuit breakers and caches use an established library
+  (Bucket4j, Resilience4j, Caffeine), never hand-written counters, maps or loops; check for one before writing it.
 
 ### Lombok
 
@@ -267,7 +324,7 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
 Every file uses `\n`; `.gitattributes` pins `* text=auto eol=lf`. Code must never ask the platform what a newline
 is: no `System.lineSeparator()`, `String.format("%n")`, `PrintWriter.println`, `BufferedWriter.newLine()` or
 Jackson's `writerWithDefaultPrettyPrinter()` (pass `new DefaultIndenter("  ", "\n")`). Anything that compares
-file content exactly (the OpenAPI drift test) must produce identical bytes on Linux, macOS and Windows.
+file content exactly (the API contracts and the tagged regions the docs include) must produce identical bytes on Linux, macOS and Windows.
 
 ### Locales are pinned, and never the platform's own
 
@@ -296,3 +353,9 @@ suppression, because a private constructor breaks Spring's configuration proxyin
 CI (`.github/workflows/build.yml`) runs `verify` on every push and pull request, then the SonarCloud analysis
 (organization `albertoirurueta`, project `albertoirurueta_irurueta-auth-server`) when the `SONAR_TOKEN` secret is set.
 The workflow never deploys anything.
+
+`.github/workflows/docs.yml` (*Documentation*, on every push to `main` and on demand) publishes the documentation to
+the `gh-pages` branch, served at `https://albertoirurueta.github.io/irurueta-auth-server/`: the Antora site at the
+root, the staged Maven site (`target/staging`: aggregated Javadoc, JaCoCo, Surefire/Failsafe, Checkstyle, PMD,
+SpotBugs, JXR) under `/mvn-site/` and the API contracts and their html2 rendering under `/openapi/`. The Antora *Reference* page
+links those reports, so a new report or module that should be reachable from the docs needs a row there.

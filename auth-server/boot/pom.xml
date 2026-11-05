@@ -48,6 +48,10 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>auth-server-infrastructure-mail</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>auth-server-api-web</artifactId>
     </dependency>
     <dependency>

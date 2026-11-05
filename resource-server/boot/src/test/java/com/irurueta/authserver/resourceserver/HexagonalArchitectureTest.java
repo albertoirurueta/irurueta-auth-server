@@ -30,7 +30,9 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
  * Architecture rules of the hexagon, checked at package granularity over the classes of every module. They
  * complement the {@code bannedDependencies} rules that the {@code pom.xml} of each module declares at jar
  * granularity. {@code boot} is the only module that sees every layer, so it is the only place where these rules
- * can be checked against the whole class graph.
+ * can be checked against the whole class graph. The resource server has a {@code domain}, an {@code application}, an
+ * {@code infrastructure.memory} driven adapter and an {@code api.web} driving adapter; the rules are written against
+ * the layer packages, so an adapter added later is covered without editing them.
  */
 @AnalyzeClasses(
         packages = "com.irurueta.authserver.resourceserver",
@@ -72,6 +74,13 @@ class HexagonalArchitectureTest {
     static final ArchRule APPLICATION_NEVER_DEPENDS_ON_SPRING_SECURITY = noClasses()
             .that().resideInAPackage(APPLICATION)
             .should().dependOnClassesThat().resideInAPackage("org.springframework.security..")
+            .allowEmptyShould(true);
+
+    /** The domain and application layers never reach an adapter (driven or driving). */
+    @ArchTest
+    static final ArchRule INNER_LAYERS_NEVER_DEPEND_ON_ADAPTERS = noClasses()
+            .that().resideInAnyPackage(DOMAIN, APPLICATION)
+            .should().dependOnClassesThat().resideInAnyPackage(INFRASTRUCTURE, API)
             .allowEmptyShould(true);
 
     /** A driving adapter never depends on a driven adapter. */

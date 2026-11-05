@@ -21,12 +21,14 @@ import com.irurueta.authserver.authorization.domain.password.UserAccountReposito
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that looks a user account up by username. A Spring service, so component scanning registers it and
  * injects its port.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class FindUserAccountUseCase {
 

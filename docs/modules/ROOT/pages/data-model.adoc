@@ -16,9 +16,22 @@ NOTE: This documentation was generated with the assistance of AI. Please report 
 
 |`V101__users.sql`
 |Tables `users`, `user_authorities` and `user_passwords`.
+
+|`V200__account.sql`
+|Adds `email`, `email_verified` and `tenant` to `users`, and the `account_tokens` table (hashed single-use tokens).
+
+|`V210__signing_keys.sql`
+|Table `signing_keys` (public JWK, encrypted private JWK, status `NEXT`/`ACTIVE`/`RETIRED`); at most one `ACTIVE` key.
+
+|`V230__consumed_refresh_tokens.sql`
+|Table `consumed_refresh_tokens`, the hashes of rotated-out refresh tokens used for reuse detection.
+
+|`V240__authorization_created_at.sql`
+|Adds `created_at` to `oauth2_authorization`, so the authorizations that never got a token (abandoned authorization
+or consent requests) can be cleaned up once they are old enough.
 |===
 
-Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199`. A
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`. A
 migration is never written outside the range of the issue that adds it.
 
 [source,sql]
@@ -30,3 +43,11 @@ include::example$auth-server/infrastructure/persistence/src/main/resources/db/mi
 ----
 include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V101__users.sql[tag=users-schema]
 ----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V200__account.sql[tag=account-schema]
+----
+
+See xref:tokens-and-keys.adoc[] for the `signing_keys` and `consumed_refresh_tokens` tables and the `created_at` column
+of `oauth2_authorization`.

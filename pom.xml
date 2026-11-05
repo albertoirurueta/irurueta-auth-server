@@ -59,6 +59,16 @@
     <url>https://github.com/albertoirurueta/irurueta-auth-server/tree/main</url>
   </scm>
 
+  <!-- Only the Maven site is published (by the Documentation workflow, to GitHub Pages under /mvn-site); the
+       applications themselves are never deployed. site:stage needs this URL to lay out the multi-module site with
+       working links between modules; it never uploads anything itself. -->
+  <distributionManagement>
+    <site>
+      <id>github-pages</id>
+      <url>https://albertoirurueta.github.io/irurueta-auth-server/mvn-site/</url>
+    </site>
+  </distributionManagement>
+
   <modules>
     <module>test-support</module>
     <module>auth-server</module>
@@ -87,12 +97,15 @@
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-javadoc-plugin.version>3.11.3</maven-javadoc-plugin.version>
     <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
+    <openapi-generator-maven-plugin.version>7.27.0</openapi-generator-maven-plugin.version>
 
     <!-- analysis and coverage settings -->
     <checkstyle.config.location>${maven.multiModuleProjectDirectory}/checkstyle.xml</checkstyle.config.location>
     <sonar.organization>albertoirurueta</sonar.organization>
     <sonar.projectKey>albertoirurueta_irurueta-auth-server</sonar.projectKey>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    <!-- code generated from the contracts under apis/ is a compile source root, which the scanner would pick up -->
+    <sonar.exclusions>**/target/generated-sources/**</sonar.exclusions>
     <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
     <!--
@@ -103,6 +116,9 @@
     <springdoc-openapi.version>3.1.1</springdoc-openapi.version>
     <playwright.version>1.63.0</playwright.version>
     <archunit.version>1.3.2</archunit.version>
+    <!-- Argon2 password hashing (Spring Security uses it through Bouncy Castle); not managed by the Spring Boot BOM -->
+    <bouncycastle.version>1.85.2</bouncycastle.version>
+    <bucket4j.version>8.22.0</bucket4j.version>
   </properties>
 
   <dependencyManagement>
@@ -135,6 +151,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>auth-server-infrastructure-mail</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>auth-server-api-web</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -151,6 +172,21 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>bff-boot</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>resource-server-domain</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>resource-server-application</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>resource-server-infrastructure-memory</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -177,6 +213,21 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         <version>${springdoc-openapi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+        <version>${springdoc-openapi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.bucket4j</groupId>
+        <artifactId>bucket4j_jdk17-core</artifactId>
+        <version>${bucket4j.version}</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.playwright</groupId>
@@ -233,6 +284,63 @@
           <groupId>org.sonarsource.scanner.maven</groupId>
           <artifactId>sonar-maven-plugin</artifactId>
           <version>${sonar-maven-plugin.version}</version>
+        </plugin>
+        <!--
+          Contract-first REST APIs: the contracts live under apis/ (see apis/README.md) and each api/web module that
+          implements one declares the executions (inputSpec, packages). The options shared by every server
+          interface are set once here and merged into those executions. The generated code lands in
+          target/generated-sources/openapi, is never committed and is kept out of Checkstyle, PMD/CPD, SpotBugs and
+          JaCoCo (see their configuration below and spotbugs-exclude.xml).
+        -->
+        <plugin>
+          <groupId>org.openapitools</groupId>
+          <artifactId>openapi-generator-maven-plugin</artifactId>
+          <version>${openapi-generator-maven-plugin.version}</version>
+          <configuration>
+            <generatorName>spring</generatorName>
+            <generateApiTests>false</generateApiTests>
+            <generateModelTests>false</generateModelTests>
+            <generateApiDocumentation>false</generateApiDocumentation>
+            <generateModelDocumentation>false</generateModelDocumentation>
+            <generateSupportingFiles>false</generateSupportingFiles>
+            <!-- ISO-8601 durations (format: duration) and instants (format: date-time) keep the java.time types
+                 the controllers used before the contracts existed, so the JSON on the wire is unchanged -->
+            <typeMappings>
+              <typeMapping>string+duration=Duration</typeMapping>
+              <typeMapping>DateTime=Instant</typeMapping>
+            </typeMappings>
+            <importMappings>
+              <importMapping>Duration=java.time.Duration</importMapping>
+              <importMapping>Instant=java.time.Instant</importMapping>
+            </importMappings>
+            <configOptions>
+              <!-- the generator owns the interfaces and DTOs; the hand-written controllers implement them, so
+                   regenerating can never overwrite real logic -->
+              <interfaceOnly>true</interfaceOnly>
+              <!-- no default method bodies: a controller that misses an operation does not compile -->
+              <skipDefaultInterface>true</skipDefaultInterface>
+              <useSpringBoot4>true</useSpringBoot4>
+              <useJackson3>true</useJackson3>
+              <useJakartaEe>true</useJakartaEe>
+              <useTags>true</useTags>
+              <useRecords>true</useRecords>
+              <useBeanValidation>true</useBeanValidation>
+              <performBeanValidation>true</performBeanValidation>
+              <openApiNullable>false</openApiNullable>
+              <!-- a required array that is missing stays null, so @NotNull rejects it -->
+              <containerDefaultToNull>true</containerDefaultToNull>
+              <!-- inclusion and null handling stay with the application's JsonMapper, as before -->
+              <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+              <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+              <!-- the generated interfaces carry the contract's descriptions, so springdoc keeps publishing
+                   /v3/api-docs and the Swagger UI from them, and OpenApiDriftIT compares that document with the
+                   contract -->
+              <documentationProvider>springdoc</documentationProvider>
+              <requestMappingMode>none</requestMappingMode>
+              <reactive>false</reactive>
+              <unhandledException>false</unhandledException>
+            </configOptions>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -324,7 +432,9 @@
       <!--
         Coverage. Each module only writes its own report and execution data (jacoco.exec for unit tests,
         jacoco-it.exec for integration tests); the 80% line / 70% branch gate lives in the `coverage` module, which
-        merges every module's data. *Application classes only start Spring and are excluded.
+        merges every module's data. *Application classes only start Spring and are excluded, and so is the code
+        generated from the contracts under apis/ (packages named *.generated.*): it is tested by its generator, and
+        the controllers implementing it are covered as usual.
       -->
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -332,6 +442,7 @@
         <configuration>
           <excludes>
             <exclude>**/*Application.class</exclude>
+            <exclude>**/generated/**</exclude>
           </excludes>
         </configuration>
         <executions>
@@ -472,6 +583,24 @@
           <detectJavaApiLink>true</detectJavaApiLink>
           <doclint>none</doclint>
         </configuration>
+        <reportSets>
+          <!-- each module's own API documentation, from the classes the build already compiled -->
+          <reportSet>
+            <id>module</id>
+            <reports>
+              <report>javadoc-no-fork</report>
+            </reports>
+          </reportSet>
+          <!-- the root site gets one API reference spanning every module (apidocs/); run after install, so the
+               modules resolve from the local repository -->
+          <reportSet>
+            <id>aggregate</id>
+            <inherited>false</inherited>
+            <reports>
+              <report>aggregate-no-fork</report>
+            </reports>
+          </reportSet>
+        </reportSets>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -479,8 +608,9 @@
         <version>${maven-surefire-report-plugin.version}</version>
         <reportSets>
           <reportSet>
+            <!-- *-only: render the results of the verify run instead of forking the test phase again -->
             <reports>
-              <report>report</report>
+              <report>report-only</report>
               <report>failsafe-report-only</report>
             </reports>
           </reportSet>
@@ -494,6 +624,7 @@
           <reportSet>
             <reports>
               <report>report</report>
+              <report>report-integration</report>
             </reports>
           </reportSet>
         </reportSets>

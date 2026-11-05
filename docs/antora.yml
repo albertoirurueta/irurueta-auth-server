@@ -23,6 +23,9 @@ ext:
         - dir: auth-server/infrastructure/keys
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/infrastructure/keys
+        - dir: auth-server/infrastructure/mail
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/infrastructure/mail
         - dir: auth-server/api/web
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/api/web
@@ -35,6 +38,15 @@ ext:
         - dir: bff/boot
           files: 'src/**'
           into: modules/ROOT/examples/bff/boot
+        - dir: resource-server/domain
+          files: 'src/**'
+          into: modules/ROOT/examples/resource-server/domain
+        - dir: resource-server/application
+          files: 'src/**'
+          into: modules/ROOT/examples/resource-server/application
+        - dir: resource-server/infrastructure/memory
+          files: 'src/**'
+          into: modules/ROOT/examples/resource-server/infrastructure/memory
         - dir: resource-server/api/web
           files: 'src/**'
           into: modules/ROOT/examples/resource-server/api/web
@@ -50,6 +62,11 @@ ext:
         - dir: e2e-tests
           files: 'src/**'
           into: modules/ROOT/examples/e2e-tests
+        # the API contracts, so the guide can include tagged regions of them, for example
+        # include::irurueta-auth-server::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=account-api]
+        - dir: apis
+          files: '**/*.yaml'
+          into: modules/ROOT/examples/apis
         # '~+' is the repository root; a plain '.' would mean the docs/ start path
         - dir: '~+'
           files: '{pom.xml,compose.yaml}'

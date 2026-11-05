@@ -15,7 +15,7 @@
  */
 
 /**
- * Signing keys of the authorization server. Filled by issue #2 (key management and rotation); until then it only
- * holds the temporary in-memory key.
+ * Signing keys of the authorization server: key encryption and generation, the JWK sources and the signed token
+ * service built on them.
  */
 package com.irurueta.authserver.authorization.infrastructure.keys;

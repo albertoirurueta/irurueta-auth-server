@@ -1,0 +1,725 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Contract of the REST API of the authorization server (version 1). This file is the source of truth: the Spring
+# interfaces and DTOs implemented by the controllers of auth-server/api/web are generated from it by
+# openapi-generator, and OpenApiDriftIT fails when the running application serves an operation or a status code
+# this file does not declare. The OAuth 2.1 / OpenID Connect protocol endpoints are defined by their specifications
+# and described by the discovery document, so they are not part of this contract.
+openapi: 3.1.0
+info:
+  title: Irurueta Auth Server API
+  description: REST endpoints of the example OAuth 2.1 / OpenID Connect authorization server.
+  version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.txt
+servers:
+  - url: http://localhost:9000
+    description: Local development instance (the dev profile).
+tags:
+  - name: Account
+    description: Self-service account management
+  - name: Signing keys
+    description: Administration of the signing keys
+  - name: Clients
+    description: Administration of the registered clients
+security:
+  - bearer: [ ]
+paths:
+  # tag::account-api[]
+  /api/account/register:
+    post:
+      tags: [ Account ]
+      operationId: register
+      summary: Registers an account
+      description: >-
+        The answer is the same whether or not the e-mail address or the username is already taken. Rate limited per
+        client address and per e-mail address.
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '202':
+          description: Registration accepted; an e-mail is sent
+        '400':
+          description: Invalid request or rejected password
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          description: The e-mail could not be sent; nothing was registered
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/account/verify:
+    get:
+      tags: [ Account ]
+      operationId: verify
+      summary: Verifies an e-mail address
+      description: A verification link works once. Rate limited per client address.
+      security: [ ]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Verification token received by e-mail.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: E-mail address verified
+        '400':
+          description: The token is invalid, expired or already used
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/account/password:
+    post:
+      tags: [ Account ]
+      operationId: changePassword
+      summary: Changes the password of the authenticated account
+      description: Requires a bearer token issued by this server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Password changed
+        '400':
+          description: Wrong current password or rejected new password
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/password/reset-request:
+    post:
+      tags: [ Account ]
+      operationId: requestPasswordReset
+      summary: Requests a password reset link
+      description: >-
+        The answer is the same whether or not the e-mail address belongs to an account; only a registered address
+        receives a message. Rate limited per client address and per e-mail address.
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '202':
+          description: Request accepted; a registered address is sent a link
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/account/password/reset:
+    post:
+      tags: [ Account ]
+      operationId: resetPassword
+      summary: Resets a forgotten password
+      description: A rejected password does not use up the token. Rate limited per client address.
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '204':
+          description: Password reset
+        '400':
+          description: Invalid token or rejected password
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  # end::account-api[]
+  # tag::clients-api[]
+  /api/admin/clients:
+    get:
+      tags: [ Clients ]
+      operationId: listClients
+      summary: Lists the registered clients
+      description: Never returns a client secret. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      responses:
+        '200':
+          description: The clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClientResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+    post:
+      tags: [ Clients ]
+      operationId: createClient
+      summary: Creates a client
+      description: The generated secret of a confidential client is returned only in this answer. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+      responses:
+        '201':
+          description: The created client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedClientResponse'
+        '400':
+          description: Invalid definition
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+        '409':
+          description: The client identifier is already registered
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/admin/clients/{clientId}:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    get:
+      tags: [ Clients ]
+      operationId: getClient
+      summary: Gets a registered client
+      description: Never returns the client secret. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      responses:
+        '200':
+          description: The client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+    put:
+      tags: [ Clients ]
+      operationId: updateClient
+      summary: Updates a client
+      description: >-
+        Replaces the definition of the client; the clientId of the body must match the path. The secret of the
+        client is not changed. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+      responses:
+        '200':
+          description: The updated client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '400':
+          description: Invalid definition, or a clientId in the body that differs from the path
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+    delete:
+      tags: [ Clients ]
+      operationId: deleteClient
+      summary: Deletes a client
+      description: Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      responses:
+        '204':
+          description: Client deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+  /api/admin/clients/{clientId}/secret:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    post:
+      tags: [ Clients ]
+      operationId: rotateClientSecret
+      summary: Rotates the secret of a confidential client
+      description: The new secret is returned only in this answer. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      responses:
+        '200':
+          description: The new secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientSecretResponse'
+        '400':
+          description: The client is public
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+  # end::clients-api[]
+  # tag::keys-api[]
+  /api/admin/keys:
+    get:
+      tags: [ Signing keys ]
+      operationId: listSigningKeys
+      summary: Lists the signing keys
+      description: Never exposes private key material. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      responses:
+        '200':
+          description: The keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SigningKeyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+  /api/admin/keys/rotate:
+    post:
+      tags: [ Signing keys ]
+      operationId: rotateSigningKeys
+      summary: Rotates the signing keys now
+      description: >-
+        Forces a rotation whatever the age of the active key: the active key is retired (it stays published until
+        the tokens it signed expire), the next key becomes active and a new next key is generated. Keys retired for
+        longer than the retention are deleted, and the published keys are refreshed. The scheduled rotation, in
+        contrast, only rotates a key that is due. Needs scope admin.
+      security:
+        - bearer: [ admin ]
+      responses:
+        '200':
+          description: The keys after the rotation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SigningKeyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminScopeRequired'
+  # end::keys-api[]
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Access token issued by this server for the audience authserver.api.audience (default auth-server). The
+        /api/admin/** operations also need the admin scope, listed as the role of their security requirement.
+        Failures are answered with an RFC 6750 WWW-Authenticate challenge and no body.
+  parameters:
+    ClientId:
+      name: clientId
+      in: path
+      required: true
+      description: Public identifier of the client.
+      schema:
+        type: string
+  headers:
+    RetryAfter:
+      description: Seconds to wait before retrying; at least 1.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    WwwAuthenticate:
+      description: RFC 6750 bearer challenge, for example Bearer error="invalid_token".
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      headers:
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+    AdminScopeRequired:
+      description: The token lacks the admin scope
+      headers:
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+    TooManyRequests:
+      description: Too many requests from this client or for this address
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ClientNotFound:
+      description: No such client
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    # tag::account-schemas[]
+    RegisterRequest:
+      type: object
+      description: Registration of a new account
+      required: [ username, email, password ]
+      properties:
+        username:
+          type: string
+          description: Desired username; it must contain a non-blank character.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+        email:
+          type: string
+          format: email
+          description: E-mail address that receives the verification link; it must contain a non-blank character.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+        password:
+          type: string
+          format: password
+          description: Chosen password; it must contain a non-blank character. Never logged.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+    ChangePasswordRequest:
+      type: object
+      description: Change of the password of the authenticated account
+      required: [ currentPassword, newPassword ]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          description: Password in use; it must contain a non-blank character. Never logged.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+        newPassword:
+          type: string
+          format: password
+          description: Password to set; it must contain a non-blank character. Never logged.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+    PasswordResetRequest:
+      type: object
+      description: Request of a password reset link
+      required: [ email ]
+      properties:
+        email:
+          type: string
+          format: email
+          description: E-mail address of the account; it must contain a non-blank character.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+    ResetPasswordRequest:
+      type: object
+      description: Reset of a forgotten password with the token received by e-mail
+      required: [ token, newPassword ]
+      properties:
+        token:
+          type: string
+          format: password
+          description: >-
+            Reset token received by e-mail; it must contain a non-blank character. Declared with the password
+            format because it is a secret: it is never logged.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+        newPassword:
+          type: string
+          format: password
+          description: Password to set; it must contain a non-blank character. Never logged.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+    # end::account-schemas[]
+    # tag::clients-schemas[]
+    ClientRequest:
+      type: object
+      description: Definition of a registered client; it never contains a secret, which the server generates
+      required: [ clientId, name, authMethods, grantTypes, redirectUris, scopes, accessTokenTtl, refreshTokenTtl ]
+      properties:
+        clientId:
+          type: string
+          description: Public identifier of the client; it must contain a non-blank character.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+        name:
+          type: string
+          description: Human readable name; it must contain a non-blank character.
+          minLength: 1
+          pattern: '[\s\S]*\S[\s\S]*'
+        confidential:
+          type: boolean
+          description: Whether the client can keep a secret. Defaults to false.
+          default: false
+        authMethods:
+          type: array
+          description: Client authentication methods, for example client_secret_basic or none.
+          items:
+            type: string
+        grantTypes:
+          type: array
+          description: Allowed grant types, for example authorization_code or refresh_token.
+          items:
+            type: string
+        redirectUris:
+          type: array
+          description: Allowed redirect URIs.
+          items:
+            type: string
+        scopes:
+          type: array
+          description: Allowed scopes.
+          items:
+            type: string
+        requireProofKey:
+          type: boolean
+          description: Whether PKCE is required. Defaults to false.
+          default: false
+        audiences:
+          type: array
+          description: Audiences of the issued access tokens; absent or empty means the client identifier.
+          items:
+            type: string
+        accessTokenTtl:
+          type: string
+          format: duration
+          description: Lifetime of the access tokens, as an ISO-8601 duration such as PT5M.
+        refreshTokenTtl:
+          type: string
+          format: duration
+          description: Lifetime of the refresh tokens, as an ISO-8601 duration such as PT1H.
+        accessTokenFormat:
+          type: string
+          description: >-
+            Format of the access tokens, self-contained (a signed JWT) or reference (an opaque token resolved by
+            introspection); absent or blank means self-contained.
+        reuseRefreshTokens:
+          type: boolean
+          description: Whether refresh tokens are reused instead of rotated. Defaults to false.
+          default: false
+    ClientResponse:
+      type: object
+      description: A registered client, without any secret
+      required:
+        - clientId
+        - name
+        - confidential
+        - authMethods
+        - grantTypes
+        - redirectUris
+        - scopes
+        - requireProofKey
+        - audiences
+        - accessTokenTtl
+        - refreshTokenTtl
+        - accessTokenFormat
+        - reuseRefreshTokens
+      properties:
+        clientId:
+          type: string
+          description: Public identifier of the client.
+        name:
+          type: string
+          description: Human readable name.
+        confidential:
+          type: boolean
+          description: Whether the client can keep a secret.
+        authMethods:
+          type: array
+          description: Client authentication methods.
+          items:
+            type: string
+        grantTypes:
+          type: array
+          description: Allowed grant types.
+          items:
+            type: string
+        redirectUris:
+          type: array
+          description: Allowed redirect URIs.
+          items:
+            type: string
+        scopes:
+          type: array
+          description: Allowed scopes.
+          items:
+            type: string
+        requireProofKey:
+          type: boolean
+          description: Whether PKCE is required.
+        audiences:
+          type: array
+          description: Audiences of the issued access tokens.
+          items:
+            type: string
+        accessTokenTtl:
+          type: string
+          format: duration
+          description: Lifetime of the access tokens, as an ISO-8601 duration.
+        refreshTokenTtl:
+          type: string
+          format: duration
+          description: Lifetime of the refresh tokens, as an ISO-8601 duration.
+        accessTokenFormat:
+          type: string
+          description: Format of the access tokens, self-contained or reference.
+        reuseRefreshTokens:
+          type: boolean
+          description: Whether refresh tokens are reused instead of rotated.
+    CreatedClientResponse:
+      type: object
+      description: The created client; the secret is shown only once
+      required: [ client ]
+      properties:
+        client:
+          $ref: '#/components/schemas/ClientResponse'
+        clientSecret:
+          type: string
+          format: password
+          description: >-
+            Generated secret in clear text, shown only in this answer and never logged; null for a public client.
+    ClientSecretResponse:
+      type: object
+      description: The new client secret; it is shown only once
+      required: [ clientSecret ]
+      properties:
+        clientSecret:
+          type: string
+          format: password
+          description: The new secret in clear text, shown only in this answer and never logged.
+    # end::clients-schemas[]
+    # tag::keys-schemas[]
+    SigningKeyResponse:
+      type: object
+      description: A signing key, without its private half
+      required: [ kid, alg, status, createdAt, publicJwk ]
+      properties:
+        kid:
+          type: string
+          description: Key identifier, the kid header of the tokens it signs.
+        alg:
+          type: string
+          description: JWS algorithm, for example RS256.
+        status:
+          type: string
+          description: Lifecycle state, NEXT, ACTIVE or RETIRED.
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation instant.
+        activatedAt:
+          type: string
+          format: date-time
+          description: Instant at which the key started signing; null while it is the next key.
+        retiredAt:
+          type: string
+          format: date-time
+          description: Instant at which the key stopped signing; null until it is retired.
+        publicJwk:
+          type: string
+          description: The public key as a serialized JSON Web Key.
+    # end::keys-schemas[]
+    Problem:
+      type: object
+      description: >-
+        RFC 9457 problem details. The type is a URN naming the failure, for example urn:problem:account:rate-limited
+        or urn:problem:client:not-found. Request validation failures use about:blank.
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type.
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code of the answer.
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence.
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying this occurrence, usually the request path.
+        violations:
+          type: array
+          description: Only for urn:problem:account:invalid-password, the names of the broken password rules.
+          items:
+            type: string
