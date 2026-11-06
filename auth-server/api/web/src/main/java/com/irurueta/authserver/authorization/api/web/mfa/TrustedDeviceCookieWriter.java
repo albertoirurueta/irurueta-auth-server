@@ -28,7 +28,8 @@ import org.springframework.stereotype.Component;
 /**
  * Writes the cookie that identifies a trusted device. The {@code __Host-} prefix makes the browser accept it only
  * over HTTPS, with {@code Path=/} and no {@code Domain}; it is {@code HttpOnly} so scripts cannot read it and
- * {@code SameSite=Lax} so it is not sent on cross-site subrequests. It lives as long as the device stays trusted.
+ * {@code SameSite=Lax} so it is not sent on cross-site subrequests. Its value is the token signed by the server
+ * ({@code token.signature}). It lives as long as the device stays trusted.
  */
 @Component
 @RequiredArgsConstructor
@@ -44,11 +45,11 @@ public class TrustedDeviceCookieWriter {
      * Adds the cookie of a device that has just been trusted to a response.
      *
      * @param response the response.
-     * @param created  the trusted device and its raw token.
+     * @param created  the trusted device and its signed cookie value.
      */
     public void write(final HttpServletResponse response, final CreatedTrustedDevice created) {
         final var lifetime = Duration.between(clock.instant(), created.device().expiresAt());
-        final var cookie = ResponseCookie.from(COOKIE_NAME, created.token())
+        final var cookie = ResponseCookie.from(COOKIE_NAME, created.cookieValue())
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")

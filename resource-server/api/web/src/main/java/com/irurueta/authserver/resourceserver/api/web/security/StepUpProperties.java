@@ -26,7 +26,8 @@ import org.springframework.util.StringUtils;
  * {@code resourceserver.step-up.*}.
  *
  * @param enabled   whether the policy is enforced; when {@code false} every caller is let through.
- * @param acrValues the authentication context class reference the token's {@code acr} claim must carry.
+ * @param acrValues the space-separated authentication context class references the token's {@code acr} claim must
+ *                  be one of; the step-up challenge advertises the whole list.
  * @param maxAge    how long ago, at most, the user must have authenticated ({@code auth_time} claim).
  */
 // tag::resource-server-step-up-properties[]

@@ -354,6 +354,22 @@ class TotpApiIT {
     }
 
     /**
+     * Verifies that recovery codes are refused to an account without a confirmed second factor, and none is stored.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void generateRecoveryCodes_whenNoSecondFactorIsConfirmed_returnsBadRequest() throws Exception {
+        final var user = fixtures.createUser();
+
+        mockMvc.perform(post(RECOVERY_PATH).with(bearerOf(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:problem:mfa:totp-not-enrolled"));
+
+        assertTrue(recoveryCodes.findUnused(idOf(user)).isEmpty());
+    }
+
+    /**
      * Verifies that the list holds the caller's devices and never another account's.
      *
      * @throws Exception if a request cannot be performed.

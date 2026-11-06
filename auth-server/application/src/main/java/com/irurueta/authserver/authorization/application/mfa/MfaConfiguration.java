@@ -20,14 +20,16 @@ import com.irurueta.authserver.authorization.domain.mfa.MfaPolicy;
 import com.irurueta.authserver.authorization.domain.totp.SecretGenerator;
 import com.irurueta.authserver.authorization.domain.totp.SecureRandomSecretGenerator;
 import com.irurueta.authserver.authorization.domain.totp.TotpAlgorithm;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * Exposes the domain collaborators of the multi-factor use cases as beans, so no use case creates them and a
- * deployment (or a test) can replace any of them.
+ * deployment (or a test) can replace any of them, and binds the {@link MfaProperties}.
  */
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(MfaProperties.class)
 public class MfaConfiguration {
 
     /**

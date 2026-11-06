@@ -18,13 +18,17 @@ package com.irurueta.authserver.authorization.application.totp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCode;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
+import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -52,6 +56,10 @@ class GenerateRecoveryCodesUseCaseTest {
     @Mock
     private RecoveryCodes recoveryCodes;
 
+    /** Tells whether the user has confirmed a second factor. */
+    @Mock
+    private HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
     /** Use case under test. */
     @InjectMocks
     private GenerateRecoveryCodesUseCase useCase;
@@ -62,6 +70,7 @@ class GenerateRecoveryCodesUseCaseTest {
     @Test
     void execute_whenCalled_storesTenHashedCodesAndReturnsTheClearOnes() {
         final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
         when(recoveryCodes.newCode()).thenReturn("ABCDEFGHJK");
         when(passwordHasher.encode(any())).thenReturn("hashed");
         final var captor = ArgumentCaptor.<List<RecoveryCode>>captor();
@@ -76,5 +85,18 @@ class GenerateRecoveryCodesUseCaseTest {
         assertEquals("hashed", stored.getFirst().hashedCode());
         assertEquals(userId, stored.getFirst().userId());
         assertNull(stored.getFirst().usedAt());
+    }
+
+    /**
+     * Verifies that a user without a confirmed second factor gets no recovery codes and nothing is stored.
+     */
+    @Test
+    void execute_whenNoSecondFactorIsConfirmed_throwsTotpNotEnrolledException() {
+        final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(false);
+
+        assertThrows(TotpNotEnrolledException.class, () -> useCase.execute(userId));
+
+        verifyNoInteractions(recoveryCodeRepository, passwordHasher, recoveryCodes);
     }
 }

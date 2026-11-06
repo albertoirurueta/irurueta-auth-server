@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import java.time.Clock;
 import java.time.Duration;
@@ -52,6 +53,9 @@ class StepUpGuardTest {
     /** Maximum age of the step-up, in minutes. */
     private static final int MAX_AGE_MINUTES = 5;
 
+    /** Consecutive failures that lock the second factor; irrelevant here but required by the settings. */
+    private static final int MAX_FAILED_ATTEMPTS = 3;
+
     /** Seconds within the maximum age. */
     private static final long RECENT_SECONDS = 60;
 
@@ -74,7 +78,8 @@ class StepUpGuardTest {
     @BeforeEach
     void setUp() {
         guard = new StepUpGuard(hasConfirmedSecondFactorUseCase,
-                new MfaProperties(0, null, null, null, Duration.ofMinutes(MAX_AGE_MINUTES)),
+                new MfaProperties(MAX_FAILED_ATTEMPTS, Duration.ofMinutes(MAX_AGE_MINUTES),
+                        Duration.ofMinutes(MAX_AGE_MINUTES), "Issuer", Duration.ofMinutes(MAX_AGE_MINUTES)),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 

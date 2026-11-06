@@ -20,10 +20,8 @@ import com.irurueta.authserver.authorization.domain.mfa.SecondFactorAttemptRepos
 import com.irurueta.authserver.authorization.domain.mfa.SecondFactorLockout;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,13 +44,8 @@ public class RegisterSecondFactorFailureUseCase {
     /** Source of the current time. */
     private final Clock clock;
 
-    /** Consecutive failures that lock the second factor ({@code authserver.mfa.max-failed-attempts}, default 5). */
-    @Value("${authserver.mfa.max-failed-attempts:5}")
-    private final int maxFailedAttempts;
-
-    /** How long the second factor stays locked ({@code authserver.mfa.lockout}, default 15 minutes). */
-    @Value("${authserver.mfa.lockout:PT15M}")
-    private final Duration lockout;
+    /** Multi-factor settings: consecutive failures that lock the second factor and how long it stays locked. */
+    private final MfaProperties mfaProperties;
 
     /**
      * Registers a failed attempt.
@@ -63,7 +56,8 @@ public class RegisterSecondFactorFailureUseCase {
      */
     public SecondFactorLockout execute(final UUID userId, final String username) {
         final var now = clock.instant();
-        final var state = secondFactorAttemptRepository.recordFailure(userId, maxFailedAttempts, lockout, now);
+        final var state = secondFactorAttemptRepository.recordFailure(userId, mfaProperties.maxFailedAttempts(),
+                mfaProperties.lockout(), now);
         recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_FAILURE, userId, username, null);
         if (state.isLocked(now)) {
             recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_LOCKED, userId, username,

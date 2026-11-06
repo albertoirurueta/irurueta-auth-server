@@ -256,8 +256,8 @@ paths:
       summary: Generates a new set of recovery codes
       description: >-
         Replaces every existing recovery code of the authenticated account with a new set, shown only in this answer.
-        While the account has a confirmed second factor, the bearer token must show a recent multi-factor sign-in
-        (step-up, RFC 9470).
+        Recovery codes only stand in for a second factor, so the account must have a confirmed authenticator app;
+        the bearer token must also show a recent multi-factor sign-in (step-up, RFC 9470).
       responses:
         '200':
           description: The new recovery codes
@@ -265,6 +265,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          description: The account has no confirmed authenticator app (problem type urn:problem:mfa:totp-not-enrolled)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '401':
           $ref: '#/components/responses/StepUpRequired'
   /api/account/trusted-devices:

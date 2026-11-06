@@ -19,17 +19,16 @@ package com.irurueta.authserver.authorization.application.mfa;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDevice;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceTokenSigner;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that trusts the browser of a user for some days so it skips the second factor. The raw token is returned
- * once; only its SHA-256 hash is stored.
+ * once, signed, as the value of the cookie; only its SHA-256 hash is stored.
  */
 @Service
 @Transactional
@@ -42,15 +41,17 @@ public class CreateTrustedDeviceUseCase {
     /** Creator and hasher of the tokens. */
     private final TrustedDeviceTokens trustedDeviceTokens;
 
+    /** Port that signs the cookie value. */
+    private final TrustedDeviceTokenSigner trustedDeviceTokenSigner;
+
     /** Use case that records the audit events. */
     private final RecordSecurityEventUseCase recordSecurityEventUseCase;
 
     /** Source of the current time. */
     private final Clock clock;
 
-    /** How long a device stays trusted ({@code authserver.mfa.trusted-device-validity}, default 30 days). */
-    @Value("${authserver.mfa.trusted-device-validity:P30D}")
-    private final Duration validity;
+    /** Multi-factor settings: how long a device stays trusted. */
+    private final MfaProperties mfaProperties;
 
     /**
      * Trusts a device.
@@ -58,15 +59,15 @@ public class CreateTrustedDeviceUseCase {
      * @param userId           identifier of the user.
      * @param username         name of the user, for the audit log.
      * @param userAgentSummary short description of the browser, or {@code null}.
-     * @return the device and its raw token.
+     * @return the device and the signed cookie value.
      */
     public CreatedTrustedDevice execute(final UUID userId, final String username, final String userAgentSummary) {
         final var now = clock.instant();
         final var token = trustedDeviceTokens.newToken();
         final var device = new TrustedDevice(UUID.randomUUID(), userId, trustedDeviceTokens.hash(token),
-                userAgentSummary, now.plus(validity), now);
+                userAgentSummary, now.plus(mfaProperties.trustedDeviceValidity()), now);
         trustedDeviceRepository.store(device);
         recordSecurityEventUseCase.execute(SecurityEventType.TRUSTED_DEVICE_ADDED, userId, username, null);
-        return new CreatedTrustedDevice(device, token);
+        return new CreatedTrustedDevice(device, trustedDeviceTokenSigner.sign(token));
     }
 }

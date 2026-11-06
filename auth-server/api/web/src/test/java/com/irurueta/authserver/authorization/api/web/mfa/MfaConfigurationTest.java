@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web.mfa;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.irurueta.authserver.authorization.application.mfa.IsClientMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.application.mfa.IsUserMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 
 /**
  * Unit tests of {@link MfaConfiguration}.
@@ -41,9 +41,9 @@ class MfaConfigurationTest {
     @Mock
     private IsUserMfaRequiredUseCase isUserMfaRequiredUseCase;
 
-    /** Resolves the client of a request. */
+    /** Tells whether the client of a request requires MFA. */
     @Mock
-    private RegisteredClientRepository registeredClientRepository;
+    private IsClientMfaRequiredUseCase isClientMfaRequiredUseCase;
 
     /** Configuration under test. */
     private final MfaConfiguration configuration = new MfaConfiguration();
@@ -66,7 +66,7 @@ class MfaConfigurationTest {
         final var registry = configuration.authenticationFactorRegistry(List.of());
         final var entryPoint = configuration.secondFactorRequiredEntryPoint();
         final var manager = configuration.mfaAuthorizationManager(new MfaPolicy(), registry,
-                isUserMfaRequiredUseCase, registeredClientRepository);
+                isUserMfaRequiredUseCase, isClientMfaRequiredUseCase);
 
         assertNotNull(entryPoint);
         assertNotNull(manager);

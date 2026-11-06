@@ -23,20 +23,21 @@ import static org.mockito.Mockito.when;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDevice;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceTokenSigner;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit tests of {@link CreateTrustedDeviceUseCase}. The validity is a constructor parameter of the use case, so it
- * is built by hand instead of with {@code @InjectMocks}.
+ * Unit tests of {@link CreateTrustedDeviceUseCase}, with real multi-factor settings.
  */
 @ExtendWith(MockitoExtension.class)
 class CreateTrustedDeviceUseCaseTest {
@@ -47,6 +48,12 @@ class CreateTrustedDeviceUseCaseTest {
     /** Validity used by the tests. */
     private static final Duration VALIDITY = Duration.ofDays(30);
 
+    /** Failures that lock, unused here. */
+    private static final int MAX_ATTEMPTS = 3;
+
+    /** A duration unused here. */
+    private static final Duration UNUSED = Duration.ofMinutes(5);
+
     /** Port that stores the trusted devices. */
     @Mock
     private TrustedDeviceRepository trustedDeviceRepository;
@@ -54,6 +61,10 @@ class CreateTrustedDeviceUseCaseTest {
     /** Creator and hasher of the tokens. */
     @Mock
     private TrustedDeviceTokens trustedDeviceTokens;
+
+    /** Port that signs the cookie value. */
+    @Mock
+    private TrustedDeviceTokenSigner trustedDeviceTokenSigner;
 
     /** Use case that records the audit events. */
     @Mock
@@ -63,34 +74,32 @@ class CreateTrustedDeviceUseCaseTest {
     @Mock
     private Clock clock;
 
+    /** Multi-factor settings. */
+    @Spy
+    private MfaProperties mfaProperties = new MfaProperties(MAX_ATTEMPTS, UNUSED, VALIDITY, "Issuer", UNUSED);
+
     /** Use case under test. */
+    @InjectMocks
     private CreateTrustedDeviceUseCase useCase;
 
     /**
-     * Creates the use case.
-     */
-    @BeforeEach
-    void setUp() {
-        useCase = new CreateTrustedDeviceUseCase(
-                trustedDeviceRepository, trustedDeviceTokens, recordSecurityEventUseCase, clock, VALIDITY);
-    }
-
-    /**
-     * Verifies that the hash, never the raw token, is stored, and that the raw token is returned.
+     * Verifies that the hash, never the raw token, is stored, and that the signed token is returned as the cookie
+     * value.
      */
     @Test
-    void execute_whenCalled_storesTheHashAndReturnsTheToken() {
+    void execute_whenCalled_storesTheHashAndReturnsTheSignedToken() {
         final var userId = UUID.randomUUID();
         when(clock.instant()).thenReturn(NOW);
         when(trustedDeviceTokens.newToken()).thenReturn("raw");
         when(trustedDeviceTokens.hash("raw")).thenReturn("hashed");
+        when(trustedDeviceTokenSigner.sign("raw")).thenReturn("raw.signature");
         final var captor = ArgumentCaptor.<TrustedDevice>captor();
 
         final var created = useCase.execute(userId, "alice", "Firefox");
 
         verify(trustedDeviceRepository).store(captor.capture());
         final var stored = captor.getValue();
-        assertEquals("raw", created.token());
+        assertEquals("raw.signature", created.cookieValue());
         assertEquals(stored, created.device());
         assertEquals("hashed", stored.hashedToken());
         assertEquals(userId, stored.userId());

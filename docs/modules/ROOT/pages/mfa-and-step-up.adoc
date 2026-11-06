@@ -8,7 +8,8 @@ demand a recent multi-factor sign-in for sensitive operations (RFC 9470).
 
 == When a second factor is required
 
-A second factor is required when the client asks for it (its `mfaRequired` setting), when an administrator forced it
+A second factor is required when the client asks for it (its `mfaRequired` setting, read through
+`IsClientMfaRequiredUseCase` and the client port, so only the persistence adapter knows how it is stored), when an administrator forced it
 on the account (`users.mfa_required`) or when the user has confirmed a second factor: a factor the user enrolled
 protects every sign-in, whatever the client. The administrator flag stays separate, so removing the last second factor
 lifts the requirement only when no administrator set it. "Has a confirmed second factor" asks every
@@ -18,6 +19,11 @@ own.
 [source,java]
 ----
 include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/mfa/IsUserMfaRequiredUseCase.java[tag=mfa-user-required]
+----
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/mfa/IsClientMfaRequiredUseCase.java[tag=mfa-client-required]
 ----
 
 The sign-in policy (`MfaPolicy`) is satisfied by a strong primary factor alone, or by the password plus a second
@@ -78,7 +84,10 @@ include::example$auth-server/infrastructure/persistence/src/main/java/com/irurue
 == TOTP and recovery codes
 
 The code is verified by `TotpAuthenticationFilter` (`POST /login/second-factor/totp`) through
-`TotpAuthenticationProvider`; a recovery code is accepted in the same form and is consumed when used. On success the
+`TotpAuthenticationProvider`; a recovery code is accepted in the same form and is consumed when used. Recovery codes
+only stand in for a confirmed second factor: they are generated (`GenerateRecoveryCodesUseCase`) and accepted
+(`VerifyRecoveryCodeUseCase`) only while the account has one, and an attempt without it fails and counts towards the
+lockout. On success the
 session id changes and the CSRF token is renewed, with the same session authentication strategy the form login uses
 (`TotpChainCustomizer` hands the chain's shared strategy to the filter).
 
@@ -174,7 +183,8 @@ in `apis/auth-server/rest-server/auth-server-api-v1.yaml`.
 |Disables TOTP, removes the recovery codes and revokes every trusted device. Needs a step-up.
 
 |`POST /api/account/recovery-codes`
-|Generates a new set of recovery codes, invalidating the previous ones. Needs a step-up.
+|Generates a new set of recovery codes, invalidating the previous ones. Needs a confirmed authenticator app
+(otherwise `400`, problem type `urn:problem:mfa:totp-not-enrolled`) and a step-up.
 
 |`GET /api/account/trusted-devices`
 |Lists the devices that skip the second factor.
@@ -244,6 +254,30 @@ step-up request (`acr_values` asking for the multi-factor class) still needs a r
 second-factor page is reached for such a step-up, the trusted-device filter lets the page render the TOTP form instead
 of resuming the request (which would only redirect back). Recognising a device changes the session id.
 
+The cookie (`__Host-TRUSTED-DEVICE`, `HttpOnly`, `Secure`, `SameSite=Lax`) holds the random token signed with
+HMAC-SHA256, as `<token>.<signature>` (Base64url). `TrustedDeviceTokenSigner` is a domain port;
+`HmacTrustedDeviceTokenSigner` in `infrastructure/keys` implements it with a key derived from the key-encryption secret
+for this purpose only (`PurposeKeyDerivation`, see <<purpose-keys>>). `FindTrustedDeviceUseCase` checks the signature,
+in constant time, before the account or the device is looked up, so an unsigned or forged value is rejected at no
+database cost; only the SHA-256 hash of the token is stored. The cookie is only evaluated on the second-factor page
+(`GET /login/second-factor`), where every request that owes a second factor is sent: other requests are not looked
+into, so a user who never gets the factor is not looked up on every request.
+
+[source,java]
+----
+include::example$auth-server/domain/src/main/java/com/irurueta/authserver/authorization/domain/mfa/TrustedDeviceTokenSigner.java[tag=mfa-trusted-device-signer]
+----
+
+[source,java]
+----
+include::example$auth-server/infrastructure/keys/src/main/java/com/irurueta/authserver/authorization/infrastructure/keys/HmacTrustedDeviceTokenSigner.java[tag=mfa-trusted-device-signature]
+----
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/mfa/FindTrustedDeviceUseCase.java[tag=mfa-find-trusted-device]
+----
+
 [source,java]
 ----
 include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/mfa/TrustedDeviceFactor.java[tag=mfa-trusted-device-factor]
@@ -257,6 +291,15 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 [source,java]
 ----
 include::example$auth-server/boot/src/test/java/com/irurueta/authserver/authorization/TrustedDeviceIT.java[tag=mfa-trusted-device-it]
+----
+
+The settings are bound once into `MfaProperties` (`application` module), injected wherever one is needed; an invalid
+value (for example `max-failed-attempts` below 1, or a duration that is not positive) stops the application at
+startup.
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/mfa/MfaProperties.java[tag=mfa-properties]
 ----
 
 [cols="2,1,3",options="header"]
@@ -285,6 +328,21 @@ include::example$auth-server/boot/src/test/java/com/irurueta/authserver/authoriz
 |5 minutes
 |How recent the multi-factor sign-in of a bearer token must be to remove or reset a second factor through the API.
 |===
+
+[[purpose-keys]]
+=== Keys derived per purpose
+
+The TOTP secrets are encrypted at rest (`AesGcmTotpSecretCipher`, AES-256-GCM) and the trusted-device cookie is signed,
+both from the key-encryption secret (`authserver.keys.encryption.password` and `.salt`), but neither shares the key
+that protects the signing keys. `PurposeKeyDerivation` derives a salt per purpose (HMAC-SHA256 of the purpose label,
+`totp-secret` or `trusted-device-cookie`, keyed with the configured salt) and, for the cookie, a 256-bit key from the
+passphrase and that salt (PBKDF2-HMAC-SHA256). The signing-key cipher (`AesGcmKeyCipher`) keeps the configured salt, so
+the keys already stored still decrypt.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/keys/src/main/java/com/irurueta/authserver/authorization/infrastructure/keys/PurposeKeyDerivation.java[tag=keys-purpose-derivation]
+----
 
 == Database
 

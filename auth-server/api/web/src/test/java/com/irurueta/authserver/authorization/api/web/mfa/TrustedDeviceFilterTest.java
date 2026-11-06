@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -46,7 +47,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 
@@ -62,8 +62,8 @@ class TrustedDeviceFilterTest {
     /** The user. */
     private static final String USERNAME = "alice";
 
-    /** The raw token of the cookie. */
-    private static final String TOKEN = "raw-token";
+    /** The signed value of the cookie. */
+    private static final String COOKIE_VALUE = "raw-token.signature";
 
     /** The instant of the clock. */
     private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
@@ -71,16 +71,9 @@ class TrustedDeviceFilterTest {
     /** Seconds used to build instants around now. */
     private static final long OFFSET_SECONDS = 60;
 
-    /** Identifier of the user. */
-    private final UUID userId = UUID.randomUUID();
-
     /** Finds trusted devices. */
     @Mock
     private FindTrustedDeviceUseCase findTrustedDeviceUseCase;
-
-    /** Resolves the account of the user. */
-    @Mock
-    private SecondFactorUserResolver userResolver;
 
     /** Adds the factor. */
     @Mock
@@ -116,14 +109,14 @@ class TrustedDeviceFilterTest {
             AuthorityUtils.createAuthorityList(AUTHORITY));
 
     /**
-     * Creates the filter and a request that carries the cookie, with a signed-in user.
+     * Creates the filter and a request of the second-factor page that carries the cookie, with a signed-in user.
      */
     @BeforeEach
     void setUp() {
-        filter = new TrustedDeviceFilter(findTrustedDeviceUseCase, userResolver, factorGrantor,
-                securityContextRepository, resumeHandler, AUTHORITY);
-        request = new MockHttpServletRequest("GET", "/oauth2/consent");
-        request.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, TOKEN));
+        filter = new TrustedDeviceFilter(findTrustedDeviceUseCase, factorGrantor, securityContextRepository,
+                resumeHandler, AUTHORITY);
+        request = new MockHttpServletRequest("GET", SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH);
+        request.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, COOKIE_VALUE));
         response = new MockHttpServletResponse();
         SecurityContextHolder.getContext().setAuthentication(primary);
     }
@@ -137,19 +130,22 @@ class TrustedDeviceFilterTest {
     }
 
     /**
-     * Verifies that a valid device upgrades the authentication, saves it and lets the request go on.
+     * Verifies that a trusted browser that reaches the second-factor page gets the factor, saved, and resumes the
+     * interrupted request instead of rendering the page.
+     *
+     * @throws Exception if the filter fails.
      */
     @Test
-    void doFilter_whenDeviceIsValid_grantsTheFactorAndContinues() throws Exception {
-        trust(userId);
+    void doFilter_whenDeviceIsValidOnSecondFactorPage_grantsTheFactorAndResumesTheRequest() throws Exception {
+        trust();
         when(factorGrantor.grant(primary, AUTHORITY)).thenReturn(upgraded);
 
         filter.doFilter(request, response, chain);
 
         assertSame(upgraded, SecurityContextHolder.getContext().getAuthentication());
         verify(securityContextRepository).saveContext(any(SecurityContext.class), any(), any());
-        verify(chain).doFilter(request, response);
-        verifyNoInteractions(resumeHandler);
+        verify(resumeHandler).onAuthenticationSuccess(request, response, upgraded);
+        verifyNoInteractions(chain);
     }
 
     /**
@@ -160,12 +156,34 @@ class TrustedDeviceFilterTest {
     @Test
     void doFilter_whenDeviceIsValid_changesTheSessionId() throws Exception {
         final var before = request.getSession(true).getId();
-        trust(userId);
+        trust();
         when(factorGrantor.grant(primary, AUTHORITY)).thenReturn(upgraded);
 
         filter.doFilter(request, response, chain);
 
         assertNotEquals(before, request.getSession(false).getId());
+    }
+
+    /**
+     * Verifies that any request other than the second-factor page is let through without looking at the cookie, so
+     * a user who never gets the factor is not looked up on every request.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void doFilter_whenRequestIsNotTheSecondFactorPage_doesNotLookTheDeviceUp() throws Exception {
+        final var other = new MockHttpServletRequest("GET", "/oauth2/consent");
+        other.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, COOKIE_VALUE));
+        final var post = new MockHttpServletRequest("POST", SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH);
+        post.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, COOKIE_VALUE));
+
+        filter.doFilter(other, response, chain);
+        filter.doFilter(post, response, chain);
+
+        verify(chain).doFilter(other, response);
+        verify(chain).doFilter(post, response);
+        verifyNoInteractions(findTrustedDeviceUseCase, factorGrantor, securityContextRepository, resumeHandler);
+        assertSame(primary, SecurityContextHolder.getContext().getAuthentication());
     }
 
     /**
@@ -176,8 +194,6 @@ class TrustedDeviceFilterTest {
      */
     @Test
     void doFilter_whenStepUpIsPendingOnSecondFactorPage_rendersThePage() throws Exception {
-        request = new MockHttpServletRequest("GET", SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH);
-        request.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, TOKEN));
         request.getSession(true).setAttribute(SecondFactorRequiredEntryPoint.STEP_UP_ATTRIBUTE, Boolean.TRUE);
 
         filter.doFilter(request, response, chain);
@@ -187,65 +203,26 @@ class TrustedDeviceFilterTest {
     }
 
     /**
-     * Verifies that a trusted browser that reaches the second-factor page resumes the interrupted request.
+     * Verifies that an unknown, revoked, forged or unsigned value grants nothing and renders the page.
+     *
+     * @throws Exception if the filter fails.
      */
     @Test
-    void doFilter_whenDeviceIsValidOnSecondFactorPage_resumesTheRequest() throws Exception {
-        request = new MockHttpServletRequest("GET", SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH);
-        request.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, TOKEN));
-        trust(userId);
-        when(factorGrantor.grant(primary, AUTHORITY)).thenReturn(upgraded);
-
-        filter.doFilter(request, response, chain);
-
-        verify(resumeHandler).onAuthenticationSuccess(request, response, upgraded);
-        verifyNoInteractions(chain);
-    }
-
-    /**
-     * Verifies that an unknown or revoked device grants nothing.
-     */
-    @Test
-    void doFilter_whenDeviceIsUnknown_leavesTheAuthenticationAlone() throws Exception {
-        when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
-        when(findTrustedDeviceUseCase.execute(userId, TOKEN)).thenReturn(Optional.empty());
+    void doFilter_whenDeviceIsNotFound_rendersThePage() throws Exception {
+        when(findTrustedDeviceUseCase.execute(USERNAME, COOKIE_VALUE)).thenReturn(Optional.empty());
 
         filter.doFilter(request, response, chain);
 
         assertSame(primary, SecurityContextHolder.getContext().getAuthentication());
         verify(chain).doFilter(request, response);
         verifyNoInteractions(factorGrantor, securityContextRepository);
-    }
-
-    /**
-     * Verifies that a device of another user grants nothing.
-     */
-    @Test
-    void doFilter_whenDeviceBelongsToAnotherUser_leavesTheAuthenticationAlone() throws Exception {
-        trust(UUID.randomUUID());
-
-        filter.doFilter(request, response, chain);
-
-        assertSame(primary, SecurityContextHolder.getContext().getAuthentication());
-        verifyNoInteractions(factorGrantor);
-    }
-
-    /**
-     * Verifies that a cookie of a user that no longer exists grants nothing.
-     */
-    @Test
-    void doFilter_whenAccountIsMissing_leavesTheAuthenticationAlone() throws Exception {
-        when(userResolver.userIdOf(USERNAME)).thenThrow(new UsernameNotFoundException("gone"));
-
-        filter.doFilter(request, response, chain);
-
-        assertSame(primary, SecurityContextHolder.getContext().getAuthentication());
-        verify(chain).doFilter(request, response);
-        verifyNoInteractions(findTrustedDeviceUseCase);
+        verify(resumeHandler, never()).onAuthenticationSuccess(any(), any(), any(Authentication.class));
     }
 
     /**
      * Verifies that a request without the cookie is not looked into.
+     *
+     * @throws Exception if the filter fails.
      */
     @Test
     void doFilter_whenThereIsNoCookie_continuesTheChain() throws Exception {
@@ -254,11 +231,13 @@ class TrustedDeviceFilterTest {
         filter.doFilter(request, response, chain);
 
         verify(chain).doFilter(request, response);
-        verifyNoInteractions(userResolver, findTrustedDeviceUseCase);
+        verifyNoInteractions(findTrustedDeviceUseCase);
     }
 
     /**
      * Verifies that a user who already holds the factor is not looked up again.
+     *
+     * @throws Exception if the filter fails.
      */
     @Test
     void doFilter_whenFactorIsAlreadyHeld_continuesTheChain() throws Exception {
@@ -267,11 +246,13 @@ class TrustedDeviceFilterTest {
         filter.doFilter(request, response, chain);
 
         verify(chain).doFilter(request, response);
-        verifyNoInteractions(userResolver, findTrustedDeviceUseCase);
+        verifyNoInteractions(findTrustedDeviceUseCase);
     }
 
     /**
      * Verifies that nobody signed in, and anonymous users, are ignored.
+     *
+     * @throws Exception if the filter fails.
      */
     @Test
     void doFilter_whenNobodyOrAnonymous_continuesTheChain() throws Exception {
@@ -281,19 +262,16 @@ class TrustedDeviceFilterTest {
                 AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
         filter.doFilter(request, response, chain);
 
-        verifyNoInteractions(userResolver, findTrustedDeviceUseCase);
+        verifyNoInteractions(findTrustedDeviceUseCase);
         assertFalse(SecurityContextHolder.getContext().getAuthentication().getAuthorities().isEmpty());
         assertTrue(SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken);
     }
 
     /**
-     * Makes the use case find a device.
-     *
-     * @param owner the owner of the device.
+     * Makes the use case find a device of the user for the cookie value.
      */
-    private void trust(final UUID owner) {
-        when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
-        when(findTrustedDeviceUseCase.execute(userId, TOKEN)).thenReturn(Optional.of(
-                new TrustedDevice(UUID.randomUUID(), owner, "hash", null, NOW.plusSeconds(OFFSET_SECONDS), NOW)));
+    private void trust() {
+        when(findTrustedDeviceUseCase.execute(USERNAME, COOKIE_VALUE)).thenReturn(Optional.of(new TrustedDevice(
+                UUID.randomUUID(), UUID.randomUUID(), "hash", null, NOW.plusSeconds(OFFSET_SECONDS), NOW)));
     }
 }

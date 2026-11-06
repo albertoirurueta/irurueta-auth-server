@@ -22,23 +22,28 @@ import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.stereotype.Component;
 
 /**
- * {@link TotpSecretCipher} that encrypts TOTP secrets with AES-256 in GCM mode, with a key derived from the same
- * passphrase and salt that protect the signing keys. Each encryption uses a random initialisation vector, which is
+ * {@link TotpSecretCipher} that encrypts TOTP secrets with AES-256 in GCM mode. Its key is derived from the
+ * key-encryption passphrase with a salt of its own ({@link PurposeKeyDerivation}, purpose {@value #PURPOSE}), so it
+ * never shares the key that protects the signing keys. Each encryption uses a random initialisation vector, which is
  * stored in front of the cipher text.
  */
 @Component
 public class AesGcmTotpSecretCipher implements TotpSecretCipher {
 
-    /** The encryptor derived from the passphrase and the salt. */
+    /** Label of the purpose the key is derived for. */
+    public static final String PURPOSE = "totp-secret";
+
+    /** The encryptor derived from the passphrase and the salt of this purpose. */
     private final BytesEncryptor encryptor;
 
     /**
      * Derives the encryption key.
      *
-     * @param properties passphrase and salt.
+     * @param properties passphrase of the key-encryption secret.
+     * @param derivation derives the salt of this purpose from the configured salt.
      */
-    public AesGcmTotpSecretCipher(final KeyEncryptionProperties properties) {
-        encryptor = Encryptors.stronger(properties.password(), properties.salt());
+    public AesGcmTotpSecretCipher(final KeyEncryptionProperties properties, final PurposeKeyDerivation derivation) {
+        encryptor = Encryptors.stronger(properties.password(), derivation.saltFor(PURPOSE));
     }
 
     @Override

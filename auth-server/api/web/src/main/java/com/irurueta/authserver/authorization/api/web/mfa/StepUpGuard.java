@@ -16,6 +16,7 @@
 package com.irurueta.authserver.authorization.api.web.mfa;
 
 import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import java.time.Clock;
 import java.time.Duration;

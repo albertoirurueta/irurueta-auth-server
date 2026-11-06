@@ -74,7 +74,8 @@ include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/r
 == Step-up authentication (RFC 9470)
 
 Deleting a document needs a recent multi-factor sign-in. `StepUpAuthorizationManager` checks that the token's `acr`
-claim is the configured value and that `auth_time` is no older than `max-age`; otherwise `StepUpAccessDeniedHandler`
+claim is one of the configured values (`acr-values` is a space-separated list, like the `acr_values` parameter) and
+that `auth_time` is no older than `max-age`; otherwise `StepUpAccessDeniedHandler`
 answers `401` with `WWW-Authenticate: Bearer error="insufficient_user_authentication"` and the `acr_values` and
 `max_age` the client must request (see xref:mfa-and-step-up.adoc[]). The policy is bound from
 `resourceserver.step-up.*`: `enabled` (default `true`), `acr-values` (default `urn:irurueta:acr:mfa`) and `max-age`

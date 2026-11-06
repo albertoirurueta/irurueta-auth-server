@@ -173,9 +173,21 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
     `RegisterSecondFactorFailureUseCase` (locks after `authserver.mfa.max-failed-attempts`),
     `ResetSecondFactorFailuresUseCase` and `RecordSecurityEventUseCase` give every factor the same lockout and audit
     trail (`SecurityEventAuthenticationEventPublisher` also records the framework's authentication events).
-    `TrustedDeviceFilter` (`__Host-TRUSTED-DEVICE` cookie, persisted as a SHA-256 hash in `trusted_devices`) grants
-    `FACTOR_TRUSTED_DEVICE` to a remembered browser and changes the session id; disabling the second factor revokes
-    every trusted device of the user. A second-factor filter changes the session id (and renews the CSRF token) on
+    `TrustedDeviceFilter` (`__Host-TRUSTED-DEVICE` cookie, value `<token>.<HMAC-SHA256 signature>` signed through the
+    domain port `TrustedDeviceTokenSigner`, implemented by `HmacTrustedDeviceTokenSigner` in `infrastructure/keys`;
+    only the token's SHA-256 hash is persisted in `trusted_devices`) looks at the cookie only on
+    `GET /login/second-factor`, where `FindTrustedDeviceUseCase` verifies the signature before any lookup, then grants
+    `FACTOR_TRUSTED_DEVICE` to a remembered browser, changes the session id and resumes the saved request; disabling
+    the second factor revokes every trusted device of the user. Recovery codes are generated and accepted only while
+    the account has a confirmed second factor (`HasConfirmedSecondFactorUseCase`).
+  - Settings: every `authserver.mfa.*` key is bound once into the validated `@ConfigurationProperties` record
+    `application.mfa.MfaProperties` (invalid values fail at startup) and injected; never read one with `@Value`. The
+    client's `mfaRequired` flag is read only through `IsClientMfaRequiredUseCase` (the custom setting's key lives in
+    `RegisteredClientMapper` alone).
+  - Keys derived per purpose: `PurposeKeyDerivation` (`infrastructure/keys`) derives a distinct salt/key from the
+    key-encryption secret per purpose (`totp-secret` for `AesGcmTotpSecretCipher`, `trusted-device-cookie` for the
+    cookie signer); `AesGcmKeyCipher` keeps the configured salt so stored signing keys still decrypt. A new use of the
+    secret takes a new purpose label, never the signing-key key. A second-factor filter changes the session id (and renews the CSRF token) on
     success: `TotpChainCustomizer` hands the chain's shared `SessionAuthenticationStrategy`, the form login's, to
     `TotpAuthenticationFilter`.
   - **How a later factor (for example `passkeys`, `ott`, `social` or `x509`) registers**, with no shared file edited:

@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.api.web.mfa;
 
+import com.irurueta.authserver.authorization.application.mfa.IsClientMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.application.mfa.IsUserMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
 import com.irurueta.authserver.authorization.domain.mfa.MfaPolicy;
@@ -30,8 +31,6 @@ import org.springframework.security.authorization.RequiredFactor;
 import org.springframework.security.authorization.RequiredFactorError;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 /**
@@ -43,12 +42,6 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 @RequiredArgsConstructor
 public class MfaAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 
-    /**
-     * Name of the custom client setting that makes multi-factor authentication mandatory for a client. It is the same
-     * name the persistence adapter writes (that module cannot be referenced from here).
-     */
-    public static final String CLIENT_MFA_REQUIRED_SETTING = "settings.client.mfa.required";
-
     /** Policy that decides which factors are enough and when a second factor is required. */
     private final MfaPolicy mfaPolicy;
 
@@ -58,8 +51,8 @@ public class MfaAuthorizationManager implements AuthorizationManager<RequestAuth
     /** Use case that tells whether a user's account requires a second factor. */
     private final IsUserMfaRequiredUseCase isUserMfaRequiredUseCase;
 
-    /** Repository the client of a request is resolved from. */
-    private final RegisteredClientRepository registeredClientRepository;
+    /** Use case that tells whether a client requires a second factor. */
+    private final IsClientMfaRequiredUseCase isClientMfaRequiredUseCase;
 
     /**
      * Decides for a request, taking the client from its {@code client_id} parameter.
@@ -76,22 +69,18 @@ public class MfaAuthorizationManager implements AuthorizationManager<RequestAuth
             return new AuthorizationDecision(false);
         }
         final var clientId = context.getRequest().getParameter(OAuth2ParameterNames.CLIENT_ID);
-        final var client = clientId == null ? null : registeredClientRepository.findByClientId(clientId);
-        return evaluate(current, requiresMfa(client));
+        return evaluate(current, clientRequiresMfa(clientId));
     }
 
     /**
-     * Tells whether a client makes multi-factor authentication mandatory.
+     * Tells whether a client makes multi-factor authentication mandatory, asking the application (one lookup of the
+     * client, only for a request that names one).
      *
-     * @param client the client, may be {@code null} when unknown.
-     * @return {@code true} when its {@link #CLIENT_MFA_REQUIRED_SETTING} setting is true.
+     * @param clientId public identifier of the client, may be {@code null} when the request names none.
+     * @return {@code true} when the client is registered and requires a second factor.
      */
-    public static boolean requiresMfa(final RegisteredClient client) {
-        if (client == null) {
-            return false;
-        }
-        final Object setting = client.getClientSettings().getSetting(CLIENT_MFA_REQUIRED_SETTING);
-        return Boolean.TRUE.equals(setting);
+    public boolean clientRequiresMfa(final String clientId) {
+        return clientId != null && isClientMfaRequiredUseCase.execute(clientId);
     }
 
     /**

@@ -39,6 +39,11 @@
       <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
+      <!-- @ConfigurationProperties of the multi-factor settings (MfaProperties) -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot</artifactId>
+    </dependency>
+    <dependency>
       <!-- @Transactional on the use cases that change several rows (and mail) as one unit -->
       <groupId>org.springframework</groupId>
       <artifactId>spring-tx</artifactId>

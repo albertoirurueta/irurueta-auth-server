@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.application.totp;
 
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
 import com.irurueta.authserver.authorization.domain.totp.SecretGenerator;
 import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
 import com.irurueta.authserver.authorization.domain.totp.TotpCredential;
@@ -25,7 +26,6 @@ import com.irurueta.authserver.authorization.domain.totp.TotpUri;
 import java.time.Clock;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,9 +50,8 @@ public class EnrollTotpUseCase {
     /** Source of the current time. */
     private final Clock clock;
 
-    /** Issuer shown by the authenticator app ({@code authserver.mfa.totp-issuer}). */
-    @Value("${authserver.mfa.totp-issuer:Irurueta Auth Server}")
-    private final String issuer;
+    /** Multi-factor settings: the issuer shown by the authenticator app. */
+    private final MfaProperties mfaProperties;
 
     /**
      * Starts the enrolment.
@@ -69,6 +68,6 @@ public class EnrollTotpUseCase {
         final var secret = secretGenerator.generate();
         totpCredentialRepository.save(new TotpCredential(
                 userId, totpSecretCipher.encrypt(secret), false, TotpCredential.NEVER_USED, clock.instant()));
-        return TotpUri.build(issuer, username, secret);
+        return TotpUri.build(mfaProperties.totpIssuer(), username, secret);
     }
 }

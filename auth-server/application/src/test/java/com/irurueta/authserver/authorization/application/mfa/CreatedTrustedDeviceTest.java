@@ -41,6 +41,6 @@ class CreatedTrustedDeviceTest {
         final var created = new CreatedTrustedDevice(device, "token");
 
         assertSame(device, created.device());
-        assertEquals("token", created.token());
+        assertEquals("token", created.cookieValue());
     }
 }

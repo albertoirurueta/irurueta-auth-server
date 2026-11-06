@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.encrypt.Encryptors;
 
 /**
  * Unit tests of {@link AesGcmTotpSecretCipher}, with a secret generated at run time.
@@ -33,7 +34,8 @@ class AesGcmTotpSecretCipherTest {
     private final KeyEncryptionProperties properties = KeyTestSupport.randomProperties();
 
     /** Cipher under test. */
-    private final AesGcmTotpSecretCipher cipher = new AesGcmTotpSecretCipher(properties);
+    private final AesGcmTotpSecretCipher cipher =
+            new AesGcmTotpSecretCipher(properties, new PurposeKeyDerivation(properties));
 
     /**
      * Verifies that a decrypted secret equals the original and the encrypted form differs.
@@ -64,8 +66,8 @@ class AesGcmTotpSecretCipherTest {
     @Test
     void decrypt_whenCipherUsesOtherPassphrase_throwsIllegalStateException() {
         final var encrypted = cipher.encrypt(new byte[] {1, 2, 3});
-        final var other = new AesGcmTotpSecretCipher(
-                new KeyEncryptionProperties(UUID.randomUUID().toString(), properties.salt()));
+        final var otherProperties = new KeyEncryptionProperties(UUID.randomUUID().toString(), properties.salt());
+        final var other = new AesGcmTotpSecretCipher(otherProperties, new PurposeKeyDerivation(otherProperties));
 
         assertThrows(IllegalStateException.class, () -> other.decrypt(encrypted));
     }
@@ -77,6 +79,18 @@ class AesGcmTotpSecretCipherTest {
     void decrypt_whenValueIsAltered_throwsIllegalStateException() {
         final var encrypted = cipher.encrypt(new byte[] {1, 2, 3});
         encrypted[encrypted.length - 1] ^= 1;
+
+        assertThrows(IllegalStateException.class, () -> cipher.decrypt(encrypted));
+    }
+
+    /**
+     * Verifies that the key of the signing keys, derived from the same passphrase and the configured salt itself,
+     * cannot decrypt a TOTP secret: the two purposes never share a key.
+     */
+    @Test
+    void decrypt_whenValueWasEncryptedWithSigningKeyKey_throwsIllegalStateException() {
+        final var signingKeyEncryptor = Encryptors.stronger(properties.password(), properties.salt());
+        final var encrypted = signingKeyEncryptor.encrypt(new byte[] {1, 2, 3});
 
         assertThrows(IllegalStateException.class, () -> cipher.decrypt(encrypted));
     }

@@ -18,6 +18,7 @@ package com.irurueta.authserver.resourceserver.api.web.security;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -29,8 +30,9 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 
 /**
  * Requires that the bearer token proves a recent strong authentication (RFC 9470): its {@code acr} claim must be
- * the configured one and its {@code auth_time} claim no older than the configured maximum age. The claims are read
- * from the token attributes, so it serves JWTs (their claims) and opaque tokens (the introspection answer) alike.
+ * one of the configured (space-separated) values and its {@code auth_time} claim no older than the configured maximum
+ * age. The claims are read from the token attributes, so it serves JWTs (their claims) and opaque tokens (the
+ * introspection answer) alike.
  *
  * <p>A caller without the {@code requiredAuthority} is denied with an ordinary decision (answered
  * {@code 403 insufficient_scope}); a caller that has it but fails the step-up check is denied with a
@@ -45,6 +47,9 @@ public class StepUpAuthorizationManager implements AuthorizationManager<RequestA
 
     /** Claim carrying the time of the user's authentication, in epoch seconds. */
     static final String AUTH_TIME_CLAIM = "auth_time";
+
+    /** Separator of the configured {@code acr-values}: any run of whitespace. */
+    private static final String ACR_VALUES_SEPARATOR = "\\s+";
 
     /** Authority the caller needs before the step-up requirement is evaluated. */
     private final String requiredAuthority;
@@ -80,12 +85,25 @@ public class StepUpAuthorizationManager implements AuthorizationManager<RequestA
             return false;
         }
         final var attributes = token.getTokenAttributes();
-        if (!properties.acrValues().equals(attributes.get(ACR_CLAIM))) {
+        if (!isAccepted(attributes.get(ACR_CLAIM))) {
             return false;
         }
         final var authenticatedAt = toInstant(attributes.get(AUTH_TIME_CLAIM));
         return authenticatedAt != null
                 && !authenticatedAt.plus(properties.maxAge()).isBefore(clock.instant());
+    }
+
+    /**
+     * Tells whether an {@code acr} value is one of the configured ones. The configured {@code acr-values} is a
+     * space-separated list, like the {@code acr_values} parameter of OpenID Connect, so the token's single value must
+     * be a member of it, never equal to the whole list.
+     *
+     * @param acr the {@code acr} claim of the token.
+     * @return {@code true} when the claim is a text listed in the configured values.
+     */
+    private boolean isAccepted(final Object acr) {
+        return acr instanceof String value
+                && Arrays.asList(properties.acrValues().trim().split(ACR_VALUES_SEPARATOR)).contains(value);
     }
 
     /**

@@ -18,20 +18,30 @@ package com.irurueta.authserver.authorization.application.mfa;
 
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDevice;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceTokenSigner;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.time.Clock;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::mfa-find-trusted-device[]
 /**
- * Use case that finds the usable (not revoked, not expired) trusted device of a user from the raw cookie token.
+ * Use case that finds the usable (not revoked, not expired) trusted device of a user from the value of the cookie.
+ * The signature of the value is checked first, in constant time: a forged or unsigned value is rejected before the
+ * account or the device is looked up.
  */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class FindTrustedDeviceUseCase {
+
+    /** Port that checks the signature of the cookie value. */
+    private final TrustedDeviceTokenSigner trustedDeviceTokenSigner;
+
+    /** Port that provides the user accounts. */
+    private final UserAccountRepository userAccountRepository;
 
     /** Port that stores the trusted devices. */
     private final TrustedDeviceRepository trustedDeviceRepository;
@@ -45,11 +55,17 @@ public class FindTrustedDeviceUseCase {
     /**
      * Finds the device.
      *
-     * @param userId identifier of the user.
-     * @param token  the raw token presented by the browser.
-     * @return the device, or empty if the token is unknown, expired or belongs to another user.
+     * @param username    name the user signed in with.
+     * @param cookieValue the signed value presented by the browser.
+     * @return the device, or empty if the signature is wrong, the account does not exist, or the token is unknown,
+     *         expired, revoked or belongs to another user.
      */
-    public Optional<TrustedDevice> execute(final UUID userId, final String token) {
-        return trustedDeviceRepository.findUsable(userId, trustedDeviceTokens.hash(token), clock.instant());
+    public Optional<TrustedDevice> execute(final String username, final String cookieValue) {
+        return trustedDeviceTokenSigner.verify(cookieValue)
+                .flatMap(token -> userAccountRepository.findByUsername(username)
+                        .flatMap(account -> trustedDeviceRepository.findUsable(
+                                account.id(), trustedDeviceTokens.hash(token), clock.instant())
+                                .filter(device -> account.id().equals(device.userId()))));
     }
 }
+// end::mfa-find-trusted-device[]

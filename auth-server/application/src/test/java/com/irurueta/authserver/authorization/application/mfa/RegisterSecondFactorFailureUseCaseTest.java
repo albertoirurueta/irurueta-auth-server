@@ -28,16 +28,16 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit tests of {@link RegisterSecondFactorFailureUseCase}. The configured values are constructor parameters of the
- * use case, so it is built by hand instead of with {@code @InjectMocks}.
+ * Unit tests of {@link RegisterSecondFactorFailureUseCase}, with real multi-factor settings.
  */
 @ExtendWith(MockitoExtension.class)
 class RegisterSecondFactorFailureUseCaseTest {
@@ -51,6 +51,9 @@ class RegisterSecondFactorFailureUseCaseTest {
     /** Lockout duration. */
     private static final Duration LOCKOUT = Duration.ofMinutes(15);
 
+    /** Validity of a trusted device, unused here. */
+    private static final Duration VALIDITY = Duration.ofDays(30);
+
     /** Port that stores the failed-attempt counters. */
     @Mock
     private SecondFactorAttemptRepository secondFactorAttemptRepository;
@@ -63,17 +66,13 @@ class RegisterSecondFactorFailureUseCaseTest {
     @Mock
     private Clock clock;
 
-    /** Use case under test. */
-    private RegisterSecondFactorFailureUseCase useCase;
+    /** Multi-factor settings. */
+    @Spy
+    private MfaProperties mfaProperties = new MfaProperties(MAX_ATTEMPTS, LOCKOUT, VALIDITY, "Issuer", LOCKOUT);
 
-    /**
-     * Creates the use case.
-     */
-    @BeforeEach
-    void setUp() {
-        useCase = new RegisterSecondFactorFailureUseCase(
-                secondFactorAttemptRepository, recordSecurityEventUseCase, clock, MAX_ATTEMPTS, LOCKOUT);
-    }
+    /** Use case under test. */
+    @InjectMocks
+    private RegisterSecondFactorFailureUseCase useCase;
 
     /**
      * Verifies that a failure below the limit is counted and audited, with no lockout event.

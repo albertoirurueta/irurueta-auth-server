@@ -56,14 +56,15 @@ public class MfaExceptionHandler extends ProblemJsonExceptionHandler {
     }
 
     /**
-     * Answers a confirmation without an enrolment in progress.
+     * Answers a confirmation without an enrolment in progress, or a request for recovery codes from an account
+     * without a confirmed authenticator app.
      *
      * @param exception the failure.
      * @return the {@code 400} problem detail.
      */
     @ExceptionHandler(TotpNotEnrolledException.class)
     public ResponseEntity<ProblemDetail> handleNotEnrolled(final TotpNotEnrolledException exception) {
-        return respond(HttpStatus.BAD_REQUEST, "totp-not-enrolled", "No enrolment in progress",
+        return respond(HttpStatus.BAD_REQUEST, "totp-not-enrolled", "Authenticator app not enrolled",
                 exception.getMessage());
     }
 

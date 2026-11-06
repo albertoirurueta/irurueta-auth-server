@@ -61,8 +61,8 @@ public class TotpConfiguration {
         final var provider = new TotpAuthenticationProvider(totpCodeVerifier, userResolver, factorGrantor);
         final var totpFilter = new TotpAuthenticationFilter(new ProviderManager(provider),
                 createTrustedDeviceUseCase, userResolver, cookieWriter, pendingRecoveryCodes);
-        final var trustedDeviceFilter = new TrustedDeviceFilter(findTrustedDeviceUseCase, userResolver,
-                factorGrantor, new HttpSessionSecurityContextRepository(),
+        final var trustedDeviceFilter = new TrustedDeviceFilter(findTrustedDeviceUseCase, factorGrantor,
+                new HttpSessionSecurityContextRepository(),
                 new SavedRequestAwareAuthenticationSuccessHandler(), TrustedDeviceFactor.AUTHORITY);
         return new TotpChainCustomizer(trustedDeviceFilter, totpFilter);
     }

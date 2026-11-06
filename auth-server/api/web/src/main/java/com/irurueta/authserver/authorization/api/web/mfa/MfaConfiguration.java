@@ -18,17 +18,16 @@ package com.irurueta.authserver.authorization.api.web.mfa;
 
 import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
+import com.irurueta.authserver.authorization.application.mfa.IsClientMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.application.mfa.IsUserMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
 import com.irurueta.authserver.authorization.domain.mfa.MfaPolicy;
 import java.time.Clock;
 import java.util.List;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.authorization.EnableMultiFactorAuthentication;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
@@ -43,7 +42,6 @@ import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
  */
 @Configuration(value = "mfaWebConfiguration", proxyBeanMethods = false)
 @EnableMultiFactorAuthentication(authorities = {})
-@EnableConfigurationProperties(MfaProperties.class)
 public class MfaConfiguration {
 
     /**
@@ -73,15 +71,15 @@ public class MfaConfiguration {
      * @param mfaPolicy                  the policy.
      * @param factorRegistry             the registry of the known factors.
      * @param isUserMfaRequiredUseCase   tells whether a user's account requires a second factor.
-     * @param registeredClientRepository resolves the client of a request.
+     * @param isClientMfaRequiredUseCase tells whether the client of a request requires a second factor.
      * @return the manager.
      */
     @Bean
     public MfaAuthorizationManager mfaAuthorizationManager(final MfaPolicy mfaPolicy,
             final AuthenticationFactorRegistry factorRegistry, final IsUserMfaRequiredUseCase isUserMfaRequiredUseCase,
-            final RegisteredClientRepository registeredClientRepository) {
+            final IsClientMfaRequiredUseCase isClientMfaRequiredUseCase) {
         return new MfaAuthorizationManager(mfaPolicy, factorRegistry, isUserMfaRequiredUseCase,
-                registeredClientRepository);
+                isClientMfaRequiredUseCase);
     }
 
     /**

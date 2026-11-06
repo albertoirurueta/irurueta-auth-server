@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RegisterSecondFactorFailureUseCase;
 import com.irurueta.authserver.authorization.application.mfa.ResetSecondFactorFailuresUseCase;
@@ -62,6 +63,10 @@ class VerifyRecoveryCodeUseCaseTest {
     /** Normalizer of typed codes. */
     @Mock
     private RecoveryCodes recoveryCodes;
+
+    /** Use case that tells whether the user has confirmed a second factor. */
+    @Mock
+    private HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
 
     /** Use case that tells whether the second factor is locked. */
     @Mock
@@ -106,6 +111,7 @@ class VerifyRecoveryCodeUseCaseTest {
     @Test
     void execute_whenCodeMatches_consumesItAndResetsFailures() {
         final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
         final var other = new RecoveryCode(UUID.randomUUID(), userId, "other", null);
         final var match = new RecoveryCode(UUID.randomUUID(), userId, "match", null);
         when(clock.instant()).thenReturn(NOW);
@@ -127,6 +133,7 @@ class VerifyRecoveryCodeUseCaseTest {
     @Test
     void execute_whenSeveralCodesMatch_checksAllAndConsumesTheFirst() {
         final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
         final var first = new RecoveryCode(UUID.randomUUID(), userId, "first", null);
         final var second = new RecoveryCode(UUID.randomUUID(), userId, "second", null);
         when(clock.instant()).thenReturn(NOW);
@@ -147,6 +154,7 @@ class VerifyRecoveryCodeUseCaseTest {
     @Test
     void execute_whenNoCodeMatches_registersAFailure() {
         final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
         when(recoveryCodes.normalize("abc")).thenReturn("ABC");
         when(recoveryCodeRepository.findUnused(userId))
                 .thenReturn(List.of(new RecoveryCode(UUID.randomUUID(), userId, "other", null)));
@@ -164,6 +172,7 @@ class VerifyRecoveryCodeUseCaseTest {
     @Test
     void execute_whenTheCodeWasJustConsumed_registersAFailure() {
         final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
         final var match = new RecoveryCode(UUID.randomUUID(), userId, "match", null);
         when(clock.instant()).thenReturn(NOW);
         when(recoveryCodes.normalize("abc")).thenReturn("ABC");
@@ -182,11 +191,27 @@ class VerifyRecoveryCodeUseCaseTest {
     @Test
     void execute_whenCodeIsNull_registersAFailure() {
         final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
         when(recoveryCodes.normalize("")).thenReturn("");
         when(recoveryCodeRepository.findUnused(userId)).thenReturn(List.of());
 
         assertFalse(useCase.execute(userId, "alice", null));
 
         verify(registerSecondFactorFailureUseCase).execute(userId, "alice");
+    }
+
+    /**
+     * Verifies that a user without a confirmed second factor has no usable recovery code: the attempt fails, is
+     * counted, and the codes are not even looked at.
+     */
+    @Test
+    void execute_whenNoSecondFactorIsConfirmed_registersAFailure() {
+        final var userId = UUID.randomUUID();
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(false);
+
+        assertFalse(useCase.execute(userId, "alice", "abc"));
+
+        verify(registerSecondFactorFailureUseCase).execute(userId, "alice");
+        verify(recoveryCodeRepository, never()).findUnused(userId);
     }
 }

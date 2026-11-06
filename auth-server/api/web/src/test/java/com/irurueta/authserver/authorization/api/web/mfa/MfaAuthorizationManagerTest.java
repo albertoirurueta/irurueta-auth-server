@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.application.mfa.IsClientMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.application.mfa.IsUserMfaRequiredUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
@@ -41,10 +42,6 @@ import org.springframework.security.authorization.FactorAuthorizationDecision;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.FactorGrantedAuthority;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 /**
@@ -77,9 +74,9 @@ class MfaAuthorizationManagerTest {
     @Mock
     private IsUserMfaRequiredUseCase isUserMfaRequiredUseCase;
 
-    /** Resolves the client of a request. */
+    /** Tells whether the client of a request requires a second factor. */
     @Mock
-    private RegisteredClientRepository registeredClientRepository;
+    private IsClientMfaRequiredUseCase isClientMfaRequiredUseCase;
 
     /** Manager under test. */
     private MfaAuthorizationManager manager;
@@ -90,7 +87,7 @@ class MfaAuthorizationManagerTest {
     @BeforeEach
     void setUp() {
         manager = new MfaAuthorizationManager(mfaPolicy, factorRegistry, isUserMfaRequiredUseCase,
-                registeredClientRepository);
+                isClientMfaRequiredUseCase);
     }
 
     /**
@@ -148,7 +145,7 @@ class MfaAuthorizationManagerTest {
                 new AuthenticationFactor("password", "pwd", FactorGrantedAuthority.PASSWORD_AUTHORITY,
                         FactorStrength.PRIMARY)));
         final var bare = new MfaAuthorizationManager(mfaPolicy, passwordOnly, isUserMfaRequiredUseCase,
-                registeredClientRepository);
+                isClientMfaRequiredUseCase);
         when(isUserMfaRequiredUseCase.execute(USERNAME)).thenReturn(true);
 
         final var result = bare.evaluate(user(FactorGrantedAuthority.PASSWORD_AUTHORITY), false);
@@ -168,7 +165,7 @@ class MfaAuthorizationManagerTest {
         final var result = manager.authorize(() -> anonymous, context(null));
 
         assertFalse(result.isGranted());
-        verifyNoInteractions(isUserMfaRequiredUseCase, registeredClientRepository);
+        verifyNoInteractions(isUserMfaRequiredUseCase, isClientMfaRequiredUseCase);
     }
 
     /**
@@ -176,7 +173,7 @@ class MfaAuthorizationManagerTest {
      */
     @Test
     void authorize_whenClientOfRequestRequiresMfa_refusesPasswordOnly() {
-        when(registeredClientRepository.findByClientId(CLIENT_ID)).thenReturn(client(true));
+        when(isClientMfaRequiredUseCase.execute(CLIENT_ID)).thenReturn(true);
         when(isUserMfaRequiredUseCase.execute(USERNAME)).thenReturn(false);
         final var authentication = user(FactorGrantedAuthority.PASSWORD_AUTHORITY);
 
@@ -192,18 +189,20 @@ class MfaAuthorizationManagerTest {
         final var authentication = user(FactorGrantedAuthority.PASSWORD_AUTHORITY);
 
         assertTrue(manager.authorize(() -> authentication, context(null)).isGranted());
-        verifyNoInteractions(registeredClientRepository);
+        verifyNoInteractions(isClientMfaRequiredUseCase);
     }
 
     /**
-     * Verifies the client flag: absent client, absent setting, true and false.
+     * Verifies that the client flag comes from the use case, and that no client means no lookup.
      */
     @Test
-    void requiresMfa_whenClientIsNullOrSettingVaries_reflectsTheSetting() {
-        assertFalse(MfaAuthorizationManager.requiresMfa(null));
-        assertFalse(MfaAuthorizationManager.requiresMfa(clientWithSettings(ClientSettings.builder().build())));
-        assertFalse(MfaAuthorizationManager.requiresMfa(client(false)));
-        assertTrue(MfaAuthorizationManager.requiresMfa(client(true)));
+    void clientRequiresMfa_whenClientIdVaries_reflectsTheUseCase() {
+        when(isClientMfaRequiredUseCase.execute(CLIENT_ID)).thenReturn(true);
+        when(isClientMfaRequiredUseCase.execute("other")).thenReturn(false);
+
+        assertTrue(manager.clientRequiresMfa(CLIENT_ID));
+        assertFalse(manager.clientRequiresMfa("other"));
+        assertFalse(manager.clientRequiresMfa(null));
     }
 
     /**
@@ -239,28 +238,5 @@ class MfaAuthorizationManagerTest {
             request.setParameter("client_id", clientId);
         }
         return new RequestAuthorizationContext(request);
-    }
-
-    /**
-     * Builds a client with the MFA setting.
-     *
-     * @param required the value of the setting.
-     * @return the client.
-     */
-    private static RegisteredClient client(final boolean required) {
-        return clientWithSettings(ClientSettings.builder()
-                .setting(MfaAuthorizationManager.CLIENT_MFA_REQUIRED_SETTING, required).build());
-    }
-
-    /**
-     * Builds a client with settings.
-     *
-     * @param settings the settings.
-     * @return the client.
-     */
-    private static RegisteredClient clientWithSettings(final ClientSettings settings) {
-        return RegisteredClient.withId("id").clientId(CLIENT_ID)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri("https://client.example/cb").clientSettings(settings).build();
     }
 }

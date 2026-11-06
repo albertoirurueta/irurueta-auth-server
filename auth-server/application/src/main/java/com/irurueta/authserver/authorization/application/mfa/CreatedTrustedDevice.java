@@ -19,10 +19,11 @@ package com.irurueta.authserver.authorization.application.mfa;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDevice;
 
 /**
- * A trusted device just created, with the raw token that is only available now.
+ * A trusted device just created, with the signed cookie value that is only available now.
  *
- * @param device the stored device (holds the hash of the token only).
- * @param token  the raw token to put in the cookie; it cannot be recovered later.
+ * @param device      the stored device (holds the hash of the token only).
+ * @param cookieValue the signed raw token ({@code token.signature}) to put in the cookie; it cannot be recovered
+ *                    later.
  */
-public record CreatedTrustedDevice(TrustedDevice device, String token) {
+public record CreatedTrustedDevice(TrustedDevice device, String cookieValue) {
 }

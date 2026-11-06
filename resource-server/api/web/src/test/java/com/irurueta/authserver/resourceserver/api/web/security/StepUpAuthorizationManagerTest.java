@@ -47,6 +47,9 @@ class StepUpAuthorizationManagerTest {
     /** Required acr. */
     private static final String MFA = "urn:irurueta:acr:mfa";
 
+    /** A second acceptable acr. */
+    private static final String PHISHING_RESISTANT = "urn:irurueta:acr:phr";
+
     /** Maximum age of the authentication. */
     private static final Duration MAX_AGE = Duration.ofMinutes(5);
 
@@ -150,6 +153,27 @@ class StepUpAuthorizationManagerTest {
         final var token = new TestingAuthenticationToken("alice", "n/a", AUTHORITY);
 
         assertStepUp(manager.authorize(() -> token, null));
+    }
+
+    /** With two configured values, a token carrying either of them is granted. */
+    @Test
+    void authorize_whenSeveralAcrValuesAreConfigured_grantsEachOfThem() {
+        final var several = new StepUpAuthorizationManager(AUTHORITY,
+                new StepUpProperties(true, " " + MFA + "  " + PHISHING_RESISTANT + " ", MAX_AGE), clock);
+
+        assertTrue(several.authorize(() -> jwt(MFA, NOW.getEpochSecond()), null).isGranted());
+        assertTrue(several.authorize(() -> jwt(PHISHING_RESISTANT, NOW.getEpochSecond()), null).isGranted());
+    }
+
+    /** With two configured values, a token carrying neither, or the whole list, requires step-up. */
+    @Test
+    void authorize_whenSeveralAcrValuesAreConfiguredAndAcrIsNotListed_requiresStepUp() {
+        final var configured = MFA + " " + PHISHING_RESISTANT;
+        final var several = new StepUpAuthorizationManager(AUTHORITY,
+                new StepUpProperties(true, configured, MAX_AGE), clock);
+
+        assertStepUp(several.authorize(() -> jwt("urn:irurueta:acr:pwd", NOW.getEpochSecond()), null));
+        assertStepUp(several.authorize(() -> jwt(configured, NOW.getEpochSecond()), null));
     }
 
     /** When disabled the manager only checks the scope. */

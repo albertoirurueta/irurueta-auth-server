@@ -25,25 +25,27 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
 import com.irurueta.authserver.authorization.domain.totp.SecretGenerator;
 import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
 import com.irurueta.authserver.authorization.domain.totp.TotpCredential;
 import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepository;
 import com.irurueta.authserver.authorization.domain.totp.TotpSecretCipher;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit tests of {@link EnrollTotpUseCase}. The issuer is a constructor parameter of the use case, so it is built by
- * hand instead of with {@code @InjectMocks}.
+ * Unit tests of {@link EnrollTotpUseCase}, with real multi-factor settings.
  */
 @ExtendWith(MockitoExtension.class)
 class EnrollTotpUseCaseTest {
@@ -53,6 +55,12 @@ class EnrollTotpUseCaseTest {
 
     /** Shared secret returned by the mocked generator. */
     private static final byte[] SECRET = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    /** Failures that lock, unused here. */
+    private static final int MAX_ATTEMPTS = 3;
+
+    /** A duration unused here. */
+    private static final Duration UNUSED = Duration.ofMinutes(5);
 
     /** Encrypted form of the secret returned by the mocked cipher. */
     private static final byte[] ENCRYPTED = {9, 9, 9};
@@ -73,16 +81,13 @@ class EnrollTotpUseCaseTest {
     @Mock
     private Clock clock;
 
-    /** Use case under test. */
-    private EnrollTotpUseCase useCase;
+    /** Multi-factor settings, with the issuer the URI shows. */
+    @Spy
+    private MfaProperties mfaProperties = new MfaProperties(MAX_ATTEMPTS, UNUSED, UNUSED, "Issuer", UNUSED);
 
-    /**
-     * Creates the use case.
-     */
-    @BeforeEach
-    void setUp() {
-        useCase = new EnrollTotpUseCase(totpCredentialRepository, totpSecretCipher, secretGenerator, clock, "Issuer");
-    }
+    /** Use case under test. */
+    @InjectMocks
+    private EnrollTotpUseCase useCase;
 
     /**
      * Verifies that an unconfirmed credential is stored encrypted and the URI returned.

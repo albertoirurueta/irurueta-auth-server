@@ -70,7 +70,7 @@ public class MfaProtocolChainCustomizer implements ProtocolChainCustomizer {
             return;
         }
         final AuthorizationResult result = authorizationManager.evaluate(user,
-                MfaAuthorizationManager.requiresMfa(context.getRegisteredClient()));
+                authorizationManager.clientRequiresMfa(context.getRegisteredClient().getClientId()));
         if (!result.isGranted()) {
             throw new SecondFactorRequiredException();
         }

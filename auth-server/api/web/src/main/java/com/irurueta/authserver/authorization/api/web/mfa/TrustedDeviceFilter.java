@@ -29,7 +29,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -38,14 +37,17 @@ import org.springframework.web.util.WebUtils;
 
 // tag::mfa-trusted-device-filter[]
 /**
- * Lets a browser that was trusted earlier skip the second factor of a sign-in. When a signed-in user presents the
- * {@code __Host-TRUSTED-DEVICE} cookie and the token belongs to a device of that same user that has neither expired
- * nor been revoked, the authentication of the session is replaced by one that also holds the
- * {@link TrustedDeviceFactor} authority (a remembered factor: it satisfies the sign-in policy but is never reported
- * in the tokens), the session id is changed and the session is saved. A browser sent to the second-factor page when
- * it is already trusted resumes the request that was interrupted instead of being asked for a code, unless that
- * request is a step-up ({@link SecondFactorRequiredEntryPoint#isStepUpPending}): a trusted device cannot satisfy it,
- * so the page is rendered and asks for a real second factor.
+ * Lets a browser that was trusted earlier skip the second factor of a sign-in. The cookie is only looked at where it
+ * matters: on the second-factor page ({@code GET /login/second-factor}), where every request that owes a second
+ * factor is sent. Every other request goes through untouched, so a user who never gets the factor is not looked up on
+ * each request. When a signed-in user that does not hold the {@link TrustedDeviceFactor} yet reaches that page with
+ * the {@code __Host-TRUSTED-DEVICE} cookie, and its signed value belongs to a device of that same user that has
+ * neither expired nor been revoked, the authentication of the session is replaced by one that also holds the factor
+ * authority (a remembered factor: it satisfies the sign-in policy but is never reported in the tokens), the session
+ * id is changed, the session is saved and the request that was interrupted is resumed instead of asking for a code.
+ * A forged or unsigned value is rejected by {@link FindTrustedDeviceUseCase} before anything is looked up. While a
+ * step-up is pending ({@link SecondFactorRequiredEntryPoint#isStepUpPending}) the cookie is ignored: a trusted
+ * device cannot satisfy it, so the page is rendered and asks for a real second factor.
  */
 @RequiredArgsConstructor
 public class TrustedDeviceFilter extends OncePerRequestFilter {
@@ -54,11 +56,8 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     private final PathPatternRequestMatcher secondFactorPageMatcher =
             PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, SECOND_FACTOR_PATH);
 
-    /** Use case that finds the trusted device of a token. */
+    /** Use case that finds the trusted device of a signed cookie value. */
     private final FindTrustedDeviceUseCase findTrustedDeviceUseCase;
-
-    /** Resolves the identifier of the account of the signed-in user. */
-    private final SecondFactorUserResolver userResolver;
 
     /** Adds the factor authority to an authentication. */
     private final FactorGrantor factorGrantor;
@@ -73,7 +72,8 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     private final String authority;
 
     /**
-     * Upgrades the authentication when the request carries the cookie of a valid trusted device.
+     * Upgrades the authentication and resumes the interrupted request when the second-factor page is requested with
+     * the cookie of a valid trusted device.
      *
      * @param request  the request.
      * @param response the response.
@@ -84,8 +84,7 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
             final FilterChain chain) throws ServletException, IOException {
-        final var secondFactorPage = secondFactorPageMatcher.matches(request);
-        if (secondFactorPage && SecondFactorRequiredEntryPoint.isStepUpPending(request)) {
+        if (!secondFactorPageMatcher.matches(request) || SecondFactorRequiredEntryPoint.isStepUpPending(request)) {
             chain.doFilter(request, response);
             return;
         }
@@ -101,10 +100,8 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
                 request.changeSessionId();
             }
             securityContextRepository.saveContext(context, request, response);
-            if (secondFactorPage) {
-                resumeHandler.onAuthenticationSuccess(request, response, upgraded);
-                return;
-            }
+            resumeHandler.onAuthenticationSuccess(request, response, upgraded);
+            return;
         }
         chain.doFilter(request, response);
     }
@@ -123,23 +120,15 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Tells whether a token identifies a valid trusted device of the signed-in user.
+     * Tells whether a signed cookie value identifies a valid trusted device of the signed-in user.
      *
      * @param authentication the signed-in user.
-     * @param token          the raw token of the cookie.
-     * @return {@code true} when the device exists and belongs to the user; the use case only finds devices that have
-     *         been neither revoked nor expired.
+     * @param cookieValue    the signed value of the cookie.
+     * @return {@code true} when the signature is valid and the device exists and belongs to the user; the use case
+     *         only finds devices that have been neither revoked nor expired.
      */
-    private boolean isTrusted(final Authentication authentication, final String token) {
-        try {
-            final var userId = userResolver.userIdOf(authentication.getName());
-            return findTrustedDeviceUseCase.execute(userId, token)
-                    .filter(device -> userId.equals(device.userId()))
-                    .isPresent();
-        } catch (final UsernameNotFoundException e) {
-            logger.debug("The user of the trusted device cookie does not exist", e);
-            return false;
-        }
+    private boolean isTrusted(final Authentication authentication, final String cookieValue) {
+        return findTrustedDeviceUseCase.execute(authentication.getName(), cookieValue).isPresent();
     }
 }
 // end::mfa-trusted-device-filter[]

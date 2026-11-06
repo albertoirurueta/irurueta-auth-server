@@ -18,7 +18,7 @@ package com.irurueta.authserver.authorization;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.irurueta.authserver.authorization.api.web.mfa.MfaProperties;
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
 import com.irurueta.authserver.authorization.domain.mfa.SecondFactorAttemptRepository;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventRepository;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;

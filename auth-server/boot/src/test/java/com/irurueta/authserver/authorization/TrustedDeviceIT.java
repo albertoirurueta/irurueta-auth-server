@@ -27,7 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.irurueta.authserver.authorization.api.web.mfa.PasswordFactor;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
+import jakarta.servlet.http.Cookie;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -100,4 +102,36 @@ class TrustedDeviceIT extends AbstractMfaFlow {
         getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(third).cookie(cookie)).andExpect(status().isOk());
     }
     // end::mfa-trusted-device-it[]
+
+    /**
+     * Verifies that the cookie carries a signed value and that an unsigned or forged value, even one holding the
+     * token of a real trusted device, never skips the second factor: the page is rendered and asks for the code.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenCookieIsUnsignedOrForged_isStillAsked() throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var client = getFixtures().createMfaCodeClient();
+        final var first = new MockHttpSession();
+        signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), first);
+        final var signed = postSecondFactor(first, getTools().codeNow(enrolled.id(), 0), false, true)
+                .getResponse().getCookie(TRUSTED_DEVICE_COOKIE);
+        assertNotNull(signed, "The device cookie must be written");
+        final var separator = signed.getValue().lastIndexOf('.');
+        assertTrue(separator > 0, "The cookie value must be signed");
+        final var token = signed.getValue().substring(0, separator);
+        final var forgedSignature = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(new byte[Base64.getUrlDecoder().decode(signed.getValue().substring(separator + 1))
+                        .length]);
+
+        for (final var value : List.of(token, token + "." + forgedSignature)) {
+            final var session = new MockHttpSession();
+            signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), session);
+            getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(session)
+                            .cookie(new Cookie(TRUSTED_DEVICE_COOKIE, value)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("name=\"code\"")));
+        }
+    }
 }

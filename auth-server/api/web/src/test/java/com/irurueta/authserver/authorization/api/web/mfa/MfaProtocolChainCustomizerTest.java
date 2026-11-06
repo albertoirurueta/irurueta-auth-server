@@ -49,7 +49,6 @@ import org.springframework.security.oauth2.server.authorization.authentication.O
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 
 /**
@@ -60,6 +59,9 @@ class MfaProtocolChainCustomizerTest {
 
     /** Redirect URI of the client. */
     private static final String REDIRECT_URI = "https://client.example/cb";
+
+    /** Identifier of the client. */
+    private static final String CLIENT_ID = "client";
 
     /** Scope requested. */
     private static final String SCOPE = "openid";
@@ -114,8 +116,9 @@ class MfaProtocolChainCustomizerTest {
     @Test
     void validator_whenPolicyIsNotSatisfied_throwsSecondFactorRequiredException() {
         final var user = user();
+        when(authorizationManager.clientRequiresMfa(CLIENT_ID)).thenReturn(true);
         when(authorizationManager.evaluate(user, true)).thenReturn(new AuthorizationDecision(false));
-        final var context = context(user, true);
+        final var context = context(user);
 
         assertThrows(SecondFactorRequiredException.class, () -> validator.accept(context));
     }
@@ -126,8 +129,9 @@ class MfaProtocolChainCustomizerTest {
     @Test
     void validator_whenPolicyIsSatisfied_doesNotThrow() {
         final var user = user();
+        when(authorizationManager.clientRequiresMfa(CLIENT_ID)).thenReturn(false);
         when(authorizationManager.evaluate(user, false)).thenReturn(new AuthorizationDecision(true));
-        final var context = context(user, false);
+        final var context = context(user);
 
         assertDoesNotThrow(() -> validator.accept(context));
     }
@@ -137,7 +141,7 @@ class MfaProtocolChainCustomizerTest {
      */
     @Test
     void validator_whenPrincipalIsNotSignedIn_doesNotConsultThePolicy() {
-        final var context = context(UsernamePasswordAuthenticationToken.unauthenticated("alice", "x"), true);
+        final var context = context(UsernamePasswordAuthenticationToken.unauthenticated("alice", "x"));
 
         assertDoesNotThrow(() -> validator.accept(context));
         verifyNoInteractions(authorizationManager);
@@ -157,22 +161,18 @@ class MfaProtocolChainCustomizerTest {
      * Builds the context of an authorization request.
      *
      * @param principal the user making the request.
-     * @param mfa       whether the client requires MFA.
      * @return the context.
      */
-    private static OAuth2AuthorizationCodeRequestAuthenticationContext context(final Authentication principal,
-                                                                               final boolean mfa) {
-        final var client = RegisteredClient.withId("id").clientId("client")
+    private static OAuth2AuthorizationCodeRequestAuthenticationContext context(final Authentication principal) {
+        final var client = RegisteredClient.withId("id").clientId(CLIENT_ID)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE).redirectUri(REDIRECT_URI)
                 .scope(SCOPE)
-                .clientSettings(ClientSettings.builder()
-                        .setting(MfaAuthorizationManager.CLIENT_MFA_REQUIRED_SETTING, mfa).build())
                 .build();
         final var token = new OAuth2AuthorizationCodeRequestAuthenticationToken("https://as.example/oauth2/authorize",
-                "client", principal, REDIRECT_URI, "state", Set.of(SCOPE), Map.of());
+                CLIENT_ID, principal, REDIRECT_URI, "state", Set.of(SCOPE), Map.of());
         return OAuth2AuthorizationCodeRequestAuthenticationContext.with(token).registeredClient(client)
                 .authorizationRequest(OAuth2AuthorizationRequest.authorizationCode()
-                        .authorizationUri("https://as.example/oauth2/authorize").clientId("client")
+                        .authorizationUri("https://as.example/oauth2/authorize").clientId(CLIENT_ID)
                         .redirectUri(REDIRECT_URI).scopes(Set.of(SCOPE)).state("state").build())
                 .build();
     }

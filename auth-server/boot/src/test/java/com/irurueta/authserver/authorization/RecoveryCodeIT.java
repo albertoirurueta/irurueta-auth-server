@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.irurueta.authserver.authorization.application.totp.CountRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.application.totp.GenerateRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
+import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepository;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,31 @@ class RecoveryCodeIT extends AbstractMfaFlow {
     /** Port that stores the recovery codes. */
     @Autowired
     private RecoveryCodeRepository recoveryCodes;
+
+    /** Port that stores the TOTP credentials. */
+    @Autowired
+    private TotpCredentialRepository totpCredentials;
+
+    /**
+     * Verifies that a recovery code is refused, and not spent, when the account no longer has a confirmed second
+     * factor: recovery codes only stand in for one.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenNoSecondFactorIsConfirmed_refusesTheRecoveryCode() throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var code = enrolled.recoveryCodes().getFirst();
+        final var client = getFixtures().createMfaCodeClient();
+        final var session = new MockHttpSession();
+        signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), session);
+        totpCredentials.deleteByUser(enrolled.id());
+
+        final var refused = postSecondFactor(session, code, true, false);
+
+        assertTrue(refused.getResponse().getRedirectedUrl().endsWith("/login/second-factor?error"));
+        assertEquals(GenerateRecoveryCodesUseCase.CODE_COUNT, recoveryCodes.findUnused(enrolled.id()).size());
+    }
 
     /**
      * Verifies that a recovery code completes the sign-in, is spent, and is refused the second time.

@@ -47,7 +47,7 @@ class SecondFactorLockoutTest {
      * Verifies that the clean state has no failures and no lock.
      */
     @Test
-    void none_returnsCleanState() {
+    void none_whenCalled_returnsCleanState() {
         final var state = SecondFactorLockout.none();
 
         assertEquals(0, state.failedCount());

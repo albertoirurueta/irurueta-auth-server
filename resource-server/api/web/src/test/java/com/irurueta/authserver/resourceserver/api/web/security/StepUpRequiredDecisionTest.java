@@ -25,7 +25,7 @@ class StepUpRequiredDecisionTest {
 
     /** The decision is a denial. */
     @Test
-    void isGranted_always_returnsFalse() {
+    void isGranted_whenCreated_returnsFalse() {
         assertFalse(new StepUpRequiredDecision().isGranted());
     }
 }

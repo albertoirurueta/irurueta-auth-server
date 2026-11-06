@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.application.totp;
 
 import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RegisterSecondFactorFailureUseCase;
 import com.irurueta.authserver.authorization.application.mfa.ResetSecondFactorFailuresUseCase;
@@ -34,7 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that accepts a recovery code as a second factor. A code works once. Every stored code is checked, with no
- * early exit, so the time taken does not reveal which one matched; failures count towards the lockout.
+ * early exit, so the time taken does not reveal which one matched; failures count towards the lockout. A user without
+ * a confirmed second factor has no usable recovery code: the attempt fails and is counted.
  */
 @Service
 @Transactional
@@ -49,6 +51,9 @@ public class VerifyRecoveryCodeUseCase {
 
     /** Normalizer of typed codes. */
     private final RecoveryCodes recoveryCodes;
+
+    /** Use case that tells whether the user has confirmed a second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
 
     /** Use case that tells whether the second factor is locked. */
     private final CheckSecondFactorLockoutUseCase checkSecondFactorLockoutUseCase;
@@ -71,12 +76,17 @@ public class VerifyRecoveryCodeUseCase {
      * @param userId   identifier of the user.
      * @param username name of the user, for the audit log.
      * @param code     the code as typed.
-     * @return {@code true} if the code was valid (and is now used up).
+     * @return {@code true} if the code was valid (and is now used up); {@code false} when it was not, or the user has
+     *         no confirmed second factor.
      * @throws SecondFactorLockedException if the second factor of the user is locked.
      */
     public boolean execute(final UUID userId, final String username, final String code) {
         if (checkSecondFactorLockoutUseCase.execute(userId)) {
             throw new SecondFactorLockedException("The second factor is locked after too many failed attempts");
+        }
+        if (!hasConfirmedSecondFactorUseCase.execute(userId)) {
+            registerSecondFactorFailureUseCase.execute(userId, username);
+            return false;
         }
         final var normalized = recoveryCodes.normalize(code == null ? "" : code);
         Optional<RecoveryCode> match = Optional.empty();

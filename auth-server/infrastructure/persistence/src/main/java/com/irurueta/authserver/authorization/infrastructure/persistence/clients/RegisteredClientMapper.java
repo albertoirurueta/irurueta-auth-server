@@ -40,8 +40,8 @@ public class RegisteredClientMapper {
     public static final String AUDIENCES_SETTING = "settings.client.audiences";
 
     /**
-     * Name of the custom client setting that makes every user of the client complete a second factor; it is the
-     * setting the {@code api.web.mfa} package reads.
+     * Name of the custom client setting that makes every user of the client complete a second factor. It is only
+     * written and read here: everybody else asks {@code ClientRegistration.mfaRequired()} through the client port.
      */
     public static final String MFA_REQUIRED_SETTING = "settings.client.mfa.required";
 
