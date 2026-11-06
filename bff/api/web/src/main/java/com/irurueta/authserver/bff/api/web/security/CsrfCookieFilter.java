@@ -27,7 +27,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * Makes the CSRF token reach the single page application. Spring Security loads the token lazily, so the
  * {@code XSRF-TOKEN} cookie would only be written when something reads the token; this filter reads it on every
- * request, so the SPA always finds the cookie (readable by its scripts) to copy into the {@code X-XSRF-TOKEN} header.
+ * request, so the SPA always finds the cookie (readable by its scripts) to copy into the {@code X-XSRF-TOKEN} header,
+ * or into the {@code _csrf} parameter of its sign-out form.
  */
 final class CsrfCookieFilter extends OncePerRequestFilter {
 

@@ -15,6 +15,6 @@
  */
 
 /**
- * Development-profile wiring of the BFF.
+ * Development-profile wiring of the session store of the BFF: the {@code bff} database of the Compose PostgreSQL.
  */
-package com.irurueta.authserver.bff.dev;
+package com.irurueta.authserver.bff.infrastructure.session.dev;

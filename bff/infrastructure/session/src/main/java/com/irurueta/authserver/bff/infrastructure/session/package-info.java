@@ -15,6 +15,7 @@
  */
 
 /**
- * Persistent HTTP session of the BFF (Spring Session JDBC) and its cookie.
+ * Session persistence adapter of the BFF: the HTTP session stored by Spring Session JDBC in the {@code bff}
+ * database, and its cookie.
  */
-package com.irurueta.authserver.bff.session;
+package com.irurueta.authserver.bff.infrastructure.session;

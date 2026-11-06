@@ -65,15 +65,16 @@ module (package granularity). Never weaken either to make code fit; move the cod
 - Spring Security and Spring Authorization Server types (`UserDetailsService`, `RegisteredClientRepository`,
   `SecurityFilterChain`, …) are framework adapters: they live in `api/*` or `infrastructure/*`, never in `domain`
   or `application`.
-- A layer is only created once it has code: an application with no driven adapter or no use case yet (for example
-  `bff` until #3) has no `infrastructure` or `application` module, and `service-client` stays a single `boot` module
-  until #8 gives it a domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and
+- A layer is only created once it has code: an application with no driven adapter or no use case yet has no
+  `infrastructure` or `application` module (`bff` has `api/web`, `infrastructure/session` and `boot`, and no `domain`
+  or `application` because it has no use case yet), and `service-client` stays a single `boot` module until #8 gives
+  it a domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and
   `infrastructure/mail`; `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
-  or adapter that exists only so a test has something to call lives in `src/test`. The one exception is
-  `DevDataInitializer` in `infrastructure/persistence` and `DevKeyEncryptionSecret` in `infrastructure/keys` (both are
-  `dev`-profile only, inert elsewhere, and their Javadoc says why they cannot live in `src/test`: the end-to-end
-  tests run the packaged jar).
+  or adapter that exists only so a test has something to call lives in `src/test`. The only exceptions are
+  `DevDataInitializer` in `infrastructure/persistence` and `DevKeyEncryptionSecret` in `infrastructure/keys` of
+  `auth-server`, and `BffDevDatabase` in `bff/infrastructure/session` (all `dev`-profile only, inert elsewhere, and
+  their Javadoc says why they cannot live in `src/test`: the end-to-end tests run the packaged jar).
 - `test-support` (shared Testcontainers base), `e2e-tests` and `coverage` (JaCoCo aggregate) are root modules
   outside the applications.
 
@@ -123,7 +124,8 @@ bean and a `LoginMethodFragment` bean), plus its own Flyway migration in its ran
 Migrations live in `auth-server/infrastructure/persistence/src/main/resources/db/migration`
 (`classpath:db/migration`). The skeleton (#1) uses `V100`–`V199` (`V100` Spring Authorization Server schema, `V101`
 users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens. Each issue states its own
-range in its body; never write a migration outside it.
+range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
+history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 
 ### Key encryption secret and API contracts
 

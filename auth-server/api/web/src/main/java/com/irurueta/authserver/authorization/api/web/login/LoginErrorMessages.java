@@ -29,7 +29,10 @@ import org.springframework.stereotype.Component;
  * <p>An unknown user and a wrong password (a
  * {@link org.springframework.security.authentication.BadCredentialsException} or a
  * {@link org.springframework.security.core.userdetails.UsernameNotFoundException}) deliberately share
- * the generic key, so the two responses are identical and the page never reveals whether an account exists.
+ * the generic key, so the two responses are identical and the page never reveals whether an account exists. The
+ * account status messages (locked, disabled, expired) cannot reveal it either: the authentication provider of the
+ * {@code password} feature ({@code PasswordAuthenticationConfiguration}) only checks the status after a correct
+ * password, so a wrong password for a disabled account is reported as bad credentials too.
  */
 @Component
 public class LoginErrorMessages {

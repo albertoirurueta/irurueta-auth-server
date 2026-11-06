@@ -30,8 +30,9 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
  * Architecture rules of the hexagon, checked at package granularity over the classes of every module. They
  * complement the {@code bannedDependencies} rules that the {@code pom.xml} of each module declares at jar
  * granularity. {@code boot} is the only module that sees every layer, so it is the only place where these rules
- * can be checked against the whole class graph. Layers this application does not have yet (application and
- * infrastructure) are optional, so the rules start applying as soon as they appear.
+ * can be checked against the whole class graph. The bff has an {@code infrastructure} layer ({@code session}) and an
+ * {@code api} layer ({@code web}); the layers it does not have yet ({@code domain} and {@code application}, as it has
+ * no use case) are optional, so the rules start applying as soon as they appear.
  */
 @AnalyzeClasses(
         packages = "com.irurueta.authserver.bff",

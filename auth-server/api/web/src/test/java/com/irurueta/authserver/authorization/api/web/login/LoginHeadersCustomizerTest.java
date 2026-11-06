@@ -15,14 +15,17 @@
  */
 package com.irurueta.authserver.authorization.api.web.login;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
@@ -31,23 +34,28 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 /**
  * Unit tests of {@link LoginHeadersCustomizer}.
  */
+@ExtendWith(MockitoExtension.class)
 class LoginHeadersCustomizerTest {
 
-    /**
-     * Verifies that the policy forbids framing and restricts resources to the same origin, and has no form-action.
-     */
-    @Test
-    void contentSecurityPolicy_whenRead_restrictsResourcesAndFrames() {
-        assertEquals("default-src 'self'; frame-ancestors 'none'",
-                LoginHeadersCustomizer.CONTENT_SECURITY_POLICY);
-    }
+    /** A policy, as the policy builder would return it. */
+    private static final String POLICY = "default-src 'self'; frame-ancestors 'none'; img-src 'self' https://cdn";
+
+    /** Builds the content security policy. */
+    @Mock
+    private LoginContentSecurityPolicy contentSecurityPolicy;
+
+    /** Customizer under test. */
+    @InjectMocks
+    private LoginHeadersCustomizer customizer;
 
     /**
-     * Verifies that the policy, content type options and referrer policy are configured.
+     * Verifies that the policy built from the branding, the content type options and the referrer policy are
+     * configured.
      */
     @Test
     @SuppressWarnings("unchecked")
     void customize_whenApplied_configuresPolicyContentTypeOptionsAndReferrerPolicy() {
+        when(contentSecurityPolicy.policy()).thenReturn(POLICY);
         final var http = mock(HttpSecurity.class);
         final var headers = mock(HeadersConfigurer.class);
         final var csp = mock(HeadersConfigurer.ContentSecurityPolicyConfig.class);
@@ -55,14 +63,14 @@ class LoginHeadersCustomizerTest {
         final var headersCaptor = ArgumentCaptor.<Customizer<HeadersConfigurer<HttpSecurity>>>captor();
         when(http.headers(headersCaptor.capture())).thenReturn(http);
 
-        new LoginHeadersCustomizer().customize(http);
+        customizer.customize(http);
         headersCaptor.getValue().customize(headers);
 
         final var cspCaptor = ArgumentCaptor
                 .<Customizer<HeadersConfigurer.ContentSecurityPolicyConfig>>captor();
         verify(headers).contentSecurityPolicy(cspCaptor.capture());
         cspCaptor.getValue().customize(csp);
-        verify(csp).policyDirectives(LoginHeadersCustomizer.CONTENT_SECURITY_POLICY);
+        verify(csp).policyDirectives(POLICY);
 
         verify(headers).contentTypeOptions(any());
 

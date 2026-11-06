@@ -15,7 +15,10 @@
 # Contract of the JSON API the BFF offers its browser front end (version 1). This file is the source of truth: the
 # Spring interface and DTO implemented by bff/api/web are generated from it by openapi-generator, and
 # OpenApiDriftIT fails when the running application serves an operation or a status code this file does not
-# declare. The OAuth 2.0 login endpoints (/oauth2/**, /login/**) belong to Spring Security and are not part of it.
+# declare. The endpoints Spring Security answers itself are not part of it: the OAuth 2.0 login endpoints (/oauth2/**,
+# /login/**) and POST /bff/logout, which its logout filter handles. The SPA submits a form there (the CSRF token as the
+# _csrf parameter); the BFF ends its session and answers 302 to the RP-initiated logout (end_session_endpoint) of the
+# authorization server, so the id_token_hint of that URL is only seen by a top-level navigation, never by a script.
 openapi: 3.1.0
 info:
   title: Irurueta BFF API
@@ -50,8 +53,6 @@ tags:
     description: The user signed in to the BFF session
   - name: Login
     description: Starts the OpenID Connect login against the authorization server
-  - name: Logout
-    description: Ends the BFF session and the single sign-on session of the authorization server
 paths:
   # tag::bff-user-api[]
   /bff/user:
@@ -109,31 +110,6 @@ paths:
         '400':
           description: returnTo is not an allowed relative path
   # end::bff-login-api[]
-  # tag::bff-logout-api[]
-  /bff/logout:
-    post:
-      tags: [ Logout ]
-      operationId: logout
-      summary: Ends the session
-      description: >-
-        Invalidates the BFF session and answers the RP-initiated logout URL of the authorization server, which ends
-        its single sign-on session and sends the browser back to the root of the application. The SPA navigates to the
-        returned URL. The request must carry the CSRF token (see the csrf security scheme).
-      security:
-        - session: [ ]
-          csrf: [ ]
-      responses:
-        '200':
-          description: The session has ended
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogoutResponse'
-        '401':
-          description: There is no signed-in user
-        '403':
-          description: The CSRF token is missing or invalid
-  # end::bff-logout-api[]
 components:
   securitySchemes:
     session:
@@ -149,8 +125,9 @@ components:
       in: header
       name: X-XSRF-TOKEN
       description: >-
-        CSRF protection of every state-changing request. The BFF sets the XSRF-TOKEN cookie, readable by the SPA
-        (not HttpOnly); the SPA copies its value into this header.
+        CSRF protection of every state-changing request, the relayed /api/** calls included. The BFF sets the
+        XSRF-TOKEN cookie, readable by the SPA (not HttpOnly); the SPA copies its value into this header (or, for the
+        sign-out form, which is outside this contract, into the _csrf form parameter).
   schemas:
     SessionUserResponse:
       type: object
@@ -179,15 +156,3 @@ components:
             type: string
           examples:
             - [ ROLE_USER ]
-    LogoutResponse:
-      type: object
-      description: Where to send the browser to finish the logout
-      required: [ logoutUrl ]
-      properties:
-        logoutUrl:
-          type: string
-          description: >-
-            RP-initiated logout URL of the authorization server (with id_token_hint and post_logout_redirect_uri), or
-            the root of the application when the server does not advertise an end session endpoint.
-          examples:
-            - http://localhost:9000/connect/logout?id_token_hint=abc&post_logout_redirect_uri=http://localhost:8080/

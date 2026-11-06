@@ -166,6 +166,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>bff-infrastructure-session</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>bff-api-web</artifactId>
         <version>${project.version}</version>
       </dependency>

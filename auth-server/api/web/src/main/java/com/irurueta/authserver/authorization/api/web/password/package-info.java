@@ -15,7 +15,7 @@
  */
 
 /**
- * Web adapter of the password-based sign-in: the Spring Security user details service over the use case, and the
- * password encoder.
+ * Web adapter of the password-based sign-in: the Spring Security user details service over the use case, the
+ * password encoder and the authentication provider, which checks the account status only after the password.
  */
 package com.irurueta.authserver.authorization.api.web.password;

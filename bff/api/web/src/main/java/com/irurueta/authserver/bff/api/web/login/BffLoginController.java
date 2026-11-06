@@ -22,7 +22,7 @@ import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -40,12 +40,6 @@ public class BffLoginController implements LoginApi {
     /** Authorization request endpoint of the {@code bff} registration. */
     static final String AUTHORIZATION_PATH = "/oauth2/authorization/bff";
 
-    /**
-     * Session attribute where {@code HttpSessionRequestCache} keeps the saved request (the constant of that class is
-     * not public); the success handler of the OAuth2 login reads it and redirects there.
-     */
-    static final String SAVED_REQUEST_ATTRIBUTE = "SPRING_SECURITY_SAVED_REQUEST";
-
     /** Decides which {@code returnTo} values are safe. */
     private final ReturnToValidator returnToValidator;
 
@@ -54,8 +48,8 @@ public class BffLoginController implements LoginApi {
 
     // tag::bff-login[]
     /**
-     * Validates {@code returnTo}, stores it as the saved request of the session, so that the success handler of the
-     * OAuth2 login sends the browser there, and redirects to the authorization request.
+     * Validates {@code returnTo}, keeps it in the session for {@link ReturnToAuthenticationSuccessHandler}, which sends
+     * the browser there once the OAuth2 login succeeds, and redirects to the authorization request.
      *
      * @param returnTo relative path to return to after the login; the root of the application when absent.
      * @return a redirect to the authorization request.
@@ -63,36 +57,12 @@ public class BffLoginController implements LoginApi {
      */
     @Override
     public ResponseEntity<Void> login(final String returnTo) {
-        final var target = returnTo == null || returnTo.isBlank() ? DEFAULT_RETURN_TO : returnTo;
+        final var target = StringUtils.hasText(returnTo) ? returnTo : DEFAULT_RETURN_TO;
         if (!returnToValidator.isAllowed(target)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "returnTo is not an allowed relative path");
         }
-        request.getSession().setAttribute(SAVED_REQUEST_ATTRIBUTE, savedRequest(target));
+        request.getSession().setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE, target);
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(AUTHORIZATION_PATH)).build();
     }
     // end::bff-login[]
-
-    /**
-     * Builds the saved request pointing to {@code target} on the host the browser used to reach the BFF.
-     *
-     * @param target an allowed relative path, with an optional query string.
-     * @return the saved request.
-     */
-    private DefaultSavedRequest savedRequest(final String target) {
-        final var fragment = target.indexOf('#');
-        final var withoutFragment = fragment >= 0 ? target.substring(0, fragment) : target;
-        final var query = withoutFragment.indexOf('?');
-        final var builder = new DefaultSavedRequest.Builder()
-                .setScheme(request.getScheme())
-                .setServerName(request.getServerName())
-                .setServerPort(request.getServerPort())
-                .setMethod("GET");
-        if (query >= 0) {
-            builder.setRequestURI(withoutFragment.substring(0, query))
-                    .setQueryString(withoutFragment.substring(query + 1));
-        } else {
-            builder.setRequestURI(withoutFragment);
-        }
-        return builder.build();
-    }
 }

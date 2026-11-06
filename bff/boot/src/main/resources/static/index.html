@@ -31,6 +31,14 @@
     <p id="error" class="error" role="alert" aria-live="assertive" hidden></p>
     <p id="retry" hidden><a href="/bff/login?returnTo=%2F">Try signing in again</a></p>
 
+    <section id="signed-out" aria-labelledby="signed-out-heading" hidden>
+        <h2 id="signed-out-heading">You are signed out</h2>
+        <p>Sign in to see your profile and your documents.</p>
+        <div class="actions">
+            <button type="button" id="sign-in">Sign in</button>
+        </div>
+    </section>
+
     <section id="profile" aria-labelledby="profile-heading" hidden>
         <h2 id="profile-heading">Your profile</h2>
         <dl>

@@ -38,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,6 +117,33 @@ class ApiRelayIT {
         assertFalse(result.getHeaders("Set-Cookie").stream().anyMatch(value -> value.contains("upstream")));
         assertNull(result.getHeader("Authorization"));
         assertFalse(result.getContentAsString().contains(ACCESS_TOKEN));
+    }
+
+    /**
+     * Verifies that the security and caching headers of the resource server do not reach the browser next to the
+     * BFF's own: each of them is sent once, with the BFF's value.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void relay_whenResourceServerSendsSecurityHeaders_returnsOnlyTheBffValues() throws Exception {
+        server.expect(requestTo(TARGET + "/api/documents"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON)
+                        .header("Cache-Control", "max-age=3600")
+                        .header("X-Frame-Options", "SAMEORIGIN")
+                        .header("Content-Security-Policy", "default-src *")
+                        .header("X-Content-Type-Options", "upstream"));
+
+        final var result = mockMvc.perform(get("/api/documents").with(oidcLogin()).with(signedInClient()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse();
+
+        server.verify();
+        assertEquals(List.of("no-cache, no-store, max-age=0, must-revalidate"), result.getHeaders("Cache-Control"));
+        assertEquals(List.of("DENY"), result.getHeaders("X-Frame-Options"));
+        assertEquals(List.of("default-src 'self'; frame-ancestors 'none'"),
+                result.getHeaders("Content-Security-Policy"));
+        assertEquals(List.of("nosniff"), result.getHeaders("X-Content-Type-Options"));
     }
 
     /**

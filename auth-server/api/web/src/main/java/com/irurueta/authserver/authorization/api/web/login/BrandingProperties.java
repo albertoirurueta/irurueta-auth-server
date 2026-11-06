@@ -23,7 +23,9 @@ import org.springframework.util.StringUtils;
  * Branding shown by the login, consent, logout and error pages, bound from {@code authserver.ui.branding.*}.
  *
  * @param applicationName name shown in the page header and title; defaults to {@link #DEFAULT_APPLICATION_NAME}.
- * @param logoUrl         optional URL of a logo image served by this application; empty when there is none.
+ * @param logoUrl         optional URL of a logo image: a path served by this application, or an absolute
+ *                        {@code http(s)} URL whose origin the content security policy then allows for images; empty
+ *                        when there is none.
  * @param footerText      optional text shown below every page; empty when there is none.
  */
 @ConfigurationProperties("authserver.ui.branding")

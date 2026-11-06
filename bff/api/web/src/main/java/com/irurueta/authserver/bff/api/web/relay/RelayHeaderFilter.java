@@ -27,7 +27,12 @@ import org.springframework.stereotype.Component;
  * Decides which headers cross the relay. Inbound, only the headers of an allow-list are forwarded, so the session
  * {@code Cookie}, the {@code Authorization} header and the CSRF headers of the browser never reach the resource
  * server. Outbound, every header is forwarded except {@code Set-Cookie} (the resource server must not set cookies on
- * the BFF origin), {@code WWW-Authenticate} (the bearer token is an internal matter) and the hop-by-hop headers.
+ * the BFF origin), {@code WWW-Authenticate} (the bearer token is an internal matter), the hop-by-hop headers and the
+ * security and caching headers that the BFF's own {@code HeaderWriterFilter} writes ({@code Cache-Control},
+ * {@code Pragma}, {@code Expires}, {@code X-Content-Type-Options}, {@code X-Frame-Options}, {@code X-XSS-Protection},
+ * {@code Content-Security-Policy}, {@code Strict-Transport-Security} and {@code Referrer-Policy}): the browser talks to
+ * the BFF origin, so the BFF's values are the ones that apply, and copying the resource server's would send each of
+ * these headers twice.
  */
 @Component
 public class RelayHeaderFilter {
@@ -39,7 +44,9 @@ public class RelayHeaderFilter {
     /** Lower-case names of the response headers that are never returned to the browser. */
     private static final Set<String> BLOCKED_RESPONSE_HEADERS = Set.of("set-cookie", "set-cookie2",
             "www-authenticate", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te",
-            "trailer", "transfer-encoding", "upgrade");
+            "trailer", "transfer-encoding", "upgrade", "cache-control", "pragma", "expires", "x-content-type-options",
+            "x-frame-options", "x-xss-protection", "content-security-policy", "strict-transport-security",
+            "referrer-policy");
 
     /**
      * Copies the allowed headers of the inbound request.

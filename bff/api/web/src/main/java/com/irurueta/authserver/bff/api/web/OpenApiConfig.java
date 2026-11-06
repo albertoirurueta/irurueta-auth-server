@@ -41,10 +41,10 @@ public class OpenApiConfig {
     /** Name of the session-cookie security scheme the contract's operations refer to. */
     public static final String SESSION_SCHEME = "session";
 
-    /** Name of the CSRF security scheme the contract's state-changing operations refer to. */
+    /** Name of the CSRF security scheme, which protects every state-changing request (the relayed ones included). */
     public static final String CSRF_SCHEME = "csrf";
 
-    /** Name of the session cookie (set by {@code SessionConfiguration} in the boot module). */
+    /** Name of the session cookie (set by {@code SessionConfiguration} of {@code bff/infrastructure/session}). */
     static final String SESSION_COOKIE = "__Host-SESSION";
 
     /** Name of the header carrying the CSRF token. */

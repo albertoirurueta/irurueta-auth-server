@@ -45,8 +45,9 @@ Each application is a Maven sub-reactor split into modules by hexagonal layer. T
 |Business logic: it only wires beans, holds `application*.yml` and the integration tests
 |===
 
-A layer is only created once it has code: `bff` has no `application` or `infrastructure` module yet (its `api/web` holds the security, login, logout and relay
-adapters, and its `boot` the session configuration and the SPA),
+A layer is only created once it has code: `bff` has `api/web` (the security, login, logout and relay adapters),
+`infrastructure/session` (the Spring Session JDBC store, its cookie and its Flyway migration) and `boot` (the SPA), and no
+`domain` or `application` module because it has no use case yet,
 `resource-server` has `domain`, `application`, `infrastructure/memory` and `api/web`, and
 `service-client` is a single `boot` module. A port is an interface in `domain` (for example `UserAccountRepository`);
 its implementation lives in an `infrastructure/*` adapter. Domain models are never returned from a controller: the
@@ -135,8 +136,9 @@ include::example$auth-server/infrastructure/mail/src/main/java/com/irurueta/auth
 
 The `bff` is an `oauth2Login()` client using the authorization code grant with PKCE. It keeps the user's tokens in a
 server-side session (Spring Session JDBC, cookie `__Host-SESSION`), protects state-changing requests with CSRF
-(`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header), serves the SPA, exposes `GET /bff/user`, `GET /bff/login` and
-`POST /bff/logout`, and relays `/api/**` calls to the resource server with the access token of the user. It is described
+(`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header or `_csrf` form parameter), serves the SPA, exposes `GET /bff/user` and
+`GET /bff/login`, lets Spring Security's logout filter answer `POST /bff/logout` with a redirect to the RP-initiated
+logout of the authorization server, and relays `/api/**` calls to the resource server with the access token of the user. It is described
 in xref:login-and-bff.adoc[].
 
 [source,java]

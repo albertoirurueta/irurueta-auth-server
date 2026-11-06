@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.bff.dev;
+package com.irurueta.authserver.bff.infrastructure.session.dev;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -33,12 +33,12 @@ class BffDevDatabaseTest {
     private final BffDevDatabase postProcessor = new BffDevDatabase();
 
     /**
-     * Verifies that the connection details of Docker Compose are redirected to the {@code bff} database, keeping the
-     * rest of the URL and the credentials.
+     * Verifies that the connection details (under the {@code dev} profile, the ones of Docker Compose) are redirected
+     * to the {@code bff} database, keeping the rest of the URL and the credentials.
      */
     @Test
-    void postProcessBeforeInitialization_whenDetailsComeFromCompose_targetsBffDatabase() {
-        final var compose = mock(DockerComposeJdbcConnectionDetails.class);
+    void postProcessBeforeInitialization_whenBeanIsJdbcConnectionDetails_targetsBffDatabase() {
+        final var compose = mock(JdbcConnectionDetails.class);
         when(compose.getJdbcUrl()).thenReturn("jdbc:postgresql://localhost:49153/authserver?ssl=false");
         when(compose.getUsername()).thenReturn("user");
         when(compose.getPassword()).thenReturn("secret-from-compose");
@@ -57,7 +57,7 @@ class BffDevDatabaseTest {
      */
     @Test
     void postProcessBeforeInitialization_whenUrlHasNoQuery_targetsBffDatabase() {
-        final var compose = mock(DockerComposeJdbcConnectionDetails.class);
+        final var compose = mock(JdbcConnectionDetails.class);
         when(compose.getJdbcUrl()).thenReturn("jdbc:postgresql://localhost:5432/authserver");
 
         final var result = (JdbcConnectionDetails) postProcessor.postProcessBeforeInitialization(compose, "details");
@@ -66,18 +66,12 @@ class BffDevDatabaseTest {
     }
 
     /**
-     * Verifies that details not supplied by Compose, and other beans, are left untouched.
+     * Verifies that a bean other than connection details is left untouched.
      */
     @Test
-    void postProcessBeforeInitialization_whenDetailsAreExplicitOrBeanIsOther_returnsSameBean() {
-        final var explicit = mock(JdbcConnectionDetails.class);
+    void postProcessBeforeInitialization_whenBeanIsNotJdbcConnectionDetails_returnsSameBean() {
         final var other = new Object();
 
-        assertSame(explicit, postProcessor.postProcessBeforeInitialization(explicit, "details"));
         assertSame(other, postProcessor.postProcessBeforeInitialization(other, "other"));
-    }
-
-    /** Stand-in for the class Spring Boot's Docker Compose support registers (its name is what is recognised). */
-    interface DockerComposeJdbcConnectionDetails extends JdbcConnectionDetails {
     }
 }

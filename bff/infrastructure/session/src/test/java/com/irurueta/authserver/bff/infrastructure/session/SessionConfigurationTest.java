@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.bff.session;
+package com.irurueta.authserver.bff.infrastructure.session;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

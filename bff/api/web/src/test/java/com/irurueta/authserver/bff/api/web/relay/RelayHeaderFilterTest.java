@@ -21,7 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -98,5 +101,33 @@ class RelayHeaderFilterTest {
         assertEquals("application/json", response.getContentType());
         assertEquals(List.of("1", "2"), response.getHeaders("X-Total"));
         assertFalse(response.getHeaderNames().contains("Set-Cookie"));
+    }
+
+    /**
+     * Verifies that a security or caching header the BFF writes itself is not copied from the resource server, so the
+     * browser gets the BFF's value only once, whatever the case of the upstream name.
+     *
+     * @param name the name of the header, as the resource server sent it.
+     */
+    @ParameterizedTest
+    @MethodSource("securityHeaders")
+    void copyResponseHeaders_whenHeaderIsWrittenByTheBff_dropsIt(final String name) {
+        final var source = new HttpHeaders();
+        source.add(name, "upstream-value");
+        final var response = new MockHttpServletResponse();
+
+        filter.copyResponseHeaders(source, response);
+
+        assertTrue(response.getHeaderNames().isEmpty(), name);
+    }
+
+    /**
+     * Provides the security and caching headers that the BFF's own header writer sets, in mixed case.
+     *
+     * @return the header names.
+     */
+    private static Stream<String> securityHeaders() {
+        return Stream.of("Cache-Control", "Pragma", "Expires", "X-Content-Type-Options", "X-Frame-Options",
+                "X-XSS-Protection", "Content-Security-Policy", "Strict-Transport-Security", "REFERRER-POLICY");
     }
 }

@@ -47,8 +47,8 @@ under `/api/**`), from which the interfaces and DTOs of `auth-server/api/web` ar
 its own drift test.
 
 |{pages-url}/openapi/bff-api-v1.yaml[API contract of `bff`], {pages-url}/openapi/bff/v1/index.html[HTML]
-|The OpenAPI contract of the BFF's endpoints (`/bff/user`, `/bff/login`, `/bff/logout` and the `/api/**` relay), generated
-into `bff/api/web` and guarded by its own drift test. The behaviour is described in xref:login-and-bff.adoc[].
+|The OpenAPI contract of the BFF's endpoints (`/bff/user`, `/bff/login` and the `/api/**` relay; `POST /bff/logout` is
+answered by Spring Security and is not part of it), generated into `bff/api/web` and guarded by its own drift test. The behaviour is described in xref:login-and-bff.adoc[].
 
 |{mvn-site}/index.html[Maven Site]
 |Aggregation of the project reports and project information of every module (*Modules* menu).

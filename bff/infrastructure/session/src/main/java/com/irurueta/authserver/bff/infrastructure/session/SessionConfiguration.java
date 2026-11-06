@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package com.irurueta.authserver.bff.session;
+package com.irurueta.authserver.bff.infrastructure.session;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 /**
- * Stores the HTTP session of the BFF in PostgreSQL (Spring Session JDBC, table {@code spring_session} owned by the
- * Flyway migration {@code V300}) and names its cookie with the {@code __Host-} prefix.
+ * Names the cookie of the HTTP session of the BFF with the {@code __Host-} prefix. The session itself is stored in
+ * PostgreSQL by Spring Session JDBC (table {@code spring_session}, owned by the Flyway migration {@code V300} of this
+ * module), which Spring Boot auto-configures from {@code spring-boot-starter-session-jdbc}.
  *
- * <p>This is composition-root wiring: it lives in {@code boot} because {@code spring-jdbc} is banned from
- * {@code api/web} by the enforcer rule of that module. The session holds the OAuth2 tokens of the user (the authorized
- * client), which therefore never reach the browser; the cookie is only a handle to them.
+ * <p>There is deliberately no {@code @EnableJdbcHttpSession}: that annotation switches Spring Boot's session
+ * auto-configuration off, and with it every {@code spring.session.*} property (for example
+ * {@code spring.session.jdbc.initialize-schema: never}, which keeps the schema in Flyway's hands, or
+ * {@code spring.session.timeout}). The session holds the OAuth2 tokens of the user (the authorized client), which
+ * therefore never reach the browser; the cookie is only a handle to them.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableJdbcHttpSession
 public class SessionConfiguration {
 
     /** Name of the session cookie; the {@code __Host-} prefix makes browsers require Secure, Path=/ and no Domain. */

@@ -16,7 +16,7 @@
 
 // tag::bff-spa-js[]
 const XSRF_COOKIE = 'XSRF-TOKEN';
-const XSRF_HEADER = 'X-XSRF-TOKEN';
+const XSRF_PARAMETER = '_csrf';
 
 /**
  * Finds an element of the page by its id.
@@ -58,6 +58,17 @@ const login = () => {
 };
 
 /**
+ * Shows the signed-out state, with the button that starts the sign-in. Nothing is started automatically: right after a
+ * sign-out the authorization server sends the browser back here, and an automatic redirect would sign it in again.
+ */
+const showSignedOut = () => {
+    element('status').textContent = 'You are signed out.';
+    element('profile').hidden = true;
+    element('documents').hidden = true;
+    element('signed-out').hidden = false;
+};
+
+/**
  * Fills the profile card with the signed-in user.
  *
  * @param {{subject: string, name: string, email: string, roles: string[]}} user the user of the session.
@@ -90,12 +101,12 @@ const showDocuments = (documents) => {
 };
 
 /**
- * Asks the BFF for the user of the session, and goes to the login when there is none.
+ * Asks the BFF for the user of the session, and shows the signed-out state when there is none.
  */
 const loadUser = async () => {
     const response = await fetch('/bff/user', {credentials: 'same-origin', headers: {Accept: 'application/json'}});
     if (response.status === 401) {
-        login();
+        showSignedOut();
         return;
     }
     if (!response.ok) {
@@ -105,7 +116,8 @@ const loadUser = async () => {
 };
 
 /**
- * Loads the documents through the BFF, which relays the call with the access token of the user.
+ * Loads the documents through the BFF, which relays the call with the access token of the user. A 401 here means the
+ * session of a signed-in user has ended (or its token could not be renewed), so the sign-in starts again.
  */
 const loadDocuments = async () => {
     showError('');
@@ -121,20 +133,23 @@ const loadDocuments = async () => {
 };
 
 /**
- * Ends the session and follows the logout URL the BFF returns.
+ * Signs out with a top-level form POST, so that the browser itself follows the redirect of the BFF to the logout of the
+ * authorization server: that URL carries the ID token hint, which a script must never read. A form cannot send a
+ * header, so the CSRF token travels as the _csrf parameter.
  */
-const signOut = async () => {
+const signOut = () => {
     showError('');
-    const response = await fetch('/bff/logout', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {Accept: 'application/json', [XSRF_HEADER]: readCookie(XSRF_COOKIE)},
-    });
-    if (!response.ok) {
-        throw new Error(`Signing out failed (${response.status}).`);
-    }
-    const {logoutUrl} = await response.json();
-    window.location.assign(logoutUrl);
+    const form = window.document.createElement('form');
+    form.method = 'post';
+    form.action = '/bff/logout';
+    form.hidden = true;
+    const token = window.document.createElement('input');
+    token.type = 'hidden';
+    token.name = XSRF_PARAMETER;
+    token.value = readCookie(XSRF_COOKIE);
+    form.append(token);
+    window.document.body.append(form);
+    form.submit();
 };
 
 /**
@@ -156,8 +171,10 @@ const run = async (button, action) => {
 
 const loadButton = element('load-documents');
 const signOutButton = element('sign-out');
+const signInButton = element('sign-in');
 loadButton.addEventListener('click', () => run(loadButton, loadDocuments));
-signOutButton.addEventListener('click', () => run(signOutButton, signOut));
+signOutButton.addEventListener('click', () => run(signOutButton, async () => signOut()));
+signInButton.addEventListener('click', login);
 
 // The heading takes the focus so a screen reader starts reading from the top of the page.
 element('main-heading').focus();

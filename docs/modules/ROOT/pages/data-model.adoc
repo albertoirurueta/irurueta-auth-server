@@ -56,7 +56,7 @@ of `oauth2_authorization`.
 
 The `bff` has its own PostgreSQL database (`bff`, created by `compose/init-databases.sql` in development), separate from
 the one of `auth-server`. Its single Flyway migration, `V300__spring_session.sql` in
-`bff/boot/src/main/resources/db/migration`, creates the Spring Session JDBC tables `spring_session` (one row per browser
+`bff/infrastructure/session/src/main/resources/db/migration`, creates the Spring Session JDBC tables `spring_session` (one row per browser
 session) and `spring_session_attributes` (the serialized session attributes, among them the authorized OAuth2 client with
 the user's tokens). Spring Session never creates them (`initialize-schema: never`). The schema and its use are described
 in xref:login-and-bff.adoc[].

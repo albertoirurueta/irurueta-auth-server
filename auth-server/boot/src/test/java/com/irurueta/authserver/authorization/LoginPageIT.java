@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
 import com.irurueta.authserver.authorization.api.web.login.BrandingConfiguration;
+import com.irurueta.authserver.authorization.api.web.login.LoginContentSecurityPolicy;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
 import com.irurueta.authserver.authorization.api.web.login.LoginErrorMessages;
 import com.irurueta.authserver.authorization.api.web.login.LoginHeadersCustomizer;
@@ -58,9 +59,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginStaticResourcesCustomizer.class,
-        LoginErrorMessages.class, PasswordLoginFragment.class, BrandingConfiguration.class,
-        SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginContentSecurityPolicy.class,
+        LoginStaticResourcesCustomizer.class, LoginErrorMessages.class, PasswordLoginFragment.class,
+        BrandingConfiguration.class, SecurityConfigIT.TestBeans.class})
 class LoginPageIT {
 
     /** Username of the in-memory user of the slice. */

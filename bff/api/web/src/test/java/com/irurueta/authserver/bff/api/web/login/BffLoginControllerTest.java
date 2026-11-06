@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -29,12 +28,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -43,11 +40,8 @@ import org.springframework.web.server.ResponseStatusException;
 @ExtendWith(MockitoExtension.class)
 class BffLoginControllerTest {
 
-    /** Port the browser used. */
-    private static final int PORT = 8443;
-
-    /** Default HTTP port. */
-    private static final int HTTP_PORT = 80;
+    /** An allowed path with a query string and a fragment. */
+    private static final String RETURN_TO = "/orders?x=1#top";
 
     /** Validator of the {@code returnTo} values. */
     @Mock
@@ -66,45 +60,19 @@ class BffLoginControllerTest {
     private BffLoginController controller;
 
     /**
-     * Verifies that an allowed path is saved as the request to resume and the browser is sent to the authorization
-     * request.
+     * Verifies that an allowed path is kept in the session under the attribute of the BFF and the browser is sent to
+     * the authorization request.
      */
     @Test
-    void login_whenReturnToIsAllowed_savesRequestAndRedirects() {
-        when(returnToValidator.isAllowed("/orders?x=1#top")).thenReturn(true);
+    void login_whenReturnToIsAllowed_keepsItInTheSessionAndRedirects() {
+        when(returnToValidator.isAllowed(RETURN_TO)).thenReturn(true);
         when(request.getSession()).thenReturn(session);
-        when(request.getScheme()).thenReturn("https");
-        when(request.getServerName()).thenReturn("app.example");
-        when(request.getServerPort()).thenReturn(PORT);
 
-        final var response = controller.login("/orders?x=1#top");
+        final var response = controller.login(RETURN_TO);
 
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         assertEquals(BffLoginController.AUTHORIZATION_PATH, response.getHeaders().getLocation().toString());
-        final var captor = ArgumentCaptor.<Object>captor();
-        verify(session).setAttribute(eq(BffLoginController.SAVED_REQUEST_ATTRIBUTE),
-                captor.capture());
-        final var saved = (DefaultSavedRequest) captor.getValue();
-        assertEquals("https://app.example:8443/orders?x=1", saved.getRedirectUrl());
-    }
-
-    /**
-     * Verifies that a path without query string is saved as is.
-     */
-    @Test
-    void login_whenReturnToHasNoQuery_savesThePath() {
-        when(returnToValidator.isAllowed("/orders/1")).thenReturn(true);
-        when(request.getSession()).thenReturn(session);
-        when(request.getScheme()).thenReturn("http");
-        when(request.getServerName()).thenReturn("localhost");
-        when(request.getServerPort()).thenReturn(HTTP_PORT);
-
-        controller.login("/orders/1");
-
-        final var captor = ArgumentCaptor.<Object>captor();
-        verify(session).setAttribute(eq(BffLoginController.SAVED_REQUEST_ATTRIBUTE),
-                captor.capture());
-        assertEquals("http://localhost/orders/1", ((DefaultSavedRequest) captor.getValue()).getRedirectUrl());
+        verify(session).setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE, RETURN_TO);
     }
 
     /**
@@ -114,18 +82,30 @@ class BffLoginControllerTest {
     void login_whenReturnToIsMissing_returnsToRoot() {
         when(returnToValidator.isAllowed(BffLoginController.DEFAULT_RETURN_TO)).thenReturn(true);
         when(request.getSession()).thenReturn(session);
-        when(request.getScheme()).thenReturn("http");
-        when(request.getServerName()).thenReturn("localhost");
-        when(request.getServerPort()).thenReturn(HTTP_PORT);
 
         final var response = controller.login(null);
 
         assertTrue(response.getStatusCode().is3xxRedirection());
-        verify(returnToValidator).isAllowed("/");
+        verify(session).setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE,
+                BffLoginController.DEFAULT_RETURN_TO);
     }
 
     /**
-     * Verifies that a rejected {@code returnTo} answers 400 and saves nothing.
+     * Verifies that a blank {@code returnTo} returns to the root of the application.
+     */
+    @Test
+    void login_whenReturnToIsBlank_returnsToRoot() {
+        when(returnToValidator.isAllowed(BffLoginController.DEFAULT_RETURN_TO)).thenReturn(true);
+        when(request.getSession()).thenReturn(session);
+
+        controller.login("  ");
+
+        verify(session).setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE,
+                BffLoginController.DEFAULT_RETURN_TO);
+    }
+
+    /**
+     * Verifies that a rejected {@code returnTo} answers 400 and keeps nothing.
      */
     @Test
     void login_whenReturnToIsRejected_throwsBadRequest() {

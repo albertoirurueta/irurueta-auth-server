@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
+import com.irurueta.authserver.authorization.api.web.login.LoginContentSecurityPolicy;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
 import com.irurueta.authserver.authorization.api.web.login.LoginErrorMessages;
 import com.irurueta.authserver.authorization.api.web.login.LoginHeadersCustomizer;
@@ -77,8 +78,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * by Mockito mocks. It is an integration test because it starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginStaticResourcesCustomizer.class,
-        LoginErrorMessages.class, SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginContentSecurityPolicy.class,
+        LoginStaticResourcesCustomizer.class, LoginErrorMessages.class, SecurityConfigIT.TestBeans.class})
 class SecurityConfigIT {
 
     /** Username of the in-memory test user. */
@@ -172,7 +173,7 @@ class SecurityConfigIT {
     @Test
     void login_whenRequested_carriesSecurityHeaders() throws Exception {
         mockMvc.perform(get("/login"))
-                .andExpect(header().string("Content-Security-Policy", LoginHeadersCustomizer.CONTENT_SECURITY_POLICY))
+                .andExpect(header().string("Content-Security-Policy", LoginContentSecurityPolicy.DEFAULT_POLICY))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("Referrer-Policy", "no-referrer"));
     }

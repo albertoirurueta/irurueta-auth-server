@@ -40,6 +40,13 @@ spring:
 server:
   port: 9000
 
+logging:
+  level:
+    # The password sign-in uses its own DaoAuthenticationProvider bean (PasswordAuthenticationConfiguration, which
+    # checks the account status only after the password); Spring Security warns at startup that the
+    # UserDetailsService bean is then not used to build one, which is exactly the intent.
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
+
 management:
   endpoints:
     web:

@@ -42,6 +42,15 @@ section {
     border-radius: 0.5rem;
 }
 
+section h2 {
+    margin-top: 0;
+}
+
+/* The signed-out state: a short explanation and the Sign in button, which never starts by itself. */
+#signed-out p {
+    margin: 0 0 1rem;
+}
+
 dt {
     font-weight: 600;
 }

@@ -22,16 +22,21 @@ import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInit
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 
 /**
- * Wires the OpenID Connect RP-initiated logout of the BFF.
+ * Wires the OpenID Connect RP-initiated logout of the BFF. The handler is applied by the logout of the security
+ * filter chain ({@code POST /bff/logout}), which redirects the browser to the URL it builds.
  */
 @Configuration(proxyBeanMethods = false)
 public class LogoutConfiguration {
 
+    /** Where the authorization server sends the browser back after the logout: the root of the SPA. */
+    static final String POST_LOGOUT_REDIRECT_URI = "{baseUrl}/";
+
     // tag::bff-logout-handler[]
     /**
-     * Builds the handler that composes the logout URL of the authorization server (its {@code end_session_endpoint},
-     * with {@code id_token_hint} and {@code post_logout_redirect_uri}). It is used through
-     * {@link UrlCapturingRedirectStrategy}, so the URL is returned to the SPA instead of being redirected to.
+     * Builds the handler that redirects the browser to the logout URL of the authorization server (its
+     * {@code end_session_endpoint}, with {@code id_token_hint} and {@code post_logout_redirect_uri}), with the default
+     * redirect strategy: the answer to {@code POST /bff/logout} is a {@code 302} that the browser follows as a
+     * top-level navigation, so no script ever reads the ID token the URL carries.
      *
      * @param clientRepository the registered OAuth2 clients.
      * @return the logout success handler.
@@ -40,8 +45,7 @@ public class LogoutConfiguration {
     OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(
             final ClientRegistrationRepository clientRepository) {
         final var handler = new OidcClientInitiatedLogoutSuccessHandler(clientRepository);
-        handler.setPostLogoutRedirectUri("{baseUrl}/");
-        handler.setRedirectStrategy(new UrlCapturingRedirectStrategy());
+        handler.setPostLogoutRedirectUri(POST_LOGOUT_REDIRECT_URI);
         return handler;
     }
     // end::bff-logout-handler[]

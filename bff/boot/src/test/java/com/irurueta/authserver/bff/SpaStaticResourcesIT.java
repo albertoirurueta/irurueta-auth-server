@@ -66,6 +66,33 @@ class SpaStaticResourcesIT {
     }
 
     /**
+     * Verifies that the page carries the hidden signed-out state, with a Sign in button, that the script shows instead
+     * of starting the sign-in by itself.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void index_whenRequested_hasSignedOutStateWithSignInButton() throws Exception {
+        mockMvc.perform(get("/index.html"))
+                .andExpect(content().string(containsString("<section id=\"signed-out\"")))
+                .andExpect(content().string(containsString("<button type=\"button\" id=\"sign-in\">Sign in</button>")));
+    }
+
+    /**
+     * Verifies that the script signs out with a form POST carrying the CSRF token as a parameter, and never reads a
+     * logout URL from a response body.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void appScript_whenRequested_signsOutWithAFormPost() throws Exception {
+        mockMvc.perform(get("/assets/app.js"))
+                .andExpect(content().string(containsString("form.action = '/bff/logout'")))
+                .andExpect(content().string(containsString("'_csrf'")))
+                .andExpect(content().string(not(containsString("logoutUrl"))));
+    }
+
+    /**
      * Verifies that the root path serves the page to an anonymous visitor.
      *
      * @throws Exception if the request cannot be performed.
