@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.WebAttributes;
 
 /**
@@ -72,6 +75,28 @@ class SecondFactorControllerTest {
     @BeforeEach
     void setUp() {
         request = new MockHttpServletRequest();
+    }
+
+    /**
+     * Clears the security context.
+     */
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    /**
+     * Verifies that the model attributes each fragment contributes for the signed-in user reach the page.
+     */
+    @Test
+    void secondFactorPage_whenFragmentsContributeAttributes_addsThemToTheModel() {
+        final var user = UsernamePasswordAuthenticationToken.authenticated("alice", null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(user);
+        when(first.modelAttributes(user)).thenReturn(Map.of("totpEnrolment", true));
+
+        controller(List.of(first)).secondFactorPage(null);
+
+        assertEquals(Boolean.TRUE, renderedModel().get("totpEnrolment"));
     }
 
     /**

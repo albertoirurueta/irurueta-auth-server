@@ -23,8 +23,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::mfa-user-required[]
 /**
- * Use case that tells whether the account of a user requires a second factor, whatever the client being served.
+ * Use case that tells whether the account of a user requires a second factor, whatever the client being served: when
+ * an administrator forced it ({@code users.mfa_required}) or when the user has confirmed a second factor (asked to
+ * {@link HasConfirmedSecondFactorUseCase}), since a factor the user enrolled must protect every sign-in. The two
+ * stay separate: removing the last second factor lifts the second, never the first.
  */
 @Service
 @Transactional(readOnly = true)
@@ -37,16 +41,21 @@ public class IsUserMfaRequiredUseCase {
     /** Port that stores the per-user multi-factor settings. */
     private final UserMfaSettingsRepository userMfaSettingsRepository;
 
+    /** Use case that tells whether the user has confirmed a second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
     /**
      * Tells whether an account requires a second factor.
      *
      * @param username name the user signs in with.
-     * @return {@code true} when the account exists and requires it; {@code false} when it does not or does not exist.
+     * @return {@code true} when the account exists and either an administrator requires it or the user has a
+     *         confirmed second factor; {@code false} otherwise, or when the account does not exist.
      */
     public boolean execute(final String username) {
         return userAccountRepository.findByUsername(username)
                 .map(UserAccount::id)
-                .map(userMfaSettingsRepository::isRequired)
+                .map(id -> userMfaSettingsRepository.isRequired(id) || hasConfirmedSecondFactorUseCase.execute(id))
                 .orElse(false);
     }
 }
+// end::mfa-user-required[]

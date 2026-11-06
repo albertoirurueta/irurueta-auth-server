@@ -26,9 +26,9 @@ import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
-import com.irurueta.authserver.authorization.application.totp.VerifyRecoveryCodeUseCase;
-import com.irurueta.authserver.authorization.application.totp.VerifyTotpUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecondFactorLockedException;
+import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
+import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -56,13 +56,9 @@ class TotpAuthenticationProviderTest {
     /** Identifier of the account. */
     private static final UUID USER_ID = UUID.randomUUID();
 
-    /** Verifies TOTP codes. */
+    /** Sends the codes to the use case of their kind. */
     @Mock
-    private VerifyTotpUseCase verifyTotpUseCase;
-
-    /** Verifies recovery codes. */
-    @Mock
-    private VerifyRecoveryCodeUseCase verifyRecoveryCodeUseCase;
+    private TotpCodeVerifier totpCodeVerifier;
 
     /** Resolves the account of the user. */
     @Mock
@@ -81,34 +77,17 @@ class TotpAuthenticationProviderTest {
             UsernamePasswordAuthenticationToken.authenticated(USERNAME, "secret", List.of());
 
     /**
-     * Verifies that a valid TOTP code grants the factor.
+     * Verifies that an accepted code grants the factor.
      */
     @Test
-    void authenticate_whenTotpCodeIsValid_grantsTheTotpFactor() {
+    void authenticate_whenCodeIsAccepted_grantsTheTotpFactor() {
         final var granted = UsernamePasswordAuthenticationToken.authenticated(USERNAME, "secret", List.of());
+        final var request = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.TOTP);
         when(userResolver.userIdOf(USERNAME)).thenReturn(USER_ID);
-        when(verifyTotpUseCase.execute(USER_ID, USERNAME, CODE)).thenReturn(true);
+        when(totpCodeVerifier.verify(request, USER_ID, USERNAME)).thenReturn(true);
         when(factorGrantor.grant(primary, TotpFactor.AUTHORITY)).thenReturn(granted);
 
-        final var result = provider.authenticate(new TotpAuthenticationToken(primary, CODE, false));
-
-        assertSame(granted, result);
-        verifyNoInteractions(verifyRecoveryCodeUseCase);
-    }
-
-    /**
-     * Verifies that a recovery code is verified by the recovery use case.
-     */
-    @Test
-    void authenticate_whenRecoveryCodeIsValid_grantsTheTotpFactor() {
-        when(userResolver.userIdOf(USERNAME)).thenReturn(USER_ID);
-        when(verifyRecoveryCodeUseCase.execute(USER_ID, USERNAME, CODE)).thenReturn(true);
-        when(factorGrantor.grant(primary, TotpFactor.AUTHORITY)).thenReturn(primary);
-
-        final var result = provider.authenticate(new TotpAuthenticationToken(primary, CODE, true));
-
-        assertSame(primary, result);
-        verifyNoInteractions(verifyTotpUseCase);
+        assertSame(granted, provider.authenticate(request));
     }
 
     /**
@@ -116,9 +95,9 @@ class TotpAuthenticationProviderTest {
      */
     @Test
     void authenticate_whenCodeIsWrong_throwsBadCredentialsException() {
+        final var request = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.TOTP);
         when(userResolver.userIdOf(USERNAME)).thenReturn(USER_ID);
-        when(verifyTotpUseCase.execute(USER_ID, USERNAME, CODE)).thenReturn(false);
-        final var request = new TotpAuthenticationToken(primary, CODE, false);
+        when(totpCodeVerifier.verify(request, USER_ID, USERNAME)).thenReturn(false);
 
         assertThrows(BadCredentialsException.class, () -> provider.authenticate(request));
         verifyNoInteractions(factorGrantor);
@@ -129,12 +108,39 @@ class TotpAuthenticationProviderTest {
      */
     @Test
     void authenticate_whenSecondFactorIsLocked_throwsLockedException() {
+        final var request = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.TOTP);
         when(userResolver.userIdOf(USERNAME)).thenReturn(USER_ID);
-        when(verifyTotpUseCase.execute(USER_ID, USERNAME, CODE)).thenThrow(new SecondFactorLockedException("locked"));
-        final var request = new TotpAuthenticationToken(primary, CODE, false);
+        when(totpCodeVerifier.verify(request, USER_ID, USERNAME)).thenThrow(new SecondFactorLockedException("locked"));
 
         assertThrows(LockedException.class, () -> provider.authenticate(request));
         verify(userResolver).userIdOf(USERNAME);
+    }
+
+    /**
+     * Verifies that an enrolment code with no enrolment waiting to be confirmed is a bad credential.
+     */
+    @Test
+    void authenticate_whenNoEnrolmentIsPending_throwsBadCredentialsException() {
+        final var request = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.ENROLMENT);
+        when(userResolver.userIdOf(USERNAME)).thenReturn(USER_ID);
+        when(totpCodeVerifier.verify(request, USER_ID, USERNAME))
+                .thenThrow(new TotpNotEnrolledException("none"));
+
+        assertThrows(BadCredentialsException.class, () -> provider.authenticate(request));
+        verifyNoInteractions(factorGrantor);
+    }
+
+    /**
+     * Verifies that an enrolment code for an app already enabled is a bad credential.
+     */
+    @Test
+    void authenticate_whenAppIsAlreadyEnabled_throwsBadCredentialsException() {
+        final var request = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.ENROLMENT);
+        when(userResolver.userIdOf(USERNAME)).thenReturn(USER_ID);
+        when(totpCodeVerifier.verify(request, USER_ID, USERNAME))
+                .thenThrow(new TotpAlreadyEnabledException("enabled"));
+
+        assertThrows(BadCredentialsException.class, () -> provider.authenticate(request));
     }
 
     /**

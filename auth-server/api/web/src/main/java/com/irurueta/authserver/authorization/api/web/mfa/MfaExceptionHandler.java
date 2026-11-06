@@ -24,6 +24,7 @@ import com.irurueta.authserver.authorization.domain.totp.InvalidTotpCodeExceptio
 import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
 import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
 import java.net.URI;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * Translates the failures of the authenticator app, recovery code and trusted device endpoints to RFC 9457 problem
  * details, answered as {@code application/problem+json}. It is scoped to the generated interfaces of those
  * endpoints, so it covers their controllers without depending on the packages they live in. Request validation
- * failures are handled by the parent class.
+ * failures are handled by the parent class. A missing step-up ({@link StepUpGuard}) is answered as RFC 9470 describes.
  */
 @RestControllerAdvice(assignableTypes = {TotpApi.class, RecoveryCodesApi.class, TrustedDevicesApi.class})
 public class MfaExceptionHandler extends ProblemJsonExceptionHandler {
@@ -88,6 +89,27 @@ public class MfaExceptionHandler extends ProblemJsonExceptionHandler {
         return respond(HttpStatus.NOT_FOUND, "trusted-device-not-found", "Trusted device not found",
                 exception.getMessage());
     }
+
+    // tag::mfa-step-up-challenge[]
+    /**
+     * Answers a token whose sign-in is not recent or strong enough: {@code 401} with the RFC 9470 challenge, which
+     * tells the client which {@code acr_values} and {@code max_age} to ask for when it signs the user in again.
+     *
+     * @param exception the failure.
+     * @return the {@code 401} problem detail with the {@code WWW-Authenticate} challenge.
+     */
+    @ExceptionHandler(InsufficientUserAuthenticationException.class)
+    public ResponseEntity<ProblemDetail> handleInsufficientUserAuthentication(
+            final InsufficientUserAuthenticationException exception) {
+        final var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
+        problem.setType(URI.create(TYPE_BASE + "insufficient-user-authentication"));
+        problem.setTitle("Step-up authentication required");
+        final var headers = new HttpHeaders();
+        headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"insufficient_user_authentication\", acr_values=\""
+                + exception.getAcrValues() + "\", max_age=\"" + exception.getMaxAge().toSeconds() + "\"");
+        return problemResponse(problem, headers);
+    }
+    // end::mfa-step-up-challenge[]
 
     /**
      * Builds a problem response.

@@ -15,37 +15,67 @@
   ~ limitations under the License.
   -->
 <!--
-  TOTP second factor (TotpSecondFactorFragment): the code of the authenticator app and, behind a link, a recovery
-  code. Both forms post to the filter of the TOTP feature (POST /login/second-factor/totp); the recovery form adds the
-  "recovery" field. th:action adds the CSRF field. "one-time-code" lets password managers and phones fill the code.
+  TOTP second factor (TotpSecondFactorFragment). A user without a confirmed authenticator app gets the enrolment
+  form: the QR code (a data: URI, which the Content-Security-Policy allows for images), the otpauth URI to type it in
+  by hand and the field of the first code, posted with the "enroll" field. A user with one gets the code of the
+  authenticator app and, behind a link, a recovery code (the "recovery" field), plus a warning when few recovery codes
+  are left. Every form posts to the filter of the TOTP feature (POST /login/second-factor/totp); th:action adds the
+  CSRF field. "one-time-code" lets password managers and phones fill the code.
 -->
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <body>
 <!-- tag::totp-form[] -->
 <div th:fragment="form">
-  <form method="post" th:action="@{/login/second-factor/totp}">
+  <!-- tag::totp-enrolment-form[] -->
+  <div th:if="${totpEnrolment}" class="totp-enrolment">
+    <h2 th:text="#{totp.enrol.heading}">Set up an authenticator app</h2>
+    <p th:text="#{totp.enrol.instructions}">Scan this QR code with your authenticator app, then type the code it
+      shows.</p>
+    <img th:src="${totpQrCode}" th:alt="#{totp.enrol.qrAlt}" alt="QR code of the authenticator app" class="totp-qr">
     <p>
-      <label for="totp-code" th:text="#{totp.code}">Authentication code</label>
-      <input type="text" id="totp-code" name="code" required autofocus inputmode="numeric" pattern="[0-9 ]*"
-             autocomplete="one-time-code">
+      <span th:text="#{totp.enrol.manual}">Or add it by hand:</span>
+      <code class="totp-uri" th:text="${totpOtpauthUri}">otpauth://totp/...</code>
     </p>
-    <p>
-      <label>
-        <input type="checkbox" name="rememberDevice">
-        <span th:text="#{totp.remember}">Remember this device</span>
-      </label>
-    </p>
-    <button type="submit" th:text="#{totp.submit}">Verify</button>
-  </form>
-  <p><a href="#recovery-code" th:text="#{totp.useRecovery}">Use a recovery code</a></p>
-  <form id="recovery-code" class="recovery-code" method="post" th:action="@{/login/second-factor/totp}">
-    <input type="hidden" name="recovery" value="true">
-    <p>
-      <label for="recovery-code-input" th:text="#{totp.recoveryCode}">Recovery code</label>
-      <input type="text" id="recovery-code-input" name="code" required autocomplete="off">
-    </p>
-    <button type="submit" th:text="#{totp.submitRecovery}">Use recovery code</button>
-  </form>
+    <form method="post" th:action="@{/login/second-factor/totp}">
+      <input type="hidden" name="enroll" value="true">
+      <p>
+        <label for="totp-enrol-code" th:text="#{totp.code}">Authentication code</label>
+        <input type="text" id="totp-enrol-code" name="code" required autofocus inputmode="numeric"
+               pattern="[0-9 ]*" autocomplete="one-time-code">
+      </p>
+      <button type="submit" th:text="#{totp.enrol.submit}">Enable and continue</button>
+    </form>
+  </div>
+  <!-- end::totp-enrolment-form[] -->
+  <div th:unless="${totpEnrolment}">
+    <!-- tag::totp-low-codes[] -->
+    <p th:if="${totpRecoveryCodesLow}" role="status" class="totp-codes-low"
+       th:text="#{totp.recoveryCodesLow(${totpRecoveryCodesLeft})}">Only 3 recovery codes are left.</p>
+    <!-- end::totp-low-codes[] -->
+    <form method="post" th:action="@{/login/second-factor/totp}">
+      <p>
+        <label for="totp-code" th:text="#{totp.code}">Authentication code</label>
+        <input type="text" id="totp-code" name="code" required autofocus inputmode="numeric" pattern="[0-9 ]*"
+               autocomplete="one-time-code">
+      </p>
+      <p>
+        <label>
+          <input type="checkbox" name="rememberDevice">
+          <span th:text="#{totp.remember}">Remember this device</span>
+        </label>
+      </p>
+      <button type="submit" th:text="#{totp.submit}">Verify</button>
+    </form>
+    <p><a href="#recovery-code" th:text="#{totp.useRecovery}">Use a recovery code</a></p>
+    <form id="recovery-code" class="recovery-code" method="post" th:action="@{/login/second-factor/totp}">
+      <input type="hidden" name="recovery" value="true">
+      <p>
+        <label for="recovery-code-input" th:text="#{totp.recoveryCode}">Recovery code</label>
+        <input type="text" id="recovery-code-input" name="code" required autocomplete="off">
+      </p>
+      <button type="submit" th:text="#{totp.submitRecovery}">Use recovery code</button>
+    </form>
+  </div>
 </div>
 <!-- end::totp-form[] -->
 </body>

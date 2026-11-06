@@ -24,6 +24,7 @@ import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledExceptio
 import com.irurueta.authserver.authorization.domain.totp.TotpSecretCipher;
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -64,16 +65,33 @@ public class ConfirmTotpUseCase {
      * @throws InvalidTotpCodeException    if the code is wrong.
      */
     public List<String> execute(final UUID userId, final String code) {
+        return tryConfirm(userId, code).orElseThrow(() -> new InvalidTotpCodeException("The code is wrong"));
+    }
+
+    /**
+     * Confirms the enrolment, answering a wrong code with an empty result instead of an exception, so that a caller
+     * running in the same transaction can still count the failure (an exception leaving a transactional method marks
+     * the whole transaction for rollback).
+     *
+     * @param userId identifier of the user.
+     * @param code   the code shown by the authenticator app.
+     * @return the clear-text recovery codes, to be shown once; empty when the code is wrong.
+     * @throws TotpNotEnrolledException    if no enrolment was started.
+     * @throws TotpAlreadyEnabledException if the enrolment was already confirmed.
+     */
+    public Optional<List<String>> tryConfirm(final UUID userId, final String code) {
         final var credential = totpCredentialRepository.findByUser(userId)
                 .orElseThrow(() -> new TotpNotEnrolledException("No authenticator app is being enrolled"));
         if (credential.confirmed()) {
             throw new TotpAlreadyEnabledException("The authenticator app is already enabled");
         }
         final var secret = totpSecretCipher.decrypt(credential.encryptedSecret());
-        final var step = totpAlgorithm.matchingStep(secret, code, clock.instant(), credential.lastUsedStep())
-                .orElseThrow(() -> new InvalidTotpCodeException("The code is wrong"));
-        totpCredentialRepository.advanceLastUsedStep(userId, step);
+        final var step = totpAlgorithm.matchingStep(secret, code, clock.instant(), credential.lastUsedStep());
+        if (step.isEmpty()) {
+            return Optional.empty();
+        }
+        totpCredentialRepository.advanceLastUsedStep(userId, step.getAsLong());
         totpCredentialRepository.confirm(userId);
-        return generateRecoveryCodesUseCase.execute(userId);
+        return Optional.of(generateRecoveryCodesUseCase.execute(userId));
     }
 }

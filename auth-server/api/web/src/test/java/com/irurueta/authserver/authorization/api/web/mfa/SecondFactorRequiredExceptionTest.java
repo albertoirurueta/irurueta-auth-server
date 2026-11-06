@@ -17,6 +17,8 @@
 package com.irurueta.authserver.authorization.api.web.mfa;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +34,18 @@ class SecondFactorRequiredExceptionTest {
     void constructor_whenCreated_carriesTheSecondFactorErrorCode() {
         final var exception = new SecondFactorRequiredException();
 
+        assertEquals(SecondFactorRequiredException.ERROR_CODE, exception.getError().getErrorCode());
+        assertFalse(exception.isStepUp());
+    }
+
+    /**
+     * Verifies that a step-up exception says so and carries the same error code.
+     */
+    @Test
+    void forStepUp_whenCreated_isAStepUp() {
+        final var exception = SecondFactorRequiredException.forStepUp();
+
+        assertTrue(exception.isStepUp());
         assertEquals(SecondFactorRequiredException.ERROR_CODE, exception.getError().getErrorCode());
     }
 }

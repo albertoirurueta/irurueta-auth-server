@@ -37,16 +37,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.util.StringUtils;
 
 /**
- * Processes the post of the second-factor forms ({@code POST /login/second-factor/totp}): the TOTP form and the
- * recovery-code form. The code is verified by {@link TotpAuthenticationProvider}; on success the enriched
+ * Processes the post of the second-factor forms ({@code POST /login/second-factor/totp}): the TOTP form, the
+ * recovery-code form and the enrolment form (field {@code enroll}) of a user who has no authenticator app yet. The
+ * code is verified by {@link TotpAuthenticationProvider}; on success the session id is changed (and the CSRF token
+ * renewed, with the session authentication strategy of the chain, as the form login does), the enriched
  * authentication is saved to the session, a device is remembered when the user asked for it and the browser resumes
- * the request that was interrupted. On failure it is sent back to the second-factor page with {@code ?error}. The
- * endpoint is owned by this filter, like {@code POST /login}, so it is not part of the pages contract.
+ * the request that was interrupted, or, after an enrolment, first sees its recovery codes once. On failure it is sent
+ * back to the second-factor page with {@code ?error}. The endpoint is owned by this filter, like {@code POST /login},
+ * so it is not part of the pages contract.
  */
 public class TotpAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
 
@@ -58,6 +62,9 @@ public class TotpAuthenticationFilter extends AbstractAuthenticationProcessingFi
 
     /** Name of the form field present when the code is a recovery code. */
     public static final String RECOVERY_PARAMETER = "recovery";
+
+    /** Name of the form field present when the code confirms the enrolment of an authenticator app. */
+    public static final String ENROLL_PARAMETER = "enroll";
 
     /** Name of the form field present when the user asks to remember the device. */
     public static final String REMEMBER_PARAMETER = "rememberDevice";
@@ -74,29 +81,38 @@ public class TotpAuthenticationFilter extends AbstractAuthenticationProcessingFi
     /** Writes the cookie of a remembered device. */
     private final TrustedDeviceCookieWriter cookieWriter;
 
+    /** Keeps the recovery codes of an enrolment until they are shown. */
+    private final PendingRecoveryCodes pendingRecoveryCodes;
+
     /**
-     * Creates the filter.
+     * Creates the filter. Until {@link TotpChainCustomizer} hands it the session authentication strategy of the
+     * chain, it changes the session id on success with a {@link ChangeSessionIdAuthenticationStrategy}.
      *
-     * @param authenticationManager     manager that holds the {@link TotpAuthenticationProvider}.
+     * @param authenticationManager      manager that holds the {@link TotpAuthenticationProvider}.
      * @param createTrustedDeviceUseCase use case that remembers the device.
-     * @param userResolver              resolves the identifier of the account of the signed-in user.
-     * @param cookieWriter              writes the cookie of a remembered device.
+     * @param userResolver               resolves the identifier of the account of the signed-in user.
+     * @param cookieWriter               writes the cookie of a remembered device.
+     * @param pendingRecoveryCodes       keeps the recovery codes of an enrolment until they are shown.
      */
     public TotpAuthenticationFilter(final AuthenticationManager authenticationManager,
             final CreateTrustedDeviceUseCase createTrustedDeviceUseCase, final SecondFactorUserResolver userResolver,
-            final TrustedDeviceCookieWriter cookieWriter) {
+            final TrustedDeviceCookieWriter cookieWriter, final PendingRecoveryCodes pendingRecoveryCodes) {
         super(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, TOTP_PATH), authenticationManager);
         this.createTrustedDeviceUseCase = createTrustedDeviceUseCase;
         this.userResolver = userResolver;
         this.cookieWriter = cookieWriter;
+        this.pendingRecoveryCodes = pendingRecoveryCodes;
         setSecurityContextRepository(new HttpSessionSecurityContextRepository());
-        setAuthenticationSuccessHandler(new SavedRequestAwareAuthenticationSuccessHandler());
+        setSessionAuthenticationStrategy(new ChangeSessionIdAuthenticationStrategy());
+        setAuthenticationSuccessHandler(new RecoveryCodesSuccessHandler(pendingRecoveryCodes,
+                new SavedRequestAwareAuthenticationSuccessHandler()));
         setAuthenticationFailureHandler(new SimpleUrlAuthenticationFailureHandler(SECOND_FACTOR_PATH + "?error"));
     }
 
     // tag::totp-filter[]
     /**
-     * Builds the verification request from the form and the authentication the user already holds.
+     * Builds the verification request from the form and the authentication the user already holds, and keeps in the
+     * session the recovery codes an enrolment generates, until they are shown.
      *
      * @param request  the request.
      * @param response the response.
@@ -111,9 +127,12 @@ public class TotpAuthenticationFilter extends AbstractAuthenticationProcessingFi
             throw new InsufficientAuthenticationException("The user has not signed in yet");
         }
         final var code = StringUtils.trimWhitespace(request.getParameter(CODE_PARAMETER));
-        final var recovery = request.getParameter(RECOVERY_PARAMETER) != null;
-        return getAuthenticationManager().authenticate(
-                new TotpAuthenticationToken(current, code == null ? "" : code, recovery));
+        final var verification = new TotpAuthenticationToken(current, code == null ? "" : code, kindOf(request));
+        final var verified = getAuthenticationManager().authenticate(verification);
+        if (!verification.issuedRecoveryCodes().isEmpty()) {
+            pendingRecoveryCodes.save(request, verification.issuedRecoveryCodes());
+        }
+        return verified;
     }
 
     /**
@@ -137,6 +156,21 @@ public class TotpAuthenticationFilter extends AbstractAuthenticationProcessingFi
         super.successfulAuthentication(request, response, chain, authResult);
     }
     // end::totp-filter[]
+
+    /**
+     * Tells what kind of code a post carries, from its form fields.
+     *
+     * @param request the request.
+     * @return {@link TotpCodeKind#ENROLMENT} with the {@value #ENROLL_PARAMETER} field,
+     *         {@link TotpCodeKind#RECOVERY} with the {@value #RECOVERY_PARAMETER} field, {@link TotpCodeKind#TOTP}
+     *         otherwise.
+     */
+    private static TotpCodeKind kindOf(final HttpServletRequest request) {
+        if (request.getParameter(ENROLL_PARAMETER) != null) {
+            return TotpCodeKind.ENROLMENT;
+        }
+        return request.getParameter(RECOVERY_PARAMETER) != null ? TotpCodeKind.RECOVERY : TotpCodeKind.TOTP;
+    }
 
     /**
      * Describes the browser of a request.

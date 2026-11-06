@@ -35,6 +35,12 @@ class MfaPropertiesTest {
     /** Default validity, in days, as the application use cases default it. */
     private static final int DEFAULT_VALIDITY_DAYS = 30;
 
+    /** Default step-up maximum age, in minutes. */
+    private static final int DEFAULT_STEP_UP_MINUTES = 5;
+
+    /** Configured step-up maximum age, in minutes. */
+    private static final int STEP_UP_MINUTES = 2;
+
     /** Configured number of attempts. */
     private static final int ATTEMPTS = 3;
 
@@ -49,12 +55,13 @@ class MfaPropertiesTest {
      */
     @Test
     void constructor_whenNothingIsConfigured_appliesDefaults() {
-        final var properties = new MfaProperties(0, null, null, " ");
+        final var properties = new MfaProperties(0, null, null, " ", null);
 
         assertEquals(DEFAULT_ATTEMPTS, properties.maxFailedAttempts());
         assertEquals(Duration.ofMinutes(DEFAULT_LOCKOUT_MINUTES), properties.lockout());
         assertEquals(Duration.ofDays(DEFAULT_VALIDITY_DAYS), properties.trustedDeviceValidity());
         assertEquals("Irurueta Auth Server", properties.totpIssuer());
+        assertEquals(Duration.ofMinutes(DEFAULT_STEP_UP_MINUTES), properties.stepUpMaxAge());
     }
 
     /**
@@ -63,11 +70,12 @@ class MfaPropertiesTest {
     @Test
     void constructor_whenValuesAreConfigured_keepsThem() {
         final var properties = new MfaProperties(ATTEMPTS, Duration.ofMinutes(LOCKOUT_MINUTES),
-                Duration.ofDays(VALIDITY_DAYS), "Acme");
+                Duration.ofDays(VALIDITY_DAYS), "Acme", Duration.ofMinutes(STEP_UP_MINUTES));
 
         assertEquals(ATTEMPTS, properties.maxFailedAttempts());
         assertEquals(Duration.ofMinutes(LOCKOUT_MINUTES), properties.lockout());
         assertEquals(Duration.ofDays(VALIDITY_DAYS), properties.trustedDeviceValidity());
         assertEquals("Acme", properties.totpIssuer());
+        assertEquals(Duration.ofMinutes(STEP_UP_MINUTES), properties.stepUpMaxAge());
     }
 }

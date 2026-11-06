@@ -18,9 +18,9 @@ package com.irurueta.authserver.authorization.api.web.totp;
 
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
-import com.irurueta.authserver.authorization.application.totp.VerifyRecoveryCodeUseCase;
-import com.irurueta.authserver.authorization.application.totp.VerifyTotpUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecondFactorLockedException;
+import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
+import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,18 +29,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 /**
- * Verifies a TOTP code or a recovery code for the signed-in user. The use cases count the failures, lock the second
- * factor after too many and clear the counter on success; a locked second factor is rejected even for a correct
- * code. A correct code answers with the authentication the user already holds plus the TOTP factor authority.
+ * Verifies a TOTP code or a recovery code for the signed-in user, or the first code of an authenticator app being
+ * enrolled during the sign-in, which confirms it, through the {@link TotpCodeVerifier}. The use cases count the
+ * failures, lock the second factor after too many and clear the counter on success; a locked second factor is
+ * rejected even for a correct code. A correct code
+ * answers with the authentication the user already holds plus the TOTP factor authority; an enrolment also hands the
+ * new recovery codes back through the request token.
  */
 @RequiredArgsConstructor
 public class TotpAuthenticationProvider implements AuthenticationProvider {
 
-    /** Use case that verifies a TOTP code. */
-    private final VerifyTotpUseCase verifyTotpUseCase;
-
-    /** Use case that verifies (and consumes) a recovery code. */
-    private final VerifyRecoveryCodeUseCase verifyRecoveryCodeUseCase;
+    /** Sends the code to the use case of its kind. */
+    private final TotpCodeVerifier totpCodeVerifier;
 
     /** Resolves the identifier of the account of the signed-in user. */
     private final SecondFactorUserResolver userResolver;
@@ -64,11 +64,11 @@ public class TotpAuthenticationProvider implements AuthenticationProvider {
         final var userId = userResolver.userIdOf(username);
         final boolean accepted;
         try {
-            accepted = request.isRecovery()
-                    ? verifyRecoveryCodeUseCase.execute(userId, username, request.getCredentials())
-                    : verifyTotpUseCase.execute(userId, username, request.getCredentials());
+            accepted = totpCodeVerifier.verify(request, userId, username);
         } catch (final SecondFactorLockedException e) {
             throw new LockedException("The second factor is locked", e);
+        } catch (final TotpNotEnrolledException | TotpAlreadyEnabledException e) {
+            throw new BadCredentialsException("No enrolment is waiting to be confirmed", e);
         }
         if (!accepted) {
             throw new BadCredentialsException("The code is not valid");
@@ -87,4 +87,5 @@ public class TotpAuthenticationProvider implements AuthenticationProvider {
     public boolean supports(final Class<?> authentication) {
         return TotpAuthenticationToken.class.isAssignableFrom(authentication);
     }
+
 }

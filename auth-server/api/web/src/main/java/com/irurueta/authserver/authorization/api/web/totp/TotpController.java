@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.api.web.totp;
 
 import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.mfa.StepUpGuard;
 import com.irurueta.authserver.authorization.api.web.v1.generated.api.TotpApi;
 import com.irurueta.authserver.authorization.api.web.v1.generated.model.ConfirmTotpRequest;
 import com.irurueta.authserver.authorization.api.web.v1.generated.model.RecoveryCodesResponse;
@@ -35,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  * bodies are those of the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml}, through the
  * generated {@link TotpApi}; failures are answered by
  * {@link com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler}. Answers that carry a secret are
- * never cached.
+ * never cached. Disabling the app needs a recent multi-factor sign-in ({@link StepUpGuard}).
  */
 @RestController
 @RequiredArgsConstructor
@@ -52,6 +53,9 @@ public class TotpController implements TotpApi {
 
     /** Disables the authenticator app. */
     private final DisableTotpUseCase disableTotpUseCase;
+
+    /** Requires a recent multi-factor sign-in before the second factor is removed. */
+    private final StepUpGuard stepUpGuard;
 
     /** Renders the enrolment URI as a QR code. */
     private final QrCodeRenderer qrCodeRenderer;
@@ -85,13 +89,17 @@ public class TotpController implements TotpApi {
     }
 
     /**
-     * Disables the authenticator app and removes the recovery codes.
+     * Disables the authenticator app, removes the recovery codes and revokes the trusted devices.
      *
      * @return {@code 204 No Content}.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException if the token
+     *         does not show a recent multi-factor sign-in.
      */
     @Override
     public ResponseEntity<Void> disableTotp() {
-        disableTotpUseCase.execute(currentAccountResolver.resolve().id());
+        final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
+        disableTotpUseCase.execute(account.id(), account.username());
         return ResponseEntity.noContent().build();
     }
 

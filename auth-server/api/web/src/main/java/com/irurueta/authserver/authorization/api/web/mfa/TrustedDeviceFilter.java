@@ -36,12 +36,16 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.WebUtils;
 
+// tag::mfa-trusted-device-filter[]
 /**
- * Lets a browser that was trusted earlier skip the second factor. When a signed-in user presents the
+ * Lets a browser that was trusted earlier skip the second factor of a sign-in. When a signed-in user presents the
  * {@code __Host-TRUSTED-DEVICE} cookie and the token belongs to a device of that same user that has neither expired
- * nor been revoked, the authentication of the session is replaced by one that also holds the second-factor
- * authority, and the session is saved. A browser sent to the second-factor page when it is already trusted resumes
- * the request that was interrupted instead of being asked for a code.
+ * nor been revoked, the authentication of the session is replaced by one that also holds the
+ * {@link TrustedDeviceFactor} authority (a remembered factor: it satisfies the sign-in policy but is never reported
+ * in the tokens), the session id is changed and the session is saved. A browser sent to the second-factor page when
+ * it is already trusted resumes the request that was interrupted instead of being asked for a code, unless that
+ * request is a step-up ({@link SecondFactorRequiredEntryPoint#isStepUpPending}): a trusted device cannot satisfy it,
+ * so the page is rendered and asks for a real second factor.
  */
 @RequiredArgsConstructor
 public class TrustedDeviceFilter extends OncePerRequestFilter {
@@ -65,7 +69,7 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     /** Handler that resumes the request that was interrupted. */
     private final AuthenticationSuccessHandler resumeHandler;
 
-    /** Authority of the second factor the device skips. */
+    /** Authority granted to a trusted device. */
     private final String authority;
 
     /**
@@ -80,6 +84,11 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
             final FilterChain chain) throws ServletException, IOException {
+        final var secondFactorPage = secondFactorPageMatcher.matches(request);
+        if (secondFactorPage && SecondFactorRequiredEntryPoint.isStepUpPending(request)) {
+            chain.doFilter(request, response);
+            return;
+        }
         final var cookie = WebUtils.getCookie(request, TrustedDeviceCookieWriter.COOKIE_NAME);
         final var current = SecurityContextHolder.getContext().getAuthentication();
         if (cookie != null && needsSecondFactor(current) && isTrusted(current, cookie.getValue())) {
@@ -87,8 +96,12 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
             final var context = SecurityContextHolder.getContextHolderStrategy().createEmptyContext();
             context.setAuthentication(upgraded);
             SecurityContextHolder.getContextHolderStrategy().setContext(context);
+            // a new level of authentication gets a new session id, against session fixation
+            if (request.getSession(false) != null) {
+                request.changeSessionId();
+            }
             securityContextRepository.saveContext(context, request, response);
-            if (secondFactorPageMatcher.matches(request)) {
+            if (secondFactorPage) {
                 resumeHandler.onAuthenticationSuccess(request, response, upgraded);
                 return;
             }
@@ -97,10 +110,10 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Tells whether an authentication is a signed-in user that does not hold the second factor yet.
+     * Tells whether an authentication is a signed-in user that does not hold the trusted-device authority yet.
      *
      * @param authentication the authentication of the request, possibly {@code null}.
-     * @return {@code true} when a user is signed in and the second-factor authority is missing.
+     * @return {@code true} when a user is signed in and the trusted-device authority is missing.
      */
     private boolean needsSecondFactor(final Authentication authentication) {
         return authentication != null && authentication.isAuthenticated()
@@ -129,3 +142,4 @@ public class TrustedDeviceFilter extends OncePerRequestFilter {
         }
     }
 }
+// end::mfa-trusted-device-filter[]

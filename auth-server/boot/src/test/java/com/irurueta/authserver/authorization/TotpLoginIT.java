@@ -16,33 +16,31 @@
 package com.irurueta.authserver.authorization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.StreamSupport;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
-import tools.jackson.databind.JsonNode;
 
 /**
  * Checks the whole sign-in with a password and an authenticator app code: the tokens say how the user
- * authenticated ({@code amr}, {@code acr}, {@code auth_time}), and a wrong code is refused.
+ * authenticated ({@code amr}, {@code acr}, {@code auth_time} of the password), the session id changes once the second
+ * factor is verified, a user with an authenticator app is always asked for it, and a wrong code is refused.
  */
 class TotpLoginIT extends AbstractMfaFlow {
 
     /** {@code amr} of a user who presented a password, a one-time password and so more than one factor. */
     private static final List<String> MFA_AMR = List.of("pwd", "otp", "mfa");
 
-    /** Name of the claim with the authentication methods. */
-    private static final String AMR = "amr";
-
-    /** Name of the claim with the authentication context class. */
-    private static final String ACR = "acr";
-
     /**
-     * Verifies that, after the right code, the access token and the ID token carry the multi-factor claims.
+     * Verifies that, after the right code, the access token and the ID token carry the multi-factor claims, that
+     * {@code auth_time} is the time of the password (not of the later code), and that the session id changes when the
+     * second factor is verified.
      *
      * @throws Exception if a request cannot be performed.
      */
@@ -52,11 +50,16 @@ class TotpLoginIT extends AbstractMfaFlow {
         final var client = getFixtures().createMfaCodeClient();
         final var session = new MockHttpSession();
         final var verifier = newVerifier();
+        final var signedInFrom = Instant.now().getEpochSecond();
         final var authorizeUri = signInForAuthorization(enrolled.user(), client, verifier, Map.of(), session);
+        final var signedInBy = Instant.now().getEpochSecond();
         expectSecondFactorPage(authorizeUri, session);
+        TimeUnit.MILLISECONDS.sleep(NEXT_SECOND_MILLIS);
+        final var sessionId = session.getId();
 
         final var posted = postSecondFactor(session, getTools().codeNow(enrolled.id(), 0), false, false);
         assertAccepted(posted);
+        assertNotEquals(sessionId, session.getId(), "The session id must change with the second factor");
         final var tokens = completeAuthorization(authorizeUri, client, verifier, session);
 
         final var access = AuthServerFixtures.claimsOf(tokens.get("access_token").asString());
@@ -65,24 +68,33 @@ class TotpLoginIT extends AbstractMfaFlow {
         assertEquals(MFA_AMR, strings(id.get(AMR)));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, access.get(ACR).asString());
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, id.get(ACR).asString());
-        assertTrue(access.get("auth_time").isNumber(), "auth_time must be epoch seconds");
+        final var authTime = access.get(AUTH_TIME);
+        assertTrue(authTime.isNumber(), "auth_time must be epoch seconds");
+        assertTrue(authTime.asLong() >= signedInFrom && authTime.asLong() <= signedInBy,
+                "auth_time must be the time of the password, not of the second factor");
     }
 
     /**
-     * Verifies that a user with a second factor who signs in to a client that does not require it still only
-     * presents the password, and the tokens say so.
+     * Verifies that a user with a second factor who signs in to a client that does not require it is still asked for
+     * the second factor, because a confirmed second factor makes it required for the account.
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
-    void authorize_whenNobodyRequiresMfa_issuesTokensWithPasswordClaims() throws Exception {
+    void authorize_whenUserHasEnrolledTotpAndClientDoesNotRequireIt_isForcedThroughTheSecondFactor() throws Exception {
         final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var client = getFixtures().createCodeClient();
+        final var session = new MockHttpSession();
+        final var verifier = newVerifier();
+        final var authorizeUri = signInForAuthorization(enrolled.user(), client, verifier, Map.of(), session);
 
-        final var tokens = getFixtures().authorizationCodeTokens(enrolled.user(), getFixtures().createCodeClient());
+        expectSecondFactorPage(authorizeUri, session);
+        assertAccepted(postSecondFactor(session, getTools().codeNow(enrolled.id(), 0), false, false));
+        final var tokens = completeAuthorization(authorizeUri, client, verifier, session);
 
         final var access = AuthServerFixtures.claimsOf(tokens.get("access_token").asString());
-        assertEquals(List.of("pwd"), strings(access.get(AMR)));
-        assertEquals(AuthenticationContextClass.PASSWORD, access.get(ACR).asString());
+        assertEquals(MFA_AMR, strings(access.get(AMR)));
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR, access.get(ACR).asString());
     }
 
     /**
@@ -101,15 +113,5 @@ class TotpLoginIT extends AbstractMfaFlow {
 
         assertTrue(posted.getResponse().getRedirectedUrl().endsWith("/login/second-factor?error"));
         expectSecondFactorPage(authorizeUri, session);
-    }
-
-    /**
-     * Reads the strings of a JSON array.
-     *
-     * @param array the array.
-     * @return its elements.
-     */
-    private static List<String> strings(final JsonNode array) {
-        return StreamSupport.stream(array.spliterator(), false).map(JsonNode::asString).toList();
     }
 }

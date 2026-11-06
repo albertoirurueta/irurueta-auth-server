@@ -18,6 +18,7 @@ package com.irurueta.authserver.authorization.api.web.totp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -37,6 +39,7 @@ import com.irurueta.authserver.authorization.application.mfa.CreatedTrustedDevic
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDevice;
 import jakarta.servlet.FilterChain;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -85,6 +89,10 @@ class TotpAuthenticationFilterTest {
     @Mock
     private TrustedDeviceCookieWriter cookieWriter;
 
+    /** Keeps the recovery codes of an enrolment; real, so the session round trip is exercised. */
+    @Spy
+    private PendingRecoveryCodes pendingRecoveryCodes = new PendingRecoveryCodes();
+
     /** The rest of the chain. */
     @Mock
     private FilterChain chain;
@@ -108,7 +116,7 @@ class TotpAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         filter = new TotpAuthenticationFilter(authenticationManager, createTrustedDeviceUseCase, userResolver,
-                cookieWriter);
+                cookieWriter, pendingRecoveryCodes);
         request = new MockHttpServletRequest("POST", TotpAuthenticationFilter.TOTP_PATH);
         response = new MockHttpServletResponse();
         SecurityContextHolder.getContext().setAuthentication(primary);
@@ -139,7 +147,8 @@ class TotpAuthenticationFilterTest {
         assertSame(verified, result);
         assertSame(primary, sent.primary());
         assertEquals("123456", sent.getCredentials());
-        assertFalse(sent.isRecovery());
+        assertEquals(TotpCodeKind.TOTP, sent.kind());
+        assertFalse(pendingRecoveryCodes.isPending(request));
     }
 
     /**
@@ -155,7 +164,29 @@ class TotpAuthenticationFilterTest {
         verify(authenticationManager).authenticate(captor.capture());
         final var sent = (TotpAuthenticationToken) captor.getValue();
         assertEquals("", sent.getCredentials());
-        assertTrue(sent.isRecovery());
+        assertEquals(TotpCodeKind.RECOVERY, sent.kind());
+    }
+
+    /**
+     * Verifies that the enrolment field flags an enrolment code, and that the recovery codes the verification issues
+     * are kept in the session.
+     */
+    @Test
+    void attemptAuthentication_whenEnrolmentIsConfirmed_keepsTheRecoveryCodesInTheSession() {
+        request.setParameter(TotpAuthenticationFilter.CODE_PARAMETER, "123456");
+        request.setParameter(TotpAuthenticationFilter.ENROLL_PARAMETER, "true");
+        request.setParameter(TotpAuthenticationFilter.RECOVERY_PARAMETER, "true");
+        doAnswer(invocation -> {
+            invocation.<TotpAuthenticationToken>getArgument(0).issueRecoveryCodes(List.of("AAAAAAAAAA"));
+            return primary;
+        }).when(authenticationManager).authenticate(any());
+
+        filter.attemptAuthentication(request, response);
+
+        final var captor = ArgumentCaptor.<Authentication>captor();
+        verify(authenticationManager).authenticate(captor.capture());
+        assertEquals(TotpCodeKind.ENROLMENT, ((TotpAuthenticationToken) captor.getValue()).kind());
+        assertEquals(List.of("AAAAAAAAAA"), pendingRecoveryCodes.take(request));
     }
 
     /**
@@ -207,6 +238,44 @@ class TotpAuthenticationFilterTest {
         assertNotNull(request.getSession(false));
         assertSame(verified, SecurityContextHolder.getContext().getAuthentication());
         verifyNoInteractions(createTrustedDeviceUseCase, cookieWriter, chain);
+    }
+
+    /**
+     * Verifies that the session id changes once the second factor is verified, against session fixation.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void doFilter_whenCodeIsAccepted_changesTheSessionId() throws Exception {
+        final var before = request.getSession(true).getId();
+        // the browser sent the cookie of this session, as a real one does
+        request.setRequestedSessionIdValid(true);
+        request.setParameter(TotpAuthenticationFilter.CODE_PARAMETER, "123456");
+        when(authenticationManager.authenticate(any())).thenReturn(primary);
+
+        filter.doFilter(request, response, chain);
+
+        assertNotEquals(before, request.getSession(false).getId());
+    }
+
+    /**
+     * Verifies that a confirmed enrolment sends the browser to the page that shows the recovery codes once.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void doFilter_whenEnrolmentIsConfirmed_redirectsToTheRecoveryCodesPage() throws Exception {
+        request.setParameter(TotpAuthenticationFilter.CODE_PARAMETER, "123456");
+        request.setParameter(TotpAuthenticationFilter.ENROLL_PARAMETER, "true");
+        doAnswer(invocation -> {
+            invocation.<TotpAuthenticationToken>getArgument(0).issueRecoveryCodes(List.of("AAAAAAAAAA"));
+            return primary;
+        }).when(authenticationManager).authenticate(any());
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals(RecoveryCodesPageController.RECOVERY_CODES_PATH, response.getRedirectedUrl());
+        assertTrue(pendingRecoveryCodes.isPending(request));
     }
 
     /**

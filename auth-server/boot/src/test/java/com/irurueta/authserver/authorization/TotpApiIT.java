@@ -25,12 +25,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.irurueta.authserver.authorization.application.mfa.CreateTrustedDeviceUseCase;
 import com.irurueta.authserver.authorization.application.totp.GenerateRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
@@ -39,6 +41,7 @@ import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepositor
 import com.irurueta.authserver.authorization.domain.totp.TotpSecretCipher;
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -55,7 +58,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 /**
  * Checks the authenticator app, recovery code and trusted device endpoints of the account API against the real
  * application. The requests carry a {@code jwt()} for the owner of the account, so the tests do not depend on the
- * token endpoint; every test creates its own users.
+ * token endpoint; removing or resetting the second factor of an account that has one also needs the {@code acr} and
+ * {@code auth_time} of a recent multi-factor sign-in. Every test creates its own users.
  */
 @PostgresIT
 @AutoConfigureMockMvc
@@ -78,6 +82,13 @@ class TotpApiIT {
 
     /** A code that is not six digits. */
     private static final String MALFORMED_CODE = "12ab";
+
+    /** The RFC 9470 challenge of an operation that needs a recent multi-factor sign-in. */
+    private static final String STEP_UP_CHALLENGE = "Bearer error=\"insufficient_user_authentication\", "
+            + "acr_values=\"urn:irurueta:acr:mfa\", max_age=\"300\"";
+
+    /** Seconds since a multi-factor sign-in that is too old for a step-up (the default maximum is five minutes). */
+    private static final long OLD_SIGN_IN_SECONDS = 600;
 
     /** MockMvc bound to the application context. */
     @Autowired
@@ -244,25 +255,81 @@ class TotpApiIT {
     }
 
     /**
-     * Verifies that disabling removes the credential and the recovery codes, and that it only touches the caller's
-     * own account.
+     * Verifies that disabling, with a recent multi-factor sign-in, removes the credential, the recovery codes and
+     * every trusted device, and that it only touches the caller's own account.
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
-    void disableTotp_whenEnabled_removesTheFactorOfTheCallerOnly() throws Exception {
+    void disableTotp_whenEnabled_removesTheFactorAndTheTrustedDevicesOfTheCallerOnly() throws Exception {
         final var user = fixtures.createUser();
         final var other = fixtures.createUser();
         enableTotp(user);
         enableTotp(other);
+        trust(user, "Firefox on Linux");
+        trust(user, "Safari on macOS");
+        trust(other, "Safari on macOS");
 
-        mockMvc.perform(delete(TOTP_PATH).with(bearerOf(user)))
+        mockMvc.perform(delete(TOTP_PATH).with(stepUpBearerOf(user)))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
         assertTrue(totpCredentials.findByUser(idOf(user)).isEmpty());
         assertTrue(recoveryCodes.findUnused(idOf(user)).isEmpty());
+        assertTrue(trustedDevices.findByUser(idOf(user), Instant.now()).isEmpty());
         assertTrue(totpCredentials.findByUser(idOf(other)).orElseThrow().confirmed());
+        assertEquals(1, trustedDevices.findByUser(idOf(other), Instant.now()).size());
+    }
+
+    // tag::mfa-step-up-api-it[]
+    /**
+     * Verifies that removing or resetting the second factor of an account that has one needs a recent multi-factor
+     * sign-in: a password-only token and an old multi-factor one are answered with {@code 401} and the RFC 9470
+     * challenge, and nothing is removed.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void disableTotp_whenTokenShowsNoRecentMultiFactorSignIn_answersTheStepUpChallenge() throws Exception {
+        final var user = fixtures.createUser();
+        enableTotp(user);
+        final var device = trust(user, "Firefox on Linux");
+        final var old = jwt().jwt(token -> token.subject(user.username())
+                .claim("acr", AuthenticationContextClass.MULTI_FACTOR)
+                .claim("auth_time", Instant.now().minusSeconds(OLD_SIGN_IN_SECONDS).getEpochSecond()));
+
+        for (final var token : List.<RequestPostProcessor>of(bearerOf(user), old)) {
+            mockMvc.perform(delete(TOTP_PATH).with(token))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(header().string("WWW-Authenticate", STEP_UP_CHALLENGE))
+                    .andExpect(jsonPath("$.type").value("urn:problem:mfa:insufficient-user-authentication"));
+        }
+        mockMvc.perform(post(RECOVERY_PATH).with(bearerOf(user)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", STEP_UP_CHALLENGE));
+        mockMvc.perform(delete(DEVICES_PATH + "/" + device).with(bearerOf(user)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", STEP_UP_CHALLENGE));
+
+        assertTrue(totpCredentials.findByUser(idOf(user)).orElseThrow().confirmed());
+        assertEquals(1, trustedDevices.findByUser(idOf(user), Instant.now()).size());
+    }
+    // end::mfa-step-up-api-it[]
+
+    /**
+     * Verifies that a device of an account with a second factor is revoked with a recent multi-factor sign-in.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void revokeTrustedDevice_whenAccountHasASecondFactorAndSteppedUp_removesIt() throws Exception {
+        final var user = fixtures.createUser();
+        enableTotp(user);
+        final var id = trust(user, "Firefox on Linux");
+
+        mockMvc.perform(delete(DEVICES_PATH + "/" + id).with(stepUpBearerOf(user))).andExpect(status().isNoContent());
+
+        assertTrue(trustedDevices.findByUser(idOf(user), Instant.now()).isEmpty());
     }
 
     /**
@@ -276,7 +343,7 @@ class TotpApiIT {
         enableTotp(user);
         final var before = recoveryCodes.findUnused(idOf(user));
 
-        mockMvc.perform(post(RECOVERY_PATH).with(bearerOf(user)))
+        mockMvc.perform(post(RECOVERY_PATH).with(stepUpBearerOf(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.remaining").value(GenerateRecoveryCodesUseCase.CODE_COUNT))
                 .andExpect(jsonPath("$.recoveryCodes.length()").value(GenerateRecoveryCodesUseCase.CODE_COUNT));
@@ -365,6 +432,18 @@ class TotpApiIT {
      */
     private static RequestPostProcessor bearerOf(final AuthServerFixtures.TestUser user) {
         return jwt().jwt(token -> token.subject(user.username()));
+    }
+
+    /**
+     * Builds the bearer token of a user who signed in with a second factor just now.
+     *
+     * @param user the user, the subject of the token.
+     * @return the request post-processor.
+     */
+    private static RequestPostProcessor stepUpBearerOf(final AuthServerFixtures.TestUser user) {
+        return jwt().jwt(token -> token.subject(user.username())
+                .claim("acr", AuthenticationContextClass.MULTI_FACTOR)
+                .claim("auth_time", Instant.now().getEpochSecond()));
     }
 
     /**

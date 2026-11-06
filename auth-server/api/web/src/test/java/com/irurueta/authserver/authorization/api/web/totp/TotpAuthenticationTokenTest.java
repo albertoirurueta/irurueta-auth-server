@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
@@ -34,20 +36,37 @@ class TotpAuthenticationTokenTest {
 
     /** The authentication the user already holds. */
     private final UsernamePasswordAuthenticationToken primary =
-            UsernamePasswordAuthenticationToken.authenticated("alice", "secret", java.util.List.of());
+            UsernamePasswordAuthenticationToken.authenticated("alice", "secret", List.of());
 
     /**
      * Verifies the accessors of a TOTP request.
      */
     @Test
     void constructor_whenTotpCode_exposesItsParts() {
-        final var token = new TotpAuthenticationToken(primary, CODE, false);
+        final var token = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.TOTP);
 
         assertSame(primary, token.primary());
         assertEquals("alice", token.getPrincipal());
         assertEquals(CODE, token.getCredentials());
-        assertFalse(token.isRecovery());
+        assertEquals(TotpCodeKind.TOTP, token.kind());
+        assertTrue(token.issuedRecoveryCodes().isEmpty());
         assertFalse(token.isAuthenticated());
+    }
+
+    /**
+     * Verifies that issued recovery codes are copied in, and that they do not take part in equality.
+     */
+    @Test
+    void issueRecoveryCodes_whenCodesAreIssued_keepsACopyOutsideEquality() {
+        final var token = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.ENROLMENT);
+        final var same = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.ENROLMENT);
+        final var codes = new ArrayList<>(List.of("AAAAAAAAAA"));
+
+        token.issueRecoveryCodes(codes);
+        codes.clear();
+
+        assertEquals(List.of("AAAAAAAAAA"), token.issuedRecoveryCodes());
+        assertEquals(token, same);
     }
 
     /**
@@ -55,11 +74,11 @@ class TotpAuthenticationTokenTest {
      */
     @Test
     void equalsAndHashCode_whenFieldsMatch_areEqual() {
-        final var token = new TotpAuthenticationToken(primary, CODE, true);
-        final var same = new TotpAuthenticationToken(primary, CODE, true);
-        final var other = new TotpAuthenticationToken(primary, "654321", true);
+        final var token = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.RECOVERY);
+        final var same = new TotpAuthenticationToken(primary, CODE, TotpCodeKind.RECOVERY);
+        final var other = new TotpAuthenticationToken(primary, "654321", TotpCodeKind.RECOVERY);
 
-        assertTrue(token.isRecovery());
+        assertEquals(TotpCodeKind.RECOVERY, token.kind());
         assertEquals(token, same);
         assertEquals(token.hashCode(), same.hashCode());
         assertFalse(token.equals(other));

@@ -70,9 +70,10 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 
 `LoginHeadersCustomizer` adds a `Content-Security-Policy`, `X-Content-Type-Options: nosniff` and
 `Referrer-Policy: no-referrer` to the pages of the login chain. The policy is built by `LoginContentSecurityPolicy` from
-the branding: `default-src 'self'; frame-ancestors 'none'` (same-origin resources only, no framing) and, when the logo is
-an absolute `http(s)` URL, `img-src 'self' <scheme://host[:port]>` with the origin of the logo, so the logo loads while
-scripts, styles and every other resource stay same-origin.
+the branding: `default-src 'self'; frame-ancestors 'none'; img-src 'self' data:` (same-origin resources only, no
+framing, and `data:` images for the QR code of an authenticator app, rendered in memory so its secret never becomes a
+resource of its own) and, when the logo is an absolute `http(s)` URL, the origin of the logo is added to `img-src`, so
+the logo loads while scripts, styles and every other resource stay same-origin.
 
 The policy has deliberately no `form-action` directive. Browsers also apply it to the redirects that follow a form
 submission, so `form-action 'self'` blocked (in Chromium) the redirect from the login or consent form back to the client

@@ -24,8 +24,9 @@ import org.springframework.security.core.Authentication;
 
 /**
  * Request to verify a second factor: the authentication the user already holds (the primary factor) and the code the
- * user typed. It is never authenticated itself; {@link TotpAuthenticationProvider} answers with the primary
- * authentication enriched with the TOTP authority.
+ * user typed, and what kind of code it is. It is never authenticated itself; {@link TotpAuthenticationProvider} answers
+ * with the primary authentication enriched with the TOTP authority and, when the code confirmed an enrolment, hands the
+ * new recovery codes back to the filter through {@link #issueRecoveryCodes(List)}.
  */
 @EqualsAndHashCode(callSuper = true)
 public class TotpAuthenticationToken extends AbstractAuthenticationToken {
@@ -40,21 +41,28 @@ public class TotpAuthenticationToken extends AbstractAuthenticationToken {
     /** The code as typed. */
     private final String code;
 
-    /** Whether the code is a recovery code instead of a TOTP code. */
-    private final boolean recovery;
+    /** What kind of code it is. */
+    private final TotpCodeKind kind;
+
+    /**
+     * Recovery codes generated while the request was verified (an enrolment), to be shown once; never serialized, as
+     * they only travel from the provider back to the filter of the same request.
+     */
+    @EqualsAndHashCode.Exclude
+    private transient List<String> issuedRecoveryCodes;
 
     /**
      * Creates the request.
      *
-     * @param primary  the authentication the user already holds.
-     * @param code     the code as typed.
-     * @param recovery whether the code is a recovery code instead of a TOTP code.
+     * @param primary the authentication the user already holds.
+     * @param code    the code as typed.
+     * @param kind    what kind of code it is.
      */
-    public TotpAuthenticationToken(final Authentication primary, final String code, final boolean recovery) {
+    public TotpAuthenticationToken(final Authentication primary, final String code, final TotpCodeKind kind) {
         super(List.of());
         this.primary = primary;
         this.code = code;
-        this.recovery = recovery;
+        this.kind = kind;
     }
 
     /**
@@ -87,11 +95,29 @@ public class TotpAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     /**
-     * Tells whether the code is a recovery code.
+     * Tells what kind of code it is.
      *
-     * @return {@code true} for a recovery code, {@code false} for a TOTP code.
+     * @return the kind of code.
      */
-    public boolean isRecovery() {
-        return recovery;
+    public TotpCodeKind kind() {
+        return kind;
+    }
+
+    /**
+     * Gets the recovery codes generated while the request was verified.
+     *
+     * @return the codes; empty unless the code confirmed an enrolment.
+     */
+    public List<String> issuedRecoveryCodes() {
+        return issuedRecoveryCodes == null ? List.of() : issuedRecoveryCodes;
+    }
+
+    /**
+     * Hands back the recovery codes generated while the request was verified.
+     *
+     * @param codes the codes in clear text.
+     */
+    public void issueRecoveryCodes(final List<String> codes) {
+        issuedRecoveryCodes = List.copyOf(codes);
     }
 }

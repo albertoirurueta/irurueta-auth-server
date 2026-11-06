@@ -28,6 +28,7 @@ import com.irurueta.authserver.authorization.application.password.FindUserAccoun
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import com.irurueta.authserver.authorization.domain.mfa.MfaPolicy;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +62,9 @@ class MfaClaimsContributorTest {
     /** Authority of the TOTP factor. */
     private static final String TOTP_AUTHORITY = "FACTOR_TOTP";
 
+    /** Authority of the trusted-device factor. */
+    private static final String TRUSTED_DEVICE_AUTHORITY = "FACTOR_TRUSTED_DEVICE";
+
     /** Authority of a factor nobody registered. */
     private static final String UNKNOWN_AUTHORITY = "FACTOR_UNKNOWN";
 
@@ -77,14 +81,16 @@ class MfaClaimsContributorTest {
     private MfaClaimsContributor contributor;
 
     /**
-     * Creates the subject over a registry with a password and a TOTP factor.
+     * Creates the subject over a real timeline of a registry with a password, a TOTP and a trusted-device factor.
      */
     @BeforeEach
     void setUp() {
         final var registry = new AuthenticationFactorRegistry(List.of(
                 new AuthenticationFactor("password", "pwd", PASSWORD_AUTHORITY, FactorStrength.PRIMARY),
-                new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND)));
-        contributor = new MfaClaimsContributor(registry);
+                new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND),
+                new AuthenticationFactor("trusted-device", "trusted-device", TRUSTED_DEVICE_AUTHORITY,
+                        FactorStrength.REMEMBERED)));
+        contributor = new MfaClaimsContributor(new FactorTimeline(registry, new MfaPolicy()));
     }
 
     /**
@@ -102,7 +108,8 @@ class MfaClaimsContributorTest {
     }
 
     /**
-     * Two factors give both amr values in presentation order, mfa, the multi-factor acr and the latest instant.
+     * Two factors give both amr values in presentation order, mfa, the multi-factor acr and the instant of the
+     * password, not of the later second factor.
      */
     @Test
     void contribute_whenTwoFactorsPresented_addsMultiFactorClaims() {
@@ -114,7 +121,23 @@ class MfaClaimsContributorTest {
 
         assertEquals(List.of("pwd", "otp", "mfa"), claims.get(IdTokenClaimNames.AMR));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, claims.get(IdTokenClaimNames.ACR));
-        assertEquals(TOTP_TIME.getEpochSecond(), claims.get(IdTokenClaimNames.AUTH_TIME));
+        assertEquals(PASSWORD_TIME.getEpochSecond(), claims.get(IdTokenClaimNames.AUTH_TIME));
+    }
+
+    /**
+     * A trusted device that skipped the second factor is not reported: the claims are those of the password alone.
+     */
+    @Test
+    void contribute_whenTrustedDeviceSkippedTheSecondFactor_addsPasswordClaims() {
+        final var claims = new HashMap<String, Object>();
+        final var principal = authentication(factor(PASSWORD_AUTHORITY, PASSWORD_TIME),
+                factor(TRUSTED_DEVICE_AUTHORITY, TOTP_TIME));
+
+        contributor.contribute(contextOf(principal), claims);
+
+        assertEquals(List.of("pwd"), claims.get(IdTokenClaimNames.AMR));
+        assertEquals(AuthenticationContextClass.PASSWORD, claims.get(IdTokenClaimNames.ACR));
+        assertEquals(PASSWORD_TIME.getEpochSecond(), claims.get(IdTokenClaimNames.AUTH_TIME));
     }
 
     /**
@@ -178,7 +201,7 @@ class MfaClaimsContributorTest {
         final var built = context.getClaims().build().getClaims();
         assertEquals(List.of("pwd", "otp", "mfa"), built.get(IdTokenClaimNames.AMR));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, built.get(IdTokenClaimNames.ACR));
-        assertEquals(TOTP_TIME.getEpochSecond(), built.get(IdTokenClaimNames.AUTH_TIME));
+        assertEquals(PASSWORD_TIME.getEpochSecond(), built.get(IdTokenClaimNames.AUTH_TIME));
         assertFalse(built.containsKey(IssuedTokenClaims.TENANT_CLAIM));
     }
 

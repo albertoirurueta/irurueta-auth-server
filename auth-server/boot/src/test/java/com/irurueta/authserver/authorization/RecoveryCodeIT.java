@@ -16,19 +16,26 @@
 package com.irurueta.authserver.authorization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.irurueta.authserver.authorization.application.totp.CountRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.application.totp.GenerateRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
+import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 
 /**
- * Checks that a recovery code stands in for the authenticator app code exactly once.
+ * Checks that a recovery code stands in for the authenticator app code exactly once, and that the second-factor page
+ * warns when few recovery codes are left.
  */
 class RecoveryCodeIT extends AbstractMfaFlow {
+
+    /** Text of the warning shown when few recovery codes are left, after the count. */
+    private static final String LOW_CODES_WARNING = "recovery codes are left";
 
     /** Port that stores the recovery codes. */
     @Autowired
@@ -59,5 +66,28 @@ class RecoveryCodeIT extends AbstractMfaFlow {
         signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), second);
         final var refused = postSecondFactor(second, code, true, false);
         assertTrue(refused.getResponse().getRedirectedUrl().endsWith("/login/second-factor?error"));
+    }
+
+    /**
+     * Verifies that the second-factor page warns, with the count, once only
+     * {@value CountRecoveryCodesUseCase#LOW_THRESHOLD} recovery codes are left, and not before.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactorPage_whenFewRecoveryCodesAreLeft_warnsWithTheCount() throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var client = getFixtures().createMfaCodeClient();
+        final var session = new MockHttpSession();
+        signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), session);
+        final var unused = recoveryCodes.findUnused(enrolled.id());
+        final var toSpend = unused.size() - CountRecoveryCodesUseCase.LOW_THRESHOLD;
+        unused.stream().limit(toSpend - 1L).forEach(code -> recoveryCodes.markUsed(code.id(), Instant.now()));
+        assertFalse(secondFactorPage(session).contains(LOW_CODES_WARNING));
+
+        recoveryCodes.markUsed(unused.get(toSpend - 1).id(), Instant.now());
+
+        assertTrue(secondFactorPage(session).contains(
+                "Only " + CountRecoveryCodesUseCase.LOW_THRESHOLD + " " + LOW_CODES_WARNING));
     }
 }

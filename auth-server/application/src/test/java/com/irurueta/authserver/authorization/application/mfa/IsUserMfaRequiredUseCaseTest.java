@@ -50,6 +50,10 @@ class IsUserMfaRequiredUseCaseTest {
     @Mock
     private UserMfaSettingsRepository userMfaSettingsRepository;
 
+    /** Use case that tells whether the user has confirmed a second factor. */
+    @Mock
+    private HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
     /** Use case under test. */
     @InjectMocks
     private IsUserMfaRequiredUseCase useCase;
@@ -67,15 +71,29 @@ class IsUserMfaRequiredUseCaseTest {
     }
 
     /**
-     * Verifies that an account that is not flagged is reported as not requiring MFA.
+     * Verifies that an account that is not flagged and has no confirmed second factor does not require MFA.
      */
     @Test
-    void execute_whenAccountDoesNotRequireMfa_returnsFalse() {
+    void execute_whenAccountDoesNotRequireMfaAndHasNoSecondFactor_returnsFalse() {
         final var account = account();
         when(userAccountRepository.findByUsername(USERNAME)).thenReturn(Optional.of(account));
         when(userMfaSettingsRepository.isRequired(account.id())).thenReturn(false);
+        when(hasConfirmedSecondFactorUseCase.execute(account.id())).thenReturn(false);
 
         assertFalse(useCase.execute(USERNAME));
+    }
+
+    /**
+     * Verifies that a confirmed second factor makes MFA required even when no administrator forced it.
+     */
+    @Test
+    void execute_whenAccountHasAConfirmedSecondFactor_returnsTrue() {
+        final var account = account();
+        when(userAccountRepository.findByUsername(USERNAME)).thenReturn(Optional.of(account));
+        when(userMfaSettingsRepository.isRequired(account.id())).thenReturn(false);
+        when(hasConfirmedSecondFactorUseCase.execute(account.id())).thenReturn(true);
+
+        assertTrue(useCase.execute(USERNAME));
     }
 
     /**
@@ -86,7 +104,7 @@ class IsUserMfaRequiredUseCaseTest {
         when(userAccountRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
         assertFalse(useCase.execute(USERNAME));
-        verifyNoInteractions(userMfaSettingsRepository);
+        verifyNoInteractions(userMfaSettingsRepository, hasConfirmedSecondFactorUseCase);
     }
 
     /**

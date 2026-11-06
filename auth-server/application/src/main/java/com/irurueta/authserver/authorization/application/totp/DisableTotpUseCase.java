@@ -16,6 +16,9 @@
 
 package com.irurueta.authserver.authorization.application.totp;
 
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
 import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepository;
 import java.util.UUID;
@@ -23,8 +26,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::totp-disable[]
 /**
- * Use case that removes the authenticator app of a user together with the recovery codes that went with it.
+ * Use case that removes the authenticator app of a user together with the recovery codes that went with it. Every
+ * trusted device of the user is revoked as well, since a device trusted to skip a second factor must not outlive it,
+ * and the removal is audited.
  */
 @Service
 @Transactional
@@ -37,13 +43,24 @@ public class DisableTotpUseCase {
     /** Port that stores the recovery codes. */
     private final RecoveryCodeRepository recoveryCodeRepository;
 
+    /** Port that stores the trusted devices. */
+    private final TrustedDeviceRepository trustedDeviceRepository;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
     /**
      * Disables TOTP.
      *
-     * @param userId identifier of the user.
+     * @param userId   identifier of the user.
+     * @param username name of the user, for the audit log.
      */
-    public void execute(final UUID userId) {
+    public void execute(final UUID userId, final String username) {
         totpCredentialRepository.deleteByUser(userId);
         recoveryCodeRepository.deleteByUser(userId);
+        final var revoked = trustedDeviceRepository.deleteByUser(userId);
+        recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, username,
+                "totp; trusted devices revoked: " + revoked);
     }
 }
+// end::totp-disable[]

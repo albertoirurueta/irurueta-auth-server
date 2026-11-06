@@ -62,7 +62,7 @@ class CheckSecondFactorLockoutUseCaseTest {
     void execute_whenLockedUntilLater_returnsTrue() {
         final var userId = UUID.randomUUID();
         when(clock.instant()).thenReturn(NOW);
-        when(secondFactorAttemptRepository.find(userId))
+        when(secondFactorAttemptRepository.lockForUpdate(userId))
                 .thenReturn(new SecondFactorLockout(FAILURES, NOW.plusSeconds(1)));
 
         assertTrue(useCase.execute(userId));
@@ -75,7 +75,7 @@ class CheckSecondFactorLockoutUseCaseTest {
     void execute_whenNotLocked_returnsFalse() {
         final var userId = UUID.randomUUID();
         when(clock.instant()).thenReturn(NOW);
-        when(secondFactorAttemptRepository.find(userId)).thenReturn(SecondFactorLockout.none());
+        when(secondFactorAttemptRepository.lockForUpdate(userId)).thenReturn(SecondFactorLockout.none());
 
         assertFalse(useCase.execute(userId));
     }

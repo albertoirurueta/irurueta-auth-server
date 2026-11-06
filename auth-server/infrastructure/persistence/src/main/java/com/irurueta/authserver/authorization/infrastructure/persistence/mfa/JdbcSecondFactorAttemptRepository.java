@@ -40,6 +40,27 @@ public class JdbcSecondFactorAttemptRepository implements SecondFactorAttemptRep
             SELECT failed_count, locked_until FROM second_factor_attempts WHERE user_id = ?
             """;
 
+    // tag::mfa-lock-attempts[]
+    /** Statement that creates the clean state of a user unless one exists, so there is always a row to lock. */
+    private static final String ENSURE_ATTEMPTS = """
+            INSERT INTO second_factor_attempts (user_id, failed_count) VALUES (?, 0)
+            ON CONFLICT (user_id) DO NOTHING
+            """;
+
+    /**
+     * Query returning the state of a user and locking its row until the end of the transaction: a concurrent
+     * verification of the same user waits here until the first one commits.
+     */
+    private static final String LOCK_ATTEMPTS = """
+            SELECT failed_count, locked_until FROM second_factor_attempts WHERE user_id = ? FOR UPDATE
+            """;
+    // end::mfa-lock-attempts[]
+
+    /** Statement that clears the counter and the lock, keeping the row so later verifications can lock it. */
+    private static final String RESET_ATTEMPTS = """
+            UPDATE second_factor_attempts SET failed_count = 0, locked_until = NULL WHERE user_id = ?
+            """;
+
     // tag::mfa-record-failure[]
     /**
      * Single-statement upsert that counts one failure and sets the lock when the maximum is reached. A lock that
@@ -72,6 +93,20 @@ public class JdbcSecondFactorAttemptRepository implements SecondFactorAttemptRep
                 .orElseGet(SecondFactorLockout::none);
     }
 
+    /**
+     * Reads and locks the state of a user, in the caller's transaction (without one, the lock is released as soon
+     * as the query ends).
+     *
+     * @param userId identifier of the user.
+     * @return the state.
+     */
+    @Override
+    public SecondFactorLockout lockForUpdate(final UUID userId) {
+        jdbcClient.sql(ENSURE_ATTEMPTS).param(userId).update();
+        return jdbcClient.sql(LOCK_ATTEMPTS).param(userId).query(secondFactorLockoutRowMapper).optional()
+                .orElseGet(SecondFactorLockout::none);
+    }
+
     @Override
     public SecondFactorLockout recordFailure(final UUID userId, final int maxAttempts, final Duration lockout,
                                              final Instant now) {
@@ -84,6 +119,6 @@ public class JdbcSecondFactorAttemptRepository implements SecondFactorAttemptRep
 
     @Override
     public void reset(final UUID userId) {
-        jdbcClient.sql("DELETE FROM second_factor_attempts WHERE user_id = ?").param(userId).update();
+        jdbcClient.sql(RESET_ATTEMPTS).param(userId).update();
     }
 }

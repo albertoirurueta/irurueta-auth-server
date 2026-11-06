@@ -63,17 +63,18 @@ class StepUpIT extends AbstractMfaFlow {
     }
 
     /**
-     * Verifies that a request for the password class is satisfied by a password-only session.
+     * Verifies that a request for the password class is satisfied by a password-only session of a user without a
+     * second factor (one with a second factor is always asked for it).
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
     void authorize_whenAcrValuesAskForPassword_isSatisfiedByThePassword() throws Exception {
-        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var user = getFixtures().createUser();
         final var client = getFixtures().createCodeClient();
         final var session = new MockHttpSession();
         final var verifier = newVerifier();
-        final var authorizeUri = signInForAuthorization(enrolled.user(), client, verifier,
+        final var authorizeUri = signInForAuthorization(user, client, verifier,
                 Map.of("acr_values", AuthenticationContextClass.PASSWORD), session);
 
         final var tokens = completeAuthorization(authorizeUri, client, verifier, session);

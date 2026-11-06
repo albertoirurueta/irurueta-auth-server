@@ -27,5 +27,12 @@ public enum FactorStrength {
     PRIMARY,
 
     /** A factor that only counts once a {@link #PRIMARY} factor has been presented, for example a TOTP code. */
-    SECOND
+    SECOND,
+
+    /**
+     * A factor that only stands in for a {@link #SECOND} one at sign-in, for example a trusted device: it lets the
+     * sign-in policy be satisfied without asking for a code again, but proves nothing about this sign-in, so it is
+     * never reported in {@code amr}, {@code acr} or {@code auth_time} and never satisfies a step-up request.
+     */
+    REMEMBERED
 }

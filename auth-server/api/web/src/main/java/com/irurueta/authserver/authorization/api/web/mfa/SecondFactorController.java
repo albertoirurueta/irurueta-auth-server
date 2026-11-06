@@ -24,13 +24,15 @@ import java.util.HashMap;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
 
 /**
  * Serves the second-factor page, as the contract {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml}
  * describes it through the generated {@link SecondFactorPageApi}, supplying the ordered fragments of the second
- * factors and the outcome of the last attempt to the template.
+ * factors, the model attributes each of them contributes for the signed-in user and the outcome of the last attempt to
+ * the template.
  */
 @Controller
 public class SecondFactorController implements SecondFactorPageApi {
@@ -86,6 +88,8 @@ public class SecondFactorController implements SecondFactorPageApi {
     @Override
     public ResponseEntity<String> secondFactorPage(final String error) {
         final var model = new HashMap<String, Object>();
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        fragments.forEach(fragment -> model.putAll(fragment.modelAttributes(authentication)));
         model.put(FRAGMENTS_ATTRIBUTE, fragments);
         if (error != null) {
             model.put(ERROR_MESSAGE_ATTRIBUTE, lastFailureWasLockout() ? LOCKED_ERROR : GENERIC_ERROR);

@@ -149,6 +149,16 @@ class JdbcTrustedDeviceRepositoryTest {
     }
 
     /**
+     * Verifies that every device of a user is deleted and their number returned.
+     */
+    @Test
+    void deleteByUser_whenUserHasDevices_returnsDeletedCount() {
+        when(client.sql(any(String.class)).param(userId).update()).thenReturn(DELETED);
+
+        assertEquals(DELETED, repository.deleteByUser(userId));
+    }
+
+    /**
      * Verifies that the number of deleted rows is returned.
      */
     @Test

@@ -30,6 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CountRecoveryCodesUseCase {
 
+    /** Number of unused codes at or below which the user is warned to generate new ones. */
+    public static final int LOW_THRESHOLD = 3;
+
     /** Port that stores the recovery codes. */
     private final RecoveryCodeRepository recoveryCodeRepository;
 

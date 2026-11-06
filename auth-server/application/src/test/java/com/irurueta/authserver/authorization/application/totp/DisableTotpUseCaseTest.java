@@ -13,11 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.irurueta.authserver.authorization.application.totp;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
 import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepository;
 import java.util.UUID;
@@ -33,6 +36,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DisableTotpUseCaseTest {
 
+    /** Username used by the tests. */
+    private static final String USERNAME = "alice";
+
+    /** Number of trusted devices the mocked repository revokes. */
+    private static final int REVOKED = 2;
+
     /** Port that stores the TOTP credentials. */
     @Mock
     private TotpCredentialRepository totpCredentialRepository;
@@ -41,20 +50,33 @@ class DisableTotpUseCaseTest {
     @Mock
     private RecoveryCodeRepository recoveryCodeRepository;
 
+    /** Port that stores the trusted devices. */
+    @Mock
+    private TrustedDeviceRepository trustedDeviceRepository;
+
+    /** Use case that records the audit events. */
+    @Mock
+    private RecordSecurityEventUseCase recordSecurityEventUseCase;
+
     /** Use case under test. */
     @InjectMocks
     private DisableTotpUseCase useCase;
 
     /**
-     * Verifies that both the credential and the recovery codes are deleted.
+     * Verifies that the credential, the recovery codes and every trusted device are deleted, and the removal is
+     * audited.
      */
     @Test
-    void execute_whenCalled_deletesTheCredentialAndTheRecoveryCodes() {
+    void execute_whenCalled_deletesTheFactorRevokesTrustedDevicesAndRecordsTheEvent() {
         final var userId = UUID.randomUUID();
+        when(trustedDeviceRepository.deleteByUser(userId)).thenReturn(REVOKED);
 
-        useCase.execute(userId);
+        useCase.execute(userId, USERNAME);
 
         verify(totpCredentialRepository).deleteByUser(userId);
         verify(recoveryCodeRepository).deleteByUser(userId);
+        verify(trustedDeviceRepository).deleteByUser(userId);
+        verify(recordSecurityEventUseCase).execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, USERNAME,
+                "totp; trusted devices revoked: " + REVOKED);
     }
 }

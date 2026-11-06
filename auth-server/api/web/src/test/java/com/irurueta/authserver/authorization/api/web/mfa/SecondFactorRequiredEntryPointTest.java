@@ -17,6 +17,8 @@
 package com.irurueta.authserver.authorization.api.web.mfa;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
@@ -73,5 +75,35 @@ class SecondFactorRequiredEntryPointTest {
         entryPoint.commence(request, response, new InsufficientAuthenticationException("second factor"));
 
         assertEquals("/auth/login/second-factor", response.getRedirectedUrl());
+    }
+
+    /**
+     * Verifies that a step-up is remembered in the session, and forgotten by the next plain redirect.
+     *
+     * @throws Exception never.
+     */
+    @Test
+    void commence_whenStepUpIsRequired_remembersItUntilThePlainRedirect() throws Exception {
+        final var request = new MockHttpServletRequest("GET", "/oauth2/authorize");
+
+        entryPoint.commence(request, new MockHttpServletResponse(), SecondFactorRequiredException.forStepUp());
+        assertTrue(SecondFactorRequiredEntryPoint.isStepUpPending(request));
+
+        entryPoint.commence(request, new MockHttpServletResponse(), new SecondFactorRequiredException());
+        assertFalse(SecondFactorRequiredEntryPoint.isStepUpPending(request));
+    }
+
+    /**
+     * Verifies that nothing is pending for a request without a session, and that a plain redirect creates none.
+     *
+     * @throws Exception never.
+     */
+    @Test
+    void isStepUpPending_whenThereIsNoSession_returnsFalse() throws Exception {
+        final var request = new MockHttpServletRequest("GET", "/oauth2/authorize");
+
+        entryPoint.commence(request, new MockHttpServletResponse(), new InsufficientAuthenticationException("x"));
+
+        assertFalse(SecondFactorRequiredEntryPoint.isStepUpPending(request));
     }
 }

@@ -16,16 +16,22 @@
 
 package com.irurueta.authserver.authorization.api.web.mfa;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.irurueta.authserver.authorization.application.mfa.ListTrustedDevicesUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RevokeTrustedDeviceUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDevice;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +58,9 @@ class TrustedDeviceControllerTest {
     /** Path of the collection. */
     private static final String PATH = "/api/account/trusted-devices";
 
+    /** Maximum age of the step-up, in minutes. */
+    private static final int STEP_UP_MINUTES = 5;
+
     /** Account of the requests. */
     private final CurrentAccount account = new CurrentAccount(UUID.randomUUID(), USERNAME);
 
@@ -66,6 +75,10 @@ class TrustedDeviceControllerTest {
     /** Revokes a device. */
     @Mock
     private RevokeTrustedDeviceUseCase revokeTrustedDeviceUseCase;
+
+    /** Requires a recent multi-factor sign-in. */
+    @Mock
+    private StepUpGuard stepUpGuard;
 
     /** Real mapper. */
     @Spy
@@ -117,6 +130,23 @@ class TrustedDeviceControllerTest {
         when(revokeTrustedDeviceUseCase.execute(account.id(), USERNAME, id)).thenReturn(true);
 
         mockMvc.perform(delete(PATH + "/" + id)).andExpect(status().isNoContent()).andExpect(content().string(""));
+        verify(stepUpGuard).requireRecentMultiFactor(account.id());
+    }
+
+    /**
+     * Verifies that a device is not revoked without a recent multi-factor sign-in.
+     *
+     * @throws Exception if the request fails.
+     */
+    @Test
+    void revokeTrustedDevice_whenStepUpIsMissing_answersUnauthorized() throws Exception {
+        doThrow(new InsufficientUserAuthenticationException(AuthenticationContextClass.MULTI_FACTOR,
+                Duration.ofMinutes(STEP_UP_MINUTES))).when(stepUpGuard).requireRecentMultiFactor(account.id());
+
+        mockMvc.perform(delete(PATH + "/" + UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().exists("WWW-Authenticate"));
+        verifyNoInteractions(revokeTrustedDeviceUseCase);
     }
 
     /**

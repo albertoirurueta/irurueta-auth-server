@@ -23,8 +23,6 @@ import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolve
 import com.irurueta.authserver.authorization.api.web.mfa.TrustedDeviceCookieWriter;
 import com.irurueta.authserver.authorization.application.mfa.CreateTrustedDeviceUseCase;
 import com.irurueta.authserver.authorization.application.mfa.FindTrustedDeviceUseCase;
-import com.irurueta.authserver.authorization.application.totp.VerifyRecoveryCodeUseCase;
-import com.irurueta.authserver.authorization.application.totp.VerifyTotpUseCase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -36,13 +34,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TotpConfigurationTest {
 
-    /** Verifies TOTP codes. */
+    /** Verifies the posted codes. */
     @Mock
-    private VerifyTotpUseCase verifyTotpUseCase;
+    private TotpCodeVerifier totpCodeVerifier;
 
-    /** Verifies recovery codes. */
+    /** Keeps the recovery codes of an enrolment. */
     @Mock
-    private VerifyRecoveryCodeUseCase verifyRecoveryCodeUseCase;
+    private PendingRecoveryCodes pendingRecoveryCodes;
 
     /** Remembers devices. */
     @Mock
@@ -69,9 +67,9 @@ class TotpConfigurationTest {
      */
     @Test
     void totpChainCustomizer_whenBuilt_isATotpChainCustomizer() {
-        final var customizer = new TotpConfiguration().totpChainCustomizer(verifyTotpUseCase,
-                verifyRecoveryCodeUseCase, createTrustedDeviceUseCase, findTrustedDeviceUseCase, userResolver,
-                factorGrantor, cookieWriter);
+        final var customizer = new TotpConfiguration().totpChainCustomizer(totpCodeVerifier,
+                createTrustedDeviceUseCase, findTrustedDeviceUseCase, userResolver, factorGrantor, cookieWriter,
+                pendingRecoveryCodes);
 
         assertInstanceOf(TotpChainCustomizer.class, customizer);
     }

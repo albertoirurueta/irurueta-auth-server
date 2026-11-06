@@ -15,34 +15,41 @@
  */
 package com.irurueta.authserver.authorization;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.authorization.api.web.mfa.PasswordFactor;
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 
 /**
- * Checks that a remembered device skips the second factor on the next sign-in and stops doing so once revoked.
+ * Checks that a remembered device skips the second factor on the next sign-in (without the tokens claiming a second
+ * factor), never satisfies a step-up request, and stops skipping it once revoked.
  */
 class TrustedDeviceIT extends AbstractMfaFlow {
-
-    /** Path of the second-factor page. */
-    private static final String SECOND_FACTOR_PAGE = "/login/second-factor";
 
     /** Port that stores the trusted devices. */
     @Autowired
     private TrustedDeviceRepository trustedDevices;
 
+    // tag::mfa-trusted-device-it[]
     /**
-     * Verifies that the device is remembered by the cookie, skips the second factor (tokens still say multi-factor),
-     * and is asked for the code again after it is revoked.
+     * Verifies that the device is remembered by the cookie and skips the second factor of a sign-in, while the tokens
+     * only report the password ({@code amr [pwd]}, password {@code acr}); that a request with {@code acr_values} for
+     * the multi-factor class still renders the TOTP form on the trusted browser (no redirect loop) and, once the code
+     * is posted, gets multi-factor tokens; and that the device is asked for the code again after it is revoked.
      *
      * @throws Exception if a request cannot be performed.
      */
@@ -63,11 +70,27 @@ class TrustedDeviceIT extends AbstractMfaFlow {
         final var second = new MockHttpSession();
         final var verifier = newVerifier();
         final var secondUri = signInForAuthorization(enrolled.user(), client, verifier, Map.of(), second);
-        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(second).cookie(cookie))
+        final var sessionId = second.getId();
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(second).cookie(cookie)
+                        .with(AbstractMfaFlow::sendsTheSessionCookie))
                 .andExpect(status().is3xxRedirection());
-        final var tokens = completeAuthorization(secondUri, client, verifier, second);
-        assertEquals("urn:irurueta:acr:mfa",
-                AuthServerFixtures.claimsOf(tokens.get("access_token").asString()).get("acr").asString());
+        assertNotEquals(sessionId, second.getId(), "The session id must change when the device is recognised");
+        final var trusted = AuthServerFixtures.claimsOf(
+                completeAuthorization(secondUri, client, verifier, second).get("access_token").asString());
+        assertEquals(List.of(PasswordFactor.AMR_VALUE), strings(trusted.get(AMR)));
+        assertEquals(AuthenticationContextClass.PASSWORD, trusted.get(ACR).asString());
+
+        final var stepUpVerifier = newVerifier();
+        final var stepUpUri = AuthServerFixtures.authorizeUri(client, stepUpVerifier,
+                Map.of("acr_values", AuthenticationContextClass.MULTI_FACTOR));
+        expectSecondFactorPage(stepUpUri, second);
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(second).cookie(cookie))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"code\"")));
+        assertAccepted(postSecondFactor(second, getTools().codeNow(enrolled.id(), 1), false, false));
+        final var stepped = AuthServerFixtures.claimsOf(
+                completeAuthorization(stepUpUri, client, stepUpVerifier, second).get("access_token").asString());
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR, stepped.get(ACR).asString());
 
         final var device = trustedDevices.findByUser(enrolled.id(), Instant.now()).getFirst();
         assertTrue(trustedDevices.revoke(enrolled.id(), device.id()));
@@ -76,4 +99,5 @@ class TrustedDeviceIT extends AbstractMfaFlow {
         signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), third);
         getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(third).cookie(cookie)).andExpect(status().isOk());
     }
+    // end::mfa-trusted-device-it[]
 }

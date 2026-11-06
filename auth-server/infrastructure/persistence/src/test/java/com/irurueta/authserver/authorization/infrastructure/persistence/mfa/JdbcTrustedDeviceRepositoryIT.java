@@ -121,6 +121,25 @@ class JdbcTrustedDeviceRepositoryIT {
     }
 
     /**
+     * Verifies that every device of the user is deleted, and the devices of another user are kept.
+     */
+    @Test
+    void deleteByUser_whenTwoUsersHaveDevices_deletesOnlyTheUsers() {
+        final var now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        final var otherId = UUID.randomUUID();
+        jdbcClient.sql("INSERT INTO users (id, username) VALUES (?, ?)").params(otherId, "user-" + otherId).update();
+        repository.store(device(hash(), now.plusSeconds(TTL_SECONDS), now));
+        repository.store(device(hash(), now.minusSeconds(1), now.minusSeconds(TTL_SECONDS)));
+        final var other = new TrustedDevice(UUID.randomUUID(), otherId, hash(), null, now.plusSeconds(TTL_SECONDS),
+                now);
+        repository.store(other);
+
+        assertEquals(2, repository.deleteByUser(userId));
+        assertTrue(repository.findByUser(userId, now).isEmpty());
+        assertEquals(List.of(other), repository.findByUser(otherId, now));
+    }
+
+    /**
      * Verifies that only the expired devices are deleted.
      */
     @Test

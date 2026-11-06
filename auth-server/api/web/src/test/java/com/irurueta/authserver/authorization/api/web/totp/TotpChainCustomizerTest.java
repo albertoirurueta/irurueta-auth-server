@@ -18,6 +18,7 @@ package com.irurueta.authserver.authorization.api.web.totp;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 
 /**
  * Unit tests of {@link TotpChainCustomizer}.
@@ -68,5 +70,32 @@ class TotpChainCustomizerTest {
         verify(authorizedUrl).authenticated();
         verify(http).addFilterBefore(trustedDeviceFilter, AuthorizationFilter.class);
         verify(http).addFilterBefore(totpAuthenticationFilter, AuthorizationFilter.class);
+        verify(http).with(any(TotpChainCustomizer.SessionStrategyConfigurer.class));
+    }
+
+    /**
+     * Verifies that the session authentication strategy of the chain is handed to the TOTP filter.
+     */
+    @Test
+    void configure_whenTheChainHasASessionStrategy_setsItOnTheFilter() {
+        final var http = mock(HttpSecurity.class);
+        final var strategy = mock(SessionAuthenticationStrategy.class);
+        when(http.getSharedObject(SessionAuthenticationStrategy.class)).thenReturn(strategy);
+
+        new TotpChainCustomizer.SessionStrategyConfigurer(totpAuthenticationFilter).configure(http);
+
+        verify(totpAuthenticationFilter).setSessionAuthenticationStrategy(strategy);
+    }
+
+    /**
+     * Verifies that the filter keeps its own strategy when the chain has none.
+     */
+    @Test
+    void configure_whenTheChainHasNoSessionStrategy_leavesTheFilterAlone() {
+        final var http = mock(HttpSecurity.class);
+
+        new TotpChainCustomizer.SessionStrategyConfigurer(totpAuthenticationFilter).configure(http);
+
+        verify(totpAuthenticationFilter, never()).setSessionAuthenticationStrategy(any());
     }
 }

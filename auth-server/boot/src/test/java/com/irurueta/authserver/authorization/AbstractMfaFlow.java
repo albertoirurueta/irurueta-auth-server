@@ -33,12 +33,15 @@ import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepositor
 import com.irurueta.authserver.authorization.domain.totp.TotpSecretCipher;
 import com.irurueta.authserver.testsupport.PostgresIT;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,6 +59,21 @@ abstract class AbstractMfaFlow {
 
     /** Name of the cookie that remembers a trusted device. */
     static final String TRUSTED_DEVICE_COOKIE = "__Host-TRUSTED-DEVICE";
+
+    /** Path of the second-factor page. */
+    static final String SECOND_FACTOR_PAGE = SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH;
+
+    /** Name of the claim with the authentication methods. */
+    static final String AMR = "amr";
+
+    /** Name of the claim with the authentication context class. */
+    static final String ACR = "acr";
+
+    /** Name of the claim with the time of the authentication. */
+    static final String AUTH_TIME = "auth_time";
+
+    /** Time to let pass so that two instants fall in different seconds, in milliseconds. */
+    static final long NEXT_SECOND_MILLIS = 1_100L;
 
     /** MockMvc bound to the application context. */
     @Autowired
@@ -162,6 +180,7 @@ abstract class AbstractMfaFlow {
     protected MvcResult postSecondFactor(final MockHttpSession session, final String code, final boolean recovery,
             final boolean remember) throws Exception {
         final var request = post(TotpAuthenticationFilter.TOTP_PATH).session(session).with(csrf())
+                .with(AbstractMfaFlow::sendsTheSessionCookie)
                 .param(TotpAuthenticationFilter.CODE_PARAMETER, code);
         if (recovery) {
             request.param(TotpAuthenticationFilter.RECOVERY_PARAMETER, "true");
@@ -170,6 +189,33 @@ abstract class AbstractMfaFlow {
             request.param(TotpAuthenticationFilter.REMEMBER_PARAMETER, "on");
         }
         return mockMvc.perform(request).andReturn();
+    }
+
+    /**
+     * Posts the enrolment form of the second-factor page: the first code of the authenticator app being enrolled.
+     *
+     * @param session the browser session.
+     * @param code    the code typed by the user.
+     * @return the answer of the filter.
+     * @throws Exception if the request cannot be performed.
+     */
+    protected MvcResult postEnrolment(final MockHttpSession session, final String code) throws Exception {
+        return mockMvc.perform(post(TotpAuthenticationFilter.TOTP_PATH).session(session).with(csrf())
+                .with(AbstractMfaFlow::sendsTheSessionCookie)
+                .param(TotpAuthenticationFilter.CODE_PARAMETER, code)
+                .param(TotpAuthenticationFilter.ENROLL_PARAMETER, "true")).andReturn();
+    }
+
+    /**
+     * Renders the second-factor page.
+     *
+     * @param session the browser session.
+     * @return the HTML of the page.
+     * @throws Exception if the request cannot be performed.
+     */
+    protected String secondFactorPage(final MockHttpSession session) throws Exception {
+        return mockMvc.perform(get(SECOND_FACTOR_PAGE).session(session)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
     }
 
     /**
@@ -197,6 +243,29 @@ abstract class AbstractMfaFlow {
         final var authorized = mockMvc.perform(get(authorizeUri).session(session))
                 .andExpect(status().is3xxRedirection()).andReturn();
         return fixtures.exchangeCode(client, AuthServerFixtures.codeOf(authorized), verifier);
+    }
+
+    /**
+     * Marks a request as carrying the cookie of its session, as a browser does, so the servlet container (and Spring
+     * Security's session fixation protection, which only changes the id of such a session) treats the session as the
+     * one the browser asked for. MockMvc leaves it unset.
+     *
+     * @param request the request.
+     * @return the same request.
+     */
+    protected static MockHttpServletRequest sendsTheSessionCookie(final MockHttpServletRequest request) {
+        request.setRequestedSessionIdValid(true);
+        return request;
+    }
+
+    /**
+     * Reads the strings of a JSON array, such as the {@code amr} claim.
+     *
+     * @param array the array.
+     * @return its elements.
+     */
+    protected static List<String> strings(final JsonNode array) {
+        return StreamSupport.stream(array.spliterator(), false).map(JsonNode::asString).toList();
     }
 
     /**

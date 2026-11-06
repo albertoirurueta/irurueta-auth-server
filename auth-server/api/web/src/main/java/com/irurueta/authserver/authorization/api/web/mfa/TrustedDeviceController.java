@@ -29,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Lists and revokes the trusted devices of the authenticated account. The paths, status codes and bodies are those
  * of the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml}, through the generated
- * {@link TrustedDevicesApi}; failures are answered by {@link MfaExceptionHandler}.
+ * {@link TrustedDevicesApi}; failures are answered by {@link MfaExceptionHandler}. Revoking a device needs a recent
+ * multi-factor sign-in ({@link StepUpGuard}).
  */
 @RestController
 @RequiredArgsConstructor
@@ -43,6 +44,9 @@ public class TrustedDeviceController implements TrustedDevicesApi {
 
     /** Revokes a device. */
     private final RevokeTrustedDeviceUseCase revokeTrustedDeviceUseCase;
+
+    /** Requires a recent multi-factor sign-in before a device is revoked. */
+    private final StepUpGuard stepUpGuard;
 
     /** Maps the devices onto the contract's DTOs. */
     private final TrustedDeviceDtoMapper trustedDeviceDtoMapper;
@@ -63,11 +67,13 @@ public class TrustedDeviceController implements TrustedDevicesApi {
      *
      * @param id identifier of the device.
      * @return {@code 204 No Content}.
-     * @throws TrustedDeviceNotFoundException if the account has no such device.
+     * @throws TrustedDeviceNotFoundException          if the account has no such device.
+     * @throws InsufficientUserAuthenticationException if the token does not show a recent multi-factor sign-in.
      */
     @Override
     public ResponseEntity<Void> revokeTrustedDevice(final UUID id) {
         final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
         if (!revokeTrustedDeviceUseCase.execute(account.id(), account.username(), id)) {
             throw new TrustedDeviceNotFoundException(id);
         }

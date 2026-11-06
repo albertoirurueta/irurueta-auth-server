@@ -23,11 +23,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.FactorGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.util.StringUtils;
@@ -35,17 +32,19 @@ import org.springframework.util.StringUtils;
 /**
  * Applies the OpenID Connect step-up parameters of an authorization request to the authentication of the session. It
  * is installed first among the converters of {@code /oauth2/authorize} and never converts anything: it either lets
- * the request go on (returning {@code null}) or refuses it.
+ * the request go on (returning {@code null}) or refuses it. The factors and their instants are read through the
+ * {@link FactorTimeline}, so a remembered (trusted) device never counts here.
  *
  * <ul>
- *   <li>{@code max_age}: when the last factor was presented more than that many whole seconds ago, a
+ *   <li>{@code max_age}: when the primary factor was presented more than that many whole seconds ago, a
  *       {@link ReauthenticationRequiredException} makes the user sign in again. A session whose factors are unknown
- *       (no factor of the registry) is left alone, because it could never satisfy the request and the user would
- *       loop through the login page.</li>
+ *       (no counted factor of the registry) is left alone, because it could never satisfy the request and the user
+ *       would loop through the login page.</li>
  *   <li>{@code acr_values}: when the request asks only for classes of {@link AuthenticationContextClass} that the
- *       session has not reached, a {@link SecondFactorRequiredException} sends the user to the second-factor page.
- *       The multi-factor class also satisfies a request for the password class. Classes this server does not know are
- *       ignored, as the specification makes {@code acr_values} voluntary.</li>
+ *       session has not reached, a step-up {@link SecondFactorRequiredException} sends the user to the second-factor
+ *       page, which then asks for a real second factor even on a trusted device. The multi-factor class also
+ *       satisfies a request for the password class. Classes this server does not know are ignored, as the
+ *       specification makes {@code acr_values} voluntary.</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -57,15 +56,13 @@ public class StepUpAuthorizationRequestConverter implements AuthenticationConver
     /** Name of the request parameter with the space-separated authentication context classes asked for. */
     public static final String ACR_VALUES_PARAMETER = "acr_values";
 
-    /** Minimum number of distinct factors of a multi-factor authentication. */
-    private static final int MIN_MULTI_FACTORS = 2;
-
-    /** Registry of the known factors. */
-    private final AuthenticationFactorRegistry factorRegistry;
+    /** Reads the counted factors of the session and their instants. */
+    private final FactorTimeline factorTimeline;
 
     /** Clock the age of the authentication is measured with. */
     private final Clock clock;
 
+    // tag::mfa-step-up-converter[]
     /**
      * Checks the step-up parameters of a request.
      *
@@ -80,33 +77,26 @@ public class StepUpAuthorizationRequestConverter implements AuthenticationConver
         if (!MfaAuthorizationManager.isUser(user)) {
             return null;
         }
-        final var factors = user.getAuthorities().stream()
-                .filter(FactorGrantedAuthority.class::isInstance)
-                .map(FactorGrantedAuthority.class::cast)
-                .filter(authority -> factorRegistry.findByAuthority(authority.getAuthority()).isPresent())
-                .toList();
-        if (factors.isEmpty()) {
+        final var authTime = factorTimeline.authTime(user);
+        if (authTime.isEmpty()) {
             return null;
         }
-        final var lastIssuedAt = factors.stream().map(FactorGrantedAuthority::getIssuedAt).filter(Objects::nonNull)
-                .max(Comparator.naturalOrder());
-        if (lastIssuedAt.isPresent() && maxAgeExceeded(request.getParameter(MAX_AGE_PARAMETER), lastIssuedAt.get())) {
+        if (maxAgeExceeded(request.getParameter(MAX_AGE_PARAMETER), authTime.get())) {
             throw new ReauthenticationRequiredException();
         }
-        final var multiFactor = factors.stream().map(FactorGrantedAuthority::getAuthority).distinct().count()
-                >= MIN_MULTI_FACTORS;
-        if (!acrReached(request.getParameter(ACR_VALUES_PARAMETER), multiFactor)) {
-            throw new SecondFactorRequiredException();
+        if (!acrReached(request.getParameter(ACR_VALUES_PARAMETER), factorTimeline.isMultiFactor(user))) {
+            throw SecondFactorRequiredException.forStepUp();
         }
         return null;
     }
+    // end::mfa-step-up-converter[]
 
     /**
      * Tells whether the authentication is older than the request tolerates.
      *
      * @param maxAge   the {@code max_age} parameter, may be {@code null}; a value that is not a non-negative integer
      *                 is ignored.
-     * @param authTime the instant the last factor was presented.
+     * @param authTime the instant the primary factor was presented.
      * @return {@code true} when more than {@code maxAge} whole seconds have elapsed.
      */
     private boolean maxAgeExceeded(final String maxAge, final Instant authTime) {

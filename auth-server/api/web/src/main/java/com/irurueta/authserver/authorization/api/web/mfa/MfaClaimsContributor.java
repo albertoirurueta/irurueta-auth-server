@@ -18,31 +18,25 @@ package com.irurueta.authserver.authorization.api.web.mfa;
 
 import com.irurueta.authserver.authorization.api.web.tokens.JwtClaimsContributor;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
-import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.core.authority.FactorGrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenContext;
 import org.springframework.stereotype.Component;
 
+// tag::mfa-claims[]
 /**
  * Adds to the access and ID tokens how the user authenticated: {@code amr} (the RFC 8176 values of the factors really
  * presented, plus {@code mfa} when there are at least two), {@code acr} (the class of the authentication, see
- * {@link AuthenticationContextClass}) and {@code auth_time}
- * (the epoch second the last factor was presented, a number per OIDC; access tokens only, because the framework
- * sets it on ID tokens). The
- * factors are read from the {@link FactorGrantedAuthority} instances of the principal and mapped through the
- * {@link AuthenticationFactorRegistry}; authorities of an unknown factor are ignored. A token with no factor (for
- * example of the client credentials grant) gets none of the claims.
+ * {@link AuthenticationContextClass}) and {@code auth_time} (the epoch second the primary factor was presented, a
+ * number per OIDC; access tokens only, because the framework sets it on ID tokens). Every value comes from the
+ * {@link FactorTimeline}, which reads the {@link org.springframework.security.core.authority.FactorGrantedAuthority}
+ * instances of the principal: authorities of an unknown factor and of a remembered (trusted) device are ignored, so a
+ * browser that skipped the second factor gets {@code amr [pwd]} and the password class. A token with no counted factor
+ * (for example of the client credentials grant) gets none of the claims.
  */
 @Component
 @Order(MfaClaimsContributor.ORDER)
@@ -55,11 +49,8 @@ public class MfaClaimsContributor implements JwtClaimsContributor {
     /** RFC 8176 {@code amr} value that tells that more than one factor was used. */
     public static final String MULTI_FACTOR_AMR_VALUE = "mfa";
 
-    /** Minimum number of distinct factors of a multi-factor authentication. */
-    private static final int MIN_MULTI_FACTORS = 2;
-
-    /** Registry of the known factors. */
-    private final AuthenticationFactorRegistry factorRegistry;
+    /** Reads the counted factors of the principal and their instants. */
+    private final FactorTimeline factorTimeline;
 
     @Override
     public void contribute(final OAuth2TokenContext context, final Map<String, Object> claims) {
@@ -67,24 +58,13 @@ public class MfaClaimsContributor implements JwtClaimsContributor {
         if (principal == null) {
             return;
         }
-        final var granted = principal.getAuthorities().stream()
-                .filter(FactorGrantedAuthority.class::isInstance)
-                .map(FactorGrantedAuthority.class::cast)
-                .filter(authority -> factorRegistry.findByAuthority(authority.getAuthority()).isPresent())
-                .sorted(Comparator.comparing(FactorGrantedAuthority::getIssuedAt))
-                .toList();
-        if (granted.isEmpty()) {
+        final var authTime = factorTimeline.authTime(principal);
+        if (authTime.isEmpty()) {
             return;
         }
-        // mutable lists on purpose: the authorization store only deserializes allow-listed types
-        final var amr = new ArrayList<String>(granted.stream()
-                .map(authority -> factorRegistry.findByAuthority(authority.getAuthority()))
-                .flatMap(Optional::stream)
-                .map(AuthenticationFactor::amrValue)
-                .distinct()
-                .toList());
-        final var multiFactor = granted.stream().map(FactorGrantedAuthority::getAuthority).distinct().count()
-                >= MIN_MULTI_FACTORS;
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var amr = new ArrayList<String>(factorTimeline.amrValues(principal));
+        final var multiFactor = factorTimeline.isMultiFactor(principal);
         if (multiFactor) {
             amr.add(MULTI_FACTOR_AMR_VALUE);
         }
@@ -93,18 +73,8 @@ public class MfaClaimsContributor implements JwtClaimsContributor {
                 multiFactor ? AuthenticationContextClass.MULTI_FACTOR : AuthenticationContextClass.PASSWORD);
         // the framework sets auth_time itself on ID tokens (as a date it expects to read back on refresh)
         if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-            claims.put(IdTokenClaimNames.AUTH_TIME, lastIssuedAt(granted).getEpochSecond());
+            claims.put(IdTokenClaimNames.AUTH_TIME, authTime.get().getEpochSecond());
         }
     }
-
-    /**
-     * Finds the instant the last factor was presented.
-     *
-     * @param granted the factor authorities, never empty.
-     * @return the latest issue instant.
-     */
-    private static Instant lastIssuedAt(final List<FactorGrantedAuthority> granted) {
-        return granted.stream().map(FactorGrantedAuthority::getIssuedAt).filter(Objects::nonNull)
-                .max(Comparator.naturalOrder()).orElseThrow();
-    }
 }
+// end::mfa-claims[]

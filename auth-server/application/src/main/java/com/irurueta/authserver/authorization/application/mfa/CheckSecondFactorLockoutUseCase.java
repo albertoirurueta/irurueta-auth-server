@@ -23,11 +23,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::mfa-lockout-check[]
 /**
- * Use case that tells whether the second factor of a user is locked after too many failed attempts.
+ * Use case that tells whether the second factor of a user is locked after too many failed attempts. It locks the
+ * user's attempt row until the end of the caller's transaction, so the verifications of the same user (each a
+ * transactional use case that starts with this check) run one at a time: none of them can pass the check while
+ * another one is about to count a failure.
  */
 @Service
-@Transactional(readOnly = true)
+@Transactional
 @RequiredArgsConstructor
 public class CheckSecondFactorLockoutUseCase {
 
@@ -44,6 +48,7 @@ public class CheckSecondFactorLockoutUseCase {
      * @return {@code true} if the second factor is locked right now.
      */
     public boolean execute(final UUID userId) {
-        return secondFactorAttemptRepository.find(userId).isLocked(clock.instant());
+        return secondFactorAttemptRepository.lockForUpdate(userId).isLocked(clock.instant());
     }
 }
+// end::mfa-lockout-check[]

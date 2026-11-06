@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.api.web.totp;
 
 import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.mfa.StepUpGuard;
 import com.irurueta.authserver.authorization.api.web.v1.generated.api.RecoveryCodesApi;
 import com.irurueta.authserver.authorization.api.web.v1.generated.model.RecoveryCodesResponse;
 import com.irurueta.authserver.authorization.application.totp.GenerateRecoveryCodesUseCase;
@@ -28,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Generates a new set of recovery codes for the authenticated account. The path, status codes and body are those of
  * the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml}, through the generated
- * {@link RecoveryCodesApi}. The answer is never cached, since it carries the codes.
+ * {@link RecoveryCodesApi}. The answer is never cached, since it carries the codes. Replacing the codes needs a recent
+ * multi-factor sign-in ({@link StepUpGuard}).
  */
 @RestController
 @RequiredArgsConstructor
@@ -36,6 +38,9 @@ public class RecoveryCodeController implements RecoveryCodesApi {
 
     /** Resolves the account of the request. */
     private final CurrentAccountResolver currentAccountResolver;
+
+    /** Requires a recent multi-factor sign-in before the codes are replaced. */
+    private final StepUpGuard stepUpGuard;
 
     /** Generates the codes. */
     private final GenerateRecoveryCodesUseCase generateRecoveryCodesUseCase;
@@ -47,10 +52,14 @@ public class RecoveryCodeController implements RecoveryCodesApi {
      * Replaces the recovery codes of the authenticated account.
      *
      * @return {@code 200 OK} with the new codes, shown only once.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException if the token
+     *         does not show a recent multi-factor sign-in.
      */
     @Override
     public ResponseEntity<RecoveryCodesResponse> generateRecoveryCodes() {
-        final var codes = generateRecoveryCodesUseCase.execute(currentAccountResolver.resolve().id());
+        final var userId = currentAccountResolver.resolve().id();
+        stepUpGuard.requireRecentMultiFactor(userId);
+        final var codes = generateRecoveryCodesUseCase.execute(userId);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(totpDtoMapper.toRecoveryCodesResponse(codes));
     }

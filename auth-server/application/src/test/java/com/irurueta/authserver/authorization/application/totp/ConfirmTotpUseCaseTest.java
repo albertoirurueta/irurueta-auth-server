@@ -18,6 +18,7 @@ package com.irurueta.authserver.authorization.application.totp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -119,6 +120,25 @@ class ConfirmTotpUseCaseTest {
 
         assertThrows(InvalidTotpCodeException.class, () -> useCase.execute(userId, "000000"));
 
+        verify(totpCredentialRepository, never()).confirm(userId);
+    }
+
+    /**
+     * Verifies that the non-throwing variant answers a wrong code with an empty result and confirms nothing.
+     */
+    @Test
+    void tryConfirm_whenTheCodeIsWrong_returnsEmpty() {
+        final var userId = UUID.randomUUID();
+        when(clock.instant()).thenReturn(NOW);
+        when(totpCredentialRepository.findByUser(userId)).thenReturn(Optional.of(
+                new TotpCredential(userId, ENCRYPTED, false, TotpCredential.NEVER_USED, NOW)));
+        when(totpSecretCipher.decrypt(ENCRYPTED)).thenReturn(SECRET);
+        when(totpAlgorithm.matchingStep(SECRET, "000000", NOW, TotpCredential.NEVER_USED))
+                .thenReturn(OptionalLong.empty());
+
+        assertTrue(useCase.tryConfirm(userId, "000000").isEmpty());
+
+        verify(totpCredentialRepository, never()).advanceLastUsedStep(userId, STEP);
         verify(totpCredentialRepository, never()).confirm(userId);
     }
 

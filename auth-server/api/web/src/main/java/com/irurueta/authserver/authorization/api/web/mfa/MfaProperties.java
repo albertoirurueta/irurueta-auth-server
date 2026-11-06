@@ -30,10 +30,13 @@ import org.springframework.util.StringUtils;
  * @param trustedDeviceValidity how long a device stays trusted; {@code null} means
  *                             {@link #DEFAULT_TRUSTED_DEVICE_VALIDITY}.
  * @param totpIssuer           issuer shown by the authenticator app; blank means {@link #DEFAULT_TOTP_ISSUER}.
+ * @param stepUpMaxAge         how recent the multi-factor sign-in of a bearer token must be to remove or reset a
+ *                             second factor through the API ({@link StepUpGuard}); {@code null} means
+ *                             {@link #DEFAULT_STEP_UP_MAX_AGE}.
  */
 @ConfigurationProperties("authserver.mfa")
-public record MfaProperties(
-        int maxFailedAttempts, Duration lockout, Duration trustedDeviceValidity, String totpIssuer) {
+public record MfaProperties(int maxFailedAttempts, Duration lockout, Duration trustedDeviceValidity,
+        String totpIssuer, Duration stepUpMaxAge) {
 
     /** Consecutive failures that lock the second factor when none is configured. */
     public static final int DEFAULT_MAX_FAILED_ATTEMPTS = 5;
@@ -47,6 +50,9 @@ public record MfaProperties(
     /** Issuer of the authenticator entries when none is configured. */
     public static final String DEFAULT_TOTP_ISSUER = "Irurueta Auth Server";
 
+    /** Maximum age of the multi-factor sign-in of a step-up when none is configured. */
+    public static final Duration DEFAULT_STEP_UP_MAX_AGE = Duration.ofMinutes(5);
+
     /**
      * Applies the defaults.
      *
@@ -54,11 +60,13 @@ public record MfaProperties(
      * @param lockout              lockout duration, {@code null} for the default.
      * @param trustedDeviceValidity trusted device validity, {@code null} for the default.
      * @param totpIssuer           issuer of the authenticator entries, blank for the default.
+     * @param stepUpMaxAge         maximum age of the multi-factor sign-in of a step-up, {@code null} for the default.
      */
     public MfaProperties {
         maxFailedAttempts = maxFailedAttempts > 0 ? maxFailedAttempts : DEFAULT_MAX_FAILED_ATTEMPTS;
         lockout = lockout != null ? lockout : DEFAULT_LOCKOUT;
         trustedDeviceValidity = trustedDeviceValidity != null ? trustedDeviceValidity : DEFAULT_TRUSTED_DEVICE_VALIDITY;
         totpIssuer = StringUtils.hasText(totpIssuer) ? totpIssuer : DEFAULT_TOTP_ISSUER;
+        stepUpMaxAge = stepUpMaxAge != null ? stepUpMaxAge : DEFAULT_STEP_UP_MAX_AGE;
     }
 }

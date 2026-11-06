@@ -206,13 +206,14 @@ paths:
       operationId: disableTotp
       summary: Disables the authenticator app
       description: >-
-        Removes the authenticator app and the recovery codes of the authenticated account. Disabling a factor that is
-        not enabled succeeds as well.
+        Removes the authenticator app and the recovery codes of the authenticated account and revokes every trusted
+        device of the account. Disabling a factor that is not enabled succeeds as well. While the account has a
+        confirmed second factor, the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
       responses:
         '204':
           description: The authenticator app is disabled
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/StepUpRequired'
   /api/account/totp/confirm:
     post:
       tags: [ Totp ]
@@ -255,6 +256,8 @@ paths:
       summary: Generates a new set of recovery codes
       description: >-
         Replaces every existing recovery code of the authenticated account with a new set, shown only in this answer.
+        While the account has a confirmed second factor, the bearer token must show a recent multi-factor sign-in
+        (step-up, RFC 9470).
       responses:
         '200':
           description: The new recovery codes
@@ -263,7 +266,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecoveryCodesResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/StepUpRequired'
   /api/account/trusted-devices:
     get:
       tags: [ Trusted devices ]
@@ -289,7 +292,8 @@ paths:
       summary: Revokes a trusted device
       description: >-
         The device is asked for the second factor again. A device of another account is never touched and is answered
-        as not found.
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470).
       parameters:
         - name: id
           in: path
@@ -302,7 +306,7 @@ paths:
         '204':
           description: Device revoked
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/StepUpRequired'
         '404':
           description: No such trusted device for the authenticated account
           content:
@@ -545,7 +549,9 @@ components:
         format: int64
         minimum: 1
     WwwAuthenticate:
-      description: RFC 6750 bearer challenge, for example Bearer error="invalid_token".
+      description: >-
+        RFC 6750 bearer challenge, for example Bearer error="invalid_token", or the RFC 9470 step-up challenge
+        Bearer error="insufficient_user_authentication", acr_values="...", max_age="...".
       schema:
         type: string
   responses:
@@ -554,6 +560,23 @@ components:
       headers:
         WWW-Authenticate:
           $ref: '#/components/headers/WwwAuthenticate'
+    # tag::mfa-step-up-response[]
+    StepUpRequired:
+      description: >-
+        Missing or invalid bearer token (an RFC 6750 challenge and no body), or the account has a confirmed second
+        factor and the token does not show a multi-factor sign-in (acr urn:irurueta:acr:mfa) whose auth_time is within
+        authserver.mfa.step-up-max-age (default 5 minutes). The latter is answered as RFC 9470 describes, with
+        WWW-Authenticate Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa",
+        max_age="300" (the configured age in seconds) and a problem body; the client signs the user in again with
+        those acr_values and max_age and retries with the new token.
+      headers:
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    # end::mfa-step-up-response[]
     AdminScopeRequired:
       description: The token lacks the admin scope
       headers:

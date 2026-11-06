@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.api.web.mfa;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,8 +56,8 @@ import org.springframework.security.web.context.SecurityContextRepository;
 @ExtendWith(MockitoExtension.class)
 class TrustedDeviceFilterTest {
 
-    /** Authority of the second factor. */
-    private static final String AUTHORITY = "FACTOR_TOTP";
+    /** Authority of the trusted device. */
+    private static final String AUTHORITY = TrustedDeviceFactor.AUTHORITY;
 
     /** The user. */
     private static final String USERNAME = "alice";
@@ -149,6 +150,40 @@ class TrustedDeviceFilterTest {
         verify(securityContextRepository).saveContext(any(SecurityContext.class), any(), any());
         verify(chain).doFilter(request, response);
         verifyNoInteractions(resumeHandler);
+    }
+
+    /**
+     * Verifies that the session id changes when a trusted device upgrades the authentication.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void doFilter_whenDeviceIsValid_changesTheSessionId() throws Exception {
+        final var before = request.getSession(true).getId();
+        trust(userId);
+        when(factorGrantor.grant(primary, AUTHORITY)).thenReturn(upgraded);
+
+        filter.doFilter(request, response, chain);
+
+        assertNotEquals(before, request.getSession(false).getId());
+    }
+
+    /**
+     * Verifies that, while a step-up is pending, the second-factor page is rendered (it asks for a real factor) even
+     * on a trusted browser, instead of resuming a request the device cannot satisfy.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void doFilter_whenStepUpIsPendingOnSecondFactorPage_rendersThePage() throws Exception {
+        request = new MockHttpServletRequest("GET", SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH);
+        request.setCookies(new Cookie(TrustedDeviceCookieWriter.COOKIE_NAME, TOKEN));
+        request.getSession(true).setAttribute(SecondFactorRequiredEntryPoint.STEP_UP_ATTRIBUTE, Boolean.TRUE);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        verifyNoInteractions(findTrustedDeviceUseCase, factorGrantor, resumeHandler);
     }
 
     /**

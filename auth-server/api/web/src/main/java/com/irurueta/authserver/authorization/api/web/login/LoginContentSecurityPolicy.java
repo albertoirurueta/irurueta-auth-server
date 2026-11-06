@@ -28,19 +28,20 @@ import org.springframework.stereotype.Component;
 // tag::login-csp[]
 /**
  * Builds the content security policy of the server-rendered pages from the {@link BrandingProperties}: same-origin
- * resources only and no framing, plus, when the branding logo is an absolute {@code http(s)} URL, its origin as an
- * allowed image source ({@code img-src 'self' <scheme://host[:port]>}). A relative logo URL is same-origin and needs
- * nothing more.
+ * resources only and no framing, except that images may also be {@code data:} URIs (the QR code of an authenticator
+ * app, rendered in memory so its secret never becomes a resource of its own) and, when the branding logo is an
+ * absolute {@code http(s)} URL, come from its origin ({@code img-src 'self' data: <scheme://host[:port]>}). A relative
+ * logo URL is same-origin and needs nothing more.
  */
 @Component
 @RequiredArgsConstructor
 public class LoginContentSecurityPolicy {
 
-    /** Policy of the pages when the logo, if any, is served by this application. */
-    public static final String DEFAULT_POLICY = "default-src 'self'; frame-ancestors 'none'";
-
-    /** Directive prefix that allows images from this application, followed by the origin of the logo. */
-    static final String IMAGE_SOURCE_PREFIX = "; img-src 'self' ";
+    /**
+     * Policy of the pages when the logo, if any, is served by this application. Its last directive lists the image
+     * sources, so the origin of an absolute logo URL is appended to it.
+     */
+    public static final String DEFAULT_POLICY = "default-src 'self'; frame-ancestors 'none'; img-src 'self' data:";
 
     /** Schemes whose origin is added for an absolute logo URL. */
     private static final Set<String> WEB_SCHEMES = Set.of("http", "https");
@@ -51,12 +52,12 @@ public class LoginContentSecurityPolicy {
     /**
      * Builds the policy.
      *
-     * @return {@link #DEFAULT_POLICY}, followed by an {@code img-src} directive with the logo's origin when the logo
-     *         is an absolute {@code http(s)} URL.
+     * @return {@link #DEFAULT_POLICY}, with the logo's origin added to its {@code img-src} directive when the logo is
+     *         an absolute {@code http(s)} URL.
      */
     public String policy() {
         final var logoUrl = branding.getIfAvailable(() -> new BrandingProperties(null, null, null)).logoUrl();
-        return originOf(logoUrl).map(origin -> DEFAULT_POLICY + IMAGE_SOURCE_PREFIX + origin).orElse(DEFAULT_POLICY);
+        return originOf(logoUrl).map(origin -> DEFAULT_POLICY + " " + origin).orElse(DEFAULT_POLICY);
     }
 
     /**

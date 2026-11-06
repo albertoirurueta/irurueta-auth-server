@@ -24,15 +24,40 @@ import java.util.Set;
 public class MfaPolicy {
 
     /**
-     * Tells whether a set of factors satisfies the policy: a {@link FactorStrength#PRIMARY_STRONG} factor alone, or a
-     * {@link FactorStrength#PRIMARY} factor together with a {@link FactorStrength#SECOND} one.
+     * Tells whether a set of factors satisfies the sign-in policy: a {@link FactorStrength#PRIMARY_STRONG} factor
+     * alone, or a {@link FactorStrength#PRIMARY} factor together with a {@link FactorStrength#SECOND} or a
+     * {@link FactorStrength#REMEMBERED} one (a trusted device skips the second factor of a sign-in).
      *
      * @param factors the factors used by the authentication; must not be {@code null}.
      * @return {@code true} when the factors are enough.
      */
     public boolean isSatisfied(final Set<AuthenticationFactor> factors) {
         return hasStrength(factors, FactorStrength.PRIMARY_STRONG)
-                || hasStrength(factors, FactorStrength.PRIMARY) && hasStrength(factors, FactorStrength.SECOND);
+                || hasStrength(factors, FactorStrength.PRIMARY) && (hasStrength(factors, FactorStrength.SECOND)
+                || hasStrength(factors, FactorStrength.REMEMBERED));
+    }
+
+    /**
+     * Tells whether a factor proves something about the authentication it was presented in, and is therefore reported
+     * ({@code amr}, {@code acr}, {@code auth_time}) and counted by a step-up request. A
+     * {@link FactorStrength#REMEMBERED} factor is not: it only recalls a second factor presented earlier.
+     *
+     * @param factor the factor.
+     * @return {@code true} unless the factor is {@link FactorStrength#REMEMBERED}.
+     */
+    public boolean isReported(final AuthenticationFactor factor) {
+        return factor.strength() != FactorStrength.REMEMBERED;
+    }
+
+    /**
+     * Tells whether a factor is the primary one of an authentication, the one {@code auth_time} and {@code max_age}
+     * are measured from.
+     *
+     * @param factor the factor.
+     * @return {@code true} for a {@link FactorStrength#PRIMARY} or {@link FactorStrength#PRIMARY_STRONG} factor.
+     */
+    public boolean isPrimary(final AuthenticationFactor factor) {
+        return factor.strength() == FactorStrength.PRIMARY || factor.strength() == FactorStrength.PRIMARY_STRONG;
     }
 
     /**

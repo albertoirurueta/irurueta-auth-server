@@ -84,6 +84,11 @@ public class JdbcTrustedDeviceRepository implements TrustedDeviceRepository {
     }
 
     @Override
+    public int deleteByUser(final UUID userId) {
+        return jdbcClient.sql("DELETE FROM trusted_devices WHERE user_id = ?").param(userId).update();
+    }
+
+    @Override
     public int deleteExpired(final Instant now) {
         return jdbcClient.sql("DELETE FROM trusted_devices WHERE expires_at <= ?").param(toTimestamp(now)).update();
     }

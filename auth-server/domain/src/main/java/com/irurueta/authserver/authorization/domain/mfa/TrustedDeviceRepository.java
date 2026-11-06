@@ -61,6 +61,14 @@ public interface TrustedDeviceRepository {
     boolean revoke(UUID userId, UUID id);
 
     /**
+     * Revokes every device of a user, for example when the second factor they skip is removed.
+     *
+     * @param userId identifier of the user.
+     * @return the number of revoked devices.
+     */
+    int deleteByUser(UUID userId);
+
+    /**
      * Deletes the devices that expired before an instant.
      *
      * @param now current instant.

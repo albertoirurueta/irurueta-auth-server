@@ -38,6 +38,10 @@ class MfaPolicyTest {
     private static final AuthenticationFactor TOTP =
             new AuthenticationFactor("totp", "otp", "FACTOR_TOTP", FactorStrength.SECOND);
 
+    /** Trusted-device factor used by the tests. */
+    private static final AuthenticationFactor TRUSTED_DEVICE = new AuthenticationFactor("trusted-device",
+            "trusted-device", "FACTOR_TRUSTED_DEVICE", FactorStrength.REMEMBERED);
+
     /** Subject under test. */
     private final MfaPolicy policy = new MfaPolicy();
 
@@ -63,6 +67,44 @@ class MfaPolicyTest {
     @Test
     void isSatisfied_whenPasswordAndSecondFactor_returnsTrue() {
         assertTrue(policy.isSatisfied(Set.of(PASSWORD, TOTP)));
+    }
+
+    /**
+     * Verifies that a password plus a remembered device satisfies the sign-in policy.
+     */
+    @Test
+    void isSatisfied_whenPasswordAndRememberedDevice_returnsTrue() {
+        assertTrue(policy.isSatisfied(Set.of(PASSWORD, TRUSTED_DEVICE)));
+    }
+
+    /**
+     * Verifies that a remembered device without a primary factor is not enough.
+     */
+    @Test
+    void isSatisfied_whenRememberedDeviceOnly_returnsFalse() {
+        assertFalse(policy.isSatisfied(Set.of(TRUSTED_DEVICE)));
+    }
+
+    /**
+     * Verifies that every factor but a remembered one is reported.
+     */
+    @Test
+    void isReported_whenFactorIsRememberedOrNot_reportsOnlyTheOthers() {
+        assertTrue(policy.isReported(PASSWORD));
+        assertTrue(policy.isReported(PASSKEY));
+        assertTrue(policy.isReported(TOTP));
+        assertFalse(policy.isReported(TRUSTED_DEVICE));
+    }
+
+    /**
+     * Verifies that only the primary strengths are primary factors.
+     */
+    @Test
+    void isPrimary_whenStrengthVaries_isTrueForPrimaryStrengthsOnly() {
+        assertTrue(policy.isPrimary(PASSWORD));
+        assertTrue(policy.isPrimary(PASSKEY));
+        assertFalse(policy.isPrimary(TOTP));
+        assertFalse(policy.isPrimary(TRUSTED_DEVICE));
     }
 
     /**

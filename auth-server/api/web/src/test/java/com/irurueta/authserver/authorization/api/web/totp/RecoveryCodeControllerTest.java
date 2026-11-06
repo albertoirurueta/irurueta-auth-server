@@ -16,6 +16,9 @@
 
 package com.irurueta.authserver.authorization.api.web.totp;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -24,7 +27,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccount;
 import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException;
+import com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.mfa.StepUpGuard;
 import com.irurueta.authserver.authorization.application.totp.GenerateRecoveryCodesUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -41,6 +49,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ExtendWith(MockitoExtension.class)
 class RecoveryCodeControllerTest {
 
+    /** Maximum age of the step-up, in minutes. */
+    private static final int STEP_UP_MINUTES = 5;
+
     /** Resolves the account of the request. */
     @Mock
     private CurrentAccountResolver currentAccountResolver;
@@ -48,6 +59,10 @@ class RecoveryCodeControllerTest {
     /** Generates the codes. */
     @Mock
     private GenerateRecoveryCodesUseCase generateRecoveryCodesUseCase;
+
+    /** Requires a recent multi-factor sign-in. */
+    @Mock
+    private StepUpGuard stepUpGuard;
 
     /** Real mapper. */
     @Spy
@@ -73,5 +88,24 @@ class RecoveryCodeControllerTest {
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.recoveryCodes[1]").value("BBBB"))
                 .andExpect(jsonPath("$.remaining").value(2));
+        verify(stepUpGuard).requireRecentMultiFactor(account.id());
+    }
+
+    /**
+     * Verifies that the codes are not replaced without a recent multi-factor sign-in.
+     *
+     * @throws Exception if the request fails.
+     */
+    @Test
+    void generateRecoveryCodes_whenStepUpIsMissing_answersUnauthorized() throws Exception {
+        final var account = new CurrentAccount(UUID.randomUUID(), "alice");
+        when(currentAccountResolver.resolve()).thenReturn(account);
+        doThrow(new InsufficientUserAuthenticationException(AuthenticationContextClass.MULTI_FACTOR,
+                Duration.ofMinutes(STEP_UP_MINUTES))).when(stepUpGuard).requireRecentMultiFactor(account.id());
+
+        MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new MfaExceptionHandler()).build()
+                .perform(post("/api/account/recovery-codes"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(generateRecoveryCodesUseCase);
     }
 }

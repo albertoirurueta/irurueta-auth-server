@@ -131,14 +131,14 @@ public class MfaConfiguration {
     /**
      * Applies step-up authentication ({@code acr_values}, {@code max_age}) to {@code /oauth2/authorize}.
      *
-     * @param factorRegistry the registry of the known factors.
+     * @param factorTimeline reads the counted factors of the session and their instants.
      * @param clock          the clock the age of the authentication is measured with.
      * @return the customizer.
      */
     @Bean
     @Order(1)
-    public ProtocolChainCustomizer stepUpProtocolChainCustomizer(final AuthenticationFactorRegistry factorRegistry,
+    public ProtocolChainCustomizer stepUpProtocolChainCustomizer(final FactorTimeline factorTimeline,
             final Clock clock) {
-        return new StepUpProtocolChainCustomizer(new StepUpAuthorizationRequestConverter(factorRegistry, clock));
+        return new StepUpProtocolChainCustomizer(new StepUpAuthorizationRequestConverter(factorTimeline, clock));
     }
 }

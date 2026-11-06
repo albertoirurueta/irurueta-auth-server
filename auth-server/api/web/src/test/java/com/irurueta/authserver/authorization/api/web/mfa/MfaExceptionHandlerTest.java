@@ -19,12 +19,15 @@ package com.irurueta.authserver.authorization.api.web.mfa;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.totp.InvalidTotpCodeException;
 import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
 import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -34,6 +37,9 @@ import org.springframework.http.ProblemDetail;
  * Unit tests of {@link MfaExceptionHandler}.
  */
 class MfaExceptionHandlerTest {
+
+    /** Maximum age of a step-up, in minutes. */
+    private static final int STEP_UP_MINUTES = 5;
 
     /** Handler under test. */
     private final MfaExceptionHandler handler = new MfaExceptionHandler();
@@ -69,6 +75,23 @@ class MfaExceptionHandlerTest {
         final var response = handler.handleInvalidCode(new InvalidTotpCodeException("wrong"));
 
         assertProblem(response.getStatusCode(), HttpStatus.BAD_REQUEST, response.getBody(), "invalid-code", "wrong");
+    }
+
+    /**
+     * Checks the answer to a missing step-up: {@code 401}, the RFC 9470 challenge and a problem body.
+     */
+    @Test
+    void handleInsufficientUserAuthentication_whenCalled_answersUnauthorizedWithTheChallenge() {
+        final var exception = new InsufficientUserAuthenticationException(AuthenticationContextClass.MULTI_FACTOR,
+                Duration.ofMinutes(STEP_UP_MINUTES));
+
+        final var response = handler.handleInsufficientUserAuthentication(exception);
+
+        assertProblem(response.getStatusCode(), HttpStatus.UNAUTHORIZED, response.getBody(),
+                "insufficient-user-authentication", exception.getMessage());
+        assertEquals("Bearer error=\"insufficient_user_authentication\", acr_values=\"urn:irurueta:acr:mfa\", "
+                + "max_age=\"300\"", response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE));
+        assertEquals(MediaType.APPLICATION_PROBLEM_JSON, response.getHeaders().getContentType());
     }
 
     /**

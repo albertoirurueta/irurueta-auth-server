@@ -74,6 +74,7 @@ class MfaConfigurationTest {
         final var reauthenticationEntryPoint = configuration.reauthenticationEntryPoint();
         assertNotNull(reauthenticationEntryPoint);
         assertNotNull(configuration.mfaProtocolChainCustomizer(manager, entryPoint, reauthenticationEntryPoint));
-        assertNotNull(configuration.stepUpProtocolChainCustomizer(registry, Clock.systemUTC()));
+        assertNotNull(configuration.stepUpProtocolChainCustomizer(new FactorTimeline(registry, new MfaPolicy()),
+                Clock.systemUTC()));
     }
 }

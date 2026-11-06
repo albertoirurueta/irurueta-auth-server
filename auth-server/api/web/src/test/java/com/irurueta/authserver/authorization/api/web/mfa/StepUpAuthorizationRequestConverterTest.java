@@ -19,10 +19,12 @@ package com.irurueta.authserver.authorization.api.web.mfa;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import com.irurueta.authserver.authorization.domain.mfa.MfaPolicy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -49,6 +51,9 @@ class StepUpAuthorizationRequestConverterTest {
     /** Authority of the TOTP factor. */
     private static final String TOTP_AUTHORITY = "FACTOR_TOTP";
 
+    /** Authority of the trusted-device factor. */
+    private static final String TRUSTED_DEVICE_AUTHORITY = "FACTOR_TRUSTED_DEVICE";
+
     /** Current instant of the tests. */
     private static final Instant NOW = Instant.parse("2026-01-01T12:00:00Z");
 
@@ -61,11 +66,13 @@ class StepUpAuthorizationRequestConverterTest {
     /** A {@code max_age} greater than the age. */
     private static final String LARGE_MAX_AGE = "3600";
 
-    /** Converter under test, over a fixed clock. */
+    /** Converter under test, over a real timeline and a fixed clock. */
     private final StepUpAuthorizationRequestConverter converter = new StepUpAuthorizationRequestConverter(
-            new AuthenticationFactorRegistry(List.of(
+            new FactorTimeline(new AuthenticationFactorRegistry(List.of(
                     new AuthenticationFactor("password", "pwd", PASSWORD_AUTHORITY, FactorStrength.PRIMARY),
-                    new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND))),
+                    new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND),
+                    new AuthenticationFactor("trusted-device", "trusted-device", TRUSTED_DEVICE_AUTHORITY,
+                            FactorStrength.REMEMBERED))), new MfaPolicy()),
             Clock.fixed(NOW, ZoneOffset.UTC));
 
     /**
@@ -161,17 +168,35 @@ class StepUpAuthorizationRequestConverterTest {
     }
 
     /**
-     * Verifies that the latest factor decides the age of the authentication.
+     * Verifies that the primary factor decides the age of the authentication: a recent second factor does not make an
+     * old sign-in look new.
      */
     @Test
-    void convert_whenLastFactorIsRecent_doesNotExceedMaxAge() {
+    void convert_whenOnlyTheSecondFactorIsRecent_throwsReauthenticationRequiredException() {
         signIn(UsernamePasswordAuthenticationToken.authenticated("alice", null, List.of(
                 FactorGrantedAuthority.withAuthority(PASSWORD_AUTHORITY).issuedAt(NOW.minusSeconds(AGE_SECONDS))
                         .build(),
                 FactorGrantedAuthority.withAuthority(TOTP_AUTHORITY).issuedAt(NOW.minus(Duration.ofSeconds(1)))
                         .build())));
+        final var request = request(SMALL_MAX_AGE, null);
 
-        assertNull(converter.convert(request(SMALL_MAX_AGE, null)));
+        assertThrows(ReauthenticationRequiredException.class, () -> converter.convert(request));
+    }
+
+    /**
+     * Verifies that a trusted device does not satisfy a request for the multi-factor class, and that the refusal is a
+     * step-up, so the second-factor page asks for a real factor.
+     */
+    @Test
+    void convert_whenMultiFactorIsRequestedOnATrustedDevice_throwsStepUpSecondFactorRequiredException() {
+        signIn(UsernamePasswordAuthenticationToken.authenticated("alice", null, List.<GrantedAuthority>of(
+                FactorGrantedAuthority.withAuthority(PASSWORD_AUTHORITY).issuedAt(NOW.minusSeconds(AGE_SECONDS))
+                        .build(),
+                FactorGrantedAuthority.withAuthority(TRUSTED_DEVICE_AUTHORITY).issuedAt(NOW).build())));
+        final var request = request(null, AuthenticationContextClass.MULTI_FACTOR);
+
+        final var error = assertThrows(SecondFactorRequiredException.class, () -> converter.convert(request));
+        assertTrue(error.isStepUp());
     }
 
     /**

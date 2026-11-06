@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.mfa;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -105,10 +106,37 @@ class JdbcSecondFactorAttemptRepositoryTest {
     }
 
     /**
-     * Verifies that the state of a user is deleted on reset.
+     * Verifies that locking first ensures the row exists, then answers the locked state.
      */
     @Test
-    void reset_whenCalled_deletesTheRow() {
+    void lockForUpdate_whenRowIsLocked_returnsMappedState() {
+        final var userId = UUID.randomUUID();
+        final var state = new SecondFactorLockout(1, null);
+        when(client.sql(any(String.class)).param(userId).query(secondFactorLockoutRowMapper).optional())
+                .thenReturn(Optional.of(state));
+
+        assertSame(state, repository.lockForUpdate(userId));
+        verify(client).sql(contains("ON CONFLICT (user_id) DO NOTHING"));
+        verify(client).sql(contains("FOR UPDATE"));
+    }
+
+    /**
+     * Verifies that a clean state is answered when the row vanished between the two statements.
+     */
+    @Test
+    void lockForUpdate_whenNoRow_returnsNone() {
+        final var userId = UUID.randomUUID();
+        when(client.sql(any(String.class)).param(userId).query(secondFactorLockoutRowMapper).optional())
+                .thenReturn(Optional.empty());
+
+        assertEquals(SecondFactorLockout.none(), repository.lockForUpdate(userId));
+    }
+
+    /**
+     * Verifies that the state of a user is cleared on reset.
+     */
+    @Test
+    void reset_whenCalled_clearsTheRow() {
         final var userId = UUID.randomUUID();
 
         repository.reset(userId);

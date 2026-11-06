@@ -24,8 +24,8 @@ openapi: 3.1.0
 info:
   title: Irurueta Auth Server Pages
   description: >-
-    Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, consent and
-    sign-out confirmation. They are meant for a browser, never for a script.
+    Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, second
+    factor, recovery codes, consent and sign-out confirmation. They are meant for a browser, never for a script.
   version: 1.0.0
   license:
     name: Apache License 2.0
@@ -38,6 +38,9 @@ tags:
     description: The sign-in page, which hosts the sign-in methods
   - name: Second factor page
     description: The page where a user who has signed in with a password presents a second factor
+  - name: Recovery codes page
+    description: >-
+      The page that shows, once, the recovery codes generated when an authenticator app is enrolled during the sign-in
   - name: Consent page
     description: The page where the user approves the scopes a client asks for
   - name: Logout page
@@ -88,10 +91,14 @@ paths:
       summary: Renders the second-factor page
       description: >-
         Renders the page a user who has signed in with a password is sent to when the request needs a second factor
-        (each SecondFactorFragment bean contributes the form of one second factor). The forms post to the security
-        chain (for the TOTP code or a recovery code, POST /login/second-factor/totp), never to this operation; once
-        the factor is verified the browser resumes the request that was interrupted. A request without a signed-in
-        session is redirected to the sign-in page.
+        (each SecondFactorFragment bean contributes the form of one second factor, with the data it needs for the
+        signed-in user). A user without a confirmed authenticator app gets its enrolment form instead: a new pending
+        secret as a QR code and an otpauth URI, and the field of the first code. A user with one gets the forms of its
+        code and of a recovery code, with a warning when three or fewer recovery codes are left. The forms post to the
+        security chain (for the TOTP code, a recovery code or the enrolment code, POST /login/second-factor/totp),
+        never to this operation; once the factor is verified the browser resumes the request that was interrupted
+        (after an enrolment, it first goes to the recovery codes page). A request without a signed-in session is
+        redirected to the sign-in page.
       parameters:
         - name: error
           in: query
@@ -109,6 +116,26 @@ paths:
               schema:
                 type: string
   # end::mfa-second-factor-page-api[]
+  # tag::totp-recovery-codes-page-api[]
+  /login/second-factor/recovery-codes:
+    get:
+      tags: [ Recovery codes page ]
+      operationId: recoveryCodesPage
+      summary: Renders the recovery codes of a new authenticator app, once
+      description: >-
+        Renders the recovery codes generated when the signed-in user enrolled an authenticator app on the
+        second-factor page, which redirects here after the enrolment code is accepted. The codes are kept in the
+        session only until this page is rendered, so a second request shows none. Its Continue link resumes the request
+        the sign-in interrupted (typically /oauth2/authorize), or goes to the root when there is none. A request
+        without a signed-in session is redirected to the sign-in page.
+      responses:
+        '200':
+          description: The recovery codes page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::totp-recovery-codes-page-api[]
   # tag::consent-page-api[]
   /oauth2/consent:
     get:

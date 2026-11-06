@@ -113,19 +113,26 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
   decides, from the factors a session has proved, whether the user may continue. Nothing here is edited by a new
   method; it only registers itself.
   - `domain.mfa.AuthenticationFactor` is a record (`id`, `amrValue`, `authority`, `strength`); `FactorStrength` is
-    `PRIMARY`, `PRIMARY_STRONG` (proves identity alone, for example a passkey) or `SECOND` (only counts on top of a
-    primary). The `authority` is the `FACTOR_*` authority that Spring Security 7 `FactorGrantedAuthority` carries for
+    `PRIMARY`, `PRIMARY_STRONG` (proves identity alone, for example a passkey), `SECOND` (only counts on top of a
+    primary) or `REMEMBERED` (stands in for a `SECOND` at sign-in only, today the trusted device; never reported in
+    `amr`/`acr`/`auth_time` and never satisfies a step-up: `MfaPolicy.isReported`). The `authority` is the `FACTOR_*` authority that Spring Security 7 `FactorGrantedAuthority` carries for
     the factor (`FACTOR_PASSWORD` is `FactorGrantedAuthority.PASSWORD_AUTHORITY`; `FACTOR_TOTP` is custom) and
     `amrValue` is its RFC 8176 `amr` value (`pwd`, `otp`).
   - Every `AuthenticationFactor` bean is collected by `api.web.mfa.AuthenticationFactorRegistry` (built in
     `mfa.MfaConfiguration`, which also holds `@EnableMultiFactorAuthentication(authorities = {})`); two factors with the
-    same authority fail at startup. `PasswordFactor` (`PRIMARY`) and `totp.TotpFactor` (`SECOND`) are the existing
-    declarations. The registry answers `findByAuthority`, `withStrength` and `factorsOf(Authentication)`.
+    same authority fail at startup. `PasswordFactor` (`PRIMARY`), `totp.TotpFactor` (`SECOND`) and
+    `TrustedDeviceFactor` (`REMEMBERED`, `FACTOR_TRUSTED_DEVICE`) are the existing declarations. The registry answers `findByAuthority`, `withStrength` and `factorsOf(Authentication)`.
   - **Policy**: `domain.mfa.MfaPolicy` is pure and a bean (`application.mfa.MfaConfiguration`).
     `isRequired(clientRequires, userRequires)` is true when the client has `settings.client.mfa.required` (admin API
-    `mfaRequired`) or the account has `users.mfa_required`; `isSatisfied(factors)` is true for one `PRIMARY_STRONG`
-    factor or a `PRIMARY` plus a `SECOND`. `api.web.mfa.MfaAuthorizationManager` applies it and, when not satisfied,
-    names the registered `SECOND` factors as missing.
+    `mfaRequired`) or the user requires it; `isSatisfied(factors)` is true for one `PRIMARY_STRONG` factor or a
+    `PRIMARY` plus a `SECOND` or `REMEMBERED` one. `api.web.mfa.MfaAuthorizationManager` applies it and, when not
+    satisfied, names the registered `SECOND` factors as missing.
+  - **"The user requires MFA"** (`application.mfa.IsUserMfaRequiredUseCase`) is `users.mfa_required` (forced by an
+    administrator, kept separate) **or** "the user has a confirmed second factor"
+    (`HasConfirmedSecondFactorUseCase`, which asks every `application.mfa.SecondFactorEnrolmentQuery` bean; TOTP's is
+    `IsTotpEnabledUseCase`). A later second factor (#5 passkeys used as a second factor, #6 one-time tokens, #7
+    social/x509 when they act as a second factor) extends it by declaring its own `SecondFactorEnrolmentQuery` bean;
+    nothing else is edited. The same query decides whether `StepUpGuard` applies.
   - **Enforcement, already wired**: `MfaLoginChainCustomizer` (a `LoginChainCustomizer`, `@Order(0)`) guards
     `/oauth2/consent` and sends a missing `SECOND` authority to `/login/second-factor` through
     `SecondFactorRequiredEntryPoint` (the saved `/oauth2/authorize` request is resumed afterwards);
@@ -134,29 +141,51 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
   - **Step-up**: `StepUpProtocolChainCustomizer` (`ProtocolChainCustomizer`, `@Order(1)`) installs
     `StepUpAuthorizationRequestConverter` first among the `/oauth2/authorize` converters. It reads `acr_values`
     (`AuthenticationContextClass` `pwd` / `mfa` URNs; the `mfa` class satisfies a `pwd` request; unknown values are
-    ignored) and `max_age` (seconds since the last factor was presented) and either lets the request go on, throws
-    `SecondFactorRequiredException` (send to the second-factor page) or `ReauthenticationRequiredException` (sign in
-    again). `MfaClaimsContributor` (a `JwtClaimsContributor`, `@Order(100)`) writes `amr` (factor `amrValue`s in
-    issue order plus `mfa` when two or more distinct factors), `acr` and, on access tokens, `auth_time`; it only counts
-    factors known to the registry.
+    ignored) and `max_age` (seconds since the primary factor was presented) and either lets the request go on, throws
+    `SecondFactorRequiredException.forStepUp()` (send to the second-factor page, which then renders the form even on
+    a trusted device) or `ReauthenticationRequiredException` (sign in again). `MfaClaimsContributor` (a
+    `JwtClaimsContributor`, `@Order(100)`) writes `amr` (factor `amrValue`s in issue order plus `mfa` when two or more
+    distinct factors), `acr` and, on access tokens, `auth_time`. Both read the factors only through
+    `api.web.mfa.FactorTimeline`: registered, reported (not `REMEMBERED`) factors, and `auth_time` = issue instant of
+    the earliest primary factor (else the earliest counted one), so a later second factor never makes a sign-in look
+    newer.
+  - **API step-up** (RFC 9470): `api.web.mfa.StepUpGuard` is called first by the controllers that remove or reset a
+    second factor (`DELETE /api/account/totp`, `POST /api/account/recovery-codes`,
+    `DELETE /api/account/trusted-devices/{id}`); while the account has a confirmed second factor it requires the bearer
+    JWT's `acr` to be the `mfa` URN and its `auth_time` within `authserver.mfa.step-up-max-age` (default `PT5M`),
+    otherwise `MfaExceptionHandler` answers `401` with `WWW-Authenticate: Bearer error="insufficient_user_authentication",
+    acr_values=..., max_age=...` and a problem body. `ApiSecurityConfig` is not involved; a new sensitive operation
+    calls the guard.
   - `api.web.mfa.SecondFactorFragment`: every bean of this type contributes a Thymeleaf fragment
     (`templateName()`, `fragmentName()`, `order()`, `reference()`) that `SecondFactorController` passes to
     `templates/second-factor.html` (`GET /login/second-factor`, declared in the pages contract), the same shape as
-    `LoginMethodFragment`. `TotpSecondFactorFragment` (`templates/totp.html`) is the existing one.
+    `LoginMethodFragment`, plus `modelAttributes(Authentication)` (default none) for per-user data, prefixed with the
+    factor's name. `TotpSecondFactorFragment` (`templates/totp.html`) is the existing one: it shows the enrolment form
+    (QR code, `otpauth` URI, first code posted with `enroll`) to a user without a confirmed authenticator app, which
+    `ConfirmTotpAtSignInUseCase` confirms (counted against the lockout), then `GET /login/second-factor/recovery-codes`
+    shows the recovery codes once (kept in the session by `PendingRecoveryCodes`) and its Continue link resumes the
+    saved request; otherwise the code forms, with a warning at `CountRecoveryCodesUseCase.LOW_THRESHOLD` or fewer
+    recovery codes.
   - Shared helpers: `FactorGrantor.grant(authentication, authority)` adds a `FactorGrantedAuthority` (stamped with the
     clock) to an authentication; `SecondFactorUserResolver` resolves the account of the signed-in user; the use cases
-    `CheckSecondFactorLockoutUseCase`, `RegisterSecondFactorFailureUseCase` (locks after
-    `authserver.mfa.max-failed-attempts`), `ResetSecondFactorFailuresUseCase` and `RecordSecurityEventUseCase`
-    give every factor the same lockout and audit trail (`SecurityEventAuthenticationEventPublisher` also records the
-    framework's authentication events). `TrustedDeviceFilter` (`__Host-TRUSTED-DEVICE` cookie, persisted as a SHA-256
-    hash in `trusted_devices`) grants the configured second-factor authority (today `FACTOR_TOTP`) to a remembered browser.
+    `CheckSecondFactorLockoutUseCase` (reads the user's `second_factor_attempts` row `FOR UPDATE`, so every verification
+    use case that starts with it serializes the attempts of that user inside its transaction),
+    `RegisterSecondFactorFailureUseCase` (locks after `authserver.mfa.max-failed-attempts`),
+    `ResetSecondFactorFailuresUseCase` and `RecordSecurityEventUseCase` give every factor the same lockout and audit
+    trail (`SecurityEventAuthenticationEventPublisher` also records the framework's authentication events).
+    `TrustedDeviceFilter` (`__Host-TRUSTED-DEVICE` cookie, persisted as a SHA-256 hash in `trusted_devices`) grants
+    `FACTOR_TRUSTED_DEVICE` to a remembered browser and changes the session id; disabling the second factor revokes
+    every trusted device of the user. A second-factor filter changes the session id (and renews the CSRF token) on
+    success: `TotpChainCustomizer` hands the chain's shared `SessionAuthenticationStrategy`, the form login's, to
+    `TotpAuthenticationFilter`.
   - **How a later factor (for example `passkeys`, `ott`, `social` or `x509`) registers**, with no shared file edited:
     1. an `AuthenticationFactor` bean (a `@Configuration` with a `@Bean` like `TotpFactor`) with its `FACTOR_*`
        authority, `amr` value and strength;
     2. a `LoginChainCustomizer` bean (`@Order` above the existing ones) that permits its own endpoints and adds its
        filter before `AuthorizationFilter` (see `TotpChainCustomizer`, wired by `TotpConfiguration`);
-    3. for a `SECOND` factor, a `SecondFactorFragment` bean and its `templates/<method>.html` fragment; a primary
-       factor adds a `LoginMethodFragment` instead;
+    3. for a `SECOND` factor, a `SecondFactorFragment` bean and its `templates/<method>.html` fragment (with
+       `modelAttributes` for its enrolment or warnings) and a `SecondFactorEnrolmentQuery` bean; a primary factor adds
+       a `LoginMethodFragment` instead;
     4. an `AuthenticationProvider` that verifies the credential (through use cases, using the lockout and event use
        cases above) and returns the authentication with the factor added through `FactorGrantor` (see
        `TotpAuthenticationProvider`, driven by a `ProviderManager` inside its own filter);
@@ -206,7 +235,7 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
   `ClientDtoMapper`) in the api adapter converts between generated DTOs and the domain; problem details go through
   `ProblemJsonExceptionHandler` or the feature's scoped `@RestControllerAdvice`.
 - **HTML pages**: `apis/<app>/web-pages/<app>-pages-v1.yaml` (today `auth-server-pages-v1.yaml`: `/login`,
-  `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
   `text/html`; its controller renders the Thymeleaf template with `PageRenderer` (`api.web.pages`), which resolves the
   view with the request's locale, renders it against the current request (CSRF fields, `@{}` links and messages keep
   working) and adds the branding. The pages are published by the springdoc group `pages` (`/v3/api-docs/pages`) and
@@ -346,7 +375,7 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameters, bodies, security, schemas). To change an API or a page, edit the contract; there is nothing else to
   regenerate or commit. springdoc only documents its groups (see each `OpenApiConfig`): `api` (`/api/**` in
   `auth-server` and `resource-server`, `/bff/**` and `/api/**` in `bff`) and, in `auth-server`, `pages` (`/login`,
-  `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 

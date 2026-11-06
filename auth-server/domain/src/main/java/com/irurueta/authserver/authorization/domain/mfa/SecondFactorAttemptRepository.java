@@ -34,6 +34,16 @@ public interface SecondFactorAttemptRepository {
     SecondFactorLockout find(UUID userId);
 
     /**
+     * Reads the state of a user and locks it until the end of the current transaction, creating a clean state first
+     * when nothing was recorded, so that concurrent verifications of the same user's second factor run one after the
+     * other instead of all passing the lockout check before any of their failures is counted.
+     *
+     * @param userId identifier of the user.
+     * @return the state; {@link SecondFactorLockout#none()} when nothing was recorded.
+     */
+    SecondFactorLockout lockForUpdate(UUID userId);
+
+    /**
      * Records one failed attempt and, when the counter reaches the maximum, locks the second factor.
      *
      * @param userId      identifier of the user.

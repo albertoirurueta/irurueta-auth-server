@@ -45,5 +45,8 @@ public enum SecurityEventType {
     TRUSTED_DEVICE_REVOKED,
 
     /** A recovery code was spent in place of a second factor. */
-    RECOVERY_CODE_USED
+    RECOVERY_CODE_USED,
+
+    /** A user removed a second factor, which also revokes every trusted device of the user. */
+    SECOND_FACTOR_REMOVED
 }

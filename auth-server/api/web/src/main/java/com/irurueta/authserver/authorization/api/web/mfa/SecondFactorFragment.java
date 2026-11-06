@@ -16,10 +16,16 @@
 
 package com.irurueta.authserver.authorization.api.web.mfa;
 
+import java.util.Map;
+import org.springframework.security.core.Authentication;
+
+// tag::mfa-second-factor-fragment[]
 /**
  * Extension point that lets a second factor contribute a Thymeleaf fragment to the second-factor page. The page
  * template renders one fragment per bean, sorted by {@link #order()}, in the same way the login page renders the
- * {@link com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment} beans.
+ * {@link com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment} beans. A fragment that depends on
+ * the signed-in user (an enrolment form, a warning) contributes its data through
+ * {@link #modelAttributes(Authentication)}.
  */
 public interface SecondFactorFragment {
 
@@ -52,4 +58,17 @@ public interface SecondFactorFragment {
     default String reference() {
         return templateName() + " :: " + fragmentName();
     }
+
+    /**
+     * Gets the model attributes the fragment needs for the signed-in user, added to the model of the page. Their
+     * names should start with the factor's own prefix (for example {@code totp}), since every fragment shares the
+     * model.
+     *
+     * @param authentication the authentication of the user the page is rendered for.
+     * @return the attributes; none by default.
+     */
+    default Map<String, Object> modelAttributes(final Authentication authentication) {
+        return Map.of();
+    }
 }
+// end::mfa-second-factor-fragment[]

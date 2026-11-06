@@ -20,11 +20,10 @@ import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
 import com.irurueta.authserver.authorization.api.web.mfa.TrustedDeviceCookieWriter;
+import com.irurueta.authserver.authorization.api.web.mfa.TrustedDeviceFactor;
 import com.irurueta.authserver.authorization.api.web.mfa.TrustedDeviceFilter;
 import com.irurueta.authserver.authorization.application.mfa.CreateTrustedDeviceUseCase;
 import com.irurueta.authserver.authorization.application.mfa.FindTrustedDeviceUseCase;
-import com.irurueta.authserver.authorization.application.totp.VerifyRecoveryCodeUseCase;
-import com.irurueta.authserver.authorization.application.totp.VerifyTotpUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -43,29 +42,28 @@ public class TotpConfiguration {
     /**
      * Installs the TOTP second factor in the login/UI chain.
      *
-     * @param verifyTotpUseCase          verifies a TOTP code.
-     * @param verifyRecoveryCodeUseCase  verifies a recovery code.
+     * @param totpCodeVerifier           verifies a posted code with the use case of its kind.
      * @param createTrustedDeviceUseCase remembers a device.
      * @param findTrustedDeviceUseCase   finds a remembered device.
      * @param userResolver               resolves the identifier of the account of the signed-in user.
      * @param factorGrantor              adds the factor authority to an authentication.
      * @param cookieWriter               writes the cookie of a remembered device.
+     * @param pendingRecoveryCodes       keeps the recovery codes of an enrolment until they are shown.
      * @return the customizer.
      */
     @Bean
     @Order(1)
-    public LoginChainCustomizer totpChainCustomizer(final VerifyTotpUseCase verifyTotpUseCase,
-            final VerifyRecoveryCodeUseCase verifyRecoveryCodeUseCase,
+    public LoginChainCustomizer totpChainCustomizer(final TotpCodeVerifier totpCodeVerifier,
             final CreateTrustedDeviceUseCase createTrustedDeviceUseCase,
             final FindTrustedDeviceUseCase findTrustedDeviceUseCase, final SecondFactorUserResolver userResolver,
-            final FactorGrantor factorGrantor, final TrustedDeviceCookieWriter cookieWriter) {
-        final var provider = new TotpAuthenticationProvider(verifyTotpUseCase, verifyRecoveryCodeUseCase,
-                userResolver, factorGrantor);
+            final FactorGrantor factorGrantor, final TrustedDeviceCookieWriter cookieWriter,
+            final PendingRecoveryCodes pendingRecoveryCodes) {
+        final var provider = new TotpAuthenticationProvider(totpCodeVerifier, userResolver, factorGrantor);
         final var totpFilter = new TotpAuthenticationFilter(new ProviderManager(provider),
-                createTrustedDeviceUseCase, userResolver, cookieWriter);
+                createTrustedDeviceUseCase, userResolver, cookieWriter, pendingRecoveryCodes);
         final var trustedDeviceFilter = new TrustedDeviceFilter(findTrustedDeviceUseCase, userResolver,
                 factorGrantor, new HttpSessionSecurityContextRepository(),
-                new SavedRequestAwareAuthenticationSuccessHandler(), TotpFactor.AUTHORITY);
+                new SavedRequestAwareAuthenticationSuccessHandler(), TrustedDeviceFactor.AUTHORITY);
         return new TotpChainCustomizer(trustedDeviceFilter, totpFilter);
     }
 }

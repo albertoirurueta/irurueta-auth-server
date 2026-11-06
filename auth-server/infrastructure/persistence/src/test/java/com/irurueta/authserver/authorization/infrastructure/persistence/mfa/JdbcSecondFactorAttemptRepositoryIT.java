@@ -27,10 +27,18 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Integration tests of {@link JdbcSecondFactorAttemptRepository} against a migrated PostgreSQL.
@@ -42,6 +50,19 @@ class JdbcSecondFactorAttemptRepositoryIT {
 
     /** Lock duration. */
     private static final Duration LOCKOUT = Duration.ofMinutes(15);
+
+    /** Longest wait for the probe of the row lock, in seconds. */
+    private static final long PROBE_TIMEOUT_SECONDS = 30;
+
+    /**
+     * Query that tries to lock the row of a user without waiting: PostgreSQL fails it at once
+     * ({@code lock_not_available}) while another transaction holds the lock.
+     */
+    private static final String TRY_LOCK = "SELECT failed_count FROM second_factor_attempts WHERE user_id = ? "
+            + "FOR UPDATE NOWAIT";
+
+    /** Runs the callbacks of the tests in a transaction of their own. */
+    private static TransactionTemplate transactions;
 
     /** JDBC client connected to the database. */
     private static JdbcClient jdbcClient;
@@ -59,6 +80,7 @@ class JdbcSecondFactorAttemptRepositoryIT {
     static void connect() {
         jdbcClient = JdbcClient.create(MigratedPostgres.dataSource());
         repository = new JdbcSecondFactorAttemptRepository(jdbcClient, new SecondFactorLockoutRowMapper());
+        transactions = new TransactionTemplate(new DataSourceTransactionManager(MigratedPostgres.dataSource()));
     }
 
     /**
@@ -77,6 +99,35 @@ class JdbcSecondFactorAttemptRepositoryIT {
     @Test
     void find_whenNothingRecorded_returnsNone() {
         assertEquals(SecondFactorLockout.none(), repository.find(userId));
+    }
+
+    /**
+     * Verifies that locking a user with no failures creates the clean state, so later verifications have a row to
+     * lock.
+     */
+    @Test
+    void lockForUpdate_whenNothingRecorded_createsAndReturnsTheCleanState() {
+        assertEquals(SecondFactorLockout.none(), transactions.execute(status -> repository.lockForUpdate(userId)));
+        assertEquals(1, jdbcClient.sql("SELECT count(*) FROM second_factor_attempts WHERE user_id = ?")
+                .param(userId).query(Long.class).single());
+    }
+
+    /**
+     * Verifies that the row stays locked until the transaction that locked it ends: another transaction cannot lock
+     * it meanwhile, and can once the first one has committed. The row exists beforehand, as it does after the first
+     * verification of a user (the very first one inserts it, and a concurrent insert waits for that one to commit).
+     */
+    @Test
+    void lockForUpdate_whenTransactionIsOpen_blocksOtherTransactionsUntilItEnds() {
+        repository.recordFailure(userId, MAX_ATTEMPTS, LOCKOUT, Instant.now());
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            final var blocked = transactions.execute(status -> {
+                repository.lockForUpdate(userId);
+                return probe(executor);
+            });
+            assertEquals(Boolean.TRUE, blocked, "No other transaction may lock the row while the first one holds it");
+            assertFalse(probe(executor), "The row must be free once the first transaction has committed");
+        }
     }
 
     /**
@@ -128,5 +179,31 @@ class JdbcSecondFactorAttemptRepositoryIT {
         repository.reset(userId);
 
         assertEquals(SecondFactorLockout.none(), repository.find(userId));
+    }
+
+    /**
+     * Tries, from another thread and so another connection and transaction, to lock the row of the user without
+     * waiting.
+     *
+     * @param executor the thread to run the probe in.
+     * @return {@code true} when the row is locked by someone else.
+     */
+    private boolean probe(final ExecutorService executor) {
+        try {
+            return executor.submit(() -> {
+                try {
+                    transactions.executeWithoutResult(status ->
+                            jdbcClient.sql(TRY_LOCK).param(userId).query(Integer.class).list());
+                    return false;
+                } catch (final DataAccessException lockNotAvailable) {
+                    return true;
+                }
+            }).get(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (final ExecutionException | TimeoutException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
