@@ -24,11 +24,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
 import com.irurueta.authserver.authorization.api.web.login.BrandingConfiguration;
+import com.irurueta.authserver.authorization.api.web.login.BrandingProvider;
 import com.irurueta.authserver.authorization.api.web.login.LoginContentSecurityPolicy;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
 import com.irurueta.authserver.authorization.api.web.login.LoginErrorMessages;
 import com.irurueta.authserver.authorization.api.web.login.LoginHeadersCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginStaticResourcesCustomizer;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
 import com.irurueta.authserver.authorization.api.web.password.PasswordLoginFragment;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +45,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * it starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginContentSecurityPolicy.class,
-        LoginStaticResourcesCustomizer.class, LoginErrorMessages.class, PasswordLoginFragment.class,
-        BrandingConfiguration.class, SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, PageRenderer.class, BrandingProvider.class, LoginHeadersCustomizer.class,
+        LoginContentSecurityPolicy.class, LoginStaticResourcesCustomizer.class, LoginErrorMessages.class,
+        PasswordLoginFragment.class, BrandingConfiguration.class, SecurityConfigIT.TestBeans.class})
 @TestPropertySource(properties = "authserver.ui.branding.logo-url=" + LoginContentSecurityPolicyIT.LOGO_URL)
 class LoginContentSecurityPolicyIT {
 

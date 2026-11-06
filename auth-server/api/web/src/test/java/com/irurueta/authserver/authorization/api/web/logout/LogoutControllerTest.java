@@ -16,20 +16,40 @@
 
 package com.irurueta.authserver.authorization.api.web.logout;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 /**
  * Unit tests of {@link LogoutController}.
  */
+@ExtendWith(MockitoExtension.class)
 class LogoutControllerTest {
 
+    /** Renders the page. */
+    @Mock
+    private PageRenderer pageRenderer;
+
+    /** Controller under test. */
+    @InjectMocks
+    private LogoutController controller;
+
     /**
-     * Verifies that the confirmation page is rendered.
+     * Verifies that the confirmation page is rendered from its template, with no model of its own.
      */
     @Test
-    void logout_whenRequested_rendersTheConfirmationPage() {
-        assertEquals("logout", new LogoutController().logout());
+    void logoutPage_whenRequested_rendersTheConfirmationPage() {
+        final var page = ResponseEntity.ok("<html></html>");
+        when(pageRenderer.render(LogoutController.VIEW_NAME, Map.of())).thenReturn(page);
+
+        assertSame(page, controller.logoutPage());
     }
 }

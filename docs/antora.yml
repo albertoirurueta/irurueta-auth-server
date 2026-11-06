@@ -32,9 +32,18 @@ ext:
         - dir: auth-server/boot
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/boot
+        - dir: bff/domain
+          files: 'src/**'
+          into: modules/ROOT/examples/bff/domain
+        - dir: bff/application
+          files: 'src/**'
+          into: modules/ROOT/examples/bff/application
         - dir: bff/infrastructure/session
           files: 'src/**'
           into: modules/ROOT/examples/bff/infrastructure/session
+        - dir: bff/infrastructure/resourceserver
+          files: 'src/**'
+          into: modules/ROOT/examples/bff/infrastructure/resourceserver
         - dir: bff/api/web
           files: 'src/**'
           into: modules/ROOT/examples/bff/api/web

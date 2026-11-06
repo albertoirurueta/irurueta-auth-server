@@ -41,7 +41,7 @@ public class OpenApiConfig {
     /** Name of the session-cookie security scheme the contract's operations refer to. */
     public static final String SESSION_SCHEME = "session";
 
-    /** Name of the CSRF security scheme, which protects every state-changing request (the relayed ones included). */
+    /** Name of the CSRF security scheme, which protects every state-changing request. */
     public static final String CSRF_SCHEME = "csrf";
 
     /** Name of the session cookie (set by {@code SessionConfiguration} of {@code bff/infrastructure/session}). */
@@ -76,7 +76,8 @@ public class OpenApiConfig {
     }
 
     /**
-     * Groups the BFF's own JSON paths, leaving out the OAuth 2.0 login endpoints.
+     * Groups the BFF's own JSON paths ({@code /bff/**}) and the documents API ({@code /api/**}), leaving out the
+     * OAuth 2.0 login endpoints.
      *
      * @return the group of API paths.
      */
@@ -84,7 +85,7 @@ public class OpenApiConfig {
     public GroupedOpenApi apiGroup() {
         return GroupedOpenApi.builder()
                 .group("api")
-                .pathsToMatch("/bff/**")
+                .pathsToMatch("/bff/**", "/api/**")
                 .build();
     }
 }

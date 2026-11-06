@@ -19,12 +19,16 @@ package com.irurueta.authserver.authorization.api.web.consent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,12 +36,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -70,6 +74,14 @@ class ConsentControllerTest {
     @Mock
     private ConsentPageModelMapper mapper;
 
+    /** Renders the page. */
+    @Mock
+    private PageRenderer pageRenderer;
+
+    /** The current request. */
+    @Mock
+    private HttpServletRequest request;
+
     /** Signed-in user. */
     @Mock
     private Principal principal;
@@ -79,36 +91,37 @@ class ConsentControllerTest {
     private ConsentController controller;
 
     /**
-     * Verifies that the page is built from the client and from the scopes granted earlier.
+     * Verifies that the page is built from the client and from the scopes granted earlier, in the locale of the
+     * request.
      */
     @Test
-    void consent_whenClientHadConsent_passesTheGrantedScopesToTheMapper() {
+    void consentPage_whenClientHadConsent_passesTheGrantedScopesToTheMapper() {
         final var client = client();
         final var consent = OAuth2AuthorizationConsent.withId(client.getId(), PRINCIPAL).scope("profile").build();
-        final var page = new ConsentPageModel(CLIENT_ID, "App", PRINCIPAL, STATE, List.of(),
-                List.of());
-        when(principal.getName()).thenReturn(PRINCIPAL);
+        final var model = new ConsentPageModel(CLIENT_ID, "App", PRINCIPAL, STATE, List.of(), List.of());
+        final var page = ResponseEntity.ok("<html></html>");
+        signIn();
         when(clients.findByClientId(CLIENT_ID)).thenReturn(client);
         when(consents.findById(client.getId(), PRINCIPAL)).thenReturn(consent);
-        when(mapper.toModel(client, PRINCIPAL, STATE, SCOPE, Set.of("profile"), Locale.ENGLISH)).thenReturn(page);
-        final var model = new ExtendedModelMap();
+        when(mapper.toModel(client, PRINCIPAL, STATE, SCOPE, Set.of("profile"), Locale.ENGLISH)).thenReturn(model);
+        when(pageRenderer.render(ConsentController.VIEW_NAME, Map.of(ConsentController.CONSENT_ATTRIBUTE, model)))
+                .thenReturn(page);
 
-        final var view = controller.consent(principal, model, Locale.ENGLISH, CLIENT_ID, SCOPE, STATE);
-
-        assertEquals("consent", view);
-        assertSame(page, model.get(ConsentController.CONSENT_ATTRIBUTE));
+        assertSame(page, controller.consentPage(CLIENT_ID, SCOPE, STATE));
     }
 
     /**
      * Verifies that a first consent has no scope granted earlier.
      */
     @Test
-    void consent_whenClientHadNoConsent_passesNoGrantedScope() {
+    void consentPage_whenClientHadNoConsent_passesNoGrantedScope() {
         final var client = client();
-        when(principal.getName()).thenReturn(PRINCIPAL);
+        signIn();
         when(clients.findByClientId(CLIENT_ID)).thenReturn(client);
+        when(mapper.toModel(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new ConsentPageModel(CLIENT_ID, "App", PRINCIPAL, STATE, List.of(), List.of()));
 
-        controller.consent(principal, new ExtendedModelMap(), Locale.ENGLISH, CLIENT_ID, SCOPE, STATE);
+        controller.consentPage(CLIENT_ID, SCOPE, STATE);
 
         verify(mapper).toModel(client, PRINCIPAL, STATE, SCOPE, Set.of(), Locale.ENGLISH);
     }
@@ -117,13 +130,20 @@ class ConsentControllerTest {
      * Verifies that an unknown client is a bad request.
      */
     @Test
-    void consent_whenClientIsUnknown_throwsBadRequest() {
-        final var model = new ExtendedModelMap();
-
+    void consentPage_whenClientIsUnknown_throwsBadRequest() {
         final var error = assertThrows(ResponseStatusException.class,
-                () -> controller.consent(principal, model, Locale.ENGLISH, CLIENT_ID, SCOPE, STATE));
+                () -> controller.consentPage(CLIENT_ID, SCOPE, STATE));
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+    }
+
+    /**
+     * Makes the request carry the signed-in user and the English locale.
+     */
+    private void signIn() {
+        when(principal.getName()).thenReturn(PRINCIPAL);
+        when(request.getUserPrincipal()).thenReturn(principal);
+        when(request.getLocale()).thenReturn(Locale.ENGLISH);
     }
 
     /**

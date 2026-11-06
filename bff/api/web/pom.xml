@@ -27,9 +27,17 @@
 
   <artifactId>bff-api-web</artifactId>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Web adapter of the BFF: OAuth2 login security filter chain and the endpoint exposing the signed-in user.</description>
+  <description>Web adapter of the BFF: OAuth2 login security filter chain, the endpoint exposing the signed-in user and the documents endpoints that call the use cases.</description>
 
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>bff-domain</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>bff-application</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
@@ -37,11 +45,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security-oauth2-client</artifactId>
-    </dependency>
-    <dependency>
-      <!-- RestClient.Builder auto-configuration, used by the token relay -->
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-restclient</artifactId>
     </dependency>
     <dependency>
       <!-- Bean Validation annotations of the interfaces and DTOs generated from the contract -->

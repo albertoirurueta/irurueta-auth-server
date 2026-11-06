@@ -57,13 +57,13 @@ class OpenApiConfigTest {
     }
 
     /**
-     * Verifies that the API group matches only the BFF's own JSON paths.
+     * Verifies that the API group matches the BFF's own JSON paths and the documents API, nothing else.
      */
     @Test
-    void apiGroup_whenCalled_matchesOnlyBffPaths() {
+    void apiGroup_whenCalled_matchesOnlyTheJsonApiPaths() {
         final var group = config.apiGroup();
 
         assertEquals("api", group.getGroup());
-        assertEquals(List.of("/bff/**"), group.getPathsToMatch());
+        assertEquals(List.of("/bff/**", "/api/**"), group.getPathsToMatch());
     }
 }

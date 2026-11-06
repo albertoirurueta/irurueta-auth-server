@@ -70,7 +70,7 @@ PostgreSQL (created by `compose/init-databases.sql`) and applies its Flyway migr
 |`http://localhost:9000`
 
 |`RESOURCE_SERVER_URI`
-|Base URI of the `resource-server` the `/api/**` calls are relayed to.
+|Base URI of the `resource-server` the BFF's generated documents client calls (`bff.resource-server.base-uri`).
 |`http://localhost:8081`
 |===
 

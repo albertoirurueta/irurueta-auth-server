@@ -39,7 +39,7 @@ spring:
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_basic
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            # documents.read lets the relayed /api/documents call succeed; the user grants it on the consent page.
+            # documents.read lets the /api/documents call to the resource server succeed; the user grants it on the consent page.
             scope: openid,profile,documents.read
         provider:
           auth-server:
@@ -49,9 +49,9 @@ server:
   port: 8080
 
 bff:
-  relay:
-    # Base URI of the resource server the /api/** calls are relayed to (with the access token of the user).
-    target-uri: ${RESOURCE_SERVER_URI:http://localhost:8081}
+  resource-server:
+    # Base URI of the resource server the generated documents client calls (with the access token of the user).
+    base-uri: ${RESOURCE_SERVER_URI:http://localhost:8081}
   login:
     # Relative paths the SPA may ask to return to after the login (an entry ending in / also allows what is below it).
     allowed-return-paths:

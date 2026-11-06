@@ -33,7 +33,7 @@ between layers are enforced by the Maven enforcer (`bannedDependencies`) and by 
 | Module | Port | Role |
 |---|---|---|
 | `auth-server` | 9000 | The authorization server: Spring Authorization Server protocol endpoints, plus the login, consent, MFA and account pages. Modules `domain`, `application`, `infrastructure/persistence`, `infrastructure/keys`, `api/web`, `boot` |
-| `bff` | 8080 | Backend-for-Frontend: signs a browser SPA in through `auth-server` and relays its API calls, so tokens never reach JavaScript. Modules `api/web`, `boot` |
+| `bff` | 8080 | Backend-for-Frontend: signs a browser SPA in through `auth-server` and calls `resource-server` on the user's behalf through a generated client, so tokens never reach JavaScript. Modules `domain`, `application`, `infrastructure/session`, `infrastructure/resourceserver`, `api/web`, `boot` |
 | `resource-server` | 8081 | JWT-protected API that validates the tokens issued by `auth-server`. Modules `api/web`, `boot` |
 | `service-client` | — | Non-interactive client that obtains tokens with the client credentials grant and calls `resource-server`. A single `boot` module |
 | `test-support` | — | Shared Testcontainers PostgreSQL harness (`@PostgresIT`) |

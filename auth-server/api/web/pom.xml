@@ -27,7 +27,7 @@
 
   <artifactId>auth-server-api-web</artifactId>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Web adapter of the authorization server: security filter chains, login page and its extension points, OpenAPI description.</description>
+  <description>Web adapter of the authorization server: security filter chains, the login, consent and logout pages and their extension points, the REST API, OpenAPI description.</description>
 
   <dependencies>
     <dependency>
@@ -89,7 +89,8 @@
 
   <build>
     <plugins>
-      <!-- contract-first REST API: interfaces and DTOs generated from apis/auth-server/rest-server (see apis/README.md);
+      <!-- contract-first REST API and HTML pages: interfaces and DTOs generated from apis/auth-server/rest-server and
+           apis/auth-server/web-pages (see apis/README.md);
            the shared generator options live in the root pom's pluginManagement -->
       <plugin>
         <groupId>org.openapitools</groupId>
@@ -118,6 +119,36 @@
               <inputSpec>${maven.multiModuleProjectDirectory}/apis/auth-server/rest-server/auth-server-api-v1.yaml</inputSpec>
               <generatorName>html2</generatorName>
               <output>${project.build.directory}/generated-docs/rest-server/v1</output>
+              <addCompileSourceRoot>false</addCompileSourceRoot>
+              <!-- the page itself is a supporting file of the html2 generator -->
+              <generateSupportingFiles>true</generateSupportingFiles>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- contract-first HTML pages: the interfaces of the page controllers (login, consent, logout), generated
+                 from apis/auth-server/web-pages; each answers text/html rendered by PageRenderer -->
+            <id>generate-web-pages-v1</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/apis/auth-server/web-pages/auth-server-pages-v1.yaml</inputSpec>
+              <apiPackage>com.irurueta.authserver.authorization.api.web.pages.v1.generated.api</apiPackage>
+              <modelPackage>com.irurueta.authserver.authorization.api.web.pages.v1.generated.model</modelPackage>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- standalone HTML reference of the pages contract, published by the Documentation workflow -->
+            <id>generate-web-pages-docs</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/apis/auth-server/web-pages/auth-server-pages-v1.yaml</inputSpec>
+              <generatorName>html2</generatorName>
+              <output>${project.build.directory}/generated-docs/web-pages/v1</output>
               <addCompileSourceRoot>false</addCompileSourceRoot>
               <!-- the page itself is a supporting file of the html2 generator -->
               <generateSupportingFiles>true</generateSupportingFiles>

@@ -32,8 +32,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Checks, in the running application, that the custom error controller replaces Spring Boot's default one, is
- * reachable without signing in and never renders the details of a failure.
+ * Checks, in the running application, that Spring Boot's error controller renders the custom error page through
+ * {@code ErrorPageViewResolver}, is reachable without signing in and never renders the details of a failure, neither
+ * in the page nor in the JSON body.
  */
 @PostgresIT
 @AutoConfigureMockMvc
@@ -63,16 +64,24 @@ class ErrorPageIT {
     }
 
     /**
-     * Verifies that a client that does not accept HTML gets the status only.
+     * Verifies that a client that does not accept HTML gets the status only: no message, exception, stack trace or
+     * path.
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
     void errorPage_whenRequestedAsJson_returnsStatusOnly() throws Exception {
         mockMvc.perform(get("/error").accept(MediaType.APPLICATION_JSON)
-                        .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, NOT_FOUND))
+                        .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, NOT_FOUND)
+                        .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/internal/secret-path")
+                        .requestAttr(RequestDispatcher.ERROR_EXCEPTION, new IllegalStateException("secret detail")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(NOT_FOUND))
-                .andExpect(jsonPath("$.error").value("Not Found"));
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(jsonPath("$.exception").doesNotExist())
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(jsonPath("$.path").doesNotExist())
+                .andExpect(content().string(not(containsString("secret"))));
     }
 }

@@ -32,10 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
+import com.irurueta.authserver.authorization.api.web.login.BrandingProvider;
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginContentSecurityPolicy;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
@@ -43,6 +43,7 @@ import com.irurueta.authserver.authorization.api.web.login.LoginErrorMessages;
 import com.irurueta.authserver.authorization.api.web.login.LoginHeadersCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginStaticResourcesCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -78,8 +79,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * by Mockito mocks. It is an integration test because it starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginContentSecurityPolicy.class,
-        LoginStaticResourcesCustomizer.class, LoginErrorMessages.class, SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, PageRenderer.class, BrandingProvider.class, LoginHeadersCustomizer.class,
+        LoginContentSecurityPolicy.class, LoginStaticResourcesCustomizer.class, LoginErrorMessages.class,
+        SecurityConfigIT.TestBeans.class})
 class SecurityConfigIT {
 
     /** Username of the in-memory test user. */
@@ -160,7 +162,6 @@ class SecurityConfigIT {
     void login_whenRequested_rendersTheContributedFragment() throws Exception {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("login"))
                 .andExpect(content().string(containsString("first-method")))
                 .andExpect(content().string(not(containsString("second-method"))));
     }

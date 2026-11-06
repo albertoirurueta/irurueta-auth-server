@@ -20,6 +20,11 @@ spring:
     fallback-to-system-locale: false
   web:
     locale: en
+    error:
+      # Spring Boot's BasicErrorController answers /error. Its JSON body never carries the message, the stack trace or
+      # the exception (those include-* default to never); the requested path is left out too, so the body is only the
+      # timestamp, the status and its reason phrase. Browsers get templates/error.html through ErrorPageViewResolver.
+      include-path: never
   datasource:
     # Placeholders: the real values come from the environment (or from compose in the dev profile).
     url: ${AUTHSERVER_DB_URL:jdbc:postgresql://localhost:5432/authserver}

@@ -1,9 +1,10 @@
 # API contracts
 
-Every API this repository exposes is defined here, **contract first**: the OpenAPI document is the source of truth,
-openapi-generator turns it into Spring interfaces and DTOs at build time, and the hand-written controllers only
-implement those interfaces by calling use cases. `apis/` is not a Maven module; it is where a reviewer looks to see
-everything the applications expose.
+Every HTTP endpoint the applications handle themselves, JSON or HTML page, is defined here, **contract first**: the
+OpenAPI document is the source of truth, openapi-generator turns it into Spring interfaces (and DTOs) at build time,
+and the hand-written controllers only implement those interfaces by calling use cases. No hand-written class carries a
+mapping annotation (`@RequestMapping`, `@GetMapping`, ...): `HexagonalArchitectureTest` fails the build otherwise.
+`apis/` is not a Maven module; it is where a reviewer looks to see everything the applications expose.
 
 ## Layout
 
@@ -16,34 +17,60 @@ apis/
   auth-server/
     rest-server/
       auth-server-api-v1.yaml       account, client and signing-key administration (/api/**)
+    web-pages/
+      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout)
   resource-server/
     rest-server/
       resource-server-api-v1.yaml   documents API (/api/**)
   bff/
     rest-server/
-      bff-api-v1.yaml               JSON endpoints of the BFF (/bff/**)
+      bff-api-v1.yaml               JSON endpoints of the BFF (/bff/**) and its documents API (/api/documents)
 ```
 
 | Contract | Generated into | Packages | Implemented by |
 |---|---|---|---|
 | `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController` |
 | `resource-server/rest-server/resource-server-api-v1.yaml` | `resource-server/api/web` | `com.irurueta.authserver.resourceserver.api.web.v1.generated.{api,model}` | `DocumentController` |
-| `bff/rest-server/bff-api-v1.yaml` | `bff/api/web` | `com.irurueta.authserver.bff.api.web.v1.generated.{api,model}` | `UserController` |
+| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController` |
+| `bff/rest-server/bff-api-v1.yaml` | `bff/api/web` | `com.irurueta.authserver.bff.api.web.v1.generated.{api,model}` | `UserController`, `BffLoginController`, `DocumentsController` |
 
-There are no REST client contracts (`<app>/rest-client/<name>/`) yet: neither the BFF nor the service client calls
-these APIs through a generated client today. When one does, its copy of the provider's contract goes under
-`apis/<consumer>/rest-client/<provider>/` and generates into the consumer's `infrastructure/clients/<provider>` module.
+### HTML pages
 
-The OAuth 2.1 / OpenID Connect protocol endpoints of the authorization server (`/oauth2/**`, `/.well-known/**`,
-`/userinfo`, ...) and the BFF's login endpoints belong to Spring Security and are defined by their specifications, so
-they are not part of any contract here.
+The server-rendered pages are operations like any other: each answers `200` (and any error status it can answer) as
+`text/html` with a `string` schema, and the generated method returns `ResponseEntity<String>`. The controller builds
+the model and hands the Thymeleaf template to `PageRenderer` (`auth-server/api/web`, package `…api.web.pages`), which
+resolves the view through the application's view resolvers with the request's locale and renders it against the
+current request into a capturing response wrapper, so the CSRF hidden fields, `@{...}` links and messages keep
+working, and adds the branding. The pages contract has its own springdoc group, `pages`, served at
+`/v3/api-docs/pages`.
+
+### Clients of another service
+
+A service that calls another one does it through a client generated from the provider's own contract, never through a
+hand-written pass-through: the BFF's `bff/infrastructure/resourceserver` module generates a `java` / `restclient`
+client from `resource-server/rest-server/resource-server-api-v1.yaml` into
+`com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.{api,model}` (plus the `ApiClient` in
+`…v1.generated`). The client stays inside that driven adapter, behind the domain port `DocumentGateway`
+(`RestDocumentGateway`); the BFF exposes the operations its browser front end needs in its own contract
+(`/api/documents`), and its controller calls use cases, never the client. The execution in that module's pom replaces
+the shared server options with the client's own (`combine.self="override"`) and only generates the supporting files
+the client needs (`ApiClient`, the authentication classes and their helpers).
+
+### What is not in a contract
+
+Only endpoints owned by frameworks: the OAuth 2.1 / OpenID Connect protocol endpoints of the authorization server
+(`/oauth2/**`, `/.well-known/**`, `/connect/**`, `/userinfo`, ...), which are defined by their specifications, the
+Spring Security filters (`POST /login`, `POST /logout`, the BFF's `POST /bff/logout`, `/oauth2/authorization/**` and
+`/login/oauth2/**`), Spring Boot's error controller (`/error`, rendered through `ErrorPageViewResolver` in the
+authorization server) and actuator.
 
 ## Code generation
 
 `openapi-generator-maven-plugin` runs in the `generate-sources` phase of each `api/web` module:
 
 - `spring` generator, `interfaceOnly` and `skipDefaultInterface`: one interface per tag (`AccountApi`, `ClientsApi`,
-  `SigningKeysApi`, `DocumentsApi`, `UserApi`) with abstract methods only, so a controller that misses an operation
+  `SigningKeysApi`, `DocumentsApi`, `UserApi`, `LoginApi`, `LoginPageApi`, `ConsentPageApi`, `LogoutPageApi`) with
+  abstract methods only, so a controller that misses an operation
   does not compile; Java records for the DTOs (`useRecords`); Spring Boot 4, Jakarta EE and Jackson 3
   (`useSpringBoot4`, `useJackson3`).
 - Bean Validation from the contract's constraints (`useBeanValidation`): `required` becomes `@NotNull`, `minLength`
@@ -56,10 +83,11 @@ they are not part of any contract here.
   serving its OpenAPI document at `/v3/api-docs` (and the Swagger UI where it ships one) with the contract's
   descriptions.
 - A second execution renders the contract as a standalone HTML page (`html2` generator) into
-  `<module>/target/generated-docs/rest-server/v1/index.html`; the Documentation workflow publishes it.
+  `<module>/target/generated-docs/rest-server/v1/index.html` (and, for the pages contract,
+  `auth-server/api/web/target/generated-docs/web-pages/v1/index.html`); the Documentation workflow publishes them.
 
 The shared generator options live in the root `pom.xml` (`pluginManagement`); each `api/web` pom only names its
-contract and packages.
+contracts and packages. A client module (see above) overrides them with the `java` generator's own.
 
 Generated code lands in `<module>/target/generated-sources/openapi`. It is **never committed and never edited**: if
 something about it is wrong, fix the contract or the generator configuration. It is left out of Checkstyle (which
@@ -83,7 +111,10 @@ Regenerate with:
 - The scope an operation needs is listed as the role of its security requirement (`bearer: [ admin ]`), which OpenAPI
   3.1 allows for non-OAuth schemes.
 - A mapper per feature (`ClientDtoMapper`, `SigningKeyDtoMapper`, `DocumentDtoMapper`, `SessionUserDtoMapper`) in the
-  `api/web` module converts between the generated DTOs and the domain; a controller never returns a domain model.
+  `api/web` module converts between the generated DTOs and the domain; a controller never returns a domain model. A
+  client adapter has its own mapper from the generated client model to the domain (`DocumentMapper`).
+- An HTML page declares its answers as `text/html` with a `string` schema, and its security as the session cookie of
+  the application (`session`, an `apiKey` in a cookie), like the BFF's JSON endpoints.
 
 ## Versioning
 
@@ -98,7 +129,8 @@ would break every client. A `v2` contract would introduce versioned paths.
 ## Drift protection
 
 `OpenApiDriftIT`, in each application's `boot` module, starts the application, fetches the OpenAPI document springdoc
-serves and compares it with the contract through `OpenApiContract` (in `test-support`): operations, operation ids,
+serves (`/v3/api-docs`, and `/v3/api-docs/pages` for the pages of the authorization server) and compares it with the
+contract through `OpenApiContract` (in `test-support`): operations, operation ids,
 tags, security requirements, parameters, request bodies, status codes with their media types and schemas, and the
 properties of every schema. Descriptions are not compared: they come from the contract through the generated
 annotations. The test fails when an endpoint is mapped by hand outside the generated interfaces, or when a

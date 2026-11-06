@@ -26,15 +26,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
 import com.irurueta.authserver.authorization.api.web.login.BrandingConfiguration;
+import com.irurueta.authserver.authorization.api.web.login.BrandingProvider;
 import com.irurueta.authserver.authorization.api.web.login.LoginContentSecurityPolicy;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
 import com.irurueta.authserver.authorization.api.web.login.LoginErrorMessages;
 import com.irurueta.authserver.authorization.api.web.login.LoginHeadersCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginStaticResourcesCustomizer;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
 import com.irurueta.authserver.authorization.api.web.password.PasswordLoginFragment;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -59,9 +60,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, LoginHeadersCustomizer.class, LoginContentSecurityPolicy.class,
-        LoginStaticResourcesCustomizer.class, LoginErrorMessages.class, PasswordLoginFragment.class,
-        BrandingConfiguration.class, SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, PageRenderer.class, BrandingProvider.class, LoginHeadersCustomizer.class,
+        LoginContentSecurityPolicy.class, LoginStaticResourcesCustomizer.class, LoginErrorMessages.class,
+        PasswordLoginFragment.class, BrandingConfiguration.class, SecurityConfigIT.TestBeans.class})
 class LoginPageIT {
 
     /** Username of the in-memory user of the slice. */
@@ -110,7 +111,6 @@ class LoginPageIT {
     void login_whenRequested_rendersPasswordFormOnTheLayout() throws Exception {
         mockMvc.perform(get(LOGIN))
                 .andExpect(status().isOk())
-                .andExpect(view().name("login"))
                 .andExpect(content().string(containsString("<title>Sign in</title>")))
                 .andExpect(content().string(containsString("class=\"branding\"")))
                 .andExpect(content().string(containsString("autocomplete=\"username\"")))

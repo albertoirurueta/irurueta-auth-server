@@ -48,7 +48,7 @@ module (package granularity). Never weaken either to make code fit; move the cod
 | `domain` | nothing but the JDK (and Lombok, compile-only) | Spring, Jackson, JPA/JDBC, Spring Security types: the only framework-free module |
 | `application` | `domain`, Spring | Spring Security types; use cases are `@Service` beans found by component scanning |
 | `infrastructure/*` | `domain`, `application` | a sibling adapter, any `api/*` module |
-| `api/*` | `domain`, `application` | any `infrastructure/*` module |
+| `api/*` | `domain`, `application` | any `infrastructure/*` module; a mapping annotation of its own (controllers implement generated interfaces, see *API contracts*) |
 | `boot` | everything | business logic: it only wires beans, holds `application*.yml` and the integration tests |
 
 - Package roots: `com.irurueta.authserver.authorization` (auth-server), `com.irurueta.authserver.bff`,
@@ -66,10 +66,10 @@ module (package granularity). Never weaken either to make code fit; move the cod
   `SecurityFilterChain`, …) are framework adapters: they live in `api/*` or `infrastructure/*`, never in `domain`
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet has no
-  `infrastructure` or `application` module (`bff` has `api/web`, `infrastructure/session` and `boot`, and no `domain`
-  or `application` because it has no use case yet), and `service-client` stays a single `boot` module until #8 gives
-  it a domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and
-  `infrastructure/mail`; `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`.
+  `infrastructure` or `application` module, so `service-client` stays a single `boot` module until #8 gives it a
+  domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and `infrastructure/mail`;
+  `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`; `bff` has `domain`,
+  `application`, `infrastructure/session`, `infrastructure/resourceserver`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
   or adapter that exists only so a test has something to call lives in `src/test`. The only exceptions are
   `DevDataInitializer` in `infrastructure/persistence` and `DevKeyEncryptionSecret` in `infrastructure/keys` of
@@ -127,18 +127,48 @@ users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refres
 range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
 history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 
-### Key encryption secret and API contracts
+### Key encryption secret
 
 - Private signing keys are encrypted at rest from `authserver.keys.encryption.password` and `.salt` (hex). With the
   `dev` profile `DevKeyEncryptionSecret` generates them once per machine under `~/.irurueta-auth-server/` (owner-only
   file, never inside the repository). Without `dev` they must be supplied, normally through the environment variables
   `AUTHSERVER_KEYS_ENCRYPTION_PASSWORD` and `AUTHSERVER_KEYS_ENCRYPTION_SALT`; tests pass runtime-generated values.
-- REST APIs are **contract first**: the OpenAPI 3.1 contracts under `apis/<app>/rest-server/<app>-api-v1.yaml` are
-  the source of truth (see `apis/README.md`). openapi-generator (`spring`, `interfaceOnly`, records, Spring Boot 4,
-  Jackson 3, Bean Validation) generates the interfaces and DTOs into each `api/web` module's
-  `target/generated-sources` (packages `…api.web.v1.generated.{api,model}`); they are never committed or edited, and
-  are excluded from Checkstyle, PMD/CPD, SpotBugs, JaCoCo and Sonar. `OpenApiDriftIT` in each `boot` module fails when
-  the document springdoc serves at `/v3/api-docs` differs from the contract.
+
+### API contracts
+
+**Every HTTP endpoint the application itself handles, JSON or HTML page, is defined first in an OpenAPI contract
+under `apis/<app>/`, and its controller only implements the interface openapi-generator produces. Never put a mapping
+annotation (`@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`, `@PatchMapping`, `@DeleteMapping`) in
+hand-written code.** The contracts are the source of truth (see `apis/README.md`).
+
+- **JSON endpoints**: `apis/<app>/rest-server/<app>-api-v1.yaml`. Add the operation (every operation, parameter,
+  schema and property described, every constraint expressed), regenerate
+  (`./mvnw -pl <app>/api/web -am generate-sources`) and implement the generated interface in a controller that calls
+  use cases. openapi-generator (`spring`, `interfaceOnly`, records, Spring Boot 4, Jackson 3, Bean Validation)
+  generates the interfaces and DTOs into each `api/web` module's `target/generated-sources` (packages
+  `…api.web.v1.generated.{api,model}`). Never hand-write a web DTO: a `@Component` mapper per feature (for example
+  `ClientDtoMapper`) in the api adapter converts between generated DTOs and the domain; problem details go through
+  `ProblemJsonExceptionHandler` or the feature's scoped `@RestControllerAdvice`.
+- **HTML pages**: `apis/<app>/web-pages/<app>-pages-v1.yaml` (today `auth-server-pages-v1.yaml`: `/login`,
+  `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
+  `text/html`; its controller renders the Thymeleaf template with `PageRenderer` (`api.web.pages`), which resolves the
+  view with the request's locale, renders it against the current request (CSRF fields, `@{}` links and messages keep
+  working) and adds the branding. The pages are published by the springdoc group `pages` (`/v3/api-docs/pages`) and
+  compared with their contract by `OpenApiDriftIT`.
+- **Calls to another service** go through a client generated from that service's contract (`java` generator,
+  `library=restclient`, into `…infrastructure.<adapter>.v1.generated`), behind a domain port implemented in an
+  `infrastructure/*` adapter that translates every failure into a domain exception (for example
+  `RestDocumentGateway` in `bff/infrastructure/resourceserver`). There is no generic pass-through relay: every
+  operation an application exposes is in its own contract.
+- **Exempt** are only the endpoints owned by frameworks: the Spring Security filters (`POST /login`, `POST /logout`,
+  `POST /bff/logout`, `/oauth2/**`, `/login/oauth2/**`), the Spring Authorization Server protocol endpoints
+  (`/oauth2/**`, `/.well-known/**`, `/connect/**`, `/userinfo`), Spring Boot's `BasicErrorController` (`/error`,
+  customised only through an `ErrorViewResolver` bean) and actuator.
+- Generated code is never committed or edited, and is excluded from Checkstyle, PMD/CPD, SpotBugs, JaCoCo and Sonar.
+- **Enforced**: `HexagonalArchitectureTest` in each application's `boot` module fails when a hand-written class or
+  method (outside a `..generated..` package) carries a mapping annotation, or a `@Controller`/`@RestController` does
+  not implement an interface from a `..generated.api..` package; `OpenApiDriftIT` fails when a document springdoc
+  serves differs from its contract.
 
 ## Conventions
 
@@ -146,12 +176,8 @@ history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src
 - Never commit secrets, keys or certificates: generate dev keys at first start and test keys inside the tests.
 - Code shown in the docs guide is wrapped in tag comments, see below. Never rename or remove a tag without updating
   the docs repository.
-- A new REST endpoint starts in its contract under `apis/`: add the operation (every operation, schema and property
-  described, every constraint expressed), regenerate (`./mvnw -pl <app>/api/web -am generate-sources`) and implement
-  the generated interface in a controller that calls use cases. Never map a REST endpoint by hand or hand-write a web
-  DTO. A `@Component` mapper per feature (for example `ClientDtoMapper`) in the api adapter converts between generated
-  DTOs and the domain; problem details go through `ProblemJsonExceptionHandler`. A REST client of another service is
-  generated the same way from its contract under `apis/`.
+- A new endpoint, JSON or HTML page, and a call to another service start in a contract under `apis/` (see *API
+  contracts* above); a mapping annotation in hand-written code fails the build.
 
 ### Tag-comment convention
 
@@ -259,10 +285,12 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   Java (chosen over Selenium because it manages its own browser binaries, auto-waits for elements and needs no
   driver setup). It must stay last in the reactor, before `coverage`.
 - `OpenApiContract` (test-support) summarizes an OpenAPI contract and a served document; `OpenApiDriftIT` in each
-  `boot` module compares `apis/<app>/rest-server/<app>-api-v1.yaml` with `/v3/api-docs` (operations, status codes,
-  parameters, bodies, security, schemas). To change an API, edit the contract; there is nothing else to regenerate or
-  commit. springdoc only documents the api group (`/api/**` in `auth-server` and `resource-server`, `/bff/**` in `bff`,
-  see each `OpenApiConfig`): put every new REST endpoint under it, or widen the group.
+  `boot` module compares `apis/<app>/rest-server/<app>-api-v1.yaml` with `/v3/api-docs` and, in `auth-server`,
+  `apis/auth-server/web-pages/auth-server-pages-v1.yaml` with `/v3/api-docs/pages` (operations, status codes,
+  parameters, bodies, security, schemas). To change an API or a page, edit the contract; there is nothing else to
+  regenerate or commit. springdoc only documents its groups (see each `OpenApiConfig`): `api` (`/api/**` in
+  `auth-server` and `resource-server`, `/bff/**` and `/api/**` in `bff`) and, in `auth-server`, `pages` (`/login`,
+  `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 
@@ -294,8 +322,11 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   `value == null || value.isBlank()`, `CollectionUtils.isEmpty(list)` instead of `list == null || list.isEmpty()`.
   They are on every module's classpath except `domain`, which uses its own `domain.Preconditions`
   (`requireText`, `requireTextIfPresent`, `isBlank`) so a compact constructor has no null-or-blank branches.
-- **Transactions belong to the use cases.** Every `*UseCase` is `@Transactional` (`readOnly = true` when it only
-  reads), on the class or on each public method; `HexagonalArchitectureTest` fails the build otherwise. Adapters never
+- **Transactions belong to the use cases.** Every `*UseCase` of `auth-server` is `@Transactional` (`readOnly = true`
+  when it only reads), on the class or on each public method; its `HexagonalArchitectureTest` fails the build
+  otherwise. The use cases of `resource-server` and `bff` touch no transactional store (in-memory documents, and the
+  resource server behind a remote call) and carry none: a transaction there would only hold a connection across a
+  remote call. Adapters never
   open a transaction of their own: a repository method with several statements runs in its caller's (the advisory
   lock's `TransactionTemplate` in `JdbcSigningKeyRepository` joins it). Only non-use-case entry points such as
   `DevDataInitializer` demarcate their own.

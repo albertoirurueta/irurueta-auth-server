@@ -20,19 +20,26 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.ConsentPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LoginPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LogoutPageApi;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Runtime OpenAPI document of the HTTP API of the authorization server, served by springdoc at
- * {@value #API_DOCS_PATH}. The contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml} is the source of
- * truth: the operations are described by the interfaces generated from it, and this class only adds what springdoc
- * cannot read from them (the info block and the security scheme). {@code OpenApiDriftIT} fails when the document
- * served differs from the contract. The OAuth 2.1 / OpenID Connect protocol endpoints are defined by the
- * specifications and documented by the discovery document, so only the application's own REST endpoints are
- * published here; the HTML pages (such as the login page) are hidden.
+ * Runtime OpenAPI documents of the authorization server, served by springdoc. The contracts under
+ * {@code apis/auth-server/} are the source of truth: the operations are described by the interfaces generated from
+ * them, and this class only adds what springdoc cannot read from those (the info blocks and the security schemes).
+ * Two groups are published: {@value #API_GROUP} ({@code /api/**}, the REST API of
+ * {@code rest-server/auth-server-api-v1.yaml}) and {@value #PAGES_GROUP} (the HTML pages of
+ * {@code web-pages/auth-server-pages-v1.yaml}, at {@value #PAGES_DOCS_PATH}). {@code OpenApiDriftIT} fails when a
+ * document served differs from its contract. The OAuth 2.1 / OpenID Connect protocol endpoints are defined by the
+ * specifications and documented by the discovery document, so they are not published here.
  */
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfig {
@@ -40,8 +47,23 @@ public class OpenApiConfig {
     /** Path of the OpenAPI document. */
     public static final String API_DOCS_PATH = "/v3/api-docs";
 
-    /** Name of the bearer-token security scheme the contract's operations refer to. */
+    /** Name of the group of the REST API. */
+    public static final String API_GROUP = "api";
+
+    /** Name of the group of the HTML pages. */
+    public static final String PAGES_GROUP = "pages";
+
+    /** Path of the OpenAPI document of the HTML pages. */
+    public static final String PAGES_DOCS_PATH = API_DOCS_PATH + "/" + PAGES_GROUP;
+
+    /** Name of the bearer-token security scheme the REST contract's operations refer to. */
     public static final String BEARER_SCHEME = "bearer";
+
+    /** Name of the session-cookie security scheme the pages contract's operations refer to. */
+    public static final String SESSION_SCHEME = "session";
+
+    /** Name of the session cookie (see {@code LogoutChainCustomizer}, which deletes it). */
+    static final String SESSION_COOKIE = "JSESSIONID";
 
     /**
      * Describes the API.
@@ -55,8 +77,7 @@ public class OpenApiConfig {
                         .title("Irurueta Auth Server API")
                         .description("REST endpoints of the example OAuth 2.1 / OpenID Connect authorization server.")
                         .version("1.0.0")
-                        .license(new License().name("Apache License 2.0")
-                                .url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
+                        .license(license()))
                 .components(new Components().addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
@@ -71,8 +92,48 @@ public class OpenApiConfig {
     @Bean
     public GroupedOpenApi apiGroup() {
         return GroupedOpenApi.builder()
-                .group("api")
+                .group(API_GROUP)
                 .pathsToMatch("/api/**")
                 .build();
+    }
+
+    // tag::pages-openapi-group[]
+    /**
+     * Groups the HTML pages of the contract {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml}, with their
+     * own info block and the session-cookie scheme instead of the REST API's.
+     *
+     * @return the group of the HTML pages.
+     */
+    @Bean
+    public GroupedOpenApi pagesGroup() {
+        return GroupedOpenApi.builder()
+                .group(PAGES_GROUP)
+                .pathsToMatch(LoginPageApi.PATH_LOGIN_PAGE, ConsentPageApi.PATH_CONSENT_PAGE,
+                        LogoutPageApi.PATH_LOGOUT_PAGE)
+                .addOpenApiCustomizer(openApi -> {
+                    final var components = Objects.requireNonNullElseGet(openApi.getComponents(), Components::new);
+                    components.setSecuritySchemes(new LinkedHashMap<>(Map.of(SESSION_SCHEME, new SecurityScheme()
+                            .type(SecurityScheme.Type.APIKEY)
+                            .in(SecurityScheme.In.COOKIE)
+                            .name(SESSION_COOKIE))));
+                    openApi.info(new Info()
+                            .title("Irurueta Auth Server Pages")
+                            .description("Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect "
+                                    + "authorization server.")
+                            .version("1.0.0")
+                            .license(license()))
+                            .components(components);
+                })
+                .build();
+    }
+    // end::pages-openapi-group[]
+
+    /**
+     * Describes the license of the documents.
+     *
+     * @return the license.
+     */
+    private static License license() {
+        return new License().name("Apache License 2.0").url("https://www.apache.org/licenses/LICENSE-2.0.txt");
     }
 }

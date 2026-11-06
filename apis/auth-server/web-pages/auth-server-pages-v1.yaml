@@ -1,0 +1,152 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Contract of the server-rendered HTML pages of the authorization server (version 1). This file is the source of
+# truth: the Spring interfaces implemented by the page controllers of auth-server/api/web are generated from it by
+# openapi-generator, and OpenApiDriftIT fails when the pages the running application serves (the springdoc group
+# "pages", /v3/api-docs/pages) differ from it. Every page answers text/html rendered from a Thymeleaf template.
+# The endpoints Spring Security and Spring Authorization Server answer themselves are not part of it: the login form
+# post (POST /login), the sign-out (POST /logout), the consent decision (POST /oauth2/authorize) and every other
+# OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error controller (/error).
+openapi: 3.1.0
+info:
+  title: Irurueta Auth Server Pages
+  description: >-
+    Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, consent and
+    sign-out confirmation. They are meant for a browser, never for a script.
+  version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.txt
+servers:
+  - url: http://localhost:9000
+    description: Local development instance (the dev profile).
+tags:
+  - name: Login page
+    description: The sign-in page, which hosts the sign-in methods
+  - name: Consent page
+    description: The page where the user approves the scopes a client asks for
+  - name: Logout page
+    description: The page that asks the user to confirm signing out
+security:
+  - session: [ ]
+paths:
+  # tag::login-page-api[]
+  /login:
+    get:
+      tags: [ Login page ]
+      operationId: loginPage
+      summary: Renders the sign-in page
+      description: >-
+        Renders the sign-in page with the form of every sign-in method (each LoginMethodFragment bean contributes
+        one). The forms post to the security chain (POST /login), never to this operation. Public: it is where the
+        browser is sent when it has no session.
+      security: [ ]
+      parameters:
+        - name: error
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the previous sign-in failed; the page then shows the
+            message of that failure, which never reveals whether the account exists.
+          schema:
+            type: string
+        - name: logout
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the user has just signed out; the page then says so.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The sign-in page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::login-page-api[]
+  # tag::consent-page-api[]
+  /oauth2/consent:
+    get:
+      tags: [ Consent page ]
+      operationId: consentPage
+      summary: Renders the consent page
+      description: >-
+        Renders the page the authorization endpoint redirects to when a client needs the user's approval: the client,
+        the requested scopes (as checkboxes, checked by default) and the scopes granted earlier. The decision is
+        posted to the authorization endpoint (POST /oauth2/authorize), never to this operation.
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          description: Identifier of the registered client that asks for access.
+          schema:
+            type: string
+            minLength: 1
+        - name: scope
+          in: query
+          required: true
+          description: Requested scopes, space delimited as in the authorization request.
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          description: State the authorization endpoint generated for the consent step, posted back with the decision.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: The consent page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: >-
+            The client is unknown or a parameter is missing; the error page is rendered, without any detail of the
+            failure.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::consent-page-api[]
+  # tag::logout-page-api[]
+  /logout:
+    get:
+      tags: [ Logout page ]
+      operationId: logoutPage
+      summary: Renders the sign-out confirmation page
+      description: >-
+        Renders the page that asks the signed-in user to confirm signing out. A GET never signs the user out (any page
+        could trigger it); the confirmation form posts to the security chain (POST /logout), with the CSRF token.
+      responses:
+        '200':
+          description: The sign-out confirmation page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::logout-page-api[]
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: >-
+        Session cookie of the authorization server, set when the user signs in on the sign-in page. A request without
+        a signed-in session is redirected to the sign-in page.

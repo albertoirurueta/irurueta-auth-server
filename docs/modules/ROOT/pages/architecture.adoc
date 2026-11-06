@@ -45,22 +45,41 @@ Each application is a Maven sub-reactor split into modules by hexagonal layer. T
 |Business logic: it only wires beans, holds `application*.yml` and the integration tests
 |===
 
-A layer is only created once it has code: `bff` has `api/web` (the security, login, logout and relay adapters),
-`infrastructure/session` (the Spring Session JDBC store, its cookie and its Flyway migration) and `boot` (the SPA), and no
-`domain` or `application` module because it has no use case yet,
+A layer is only created once it has code: `bff` has `domain` (the documents and their `DocumentGateway` port),
+`application` (the documents use cases), `infrastructure/session` (the Spring Session JDBC store, its cookie and its
+Flyway migration), `infrastructure/resourceserver` (the generated client of the resource server behind the port),
+`api/web` (the security, login, logout, user and documents adapters) and `boot` (the SPA);
 `resource-server` has `domain`, `application`, `infrastructure/memory` and `api/web`, and
 `service-client` is a single `boot` module. A port is an interface in `domain` (for example `UserAccountRepository`);
 its implementation lives in an `infrastructure/*` adapter. Domain models are never returned from a controller: the
 `api/*` adapter maps them onto its own DTOs. Spring Security and Spring Authorization Server types are framework
 adapters and live in `api/*` or `infrastructure/*`.
 
-The REST APIs are contract first. Each application's OpenAPI contract lives under `apis/` at the repository root
-(`apis/<app>/rest-server/<app>-api-v1.yaml`); `openapi-generator` turns it into Spring interfaces and DTO records in
-the `api/web` module at build time (`target/generated-sources`, never committed), and the hand-written controllers
-implement those interfaces by calling use cases. A `@Component` mapper per feature (for example `ClientDtoMapper`)
-converts between the generated DTOs and the domain. `OpenApiDriftIT`, in each `boot` module, fails when the running
-application serves an operation, status code or schema the contract does not declare. `apis/README.md` describes the
-layout, the generator options and how to version a contract.
+Every HTTP endpoint the applications handle themselves, JSON or HTML page, is contract first. The OpenAPI contracts
+live under `apis/` at the repository root: `apis/<app>/rest-server/<app>-api-v1.yaml` for the JSON APIs and
+`apis/auth-server/web-pages/auth-server-pages-v1.yaml` for the login, consent and logout pages. `openapi-generator`
+turns them into Spring interfaces (and DTO records) in the `api/web` module at build time (`target/generated-sources`,
+never committed), and the hand-written controllers only implement those interfaces by calling use cases: no
+hand-written class carries a mapping annotation. A `@Component` mapper per feature (for example `ClientDtoMapper`)
+converts between the generated DTOs and the domain. A page's generated method answers `text/html`; its controller
+renders the Thymeleaf template with `PageRenderer`, which resolves the view with the request's locale and renders it
+against the current request, so CSRF fields, links and messages keep working.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/pages/PageRenderer.java[tag=page-renderer]
+----
+
+Calls to another service are contract first too: the BFF reaches the resource server through a client generated from
+the resource server's own contract, behind a domain port (see xref:login-and-bff.adoc#_documents_api[Documents API]).
+Only endpoints owned by frameworks have no contract here: the Spring Security filters, the Spring Authorization Server
+protocol endpoints, Spring Boot's error controller and actuator.
+
+Two tests keep it that way. `OpenApiDriftIT`, in each `boot` module, fails when the running application serves an
+operation, status code or schema its contract does not declare (the pages of `auth-server` are compared through their
+own springdoc group, `/v3/api-docs/pages`). `HexagonalArchitectureTest` fails when a hand-written class or method
+carries `@RequestMapping` or one of its variants, or when a `@Controller` does not implement a generated interface.
+`apis/README.md` describes the layout, the generator options and how to version a contract.
 
 `test-support` (shared Testcontainers base), `e2e-tests` (Playwright) and `coverage` (JaCoCo aggregate) are root
 modules outside the applications.
@@ -138,8 +157,9 @@ The `bff` is an `oauth2Login()` client using the authorization code grant with P
 server-side session (Spring Session JDBC, cookie `__Host-SESSION`), protects state-changing requests with CSRF
 (`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header or `_csrf` form parameter), serves the SPA, exposes `GET /bff/user` and
 `GET /bff/login`, lets Spring Security's logout filter answer `POST /bff/logout` with a redirect to the RP-initiated
-logout of the authorization server, and relays `/api/**` calls to the resource server with the access token of the user. It is described
-in xref:login-and-bff.adoc[].
+logout of the authorization server, and serves the documents API (`GET /api/documents`,
+`+DELETE /api/documents/{id}+`), whose use cases call the resource server with the access token of the user through a
+generated client. It is described in xref:login-and-bff.adoc[].
 
 [source,java]
 ----

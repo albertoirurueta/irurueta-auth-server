@@ -116,8 +116,8 @@ const loadUser = async () => {
 };
 
 /**
- * Loads the documents through the BFF, which relays the call with the access token of the user. A 401 here means the
- * session of a signed-in user has ended (or its token could not be renewed), so the sign-in starts again.
+ * Loads the documents through the BFF, which asks the resource server with the access token of the user. A 401 here
+ * means the session of a signed-in user has ended (or its token could not be renewed), so the sign-in starts again.
  */
 const loadDocuments = async () => {
     showError('');

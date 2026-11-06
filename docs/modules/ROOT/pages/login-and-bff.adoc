@@ -18,6 +18,29 @@ depends on the machine).
 include::example$auth-server/api/web/src/main/resources/templates/fragments/layout.html[tag=login-layout]
 ----
 
+Each page is an operation of the contract `apis/auth-server/web-pages/auth-server-pages-v1.yaml`, like every other
+endpoint of the application: openapi-generator turns it into an interface (`LoginPageApi`, `ConsentPageApi`,
+`LogoutPageApi`) whose method answers the page as `text/html`, and the controller only implements it. No controller
+carries a mapping annotation of its own (`HexagonalArchitectureTest` fails the build otherwise), and `OpenApiDriftIT`
+compares the contract with the springdoc group `pages` (`/v3/api-docs/pages`). The login page is public; the consent
+and logout pages need the session.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=login-page-api]
+----
+
+A controller builds the model and hands the template to `PageRenderer`, which resolves the view through the
+application's view resolvers, with the locale of the request, and renders it against the current request into a
+response wrapper that captures the markup. Rendering against the real request is what keeps the templates working:
+`th:action` still adds the CSRF hidden field, `@{...}` links and `#{...}` messages resolve as before. The markup is then
+answered as the `text/html` body of the generated method.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/login/LoginController.java[tag=login-controller]
+----
+
 The login page itself contains no sign-in method. Each `LoginMethodFragment` bean contributes one, rendered below the
 heading, so adding a method never edits the page. The username and password form is the fragment of
 `PasswordLoginFragment`, in `password.html`.
@@ -33,7 +56,8 @@ include::example$auth-server/api/web/src/main/resources/templates/password.html[
 ----
 
 Branding is configured under `authserver.ui.branding.*` (application name, logo URL, footer text), with defaults, and
-injected into every page by a `@ControllerAdvice`. The logo is either a path served by this application or an absolute
+added to the model of every page by `PageRenderer` (and of the error page by `ErrorPageViewResolver`), both through
+`BrandingProvider`. The logo is either a path served by this application or an absolute
 `http(s)` URL on another origin, which the content security policy then allows for images (see below); a
 protocol-relative URL (`//host/...`) is not recognised as another origin, so write the scheme.
 
@@ -101,6 +125,19 @@ Consent is a property of the registered client: `requireConsent` in the client r
 include::example$auth-server/api/web/src/main/resources/templates/consent.html[tag=consent-page]
 ----
 
+`ConsentController` implements the generated `ConsentPageApi`: it looks the client up (an unknown one is a `400`,
+rendered as the error page), reads the scopes the user granted earlier and renders the page.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/consent/ConsentController.java[tag=consent-controller]
+----
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=consent-page-api]
+----
+
 == Logout
 
 [cols="2,1,3",options="header"]
@@ -139,6 +176,24 @@ include::example$auth-server/api/web/src/main/resources/templates/logout.html[ta
 ----
 include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/logout/LogoutChainCustomizer.java[tag=logout-config]
 ----
+
+The confirmation page is the `GET /logout` operation of the pages contract (`LogoutController`); the `POST` belongs to
+Spring Security's logout filter and is not part of it.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=logout-page-api]
+----
+
+== Error page
+
+Errors are answered by Spring Boot's own `BasicErrorController` at `/error`, which belongs to the framework like the
+Spring Security endpoints, so it has no contract here. A browser gets `templates/error.html` through
+`ErrorPageViewResolver`, which picks a generic text from the status only (not found, forbidden, anything else) and
+adds the branding; the model the controller offers (timestamp, path, exception) is not passed on, so the page never
+shows a stack trace, an exception message or the requested path. A client that does not accept HTML gets the
+controller's JSON body: `spring.web.error.include-path: never` leaves out the path, and the message, the exception and
+the stack trace are left out by default, so only the timestamp, the status and its reason phrase remain.
 
 == Backend for frontend
 
@@ -249,49 +304,66 @@ include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/s
 include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/logout/LogoutConfiguration.java[tag=bff-logout-handler]
 ----
 
-The login, the user endpoint and the relay are defined by the contract `apis/bff/rest-server/bff-api-v1.yaml`. The
-logout is not: like the OAuth 2.0 login endpoints, it is answered by Spring Security itself.
+The login, the user endpoint and the documents API are defined by the contract `apis/bff/rest-server/bff-api-v1.yaml`.
+The logout is not: like the OAuth 2.0 login endpoints, it is answered by Spring Security itself.
 
 [source,yaml]
 ----
 include::example$apis/bff/rest-server/bff-api-v1.yaml[tag=bff-login-api]
 ----
 
-=== Token relay
+=== Documents API
 
-Calls to `/api/**` (GET, POST, PUT, PATCH, DELETE) are forwarded to the resource server (`bff.relay.target-uri`,
-`RESOURCE_SERVER_URI`) with the access token of the user of the session as bearer token; the browser never sends or sees
-it.
-
-The relay is a `RestClient` with Spring Security's `OAuth2ClientHttpRequestInterceptor`, written in this repository,
-rather than Spring Cloud Gateway's token relay. No Spring Cloud release train supports Spring Boot 4.1 yet: the latest
-released train (2025.1.x) is built on Boot 4.0, and the one for Boot 4.1 (2026.0.0) is not released. When one is, the
-relay can be replaced by the gateway's filter.
-
-The response headers of the resource server are returned, except cookies, authentication challenges, hop-by-hop
-headers and the security and caching headers the BFF writes itself (`Cache-Control`, `Pragma`, `Expires`,
-`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Content-Security-Policy`,
-`Strict-Transport-Security`, `Referrer-Policy`): the browser talks to the BFF, so the BFF's values apply, and each of
-these headers is sent once (`RelayHeaderFilter`).
-
-The interceptor asks the authorized client manager for the token, renewing it with the refresh token when it expired. It
-lets a call through unauthenticated when the session has no authorized client, so a second interceptor stops that call:
-the relay never sends a request without a token. When the token cannot be obtained or renewed the answer is `401`, so
-the SPA signs in again; when the resource server cannot be reached it is `502`.
-
-[source,java]
-----
-include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/relay/RelayRestClientConfiguration.java[tag=bff-relay]
-----
-
-[source,java]
-----
-include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/relay/ApiRelayController.java[tag=bff-relay-controller]
-----
+The SPA reads and deletes the user's documents through the BFF: `GET /api/documents` and
+`+DELETE /api/documents/{id}+` are operations of the BFF's own contract, with the same schema and status codes as the
+resource server's, plus `401` (no session, or no valid token) and `502` (the resource server is unreachable or
+failed). There is no pass-through relay: OpenAPI has no wildcard paths, and every operation the browser can call is
+described, generated and checked by `OpenApiDriftIT` like any other.
 
 [source,yaml]
 ----
-include::example$apis/bff/rest-server/bff-api-v1.yaml[tag=bff-relay-api]
+include::example$apis/bff/rest-server/bff-api-v1.yaml[tag=bff-documents-api]
+----
+
+The BFF is hexagonal like the other applications. `DocumentsController` implements the generated `DocumentsApi` and
+calls the use cases (`ListDocumentsUseCase`, `DeleteDocumentUseCase` in `bff/application`), mapping the domain
+`Document` onto the generated DTO (`DocumentDtoMapper`); a scoped `@RestControllerAdvice` answers the domain
+exceptions as problem details.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/documents/DocumentsController.java[tag=bff-documents-controller]
+----
+
+The use cases only see the domain port `DocumentGateway` (`bff/domain`). Its implementation, `RestDocumentGateway` in
+the driven adapter `bff/infrastructure/resourceserver`, calls the resource server through a client generated from the
+resource server's own contract (`apis/resource-server/rest-server/resource-server-api-v1.yaml`, `java` generator with
+the `restclient` library) and translates every failure into a domain exception: a token that cannot be obtained or
+renewed, or a `401` of the resource server, is unauthorized (`401`, so the SPA signs in again); a `403` is forbidden; a
+`404` is not found; an unreachable resource server or any other answer is unavailable (`502`). No HTTP or OAuth2 type
+crosses the port, and nothing the resource server answers (headers, cookies, challenges, error bodies) reaches the
+browser: the BFF builds its own responses.
+
+[source,java]
+----
+include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/RestDocumentGateway.java[tag=bff-documents-gateway]
+----
+
+The generated client runs on a `RestClient` built from Spring Boot's `RestClient.Builder` with Spring Security's
+`OAuth2ClientHttpRequestInterceptor`: it asks the authorized client manager (declared by the BFF's security
+configuration) for the access token of the user of the session, renewing it with the refresh token when it expired,
+and sends it as bearer token; the browser never sends or sees it. The interceptor lets a call through unauthenticated
+when the session has no authorized client, so a second interceptor stops that call: the BFF never sends a request
+without a token. The base URI is `bff.resource-server.base-uri` (`RESOURCE_SERVER_URI`).
+
+[source,java]
+----
+include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/ResourceServerClientConfiguration.java[tag=bff-relay]
+----
+
+[source,java]
+----
+include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/ResourceServerClientConfiguration.java[tag=bff-documents-client]
 ----
 
 === The single page application

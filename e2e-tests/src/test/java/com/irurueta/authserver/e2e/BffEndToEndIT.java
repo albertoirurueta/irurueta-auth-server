@@ -134,7 +134,7 @@ class BffEndToEndIT {
 
         final var bffArguments = new ArrayList<>(authServer.bffDatabaseArguments());
         bffArguments.add("--server.port=" + bffPort);
-        bffArguments.add("--bff.relay.target-uri=http://localhost:" + resourcePort);
+        bffArguments.add("--bff.resource-server.base-uri=http://localhost:" + resourcePort);
         bff = ManagedApp.start(RunningAuthServer.jar("bff.jar"), bffArguments,
                 List.of("AUTH_ISSUER=" + authServer.issuer(), "BFF_CLIENT_SECRET=" + authServer.clientSecret()));
         bff.await(BFF_STARTED, RunningAuthServer.STARTUP_TIMEOUT);

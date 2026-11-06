@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Contract of the JSON API the BFF offers its browser front end (version 1). This file is the source of truth: the
-# Spring interface and DTO implemented by bff/api/web are generated from it by openapi-generator, and
+# Spring interfaces and DTOs implemented by bff/api/web are generated from it by openapi-generator, and
 # OpenApiDriftIT fails when the running application serves an operation or a status code this file does not
 # declare. The endpoints Spring Security answers itself are not part of it: the OAuth 2.0 login endpoints (/oauth2/**,
 # /login/**) and POST /bff/logout, which its logout filter handles. The SPA submits a form there (the CSRF token as the
@@ -29,22 +29,6 @@ info:
   license:
     name: Apache License 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.txt
-# The relay of the BFF is a pass-through, not an operation of this contract: every /api/** call of the browser is
-# forwarded to the resource server with the access token of the session (which never reaches the browser), and the
-# resource server's own contract describes what is behind it. It is therefore documented as an extension and kept out
-# of `paths`, which the generated interfaces and OpenApiDriftIT are built from. Implemented by ApiRelayController.
-# tag::bff-relay-api[]
-x-token-relay:
-  path: /api/**
-  methods: [ GET, POST, PUT, PATCH, DELETE ]
-  description: >-
-    Relays the call to the resource server (bff.relay.target-uri) with the access token of the session as bearer
-    token. Method, path, query, allowed headers (Accept, Accept-Language, Content-Type, conditional and Range headers)
-    and body are copied; Cookie, Authorization and the CSRF headers are dropped inbound and Set-Cookie outbound. The
-    response of the resource server is returned unchanged. Answers 401 when the session is not signed in or its token
-    cannot be renewed, 502 when the resource server is unreachable. State-changing calls need the CSRF token
-    (X-XSRF-TOKEN header).
-# end::bff-relay-api[]
 servers:
   - url: http://localhost:8080
     description: Local development instance.
@@ -53,6 +37,11 @@ tags:
     description: The user signed in to the BFF session
   - name: Login
     description: Starts the OpenID Connect login against the authorization server
+  - name: Documents
+    description: >-
+      Documents of the signed-in user, kept by the resource server. The BFF calls the resource server on the user's
+      behalf with the access token of the session, through a client generated from the resource server's own contract
+      (apis/resource-server/rest-server/resource-server-api-v1.yaml), so the token never reaches the browser.
 paths:
   # tag::bff-user-api[]
   /bff/user:
@@ -110,6 +99,79 @@ paths:
         '400':
           description: returnTo is not an allowed relative path
   # end::bff-login-api[]
+  # tag::bff-documents-api[]
+  /api/documents:
+    get:
+      tags: [ Documents ]
+      operationId: listDocuments
+      summary: Lists documents
+      description: >-
+        Lists the documents of the signed-in user; an administrator sees all. The BFF asks the resource server
+        (GET /api/documents there, which needs the scope documents.read) with the access token of the session,
+        renewing it with the refresh token when it expired.
+      security:
+        - session: [ ]
+      responses:
+        '200':
+          description: The documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The access token of the session lacks the documents.read scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /api/documents/{id}:
+    delete:
+      tags: [ Documents ]
+      operationId: deleteDocument
+      summary: Deletes a document
+      description: >-
+        Deletes one of the signed-in user's documents; an administrator may delete any. The BFF asks the resource
+        server (DELETE /api/documents/{id} there, which needs the scope documents.delete) with the access token of
+        the session. Someone else's document is answered 404, like a missing one. A state-changing request: it needs
+        the CSRF token.
+      security:
+        - session: [ ]
+          csrf: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the document.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The document was deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >-
+            The request lacks the CSRF token (answered by the security chain, without a body), or the access token
+            of the session lacks the documents.delete scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The document does not exist or belongs to someone else.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  # end::bff-documents-api[]
 components:
   securitySchemes:
     session:
@@ -125,10 +187,65 @@ components:
       in: header
       name: X-XSRF-TOKEN
       description: >-
-        CSRF protection of every state-changing request, the relayed /api/** calls included. The BFF sets the
+        CSRF protection of every state-changing request (DELETE /api/documents/{id}, for example). The BFF sets the
         XSRF-TOKEN cookie, readable by the SPA (not HttpOnly); the SPA copies its value into this header (or, for the
         sign-out form, which is outside this contract, into the _csrf form parameter).
+  responses:
+    Unauthorized:
+      description: >-
+        There is no signed-in session (answered by the security chain, without a body), or the session holds no
+        valid access token: there is none, or it expired and cannot be renewed, or the resource server refused it.
+        The SPA then signs the user in again.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    BadGateway:
+      description: The resource server cannot be reached or failed to answer.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
+    DocumentResponse:
+      type: object
+      description: A document owned by a user, as the resource server keeps it.
+      required: [ id, owner, title, content ]
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the document.
+        owner:
+          type: string
+          description: Subject of the user who owns the document.
+        title:
+          type: string
+          description: Short title of the document.
+        content:
+          type: string
+          description: Body of the document.
+    Problem:
+      type: object
+      description: RFC 9457 problem details of a failed call to the documents.
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type, a URN such as urn:problem:documents:not-found.
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code of the answer.
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence. It never carries a token.
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying this occurrence, usually the request path.
     SessionUserResponse:
       type: object
       description: The user signed in to the BFF session

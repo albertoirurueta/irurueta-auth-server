@@ -16,26 +16,36 @@
 
 package com.irurueta.authserver.authorization.api.web.logout;
 
-import io.swagger.v3.oas.annotations.Hidden;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LogoutPageApi;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Serves the page that asks the user to confirm signing out. A GET never signs the user out (it could be triggered
- * by any page); the confirmation form posts to the same path, handled by the security chain.
+ * Serves the page that asks the user to confirm signing out, as the contract
+ * {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml} describes it through the generated
+ * {@link LogoutPageApi}. A GET never signs the user out (it could be triggered by any page); the confirmation form
+ * posts to the same path, handled by the security chain.
  */
-// HTML page, not part of the OpenAPI contract
-@Hidden
 @Controller
-public class LogoutController {
+@RequiredArgsConstructor
+public class LogoutController implements LogoutPageApi {
+
+    /** Name of the logout template. */
+    static final String VIEW_NAME = "logout";
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
 
     /**
      * Renders the logout confirmation page.
      *
-     * @return the logout template name.
+     * @return the logout confirmation page.
      */
-    @GetMapping(LogoutChainCustomizer.LOGOUT_PATH)
-    public String logout() {
-        return "logout";
+    @Override
+    public ResponseEntity<String> logoutPage() {
+        return pageRenderer.render(VIEW_NAME, Map.of());
     }
 }

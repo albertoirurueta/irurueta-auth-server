@@ -32,5 +32,6 @@
 
   <modules>
     <module>session</module>
+    <module>resourceserver</module>
   </modules>
 </project>

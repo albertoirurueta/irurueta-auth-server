@@ -42,13 +42,19 @@ the others). They are the same rules that fail `./mvnw verify`.
 under `/api/**`), from which the interfaces and DTOs of `auth-server/api/web` are generated, and its HTML rendering.
 `OpenApiDriftIT` fails when the running application no longer matches it.
 
+|{pages-url}/openapi/auth-server-pages-v1.yaml[Pages contract of `auth-server`], {pages-url}/openapi/auth-server/pages-v1/index.html[HTML]
+|The OpenAPI contract `apis/auth-server/web-pages/auth-server-pages-v1.yaml` of the server-rendered pages (`/login`,
+`/oauth2/consent`, `/logout`, each answering `text/html`), from which the interfaces of the page controllers are
+generated, and its HTML rendering. `OpenApiDriftIT` compares it with the springdoc group `pages`.
+
 |{pages-url}/openapi/resource-server-api-v1.yaml[API contract of `resource-server`], {pages-url}/openapi/resource-server/v1/index.html[HTML]
 |The OpenAPI contract of `resource-server` (documents API), generated into `resource-server/api/web` and guarded by
-its own drift test.
+its own drift test. The BFF generates its client of the resource server from it too (`bff/infrastructure/resourceserver`).
 
 |{pages-url}/openapi/bff-api-v1.yaml[API contract of `bff`], {pages-url}/openapi/bff/v1/index.html[HTML]
-|The OpenAPI contract of the BFF's endpoints (`/bff/user`, `/bff/login` and the `/api/**` relay; `POST /bff/logout` is
-answered by Spring Security and is not part of it), generated into `bff/api/web` and guarded by its own drift test. The behaviour is described in xref:login-and-bff.adoc[].
+|The OpenAPI contract of the BFF's endpoints (`/bff/user`, `/bff/login` and the documents API `/api/documents`;
+`POST /bff/logout` is answered by Spring Security and is not part of it), generated into `bff/api/web` and guarded by
+its own drift test. The behaviour is described in xref:login-and-bff.adoc[].
 
 |{mvn-site}/index.html[Maven Site]
 |Aggregation of the project reports and project information of every module (*Modules* menu).

@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Fails when the JSON API the running BFF serves drifts from its contract {@code apis/bff/rest-server/bff-api-v1.yaml}:
- * an endpoint mapped by hand outside the generated interface, a contract operation no controller implements, or a
+ * an endpoint mapped by hand outside the generated interfaces, a contract operation no controller implements, or a
  * different status code, parameter, body, security requirement or schema. The OpenAPI document springdoc serves (to a
  * signed-in user, like every BFF page) is built from the running application's mappings and the annotations
  * generated from the contract, and both are compared through {@link OpenApiContract}.
@@ -45,8 +45,11 @@ class OpenApiDriftIT {
     /** The contract, relative to the directory of this module. */
     private static final Path CONTRACT = Path.of("..", "..", "apis", "bff", "rest-server", "bff-api-v1.yaml");
 
-    /** Prefix of the paths of the JSON API. */
-    private static final String API_PREFIX = "/bff/";
+    /**
+     * Prefix of the paths compared: every path, since the JSON API spans {@code /bff/**} and {@code /api/**}. A path
+     * the application serves outside the contract (mapped by hand) is then reported too.
+     */
+    private static final String API_PREFIX = "/";
 
     /** MockMvc bound to the application context. */
     @Autowired
