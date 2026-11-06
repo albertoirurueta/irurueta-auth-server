@@ -18,6 +18,7 @@ package com.irurueta.authserver.authorization;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaModifier;
@@ -30,7 +31,14 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.library.Architectures;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
+import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
  * Architecture rules of the hexagon, checked at package granularity over the classes of every module. They
@@ -57,6 +65,12 @@ class HexagonalArchitectureTest {
 
     /** Package of the api layer. */
     private static final String API = ROOT + ".api..";
+
+    /** Packages openapi-generator generates into from the contracts under {@code apis/}. */
+    private static final String GENERATED = "..generated..";
+
+    /** Packages of the interfaces openapi-generator generates from the contracts under {@code apis/}. */
+    private static final String GENERATED_API = "..generated.api..";
 
     /** Domain depends on nothing but the JDK and Lombok. */
     @ArchTest
@@ -124,6 +138,46 @@ class HexagonalArchitectureTest {
             .that().haveSimpleNameEndingWith("Controller")
             .should().resideInAPackage(API);
 
+    /**
+     * Contract first (CLAUDE.md, "API contracts"): every HTTP endpoint the application handles is defined in an
+     * OpenAPI contract under {@code apis/}, and its mapping lives on the interface openapi-generator produces from it.
+     * No hand-written method outside a {@code ..generated..} package carries a mapping annotation.
+     */
+    @ArchTest
+    static final ArchRule NO_HAND_WRITTEN_METHOD_MAPPINGS = noMethods()
+            .that().areDeclaredInClassesThat().resideOutsideOfPackage(GENERATED)
+            .should().beAnnotatedWith(RequestMapping.class)
+            .orShould().beAnnotatedWith(GetMapping.class)
+            .orShould().beAnnotatedWith(PostMapping.class)
+            .orShould().beAnnotatedWith(PutMapping.class)
+            .orShould().beAnnotatedWith(PatchMapping.class)
+            .orShould().beAnnotatedWith(DeleteMapping.class);
+
+    /**
+     * Contract first (CLAUDE.md, "API contracts"): no hand-written class outside a {@code ..generated..} package
+     * carries a mapping annotation either, so a path prefix cannot be added outside the contract.
+     */
+    @ArchTest
+    static final ArchRule NO_HAND_WRITTEN_CLASS_MAPPINGS = noClasses()
+            .that().resideOutsideOfPackage(GENERATED)
+            .should().beAnnotatedWith(RequestMapping.class)
+            .orShould().beAnnotatedWith(GetMapping.class)
+            .orShould().beAnnotatedWith(PostMapping.class)
+            .orShould().beAnnotatedWith(PutMapping.class)
+            .orShould().beAnnotatedWith(PatchMapping.class)
+            .orShould().beAnnotatedWith(DeleteMapping.class);
+
+    /**
+     * Contract first (CLAUDE.md, "API contracts"): every {@code @Controller} and {@code @RestController} only
+     * implements an interface openapi-generator produced from a contract (a {@code ..generated.api..} package), which
+     * carries its mappings. Endpoints owned by frameworks (Spring Security's filters, Spring Boot's
+     * {@code BasicErrorController}, actuator) are not classes of this application, so they are not checked.
+     */
+    @ArchTest
+    static final ArchRule CONTROLLERS_IMPLEMENT_GENERATED_INTERFACES = classes()
+            .that().areMetaAnnotatedWith(Controller.class)
+            .should(implementAGeneratedApiInterface());
+
     /** The layering as one declaration, so that a layer added later cannot sit outside of it by accident. */
     @ArchTest
     static final ArchRule LAYERING = Architectures.layeredArchitecture()
@@ -153,6 +207,23 @@ class HexagonalArchitectureTest {
                         .allMatch(method -> method.isAnnotatedWith(Transactional.class));
                 events.add(new SimpleConditionEvent(item, transactional,
                         item.getName() + " does not demarcate a transaction"));
+            }
+        };
+    }
+
+    /**
+     * Condition met by a class that implements an interface generated from an OpenAPI contract.
+     *
+     * @return the condition.
+     */
+    private static ArchCondition<JavaClass> implementAGeneratedApiInterface() {
+        return new ArchCondition<>("implement an interface generated from an OpenAPI contract") {
+            @Override
+            public void check(final JavaClass item, final ConditionEvents events) {
+                final var implemented = item.getAllRawInterfaces().stream()
+                        .anyMatch(JavaClass.Predicates.resideInAPackage(GENERATED_API));
+                events.add(new SimpleConditionEvent(item, implemented,
+                        item.getName() + " implements no interface generated from an OpenAPI contract"));
             }
         };
     }

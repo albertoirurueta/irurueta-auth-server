@@ -52,7 +52,7 @@ pages.
 |`bff`
 |8080
 |The Backend-for-Frontend: an `oauth2Login()` client that keeps the user's tokens in a server-side session, serves
-the SPA and relays its API calls.
+the SPA and calls the resource server on the user's behalf.
 
 |`resource-server`
 |8081

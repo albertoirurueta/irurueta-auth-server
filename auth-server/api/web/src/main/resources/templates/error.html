@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!-- Generic text only: no stack trace, exception message, path or identifier is ever rendered here. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
+<head>
+  <title th:text="#{error.title}">Something went wrong</title>
+</head>
+<body>
+<main>
+  <h1 th:text="#{error.heading}">Something went wrong</h1>
+  <p role="alert" th:text="#{${messageKey}}">The request could not be completed.</p>
+  <p><a th:href="@{/login}" th:text="#{error.back}">Back to the sign-in page</a></p>
+</main>
+</body>
+</html>

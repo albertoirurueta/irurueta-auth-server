@@ -41,17 +41,29 @@ class OpenApiConfigTest {
         assertEquals("Irurueta BFF API", openApi.getInfo().getTitle());
         assertEquals(SecurityScheme.Type.APIKEY, scheme.getType());
         assertEquals(SecurityScheme.In.COOKIE, scheme.getIn());
-        assertEquals(OpenApiConfig.SESSION_COOKIE, scheme.getName());
+        assertEquals("__Host-SESSION", scheme.getName());
     }
 
     /**
-     * Verifies that the API group matches only the BFF's own JSON paths.
+     * Verifies that the document declares the CSRF header scheme.
      */
     @Test
-    void apiGroup_whenCalled_matchesOnlyBffPaths() {
+    void bffOpenApi_whenCalled_declaresTheCsrfScheme() {
+        final var scheme = config.bffOpenApi().getComponents().getSecuritySchemes().get(OpenApiConfig.CSRF_SCHEME);
+
+        assertEquals(SecurityScheme.Type.APIKEY, scheme.getType());
+        assertEquals(SecurityScheme.In.HEADER, scheme.getIn());
+        assertEquals("X-XSRF-TOKEN", scheme.getName());
+    }
+
+    /**
+     * Verifies that the API group matches the BFF's own JSON paths and the documents API, nothing else.
+     */
+    @Test
+    void apiGroup_whenCalled_matchesOnlyTheJsonApiPaths() {
         final var group = config.apiGroup();
 
         assertEquals("api", group.getGroup());
-        assertEquals(List.of("/bff/**"), group.getPathsToMatch());
+        assertEquals(List.of("/bff/**", "/api/**"), group.getPathsToMatch());
     }
 }

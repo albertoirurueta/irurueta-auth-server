@@ -15,7 +15,7 @@
  */
 
 /**
- * Backend-for-Frontend that signs a browser SPA in through the authorization server and relays its API calls, so
- * tokens never reach JavaScript.
+ * Backend-for-Frontend that signs a browser SPA in through the authorization server and calls the resource server on
+ * the user's behalf, so tokens never reach JavaScript.
  */
 package com.irurueta.authserver.bff;

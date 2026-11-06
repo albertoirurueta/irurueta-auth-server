@@ -4,8 +4,9 @@ name: Documentation
 #   /            the Antora site built from docs/
 #   /mvn-site/   the staged multi-module Maven site: aggregated Javadoc, JaCoCo, Surefire/Failsafe, Checkstyle, PMD,
 #                SpotBugs and JXR reports, linked from the Antora Reference page
-#   /openapi/    the API contracts under apis/ (<app>-api-v1.yaml) and their HTML reference (<app>/v1/index.html),
-#                rendered by the html2 execution of each api/web module during the build
+#   /openapi/    the API contracts under apis/ (<app>-api-v1.yaml, plus auth-server-pages-v1.yaml) and their HTML
+#                reference (<app>/v1/index.html, auth-server/pages-v1/index.html), rendered by the html2 executions
+#                of each api/web module during the build
 # Only documentation is published: the applications themselves are never deployed. Build and test is still the
 # workflow that gates pushes and pull requests; this one runs the same build again so the reports have real data.
 on:
@@ -76,6 +77,9 @@ jobs:
             mkdir -p "public/openapi/$app"
             cp -r "$app/api/web/target/generated-docs/rest-server/v1" "public/openapi/$app/v1"
           done
+          # the contract of the HTML pages of auth-server and its HTML reference
+          cp apis/auth-server/web-pages/auth-server-pages-v1.yaml public/openapi/
+          cp -r auth-server/api/web/target/generated-docs/web-pages/v1 public/openapi/auth-server/pages-v1
           touch public/.nojekyll
 
       - name: Deploy to GitHub Pages

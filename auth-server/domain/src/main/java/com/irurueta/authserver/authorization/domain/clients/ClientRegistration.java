@@ -40,11 +40,15 @@ import java.util.Objects;
  * @param refreshTokenTtl    lifetime of refresh tokens.
  * @param accessTokenFormat  {@code self-contained} or {@code reference}.
  * @param reuseRefreshTokens {@code true} to keep a refresh token after use, {@code false} to rotate it.
+ * @param postLogoutRedirectUris URIs an end-user may be redirected to after an OpenID Connect RP-initiated logout;
+ *                           a {@code post_logout_redirect_uri} that is not listed is never honoured.
+ * @param requireConsent     whether the end-user must explicitly grant the requested scopes on a consent page.
  */
 public record ClientRegistration(
         String clientId, String name, boolean confidential, List<String> authMethods, List<String> grantTypes,
         List<String> redirectUris, List<String> scopes, boolean requireProofKey, List<String> audiences,
-        Duration accessTokenTtl, Duration refreshTokenTtl, String accessTokenFormat, boolean reuseRefreshTokens) {
+        Duration accessTokenTtl, Duration refreshTokenTtl, String accessTokenFormat, boolean reuseRefreshTokens,
+        List<String> postLogoutRedirectUris, boolean requireConsent) {
 
     /** Access token format of self-contained (JWT) tokens. */
     public static final String FORMAT_SELF_CONTAINED = "self-contained";
@@ -76,6 +80,8 @@ public record ClientRegistration(
         if (audiences.isEmpty()) {
             audiences = List.of(clientId);
         }
+        requireNoNulls(postLogoutRedirectUris, "postLogoutRedirectUris");
+        postLogoutRedirectUris = List.copyOf(postLogoutRedirectUris);
         if (isNotPositive(accessTokenTtl) || isNotPositive(refreshTokenTtl)) {
             throw new IllegalArgumentException("token lifetimes must be positive");
         }

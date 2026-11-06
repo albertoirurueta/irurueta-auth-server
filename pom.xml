@@ -166,6 +166,26 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>bff-domain</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>bff-application</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>bff-infrastructure-session</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>bff-infrastructure-resourceserver</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>bff-api-web</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -286,9 +306,10 @@
           <version>${sonar-maven-plugin.version}</version>
         </plugin>
         <!--
-          Contract-first REST APIs: the contracts live under apis/ (see apis/README.md) and each api/web module that
+          Contract-first APIs and pages: the contracts live under apis/ (see apis/README.md) and each api/web module that
           implements one declares the executions (inputSpec, packages). The options shared by every server
-          interface are set once here and merged into those executions. The generated code lands in
+          interface are set once here and merged into those executions; a module that generates a client of another
+          service (bff/infrastructure/resourceserver) replaces them with the client generator's own. The generated code lands in
           target/generated-sources/openapi, is never committed and is kept out of Checkstyle, PMD/CPD, SpotBugs and
           JaCoCo (see their configuration below and spotbugs-exclude.xml).
         -->

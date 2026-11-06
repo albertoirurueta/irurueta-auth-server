@@ -20,6 +20,11 @@ spring:
     fallback-to-system-locale: false
   web:
     locale: en
+    error:
+      # Spring Boot's BasicErrorController answers /error. Its JSON body never carries the message, the stack trace or
+      # the exception (those include-* default to never); the requested path is left out too, so the body is only the
+      # timestamp, the status and its reason phrase. Browsers get templates/error.html through ErrorPageViewResolver.
+      include-path: never
   datasource:
     # Placeholders: the real values come from the environment (or from compose in the dev profile).
     url: ${AUTHSERVER_DB_URL:jdbc:postgresql://localhost:5432/authserver}
@@ -39,6 +44,13 @@ spring:
 
 server:
   port: 9000
+
+logging:
+  level:
+    # The password sign-in uses its own DaoAuthenticationProvider bean (PasswordAuthenticationConfiguration, which
+    # checks the account status only after the password); Spring Security warns at startup that the
+    # UserDetailsService bean is then not used to build one, which is exactly the intent.
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
 
 management:
   endpoints:
@@ -66,8 +78,11 @@ authserver:
     # configured: nothing is seeded by default, and no localhost URI exists outside the dev profile.
     bff:
       redirect-uris: ${AUTHSERVER_BFF_REDIRECT_URIS:}
+      # URIs (comma-separated) the user may be sent to after an RP-initiated logout (/connect/logout); none by default
+      post-logout-redirect-uris: ${AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS:}
     spa-public:
       redirect-uris: ${AUTHSERVER_SPA_REDIRECT_URIS:}
+      post-logout-redirect-uris: ${AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS:}
   # end::clients-seed-config[]
   account:
     # Limits of the unauthenticated /api/account endpoints, per client address and per e-mail address.

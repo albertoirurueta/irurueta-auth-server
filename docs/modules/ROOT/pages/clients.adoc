@@ -29,12 +29,16 @@ include::example$auth-server/boot/src/main/resources/application.yml[tag=clients
 include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/clients/DefaultClientDefinitions.java[tag=clients-seed]
 ----
 
+Each registration also carries `postLogoutRedirectUris` (where an RP-initiated logout may send the user, configured with
+`authserver.clients.<client>.post-logout-redirect-uris`) and `requireConsent` (the user must approve the scopes on the
+consent page; `true` for `bff`, `false` for `spa-public`). See xref:login-and-bff.adoc[].
+
 Token settings of each client (lifetimes, rotation, `self-contained` or `reference` access token format, audiences) are
 persisted with the registration.
 
 [source,java]
 ----
-include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/clients/JdbcClientRegistrationRepository.java[tag=tokens-settings]
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/clients/RegisteredClientMapper.java[tag=tokens-settings]
 ----
 
 == Administration API

@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -65,5 +66,49 @@ class OpenApiConfigTest {
 
         assertEquals("api", group.getGroup());
         assertEquals(List.of("/api/**"), group.getPathsToMatch());
+    }
+
+    /**
+     * Verifies that the pages group matches only the paths of the pages contract.
+     */
+    @Test
+    void pagesGroup_whenCalled_matchesOnlyThePages() {
+        final var group = config.pagesGroup();
+
+        assertEquals(OpenApiConfig.PAGES_GROUP, group.getGroup());
+        assertEquals(List.of("/login", "/oauth2/consent", "/logout"), group.getPathsToMatch());
+        assertEquals("/v3/api-docs/pages", OpenApiConfig.PAGES_DOCS_PATH);
+    }
+
+    /**
+     * Verifies that the pages group replaces the REST API's info block and bearer scheme with its own and the
+     * session-cookie scheme.
+     */
+    @Test
+    void pagesGroup_whenCustomizingTheDocument_describesThePagesAndTheSessionScheme() {
+        final var document = config.authServerOpenApi();
+
+        config.pagesGroup().getOpenApiCustomizers().forEach(customizer -> customizer.customise(document));
+
+        assertEquals("Irurueta Auth Server Pages", document.getInfo().getTitle());
+        final var schemes = document.getComponents().getSecuritySchemes();
+        assertEquals(List.of(OpenApiConfig.SESSION_SCHEME), List.copyOf(schemes.keySet()));
+        final var session = schemes.get(OpenApiConfig.SESSION_SCHEME);
+        assertEquals(SecurityScheme.Type.APIKEY, session.getType());
+        assertEquals(SecurityScheme.In.COOKIE, session.getIn());
+        assertEquals("JSESSIONID", session.getName());
+    }
+
+    /**
+     * Verifies that the pages group also describes a document that has no components yet.
+     */
+    @Test
+    void pagesGroup_whenDocumentHasNoComponents_addsThem() {
+        final var document = new OpenAPI();
+
+        config.pagesGroup().getOpenApiCustomizers().forEach(customizer -> customizer.customise(document));
+
+        assertEquals(List.of(OpenApiConfig.SESSION_SCHEME),
+                List.copyOf(document.getComponents().getSecuritySchemes().keySet()));
     }
 }

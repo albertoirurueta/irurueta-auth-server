@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,14 +65,20 @@ class UserControllerTest {
      * Verifies that the response carries the subject of the user signed in to the session.
      */
     @Test
-    void getSessionUser_whenUserIsAuthenticated_returnsItsSubject() {
+    void getSessionUser_whenUserIsAuthenticated_returnsItsClaims() {
         when(oidcUser.getSubject()).thenReturn(SUBJECT);
+        when(oidcUser.getFullName()).thenReturn("Demo User");
+        when(oidcUser.getEmail()).thenReturn("demo@example.com");
+        when(oidcUser.getClaimAsStringList("roles")).thenReturn(List.of("ROLE_USER"));
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(oidcUser, null));
 
         final var response = controller.getSessionUser();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(SUBJECT, response.getBody().subject());
+        assertEquals("Demo User", response.getBody().name());
+        assertEquals("demo@example.com", response.getBody().email());
+        assertEquals(List.of("ROLE_USER"), response.getBody().roles());
     }
 
     /**

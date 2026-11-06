@@ -14,29 +14,20 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!--
+  Login page. The sign-in methods are not written here: every LoginMethodFragment bean contributes one (the
+  username/password form is password.html, tag login-form).
+-->
+<!-- tag::login-page[] -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
 <head>
-  <meta charset="UTF-8">
-  <title>Sign in</title>
+  <title th:text="#{login.title}">Sign in</title>
 </head>
 <body>
 <main>
-  <h1>Sign in</h1>
-  <!-- tag::login-form[] -->
-  <form method="post" th:action="@{${loginPath}}">
-    <div th:if="${param.error}" role="alert">Invalid username or password.</div>
-    <div th:if="${param.logout}" role="status">You have been signed out.</div>
-    <p>
-      <label for="username">Username</label>
-      <input type="text" id="username" name="username" required autofocus autocomplete="username">
-    </p>
-    <p>
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" required autocomplete="current-password">
-    </p>
-    <button type="submit">Sign in</button>
-  </form>
-  <!-- end::login-form[] -->
+  <h1 th:text="#{login.heading}">Sign in</h1>
+  <div th:if="${errorMessageKey != null}" role="alert" th:text="#{${errorMessageKey}}">Invalid username or password.</div>
+  <div th:if="${loggedOut}" role="status" th:text="#{login.logout}">You have been signed out.</div>
   <section th:each="fragment : ${fragments}" class="login-method">
     <!-- LoginMethodFragment.reference() is the single source of the "template :: fragment" expression -->
     <div th:replace="~{__${fragment.reference()}__}"></div>
@@ -44,3 +35,4 @@
 </main>
 </body>
 </html>
+<!-- end::login-page[] -->

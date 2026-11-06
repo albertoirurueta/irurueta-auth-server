@@ -34,9 +34,9 @@ import org.springframework.util.StringUtils;
 public class ClientDtoMapper {
 
     /**
-     * Maps a create or update request to a client registration. An absent flag is {@code false}, absent audiences are
-     * empty (the client identifier is then used) and an absent or blank format is
-     * {@value ClientRegistration#FORMAT_SELF_CONTAINED}.
+     * Maps a create or update request to a client registration. An absent flag is {@code false}, absent audiences
+     * are empty (the client identifier is then used), absent post-logout redirect URIs are empty and an absent or
+     * blank format is {@value ClientRegistration#FORMAT_SELF_CONTAINED}.
      *
      * @param request the validated request.
      * @return the registration.
@@ -49,7 +49,9 @@ public class ClientDtoMapper {
         return new ClientRegistration(request.clientId(), request.name(), Boolean.TRUE.equals(request.confidential()),
                 request.authMethods(), request.grantTypes(), request.redirectUris(), request.scopes(),
                 Boolean.TRUE.equals(request.requireProofKey()), audiences, request.accessTokenTtl(),
-                request.refreshTokenTtl(), format, Boolean.TRUE.equals(request.reuseRefreshTokens()));
+                request.refreshTokenTtl(), format, Boolean.TRUE.equals(request.reuseRefreshTokens()),
+                request.postLogoutRedirectUris() == null ? List.of() : request.postLogoutRedirectUris(),
+                Boolean.TRUE.equals(request.requireConsent()));
     }
 
     /**
@@ -63,7 +65,8 @@ public class ClientDtoMapper {
                 registration.authMethods(), registration.grantTypes(), registration.redirectUris(),
                 registration.scopes(), registration.requireProofKey(), registration.audiences(),
                 registration.accessTokenTtl(), registration.refreshTokenTtl(), registration.accessTokenFormat(),
-                registration.reuseRefreshTokens());
+                registration.reuseRefreshTokens(), registration.postLogoutRedirectUris(),
+                registration.requireConsent());
     }
 
     /**

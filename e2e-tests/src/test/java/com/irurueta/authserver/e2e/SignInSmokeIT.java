@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.Playwright;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterAll;
@@ -76,7 +77,9 @@ class SignInSmokeIT {
         authServer = RunningAuthServer.start(List.of("--authserver.clients.bff.redirect-uris=http://" + BFF_HOST
                 + ":" + bffPort + "/login/oauth2/code/bff"));
 
-        bff = ManagedApp.start(RunningAuthServer.jar("bff.jar"), List.of("--server.port=" + bffPort),
+        final var bffArguments = new ArrayList<>(authServer.bffDatabaseArguments());
+        bffArguments.add("--server.port=" + bffPort);
+        bff = ManagedApp.start(RunningAuthServer.jar("bff.jar"), bffArguments,
                 List.of("AUTH_ISSUER=" + authServer.issuer(), "BFF_CLIENT_SECRET=" + authServer.clientSecret()));
         bff.await(BFF_STARTED, RunningAuthServer.STARTUP_TIMEOUT);
     }
@@ -107,6 +110,9 @@ class SignInSmokeIT {
             page.fill("#username", "demo");
             page.fill("#password", authServer.demoPassword());
             page.click("button[type=submit]");
+            // the bff client requires consent: allow the requested scopes
+            page.waitForURL(url -> url.startsWith(authServer.issuer() + "/oauth2/consent"));
+            page.click("#allow");
             page.waitForURL(url -> url.startsWith("http://" + BFF_HOST + ":" + bffPort));
 
             final var response = page.navigate("http://" + BFF_HOST + ":" + bffPort + "/bff/user");

@@ -1,0 +1,390 @@
+= Login pages and the BFF
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+This page describes the server-rendered pages of `auth-server` (login, consent, logout) and how the `bff` signs users in
+for a single page application (SPA) without ever exposing a token to the browser.
+
+== Login page
+
+The pages are Thymeleaf templates under `auth-server/api/web/src/main/resources/templates`. They share one layout
+(`fragments/layout.html`) that renders the branding header and footer, and load a stylesheet from the same origin: there
+is no inline script or style, which is what lets the content security policy be strict. The text comes from
+`messages.properties` (English; `spring.web.locale: en` and no fallback to the system locale, so the language never
+depends on the machine).
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/fragments/layout.html[tag=login-layout]
+----
+
+Each page is an operation of the contract `apis/auth-server/web-pages/auth-server-pages-v1.yaml`, like every other
+endpoint of the application: openapi-generator turns it into an interface (`LoginPageApi`, `ConsentPageApi`,
+`LogoutPageApi`) whose method answers the page as `text/html`, and the controller only implements it. No controller
+carries a mapping annotation of its own (`HexagonalArchitectureTest` fails the build otherwise), and `OpenApiDriftIT`
+compares the contract with the springdoc group `pages` (`/v3/api-docs/pages`). The login page is public; the consent
+and logout pages need the session.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=login-page-api]
+----
+
+A controller builds the model and hands the template to `PageRenderer`, which resolves the view through the
+application's view resolvers, with the locale of the request, and renders it against the current request into a
+response wrapper that captures the markup. Rendering against the real request is what keeps the templates working:
+`th:action` still adds the CSRF hidden field, `@{...}` links and `#{...}` messages resolve as before. The markup is then
+answered as the `text/html` body of the generated method.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/login/LoginController.java[tag=login-controller]
+----
+
+The login page itself contains no sign-in method. Each `LoginMethodFragment` bean contributes one, rendered below the
+heading, so adding a method never edits the page. The username and password form is the fragment of
+`PasswordLoginFragment`, in `password.html`.
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/login.html[tag=login-page]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/password.html[tag=login-form]
+----
+
+Branding is configured under `authserver.ui.branding.*` (application name, logo URL, footer text), with defaults, and
+added to the model of every page by `PageRenderer` (and of the error page by `ErrorPageViewResolver`), both through
+`BrandingProvider`. The logo is either a path served by this application or an absolute
+`http(s)` URL on another origin, which the content security policy then allows for images (see below); a
+protocol-relative URL (`//host/...`) is not recognised as another origin, so write the scheme.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/login/BrandingProperties.java[tag=login-branding]
+----
+
+=== Security headers
+
+`LoginHeadersCustomizer` adds a `Content-Security-Policy`, `X-Content-Type-Options: nosniff` and
+`Referrer-Policy: no-referrer` to the pages of the login chain. The policy is built by `LoginContentSecurityPolicy` from
+the branding: `default-src 'self'; frame-ancestors 'none'` (same-origin resources only, no framing) and, when the logo is
+an absolute `http(s)` URL, `img-src 'self' <scheme://host[:port]>` with the origin of the logo, so the logo loads while
+scripts, styles and every other resource stay same-origin.
+
+The policy has deliberately no `form-action` directive. Browsers also apply it to the redirects that follow a form
+submission, so `form-action 'self'` blocked (in Chromium) the redirect from the login or consent form back to the client
+application's `redirect_uri`, which is on another origin.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/login/LoginHeadersCustomizer.java[tag=login-headers]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/login/LoginContentSecurityPolicy.java[tag=login-csp]
+----
+
+=== Sign-in errors and user enumeration
+
+A failed sign-in shows one message. A wrong password and an unknown user share the generic "Invalid username or
+password.", so the page never tells whether an account exists. The account status messages (locked, disabled,
+expired account, expired password) could tell it, because Spring Security's default `DaoAuthenticationProvider` checks
+the status *before* the password: a wrong password for a disabled account would answer "This account is disabled.". The
+`password` feature therefore declares its own provider (`PasswordAuthenticationConfiguration`) that checks nothing
+before the password and the status after it (`AccountStatusUserDetailsChecker`): a wrong password always gets the
+generic message, and a status message only appears to someone who typed the correct password. Everything else is as
+the provider Spring Security would build: the password encoder, the hash upgrade on sign-in through
+`UserAccountUserDetailsService`, a `CompromisedPasswordChecker` when one bean of that type exists, and unknown users
+hidden behind bad credentials.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/password/PasswordAuthenticationConfiguration.java[tag=password-authentication-provider]
+----
+
+NOTE: The account model only has an `enabled` flag, so `UserDetailsMapper` only produces disabled accounts; the locked,
+expired-account and expired-password messages exist in `LoginErrorMessages` and `messages.properties` but are not
+produced yet.
+
+== Consent page
+
+The authorization endpoint is pointed at the custom consent page (`ConsentProtocolCustomizer`) instead of the generated
+one. The page lists the requested scopes with a description each, as checkboxes that are checked by default, and the
+scopes already granted. *Allow* posts the approved scopes back to `/oauth2/authorize`; *Deny* posts none, which the
+authorization endpoint answers with `error=access_denied`, and the BFF then shows a sign-in failure.
+
+Consent is a property of the registered client: `requireConsent` in the client registration and in the clients API
+(`POST` and `PUT /api/admin/clients`; default `false`). The default `bff` client requires it, `spa-public` does not.
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/consent.html[tag=consent-page]
+----
+
+`ConsentController` implements the generated `ConsentPageApi`: it looks the client up (an unknown one is a `400`,
+rendered as the error page), reads the scopes the user granted earlier and renders the page.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/consent/ConsentController.java[tag=consent-controller]
+----
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=consent-page-api]
+----
+
+== Logout
+
+[cols="2,1,3",options="header"]
+|===
+|Mechanism
+|Support
+|Notes
+
+|RP-initiated logout (`/connect/logout`)
+|Supported
+|Provided by Spring Authorization Server with OpenID Connect enabled. A client may only send the user to a
+`post_logout_redirect_uri` listed in its registered `postLogoutRedirectUris`; any other is never honoured. They are
+seeded from `authserver.clients.<client>.post-logout-redirect-uris` (`AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS`,
+`AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS`) and are part of the clients API.
+
+|Back-channel logout
+|Not implemented
+|The server sends no `logout_token` to the clients, so a client session survives a sign-out of the server until it
+expires or the user signs out of the client too.
+
+|Front-channel logout
+|Not supported
+|Spring Authorization Server does not support it.
+|===
+
+The server also has its own sign-out for users of its login pages: a confirmation page (`logout.html`) whose form posts
+to `/logout`. The POST carries the CSRF token (`th:action` adds it), so a third-party page cannot sign the user out; it
+invalidates the session, deletes the `JSESSIONID` cookie and returns to `/login?logout`.
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/logout.html[tag=logout-page]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/logout/LogoutChainCustomizer.java[tag=logout-config]
+----
+
+The confirmation page is the `GET /logout` operation of the pages contract (`LogoutController`); the `POST` belongs to
+Spring Security's logout filter and is not part of it.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=logout-page-api]
+----
+
+== Error page
+
+Errors are answered by Spring Boot's own `BasicErrorController` at `/error`, which belongs to the framework like the
+Spring Security endpoints, so it has no contract here. A browser gets `templates/error.html` through
+`ErrorPageViewResolver`, which picks a generic text from the status only (not found, forbidden, anything else) and
+adds the branding; the model the controller offers (timestamp, path, exception) is not passed on, so the page never
+shows a stack trace, an exception message or the requested path. A client that does not accept HTML gets the
+controller's JSON body: `spring.web.error.include-path: never` leaves out the path, and the message, the exception and
+the stack trace are left out by default, so only the timestamp, the status and its reason phrase remain.
+
+== Backend for frontend
+
+The `bff` (port 8080) is the only client the browser talks to. It serves the SPA (static files from its `boot` module),
+runs the authorization code flow with PKCE as a confidential client, keeps the user's tokens in its server-side session
+and attaches the access token to the calls the SPA makes to the resource server. The browser holds nothing but a session
+cookie: the end-to-end test scans storage, cookies and response bodies to prove that no token is visible.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/security/SecurityConfig.java[tag=bff-security]
+----
+
+Requests under `/bff/**` and `/api/**` that are not authenticated get a `401` instead of a redirect, so the SPA can
+decide what to do. A failed or denied sign-in redirects to `/?error=signin`; a successful one goes back to the
+`returnTo` of the login (see below). The BFF chain sets the same content security policy as the login pages (without the
+logo's image source: the SPA has no logo).
+
+=== Session and cookie
+
+The HTTP session is stored in PostgreSQL by Spring Session JDBC, in the `bff` database. The schema is owned by Flyway
+(`V300__spring_session.sql`; Spring Session never creates it). The session holds the authorized client, that is, the
+access and refresh tokens (`HttpSessionOAuth2AuthorizedClientRepository`), so the sessions survive a restart and the
+tokens never leave the server.
+
+Session persistence is a driven adapter: the module `bff/infrastructure/session` holds the migration, the session
+configuration and the JDBC, Flyway and PostgreSQL dependencies (the enforcer rules ban `spring-jdbc` from `api/web`).
+Spring Boot auto-configures Spring Session JDBC from `spring-boot-starter-session-jdbc`, so every `spring.session.*`
+property applies (`spring.session.jdbc.initialize-schema: never`, `spring.session.timeout`, ...). The configuration
+deliberately has no `@EnableJdbcHttpSession`, which would switch that auto-configuration off and silently ignore those
+properties.
+
+[source,sql]
+----
+include::example$bff/infrastructure/session/src/main/resources/db/migration/V300__spring_session.sql[tag=bff-session-schema]
+----
+
+The cookie is `__Host-SESSION`: `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` and no `Domain`, which is exactly what the
+`__Host-` prefix makes browsers require. Chromium accepts `Secure` cookies on `http://localhost`, so local development
+works over plain HTTP through `localhost`.
+
+[source,java]
+----
+include::example$bff/infrastructure/session/src/main/java/com/irurueta/authserver/bff/infrastructure/session/SessionConfiguration.java[tag=bff-session]
+----
+
+In the `dev` profile the datasource comes from the root `compose.yaml`, whose connection details always name the
+`authserver` database; `BffDevDatabase` (`dev` profile only, in the same module) points them at the `bff` database the
+init script creates.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/security/SecurityConfig.java[tag=bff-authorized-client]
+----
+
+=== CSRF
+
+`CookieCsrfTokenRepository.withHttpOnlyFalse()` stores the token in the `XSRF-TOKEN` cookie, readable by scripts, and a
+plain `CsrfTokenRequestAttributeHandler` accepts the raw token from the `X-XSRF-TOKEN` request header or from the
+`_csrf` form parameter. Spring Security loads the token lazily, so `CsrfCookieFilter` reads it on every request to make
+sure the cookie is always written. A script copies the cookie into the header of a state-changing `fetch`; the sign-out
+form, which cannot send a header, copies it into `_csrf`.
+
+`csrf.spa()` is not used: it resolves a form parameter with the XOR handler, which expects a BREACH-masked token and
+would reject the raw cookie value the sign-out form posts. That masking protects a token rendered inside a compressed
+response body, where a BREACH attack can recover it byte by byte. The BFF never renders the token in a body, only in the
+cookie, so the plain handler loses nothing.
+
+[source,javascript]
+----
+include::example$bff/boot/src/main/resources/static/assets/app.js[tag=bff-spa-js]
+----
+
+=== Login and logout API
+
+`GET /bff/login?returnTo=` starts the sign-in. `returnTo` is only accepted when it is an allow-listed relative path
+(`bff.login.allowed-return-paths`, an entry ending in `/` also allows what is below it), otherwise the answer is `400`;
+this prevents an open redirect. The accepted target is kept in a session attribute owned by the BFF, and the browser is
+redirected to the authorization request. Once the OAuth2 login succeeds, `ReturnToAuthenticationSuccessHandler` reads
+and removes that attribute, validates it again and redirects there, or to `/` when it is absent or not allowed. A
+request saved by Spring Security for any other reason is never used as a target.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/login/BffLoginController.java[tag=bff-login]
+----
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/login/ReturnToAuthenticationSuccessHandler.java[tag=bff-login-success]
+----
+
+`POST /bff/logout` (CSRF protected) is answered by Spring Security's logout filter, configured in the BFF chain. Its
+handlers clear the `XSRF-TOKEN` cookie and the security context and invalidate the session (which deletes it from the
+`spring_session` table); then `OidcClientInitiatedLogoutSuccessHandler` answers `302` to the authorization server's
+`end_session_endpoint`, with `id_token_hint` and `post_logout_redirect_uri`: this is the RP-initiated logout of the table
+above. The SPA signs out with a top-level form submission, so the browser itself follows that redirect: the ID token in
+the URL is part of a navigation, never of a response a script can read. The authorization server ends its own session
+and sends the browser back to the root of the SPA, which shows its signed-out state.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/security/SecurityConfig.java[tag=bff-logout]
+----
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/logout/LogoutConfiguration.java[tag=bff-logout-handler]
+----
+
+The login, the user endpoint and the documents API are defined by the contract `apis/bff/rest-server/bff-api-v1.yaml`.
+The logout is not: like the OAuth 2.0 login endpoints, it is answered by Spring Security itself.
+
+[source,yaml]
+----
+include::example$apis/bff/rest-server/bff-api-v1.yaml[tag=bff-login-api]
+----
+
+=== Documents API
+
+The SPA reads and deletes the user's documents through the BFF: `GET /api/documents` and
+`+DELETE /api/documents/{id}+` are operations of the BFF's own contract, with the same schema and status codes as the
+resource server's, plus `401` (no session, or no valid token) and `502` (the resource server is unreachable or
+failed). There is no pass-through relay: OpenAPI has no wildcard paths, and every operation the browser can call is
+described, generated and checked by `OpenApiDriftIT` like any other.
+
+[source,yaml]
+----
+include::example$apis/bff/rest-server/bff-api-v1.yaml[tag=bff-documents-api]
+----
+
+The BFF is hexagonal like the other applications. `DocumentsController` implements the generated `DocumentsApi` and
+calls the use cases (`ListDocumentsUseCase`, `DeleteDocumentUseCase` in `bff/application`), mapping the domain
+`Document` onto the generated DTO (`DocumentDtoMapper`); a scoped `@RestControllerAdvice` answers the domain
+exceptions as problem details.
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/documents/DocumentsController.java[tag=bff-documents-controller]
+----
+
+The use cases only see the domain port `DocumentGateway` (`bff/domain`). Its implementation, `RestDocumentGateway` in
+the driven adapter `bff/infrastructure/resourceserver`, calls the resource server through a client generated from the
+resource server's own contract (`apis/resource-server/rest-server/resource-server-api-v1.yaml`, `java` generator with
+the `restclient` library) and translates every failure into a domain exception: a token that cannot be obtained or
+renewed, or a `401` of the resource server, is unauthorized (`401`, so the SPA signs in again); a `403` is forbidden; a
+`404` is not found; an unreachable resource server or any other answer is unavailable (`502`). No HTTP or OAuth2 type
+crosses the port, and nothing the resource server answers (headers, cookies, challenges, error bodies) reaches the
+browser: the BFF builds its own responses.
+
+[source,java]
+----
+include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/RestDocumentGateway.java[tag=bff-documents-gateway]
+----
+
+The generated client runs on a `RestClient` built from Spring Boot's `RestClient.Builder` with Spring Security's
+`OAuth2ClientHttpRequestInterceptor`: it asks the authorized client manager (declared by the BFF's security
+configuration) for the access token of the user of the session, renewing it with the refresh token when it expired,
+and sends it as bearer token; the browser never sends or sees it. The interceptor lets a call through unauthenticated
+when the session has no authorized client, so a second interceptor stops that call: the BFF never sends a request
+without a token. The base URI is `bff.resource-server.base-uri` (`RESOURCE_SERVER_URI`).
+
+[source,java]
+----
+include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/ResourceServerClientConfiguration.java[tag=bff-relay]
+----
+
+[source,java]
+----
+include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/ResourceServerClientConfiguration.java[tag=bff-documents-client]
+----
+
+=== The single page application
+
+The SPA is `index.html` plus `assets/app.js`, served by the BFF itself so that everything is same-origin, which the
+content security policy requires (no inline script). It asks `GET /bff/user` for the session and shows either the
+profile or, on a `401`, a signed-out state with a *Sign in* button that goes to `/bff/login?returnTo=...`. It never
+starts the sign-in by itself when the page loads: the authorization server sends the browser back to the SPA after a
+sign-out, and an automatic redirect would sign the user straight back in. A `401` from `/api/documents` during a
+signed-in session (the session ended, or its token could not be renewed) does start the sign-in again. The SPA signs
+out by building a `<form method="post" action="/bff/logout">` with a hidden `_csrf` input set from the `XSRF-TOKEN`
+cookie and submitting it.
+
+The end-to-end test `BffEndToEndIT` clicks *Sign in*, signs in through the login and consent pages, signs out, checks
+that the browser lands back on the signed-out SPA and that `/bff/user` and `/api/documents` answer `401`, and scans
+every response of the whole flow, the storages and the cookies for tokens. Bodies, storages and cookies must be strictly
+token-free; the only exclusions from the header and URL scan are the `Location` of the `302` answering
+`POST /bff/logout` and the URL of the `/connect/logout` request, which carry `id_token_hint` by OpenID Connect design in
+a top-level navigation no script can read.
+
+[source,html]
+----
+include::example$bff/boot/src/main/resources/static/index.html[tag=bff-spa]
+----

@@ -167,7 +167,7 @@ final class AuthServerFixtures {
         final var credential = randomValue();
         clientRegistrations.save(new ClientRegistration(clientId, "Test client", true,
                 List.of("client_secret_basic"), grantTypes, List.of(REDIRECT_URI), scopes, true, audiences,
-                TOKEN_TTL, REFRESH_TTL, accessTokenFormat, false),
+                TOKEN_TTL, REFRESH_TTL, accessTokenFormat, false, List.of(), false),
                 passwordEncoder.encode(credential));
         return new TestClient(clientId, credential);
     }
@@ -179,8 +179,26 @@ final class AuthServerFixtures {
      * @return the client and its generated credential.
      */
     TestClient createCodeClient() {
-        return createClient(List.of("authorization_code", "refresh_token"),
-                List.of("openid", "profile", "email"), List.of(RESOURCE_SERVER_AUDIENCE, API_AUDIENCE));
+        return createCodeClient(List.of());
+    }
+
+    /**
+     * Creates a client for the authorization code flow that may send the user to the given URIs after an OpenID
+     * Connect RP-initiated logout.
+     *
+     * @param postLogoutRedirectUris the registered post-logout redirect URIs.
+     * @return the client and its generated credential.
+     */
+    TestClient createCodeClient(final List<String> postLogoutRedirectUris) {
+        final var clientId = "client-" + UUID.randomUUID();
+        final var credential = randomValue();
+        clientRegistrations.save(new ClientRegistration(clientId, "Test client", true,
+                List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
+                List.of(REDIRECT_URI), List.of("openid", "profile", "email"), true,
+                List.of(RESOURCE_SERVER_AUDIENCE, API_AUDIENCE), TOKEN_TTL, REFRESH_TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, postLogoutRedirectUris, false),
+                passwordEncoder.encode(credential));
+        return new TestClient(clientId, credential);
     }
 
     /**
@@ -219,6 +237,20 @@ final class AuthServerFixtures {
      * @throws Exception if a request cannot be performed.
      */
     JsonNode authorizationCodeTokens(final TestUser user, final TestClient client) throws Exception {
+        return authorizationCodeTokens(user, client, new MockHttpSession());
+    }
+
+    /**
+     * Runs the whole authorization code flow with PKCE in the given browser session, which stays signed in.
+     *
+     * @param user    user that signs in.
+     * @param client  client that requests the tokens.
+     * @param session browser session that holds the sign-in.
+     * @return the token endpoint answer.
+     * @throws Exception if a request cannot be performed.
+     */
+    JsonNode authorizationCodeTokens(final TestUser user, final TestClient client, final MockHttpSession session)
+            throws Exception {
         final var verifier = randomValue() + randomValue();
         final var authorizeUri = UriComponentsBuilder.fromPath("/oauth2/authorize")
                 .queryParam("response_type", "code")
@@ -230,7 +262,6 @@ final class AuthServerFixtures {
                 .queryParam("code_challenge_method", "S256")
                 .build().toUriString();
 
-        final var session = new MockHttpSession();
         mockMvc.perform(get(authorizeUri).session(session)).andExpect(status().is3xxRedirection());
         mockMvc.perform(post("/login").session(session).with(csrf())
                         .param("username", user.username()).param("password", user.credential()))
@@ -258,7 +289,7 @@ final class AuthServerFixtures {
      * @return the code challenge.
      * @throws NoSuchAlgorithmException if SHA-256 is not available.
      */
-    private static String s256(final String verifier) throws NoSuchAlgorithmException {
+    static String s256(final String verifier) throws NoSuchAlgorithmException {
         final var digest = MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII));
         return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
     }

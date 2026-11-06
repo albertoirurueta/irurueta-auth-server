@@ -243,6 +243,6 @@ class JdbcClientRegistrationRepositoryTest {
     private static ClientRegistration registration() {
         return new ClientRegistration(CLIENT_ID, "Backend for Frontend", true, List.of("client_secret_basic"),
                 List.of("client_credentials"), List.of(), List.of("openid"), true, List.of(), ACCESS_TTL,
-                REFRESH_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                REFRESH_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
     }
 }

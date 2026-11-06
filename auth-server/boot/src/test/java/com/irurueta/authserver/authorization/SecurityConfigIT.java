@@ -32,13 +32,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.SecurityConfig;
+import com.irurueta.authserver.authorization.api.web.login.BrandingProvider;
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
+import com.irurueta.authserver.authorization.api.web.login.LoginContentSecurityPolicy;
 import com.irurueta.authserver.authorization.api.web.login.LoginController;
+import com.irurueta.authserver.authorization.api.web.login.LoginErrorMessages;
+import com.irurueta.authserver.authorization.api.web.login.LoginHeadersCustomizer;
+import com.irurueta.authserver.authorization.api.web.login.LoginStaticResourcesCustomizer;
 import com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -74,7 +79,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * by Mockito mocks. It is an integration test because it starts a Spring context.
  */
 @WebMvcTest(controllers = LoginController.class)
-@Import({SecurityConfig.class, SecurityConfigIT.TestBeans.class})
+@Import({SecurityConfig.class, PageRenderer.class, BrandingProvider.class, LoginHeadersCustomizer.class,
+        LoginContentSecurityPolicy.class, LoginStaticResourcesCustomizer.class, LoginErrorMessages.class,
+        SecurityConfigIT.TestBeans.class})
 class SecurityConfigIT {
 
     /** Username of the in-memory test user. */
@@ -147,18 +154,40 @@ class SecurityConfigIT {
     }
 
     /**
-     * Verifies that the login page renders the form and the fragment of the authentication methods.
+     * Verifies that the login page renders the fragments the authentication methods contribute.
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
-    void login_whenRequested_rendersFormAndFragment() throws Exception {
+    void login_whenRequested_rendersTheContributedFragment() throws Exception {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("login"))
-                .andExpect(content().string(containsString("name=\"username\"")))
                 .andExpect(content().string(containsString("first-method")))
                 .andExpect(content().string(not(containsString("second-method"))));
+    }
+
+    /**
+     * Verifies that the login page carries the security headers of the server-rendered pages.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void login_whenRequested_carriesSecurityHeaders() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(header().string("Content-Security-Policy", LoginContentSecurityPolicy.DEFAULT_POLICY))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"));
+    }
+
+    /**
+     * Verifies that the shared stylesheet is reachable without signing in.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void stylesheet_whenRequestedAnonymously_isServed() throws Exception {
+        mockMvc.perform(get(LoginStaticResourcesCustomizer.STYLESHEET_PATH))
+                .andExpect(status().isOk());
     }
 
     /**

@@ -29,5 +29,7 @@ authserver:
   clients:
     bff:
       redirect-uris: http://localhost:8080/login/oauth2/code/bff
+      post-logout-redirect-uris: http://localhost:8080/
     spa-public:
       redirect-uris: http://localhost:3000/callback
+      post-logout-redirect-uris: http://localhost:3000/
