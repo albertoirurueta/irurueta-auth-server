@@ -84,7 +84,9 @@ A feature (an authentication method or capability) spans the layers with **the s
 can be developed in parallel without editing shared files: `…domain.<feature>`, `…application.<feature>`,
 `…infrastructure.persistence.<feature>`, `…api.web.<feature>`. Feature names: `password`, `keys`, `tokens`,
 `clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `social`, `x509`, `implicit`, `account`, `admin`. Each
-placeholder package holds a `package-info.java` saying which issue fills it.
+placeholder package holds a `package-info.java` saying which issue fills it. `mfa` (factor model, policy, lockout,
+trusted devices, security events, step-up) and `totp` (authenticator-app second factor and recovery codes) are filled
+in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are still placeholders.
 
 ### Extension points: adding a login method without editing shared files
 
@@ -107,6 +109,58 @@ placeholder package holds a `package-info.java` saying which issue fills it.
   `ReferenceTokenClaimsCustomizer` (the one `OAuth2TokenCustomizer<OAuth2TokenClaimsContext>`) to the reference tokens,
   so a feature (for example `mfa` adding `amr`) contributes claims without owning a customizer. A contributor checks
   `context.getTokenType()` when a claim belongs to one kind of token only.
+- **Authentication factors (`mfa`, #4)**: a login method is also an *authentication factor*, and the MFA framework
+  decides, from the factors a session has proved, whether the user may continue. Nothing here is edited by a new
+  method; it only registers itself.
+  - `domain.mfa.AuthenticationFactor` is a record (`id`, `amrValue`, `authority`, `strength`); `FactorStrength` is
+    `PRIMARY`, `PRIMARY_STRONG` (proves identity alone, for example a passkey) or `SECOND` (only counts on top of a
+    primary). The `authority` is the `FACTOR_*` authority that Spring Security 7 `FactorGrantedAuthority` carries for
+    the factor (`FACTOR_PASSWORD` is `FactorGrantedAuthority.PASSWORD_AUTHORITY`; `FACTOR_TOTP` is custom) and
+    `amrValue` is its RFC 8176 `amr` value (`pwd`, `otp`).
+  - Every `AuthenticationFactor` bean is collected by `api.web.mfa.AuthenticationFactorRegistry` (built in
+    `mfa.MfaConfiguration`, which also holds `@EnableMultiFactorAuthentication(authorities = {})`); two factors with the
+    same authority fail at startup. `PasswordFactor` (`PRIMARY`) and `totp.TotpFactor` (`SECOND`) are the existing
+    declarations. The registry answers `findByAuthority`, `withStrength` and `factorsOf(Authentication)`.
+  - **Policy**: `domain.mfa.MfaPolicy` is pure and a bean (`application.mfa.MfaConfiguration`).
+    `isRequired(clientRequires, userRequires)` is true when the client has `settings.client.mfa.required` (admin API
+    `mfaRequired`) or the account has `users.mfa_required`; `isSatisfied(factors)` is true for one `PRIMARY_STRONG`
+    factor or a `PRIMARY` plus a `SECOND`. `api.web.mfa.MfaAuthorizationManager` applies it and, when not satisfied,
+    names the registered `SECOND` factors as missing.
+  - **Enforcement, already wired**: `MfaLoginChainCustomizer` (a `LoginChainCustomizer`, `@Order(0)`) guards
+    `/oauth2/consent` and sends a missing `SECOND` authority to `/login/second-factor` through
+    `SecondFactorRequiredEntryPoint` (the saved `/oauth2/authorize` request is resumed afterwards);
+    `MfaProtocolChainCustomizer` (a `ProtocolChainCustomizer`, `@Order(0)`) does the same inside the authorization
+    endpoint validator. A new factor does not touch either.
+  - **Step-up**: `StepUpProtocolChainCustomizer` (`ProtocolChainCustomizer`, `@Order(1)`) installs
+    `StepUpAuthorizationRequestConverter` first among the `/oauth2/authorize` converters. It reads `acr_values`
+    (`AuthenticationContextClass` `pwd` / `mfa` URNs; the `mfa` class satisfies a `pwd` request; unknown values are
+    ignored) and `max_age` (seconds since the last factor was presented) and either lets the request go on, throws
+    `SecondFactorRequiredException` (send to the second-factor page) or `ReauthenticationRequiredException` (sign in
+    again). `MfaClaimsContributor` (a `JwtClaimsContributor`, `@Order(100)`) writes `amr` (factor `amrValue`s in
+    issue order plus `mfa` when two or more distinct factors), `acr` and, on access tokens, `auth_time`; it only counts
+    factors known to the registry.
+  - `api.web.mfa.SecondFactorFragment`: every bean of this type contributes a Thymeleaf fragment
+    (`templateName()`, `fragmentName()`, `order()`, `reference()`) that `SecondFactorController` passes to
+    `templates/second-factor.html` (`GET /login/second-factor`, declared in the pages contract), the same shape as
+    `LoginMethodFragment`. `TotpSecondFactorFragment` (`templates/totp.html`) is the existing one.
+  - Shared helpers: `FactorGrantor.grant(authentication, authority)` adds a `FactorGrantedAuthority` (stamped with the
+    clock) to an authentication; `SecondFactorUserResolver` resolves the account of the signed-in user; the use cases
+    `CheckSecondFactorLockoutUseCase`, `RegisterSecondFactorFailureUseCase` (locks after
+    `authserver.mfa.max-failed-attempts`), `ResetSecondFactorFailuresUseCase` and `RecordSecurityEventUseCase`
+    give every factor the same lockout and audit trail (`SecurityEventAuthenticationEventPublisher` also records the
+    framework's authentication events). `TrustedDeviceFilter` (`__Host-TRUSTED-DEVICE` cookie, persisted as a SHA-256
+    hash in `trusted_devices`) grants the configured second-factor authority (today `FACTOR_TOTP`) to a remembered browser.
+  - **How a later factor (for example `passkeys`, `ott`, `social` or `x509`) registers**, with no shared file edited:
+    1. an `AuthenticationFactor` bean (a `@Configuration` with a `@Bean` like `TotpFactor`) with its `FACTOR_*`
+       authority, `amr` value and strength;
+    2. a `LoginChainCustomizer` bean (`@Order` above the existing ones) that permits its own endpoints and adds its
+       filter before `AuthorizationFilter` (see `TotpChainCustomizer`, wired by `TotpConfiguration`);
+    3. for a `SECOND` factor, a `SecondFactorFragment` bean and its `templates/<method>.html` fragment; a primary
+       factor adds a `LoginMethodFragment` instead;
+    4. an `AuthenticationProvider` that verifies the credential (through use cases, using the lockout and event use
+       cases above) and returns the authentication with the factor added through `FactorGrantor` (see
+       `TotpAuthenticationProvider`, driven by a `ProviderManager` inside its own filter);
+    5. its migration in its own Flyway range. Claims, step-up and the policy then pick the factor up by authority.
 - `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
   own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
   and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
@@ -123,7 +177,9 @@ bean and a `LoginMethodFragment` bean), plus its own Flyway migration in its ran
 
 Migrations live in `auth-server/infrastructure/persistence/src/main/resources/db/migration`
 (`classpath:db/migration`). The skeleton (#1) uses `V100`–`V199` (`V100` Spring Authorization Server schema, `V101`
-users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens. Each issue states its own
+users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens, `V240` authorization creation time,
+`V400` MFA security events, per-user MFA flag and second-factor attempts, `V410` TOTP credentials and recovery codes, `V420`
+trusted devices. Each issue states its own
 range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
 history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 

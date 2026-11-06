@@ -71,6 +71,35 @@ The converter maps the `scope` claim to `SCOPE_*` authorities and the `roles` cl
 include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-converter]
 ----
 
+== Step-up authentication (RFC 9470)
+
+Deleting a document needs a recent multi-factor sign-in. `StepUpAuthorizationManager` checks that the token's `acr`
+claim is the configured value and that `auth_time` is no older than `max-age`; otherwise `StepUpAccessDeniedHandler`
+answers `401` with `WWW-Authenticate: Bearer error="insufficient_user_authentication"` and the `acr_values` and
+`max_age` the client must request (see xref:mfa-and-step-up.adoc[]). The policy is bound from
+`resourceserver.step-up.*`: `enabled` (default `true`), `acr-values` (default `urn:irurueta:acr:mfa`) and `max-age`
+(default `PT5M`).
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/StepUpProperties.java[tag=resource-server-step-up-properties]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/StepUpAuthorizationManager.java[tag=resource-server-step-up]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/StepUpAccessDeniedHandler.java[tag=resource-server-step-up-handler]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-step-up-beans]
+----
+
 == Opaque token profile
 
 With the Spring profile `opaque`, the resource server introspects tokens instead. The introspection URI and client

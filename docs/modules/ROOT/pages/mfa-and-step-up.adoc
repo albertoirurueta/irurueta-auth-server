@@ -1,0 +1,155 @@
+= Multi-factor authentication and step-up
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The password is the first factor. A second factor (a TOTP code or a recovery code) is asked when a request needs it,
+and the tokens that come out of that sign-in say so, so a resource server can demand a recent multi-factor sign-in
+for sensitive operations (RFC 9470).
+
+== Second-factor page
+
+A user who signed in with a password and whose request needs a second factor is sent to `GET /login/second-factor`.
+The page is defined by the contract `apis/auth-server/web-pages/auth-server-pages-v1.yaml`;
+`SecondFactorController` implements the generated interface and renders `second-factor.html`, which shows the form of
+every `SecondFactorFragment` bean (see `LoginMethodFragment` in xref:login-and-bff.adoc[]). A factor is added by
+declaring its own fragment and filter, never by editing the page.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=mfa-second-factor-page-api]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/mfa/SecondFactorController.java[tag=mfa-second-factor-page]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/second-factor.html[tag=mfa-second-factor-page-template]
+----
+
+Failed attempts are recorded through `SecondFactorAttemptRepository`; after `authserver.mfa.max-failed-attempts`
+consecutive failures the second factor is locked for `authserver.mfa.lockout`.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/mfa/JdbcSecondFactorAttemptRepository.java[tag=mfa-record-failure]
+----
+
+== TOTP and recovery codes
+
+The code is verified by `TotpAuthenticationFilter` (`POST /login/second-factor/totp`) through
+`TotpAuthenticationProvider`; a recovery code is accepted in the same form and is consumed when used.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/totp/TotpAuthenticationFilter.java[tag=totp-filter]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/totp/TotpAuthenticationProvider.java[tag=totp-filter]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/totp.html[tag=totp-form]
+----
+
+=== Enrollment and account API
+
+The user enrolls an authenticator and manages the recovery codes and trusted devices through the account API, defined
+in `apis/auth-server/rest-server/auth-server-api-v1.yaml`.
+
+[cols="2,3",options="header"]
+|===
+|Endpoint
+|Behavior
+
+|`POST /api/account/totp`
+|Starts the enrollment: returns the secret, the `otpauth://` URI and a QR code.
+
+|`POST /api/account/totp/confirm`
+|Confirms the enrollment with a first code and returns the recovery codes (shown once).
+
+|`DELETE /api/account/totp`
+|Disables TOTP.
+
+|`POST /api/account/recovery-codes`
+|Generates a new set of recovery codes, invalidating the previous ones.
+
+|`GET /api/account/trusted-devices`
+|Lists the devices that skip the second factor.
+
+|`DELETE /api/account/trusted-devices/\{id}`
+|Revokes a trusted device.
+|===
+
+[source,yaml]
+----
+include::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=totp-api-contract]
+----
+
+[source,yaml]
+----
+include::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=totp-schemas]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/totp/TotpController.java[tag=totp-enrollment]
+----
+
+== Trusted devices and configuration
+
+After a successful second factor the user may trust the device: a cookie lets later sign-ins skip the second factor
+until `authserver.mfa.trusted-device-validity` elapses or the device is revoked.
+
+[cols="2,1,3",options="header"]
+|===
+|Property (`authserver.mfa.*`)
+|Default
+|Meaning
+
+|`max-failed-attempts`
+|5
+|Consecutive failed attempts that lock the second factor.
+
+|`lockout`
+|15 minutes
+|How long the second factor stays locked.
+
+|`trusted-device-validity`
+|30 days
+|How long a trusted device skips the second factor.
+
+|`totp-issuer`
+|`Irurueta Auth Server`
+|Issuer shown by the authenticator app.
+|===
+
+== Database
+
+Migrations `V400`-`V499` (issue #4); see xref:data-model.adoc[].
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V400__mfa_security_events.sql[tag=mfa-schema-events]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V410__totp_recovery_codes.sql[tag=totp-schema]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V420__trusted_devices.sql[tag=mfa-schema-trusted-devices]
+----
+
+== Step-up
+
+A client asks for a recent multi-factor sign-in with the `acr_values` and `max_age` authorization request parameters.
+The tokens then carry `amr`, `acr` (`urn:irurueta:acr:mfa`) and `auth_time` (`MfaClaimsContributor`), and the
+resource server enforces the policy; see xref:resource-server.adoc[].

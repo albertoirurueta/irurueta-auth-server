@@ -51,7 +51,7 @@ public class ClientDtoMapper {
                 Boolean.TRUE.equals(request.requireProofKey()), audiences, request.accessTokenTtl(),
                 request.refreshTokenTtl(), format, Boolean.TRUE.equals(request.reuseRefreshTokens()),
                 request.postLogoutRedirectUris() == null ? List.of() : request.postLogoutRedirectUris(),
-                Boolean.TRUE.equals(request.requireConsent()));
+                Boolean.TRUE.equals(request.requireConsent()), Boolean.TRUE.equals(request.mfaRequired()));
     }
 
     /**
@@ -66,7 +66,7 @@ public class ClientDtoMapper {
                 registration.scopes(), registration.requireProofKey(), registration.audiences(),
                 registration.accessTokenTtl(), registration.refreshTokenTtl(), registration.accessTokenFormat(),
                 registration.reuseRefreshTokens(), registration.postLogoutRedirectUris(),
-                registration.requireConsent());
+                registration.requireConsent(), registration.mfaRequired());
     }
 
     /**

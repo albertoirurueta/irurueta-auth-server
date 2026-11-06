@@ -39,6 +39,12 @@ public class RegisteredClientMapper {
     /** Name of the custom client setting that holds the audiences of the access tokens issued to the client. */
     public static final String AUDIENCES_SETTING = "settings.client.audiences";
 
+    /**
+     * Name of the custom client setting that makes every user of the client complete a second factor; it is the
+     * setting the {@code api.web.mfa} package reads.
+     */
+    public static final String MFA_REQUIRED_SETTING = "settings.client.mfa.required";
+
     /** Authentication method that marks a public client. */
     private static final String AUTH_METHOD_NONE = ClientAuthenticationMethod.NONE.getValue();
 
@@ -69,6 +75,7 @@ public class RegisteredClientMapper {
                         .requireProofKey(registration.requireProofKey())
                         .requireAuthorizationConsent(registration.requireConsent())
                         .setting(AUDIENCES_SETTING, new ArrayList<>(registration.audiences()))
+                        .setting(MFA_REQUIRED_SETTING, registration.mfaRequired())
                         .build())
                 // tag::tokens-settings[]
                 .tokenSettings(TokenSettings.builder()
@@ -102,7 +109,7 @@ public class RegisteredClientMapper {
                 tokenSettings.getRefreshTokenTimeToLive(), tokenSettings.getAccessTokenFormat().getValue(),
                 tokenSettings.isReuseRefreshTokens(),
                 client.getPostLogoutRedirectUris().stream().sorted().toList(),
-                settings.isRequireAuthorizationConsent());
+                settings.isRequireAuthorizationConsent(), mfaRequiredOf(settings));
     }
 
     /**
@@ -117,5 +124,15 @@ public class RegisteredClientMapper {
             return audiences.stream().map(String::valueOf).toList();
         }
         return List.of();
+    }
+
+    /**
+     * Reads the second-factor custom setting.
+     *
+     * @param settings client settings.
+     * @return {@code true} only when the setting is present and true.
+     */
+    public boolean mfaRequiredOf(final ClientSettings settings) {
+        return Boolean.TRUE.equals(settings.getSetting(MFA_REQUIRED_SETTING));
     }
 }

@@ -62,8 +62,8 @@ paths:
       operationId: deleteDocument
       summary: Deletes a document
       description: >-
-        Deletes one of the caller's documents; an administrator may delete any. Needs scope documents.delete.
-        Someone else's document is answered 404, like a missing one.
+        Deletes one of the caller's documents; an administrator may delete any. Needs scope documents.delete and a
+        recent strong authentication (RFC 9470). Someone else's document is answered 404, like a missing one.
       security:
         - bearer: [ documents.delete ]
       parameters:
@@ -77,7 +77,19 @@ paths:
         '204':
           description: The document was deleted.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: >-
+            Missing or invalid bearer token, or (RFC 9470) a valid token that does not prove a recent enough strong
+            authentication: its acr claim is not the required one or its auth_time is older than the maximum age.
+            The client must send the user through the authorization server again, asking for the acr_values and
+            max_age of the challenge.
+          headers:
+            WWW-Authenticate:
+              description: >-
+                RFC 6750 bearer challenge. When step-up authentication is required it is
+                Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa", max_age="300"
+                (the values configured under resourceserver.step-up.*).
+              schema:
+                type: string
         '403':
           description: The token lacks the documents.delete scope.
           headers:

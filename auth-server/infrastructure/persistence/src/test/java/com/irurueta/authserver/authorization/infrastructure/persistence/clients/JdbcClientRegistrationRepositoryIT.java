@@ -97,7 +97,7 @@ class JdbcClientRegistrationRepositoryIT {
         final var updated = new ClientRegistration(CLIENT_ID, "Renamed", true, List.of("client_secret_basic"),
                 List.of("authorization_code"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid"), true, List.of("other"), Duration.ofMinutes(5), Duration.ofHours(1),
-                ClientRegistration.FORMAT_REFERENCE, true, List.of(), true);
+                ClientRegistration.FORMAT_REFERENCE, true, List.of(), true, false);
 
         repository.save(updated, null);
 
@@ -210,6 +210,7 @@ class JdbcClientRegistrationRepositoryIT {
         return new ClientRegistration(clientId, "Backend for Frontend", true, List.of("client_secret_basic"),
                 List.of("authorization_code", "refresh_token"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid", "profile"), true, List.of("resource-server"), Duration.ofMinutes(ACCESS_MINUTES),
-                Duration.ofHours(REFRESH_HOURS), ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
+                Duration.ofHours(REFRESH_HOURS), ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false,
+                false);
     }
 }

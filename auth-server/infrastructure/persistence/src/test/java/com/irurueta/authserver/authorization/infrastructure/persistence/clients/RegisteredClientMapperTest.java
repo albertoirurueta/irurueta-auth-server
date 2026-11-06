@@ -107,7 +107,7 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration("spa", "Single-page application", false, List.of("none"),
                 List.of("authorization_code"), List.of("http://localhost:3000/callback"), List.of("openid"), true,
                 List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL, ClientRegistration.FORMAT_REFERENCE, true,
-                List.of(), false);
+                List.of(), false, false);
 
         final var found = mapper.toRegistration(mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, null));
 
@@ -198,7 +198,7 @@ class RegisteredClientMapperTest {
         return new ClientRegistration(CLIENT_ID, "Backend for Frontend", true, List.of("client_secret_basic"),
                 List.of("authorization_code", "refresh_token"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid", "profile"), true, List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false);
     }
 
     /**
@@ -210,7 +210,7 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
                 base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
                 base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
-                base.reuseRefreshTokens(), List.of("http://localhost:8080/b", "http://localhost:8080/a"), false);
+                base.reuseRefreshTokens(), List.of("http://localhost:8080/b", "http://localhost:8080/a"), false, false);
 
         final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
 
@@ -228,7 +228,7 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
                 base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
                 base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
-                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), true);
+                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), true, false);
 
         final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
 
@@ -236,5 +236,32 @@ class RegisteredClientMapperTest {
         assertTrue(mapper.toRegistration(client).requireConsent());
         assertFalse(mapper.toRegistration(
                 mapper.toRegisteredClient(base, ROW_ID, ISSUED_AT, encoded())).requireConsent());
+    }
+
+    /**
+     * Verifies that the second-factor requirement is mapped both ways, off by default.
+     */
+    @Test
+    void toRegisteredClient_whenMfaIsRequired_mapsItBothWays() {
+        final var base = confidential();
+        final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
+                base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
+                base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
+                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), false, true);
+
+        final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
+
+        assertEquals(Boolean.TRUE, client.getClientSettings().getSetting(RegisteredClientMapper.MFA_REQUIRED_SETTING));
+        assertTrue(mapper.toRegistration(client).mfaRequired());
+        assertFalse(mapper.toRegistration(
+                mapper.toRegisteredClient(base, ROW_ID, ISSUED_AT, encoded())).mfaRequired());
+    }
+
+    /**
+     * Verifies that a client without the setting does not require a second factor.
+     */
+    @Test
+    void mfaRequiredOf_whenSettingIsAbsent_returnsFalse() {
+        assertFalse(mapper.mfaRequiredOf(ClientSettings.builder().build()));
     }
 }

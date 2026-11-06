@@ -17,7 +17,8 @@
 # openapi-generator, and OpenApiDriftIT fails when the pages the running application serves (the springdoc group
 # "pages", /v3/api-docs/pages) differ from it. Every page answers text/html rendered from a Thymeleaf template.
 # The endpoints Spring Security and Spring Authorization Server answer themselves are not part of it: the login form
-# post (POST /login), the sign-out (POST /logout), the consent decision (POST /oauth2/authorize) and every other
+# post (POST /login), the second-factor post (POST /login/second-factor/totp), the sign-out (POST /logout), the
+# consent decision (POST /oauth2/authorize) and every other
 # OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error controller (/error).
 openapi: 3.1.0
 info:
@@ -35,6 +36,8 @@ servers:
 tags:
   - name: Login page
     description: The sign-in page, which hosts the sign-in methods
+  - name: Second factor page
+    description: The page where a user who has signed in with a password presents a second factor
   - name: Consent page
     description: The page where the user approves the scopes a client asks for
   - name: Logout page
@@ -77,6 +80,35 @@ paths:
               schema:
                 type: string
   # end::login-page-api[]
+  # tag::mfa-second-factor-page-api[]
+  /login/second-factor:
+    get:
+      tags: [ Second factor page ]
+      operationId: secondFactorPage
+      summary: Renders the second-factor page
+      description: >-
+        Renders the page a user who has signed in with a password is sent to when the request needs a second factor
+        (each SecondFactorFragment bean contributes the form of one second factor). The forms post to the security
+        chain (for the TOTP code or a recovery code, POST /login/second-factor/totp), never to this operation; once
+        the factor is verified the browser resumes the request that was interrupted. A request without a signed-in
+        session is redirected to the sign-in page.
+      parameters:
+        - name: error
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the previous attempt failed; the page then shows the
+            message of that failure, which never reveals whether the code was close.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The second-factor page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::mfa-second-factor-page-api[]
   # tag::consent-page-api[]
   /oauth2/consent:
     get:

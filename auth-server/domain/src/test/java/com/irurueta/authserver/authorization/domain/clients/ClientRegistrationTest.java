@@ -17,7 +17,9 @@
 package com.irurueta.authserver.authorization.domain.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -65,7 +67,8 @@ class ClientRegistrationTest {
         assertThrows(IllegalArgumentException.class, () -> create(" ", "Name", true, true, List.of(), TTL, TTL));
         assertThrows(IllegalArgumentException.class, () -> create(CLIENT_ID, null, true, true, List.of(), TTL, TTL));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
-                List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL, "", false, List.of(), false));
+                List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL, "", false, List.of(), false,
+                false));
     }
 
     /**
@@ -78,10 +81,10 @@ class ClientRegistrationTest {
 
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true, null,
                 List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), withNull, true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false));
     }
 
     /**
@@ -124,7 +127,7 @@ class ClientRegistrationTest {
             final List<String> audiences, final Duration access, final Duration refresh) {
         return new ClientRegistration(id, name, confidential, List.of("none"), List.of("authorization_code"),
                 List.of("http://localhost/cb"), List.of("openid"), pkce, audiences, access, refresh,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false);
     }
 
     /**
@@ -134,7 +137,8 @@ class ClientRegistrationTest {
     void constructor_whenPostLogoutRedirectUrisAreGiven_copiesThemAndRejectsNulls() {
         final var uris = new ArrayList<>(List.of("https://app.example.test/"));
         final var registration = new ClientRegistration(CLIENT_ID, "Name", true, List.of(), List.of(), List.of(),
-                List.of(), true, List.of(), TTL, TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, uris, false);
+                List.of(), true, List.of(), TTL, TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, uris, false,
+                false);
         uris.clear();
         final var withNull = new ArrayList<String>();
         withNull.add(null);
@@ -142,9 +146,23 @@ class ClientRegistrationTest {
         assertEquals(List.of("https://app.example.test/"), registration.postLogoutRedirectUris());
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, null, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, null, false, false));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, withNull, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, withNull, false, false));
+    }
+
+    /**
+     * Verifies that the second-factor requirement is kept.
+     */
+    @Test
+    void constructor_whenMfaRequiredIsGiven_keepsIt() {
+        final var optional = create(CLIENT_ID, "Name", true, true, List.of(), TTL, TTL);
+        final var required = new ClientRegistration(CLIENT_ID, "Name", true, List.of("none"),
+                List.of("authorization_code"), List.of("http://localhost/cb"), List.of("openid"), true, List.of(), TTL,
+                TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, true);
+
+        assertFalse(optional.mfaRequired());
+        assertTrue(required.mfaRequired());
     }
 }

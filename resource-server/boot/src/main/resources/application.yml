@@ -25,6 +25,14 @@ spring:
           # The opaque profile applies the same audiences to the introspection response.
           audiences: ${RESOURCE_SERVER_AUDIENCES:resource-server}
 
+# RFC 9470 step-up authentication required to delete a document: the token must carry this acr and an auth_time no
+# older than max-age, otherwise the request is answered 401 insufficient_user_authentication.
+resourceserver:
+  step-up:
+    enabled: true
+    acr-values: urn:irurueta:acr:mfa
+    max-age: PT5M
+
 springdoc:
   # The OpenAPI document is published; the Swagger UI is not shipped.
   swagger-ui:

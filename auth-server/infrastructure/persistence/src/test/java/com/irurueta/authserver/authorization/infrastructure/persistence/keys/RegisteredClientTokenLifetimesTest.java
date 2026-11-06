@@ -88,6 +88,6 @@ class RegisteredClientTokenLifetimesTest {
                                              final String format) {
         return new ClientRegistration(clientId, "Client", true, List.of("client_secret_basic"),
                 List.of("client_credentials"), List.of(), List.of("read"), true, List.of(), accessTokenTtl,
-                Duration.ofHours(1), format, false, List.of(), false);
+                Duration.ofHours(1), format, false, List.of(), false, false);
     }
 }

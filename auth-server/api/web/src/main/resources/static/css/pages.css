@@ -57,3 +57,8 @@ footer {
   font-size: 0.85rem;
   color: #55555e;
 }
+
+/* The recovery-code form is reached through a link to its id and stays hidden until then. */
+.recovery-code:not(:target) {
+  display: none;
+}

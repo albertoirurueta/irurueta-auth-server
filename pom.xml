@@ -119,6 +119,8 @@
     <!-- Argon2 password hashing (Spring Security uses it through Bouncy Castle); not managed by the Spring Boot BOM -->
     <bouncycastle.version>1.85.2</bouncycastle.version>
     <bucket4j.version>8.22.0</bucket4j.version>
+    <!-- QR code rendering of the TOTP enrolment; not managed by the Spring Boot BOM -->
+    <zxing.version>3.5.4</zxing.version>
   </properties>
 
   <dependencyManagement>
@@ -248,6 +250,16 @@
         <groupId>com.bucket4j</groupId>
         <artifactId>bucket4j_jdk17-core</artifactId>
         <version>${bucket4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.zxing</groupId>
+        <artifactId>core</artifactId>
+        <version>${zxing.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.zxing</groupId>
+        <artifactId>javase</artifactId>
+        <version>${zxing.version}</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.playwright</groupId>
