@@ -31,4 +31,17 @@
   <Match>
     <Package name="~.*\.generated(\..*)?"/>
   </Match>
+  <!-- The request to verify a second factor carries, by reference, the Authentication the user already holds: the
+       provider builds the answer from that very object (Spring Security's own tokens hold their principal the same
+       way) and a defensive copy of an Authentication does not exist. -->
+  <Match>
+    <Class name="com.irurueta.authserver.authorization.api.web.totp.TotpAuthenticationToken"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <!-- The filter keeps the Spring-managed cookie writer it is built with; the filter is created by a configuration
+       and never exposed, so the reference cannot be used to alter it from outside. -->
+  <Match>
+    <Class name="com.irurueta.authserver.authorization.api.web.totp.TotpAuthenticationFilter"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
 </FindBugsFilter>

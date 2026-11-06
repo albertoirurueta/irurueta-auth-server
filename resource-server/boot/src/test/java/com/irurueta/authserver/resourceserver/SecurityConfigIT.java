@@ -29,29 +29,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.irurueta.authserver.resourceserver.api.web.documents.DocumentController;
 import com.irurueta.authserver.resourceserver.domain.documents.Document;
 import com.irurueta.authserver.resourceserver.domain.documents.DocumentRepository;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -85,23 +72,18 @@ class SecurityConfigIT {
     /** Audience of a token issued to another client. */
     private static final String OTHER_AUDIENCE = "bff";
 
-    /** Size in bits of the generated RSA key. */
-    private static final int KEY_SIZE = 2048;
-
-    /** Number of base64 characters per line of a PEM document. */
-    private static final int PEM_LINE_LENGTH = 64;
-
     /** Lifetime of the test tokens. */
-    private static final Duration TOKEN_TTL = Duration.ofMinutes(5);
-
-    /** Key pair that signs the test tokens. */
-    private static final KeyPair KEY_PAIR = generateKeyPair();
+    private static final Duration TOKEN_TTL = TestTokens.TOKEN_TTL;
 
     /** Scope that allows reading documents. */
     private static final String READ_SCOPE = "documents.read";
 
     /** Scope that allows deleting documents. */
     private static final String DELETE_SCOPE = "documents.delete";
+
+    /** The RFC 9470 challenge the default policy answers. */
+    private static final String STEP_UP_CHALLENGE = "Bearer error=\"insufficient_user_authentication\", "
+            + "acr_values=\"urn:irurueta:acr:mfa\", max_age=\"300\"";
 
     /** Store of the documents. */
     @Autowired
@@ -119,11 +101,7 @@ class SecurityConfigIT {
      */
     @DynamicPropertySource
     static void publicKeyLocation(final DynamicPropertyRegistry registry) throws IOException {
-        final var pem = Files.createTempFile("resource-server-test-key", ".pem");
-        pem.toFile().deleteOnExit();
-        Files.writeString(pem, toPem((RSAPublicKey) KEY_PAIR.getPublic()), StandardCharsets.US_ASCII);
-        registry.add("spring.security.oauth2.resourceserver.jwt.public-key-location", () -> pem.toUri().toString());
-        registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> "");
+        TestTokens.publicKeyLocation(registry);
     }
 
     /**
@@ -253,7 +231,7 @@ class SecurityConfigIT {
     @Test
     void documents_whenTokenHasTheDeleteScope_deletesOnceThenNotFound() throws Exception {
         documentRepository.save(new Document("it-delete", SUBJECT, "Delete", "text"));
-        final var header = bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE);
+        final var header = strongBearer(List.of(), Instant.now());
 
         mockMvc.perform(delete(DocumentController.PATH + "/it-delete").header(HttpHeaders.AUTHORIZATION, header))
                 .andExpect(status().isNoContent());
@@ -272,7 +250,7 @@ class SecurityConfigIT {
         documentRepository.save(new Document("it-foreign-delete", OTHER_OWNER, "Foreign", "text"));
 
         mockMvc.perform(delete(DocumentController.PATH + "/it-foreign-delete").header(HttpHeaders.AUTHORIZATION,
-                        bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE)))
+                        strongBearer(List.of(), Instant.now())))
                 .andExpect(status().isNotFound());
         assertEquals(1, documentRepository.findByOwner(OTHER_OWNER).stream()
                 .filter(document -> "it-foreign-delete".equals(document.id())).count());
@@ -288,10 +266,67 @@ class SecurityConfigIT {
         documentRepository.save(new Document("it-admin-delete", OTHER_OWNER, "Foreign", "text"));
 
         mockMvc.perform(delete(DocumentController.PATH + "/it-admin-delete").header(HttpHeaders.AUTHORIZATION,
-                        bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE, List.of("ROLE_ADMIN"))))
+                        strongBearer(List.of("ROLE_ADMIN"), Instant.now())))
                 .andExpect(status().isNoContent());
         assertEquals(0, documentRepository.findByOwner(OTHER_OWNER).stream()
                 .filter(document -> "it-admin-delete".equals(document.id())).count());
+    }
+
+    /**
+     * Verifies that a token with the delete scope but the password-level {@code acr} is answered with the RFC 9470
+     * step-up challenge and leaves the document alone.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenAcrIsPassword_deleteRequiresStepUp() throws Exception {
+        documentRepository.save(new Document("it-step-up-acr", SUBJECT, "Keep", "text"));
+
+        mockMvc.perform(delete(DocumentController.PATH + "/it-step-up-acr").header(HttpHeaders.AUTHORIZATION,
+                        bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE, List.of(),
+                                Map.of("acr", "urn:irurueta:acr:pwd", "auth_time", Instant.now().getEpochSecond()))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, STEP_UP_CHALLENGE));
+        assertEquals(1, documentRepository.findByOwner(SUBJECT).stream()
+                .filter(document -> "it-step-up-acr".equals(document.id())).count());
+    }
+
+    /**
+     * Verifies that a token without the {@code acr} and {@code auth_time} claims requires step-up.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenClaimsAreMissing_deleteRequiresStepUp() throws Exception {
+        mockMvc.perform(delete(DocumentController.PATH + "/anything").header(HttpHeaders.AUTHORIZATION,
+                        bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, STEP_UP_CHALLENGE));
+    }
+
+    /**
+     * Verifies that an old authentication requires step-up.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenAuthenticationIsOld_deleteRequiresStepUp() throws Exception {
+        mockMvc.perform(delete(DocumentController.PATH + "/anything").header(HttpHeaders.AUTHORIZATION,
+                        strongBearer(List.of(), Instant.now().minus(TOKEN_TTL).minusSeconds(1))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, STEP_UP_CHALLENGE));
+    }
+
+    /**
+     * Builds an {@code Authorization} header value for a token with the delete scope and the strong {@code acr}.
+     *
+     * @param roles    roles of the caller; empty to leave the claim out.
+     * @param authTime time the user authenticated.
+     * @return the header value.
+     */
+    private static String strongBearer(final List<String> roles, final Instant authTime) {
+        return bearer(ISSUER, List.of(ACCEPTED_AUDIENCE), DELETE_SCOPE, roles,
+                Map.of("acr", "urn:irurueta:acr:mfa", "auth_time", authTime.getEpochSecond()));
     }
 
     /**
@@ -328,52 +363,21 @@ class SecurityConfigIT {
      */
     private static String bearer(final String issuer, final List<String> audiences, final String scope,
                                  final List<String> roles) {
-        final var rsaKey = new RSAKey.Builder((RSAPublicKey) KEY_PAIR.getPublic())
-                .privateKey((RSAPrivateKey) KEY_PAIR.getPrivate())
-                .build();
-        final var encoder = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(rsaKey)));
-        final var now = Instant.now();
-        final var claims = JwtClaimsSet.builder()
-                .issuer(issuer)
-                .subject(SUBJECT)
-                .issuedAt(now)
-                .expiresAt(now.plus(TOKEN_TTL));
-        if (!audiences.isEmpty()) {
-            claims.audience(audiences);
-        }
-        if (!scope.isEmpty()) {
-            claims.claim("scope", scope);
-        }
-        if (!roles.isEmpty()) {
-            claims.claim("roles", roles);
-        }
-        return "Bearer " + encoder.encode(JwtEncoderParameters.from(claims.build())).getTokenValue();
+        return bearer(issuer, audiences, scope, roles, Map.of());
     }
 
     /**
-     * Encodes a public key as a PEM document with {@code \n} line endings.
+     * Builds an {@code Authorization} header value carrying a token signed with the generated key.
      *
-     * @param key the public key.
-     * @return the PEM document.
+     * @param issuer    issuer claim of the token.
+     * @param audiences audience claim of the token; empty to leave the claim out.
+     * @param scope     space-separated scopes of the token; empty to leave the claim out.
+     * @param roles     roles of the caller; empty to leave the claim out.
+     * @param extra     further claims of the token.
+     * @return the header value.
      */
-    private static String toPem(final RSAPublicKey key) {
-        final var encoder = Base64.getMimeEncoder(PEM_LINE_LENGTH, "\n".getBytes(StandardCharsets.US_ASCII));
-        return "-----BEGIN PUBLIC KEY-----\n" + encoder.encodeToString(key.getEncoded())
-                + "\n-----END PUBLIC KEY-----\n";
-    }
-
-    /**
-     * Generates the RSA key pair that signs the test tokens.
-     *
-     * @return the key pair.
-     */
-    private static KeyPair generateKeyPair() {
-        try {
-            final var generator = KeyPairGenerator.getInstance("RSA");
-            generator.initialize(KEY_SIZE);
-            return generator.generateKeyPair();
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException("RSA is not available", e);
-        }
+    private static String bearer(final String issuer, final List<String> audiences, final String scope,
+                                 final List<String> roles, final Map<String, Object> extra) {
+        return TestTokens.bearer(issuer, SUBJECT, audiences, scope, roles, extra);
     }
 }

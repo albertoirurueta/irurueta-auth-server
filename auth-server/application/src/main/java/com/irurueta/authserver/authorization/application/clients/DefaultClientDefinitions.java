@@ -82,7 +82,7 @@ public final class DefaultClientDefinitions {
                 List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
                 redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
                 REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
-                postLogoutRedirectUris, true);
+                postLogoutRedirectUris, true, false);
     }
 
     /**
@@ -111,7 +111,7 @@ public final class DefaultClientDefinitions {
                 List.of("none"), List.of("authorization_code", "refresh_token"),
                 redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
                 REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
-                postLogoutRedirectUris, false);
+                postLogoutRedirectUris, false, false);
     }
     // end::clients-seed[]
 }

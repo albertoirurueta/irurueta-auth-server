@@ -17,7 +17,8 @@
 <!--
   Usage: <html th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"> in a page with a title and a main.
   No inline script or style: the Content-Security-Policy only allows same-origin resources (built by
-  LoginContentSecurityPolicy, which also allows the origin of an absolute branding logo URL for images). The logo is
+  LoginContentSecurityPolicy, which also allows data: images, for the QR code of an authenticator app, and the origin
+  of an absolute branding logo URL). The logo is
   decorative (empty alt) and, like every request of the page, sent without a Referer (Referrer-Policy: no-referrer).
 -->
 <!-- tag::login-layout[] -->

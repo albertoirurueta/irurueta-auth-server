@@ -55,7 +55,8 @@ class JdbcAuthorizationServerConfigurationTest {
      */
     @Test
     void authorizationService_whenCalled_createsService() {
-        assertNotNull(configuration.authorizationService(jdbcTemplate, repository));
+        assertNotNull(configuration.authorizationService(
+                jdbcTemplate, repository, new AuthorizationJsonMapperFactory()));
     }
 
     /**

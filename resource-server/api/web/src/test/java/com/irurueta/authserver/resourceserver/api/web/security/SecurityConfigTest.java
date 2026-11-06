@@ -18,9 +18,11 @@ package com.irurueta.authserver.resourceserver.api.web.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,23 @@ class SecurityConfigTest {
 
     /** Subject under test. */
     private final SecurityConfig config = new SecurityConfig();
+
+    /** Step-up policy of the tests. */
+    private final StepUpProperties stepUpProperties = new StepUpProperties(true, "urn:irurueta:acr:mfa",
+            Duration.ofMinutes(5));
+
+    /** Manager under the chains. */
+    private final StepUpAuthorizationManager stepUp = config.stepUpAuthorizationManager(stepUpProperties);
+
+    /** Handler under the chains. */
+    private final StepUpAccessDeniedHandler handler = config.stepUpAccessDeniedHandler(stepUpProperties);
+
+    /** The step-up beans are built from the policy. */
+    @Test
+    void stepUpBeans_whenPolicyIsGiven_areCreated() {
+        assertNotNull(stepUp);
+        assertNotNull(handler);
+    }
 
     /** Scopes and roles both become authorities. */
     @Test
@@ -75,7 +94,8 @@ class SecurityConfigTest {
         final var http = mock(HttpSecurity.class);
         final var properties = new OAuth2ResourceServerProperties();
 
-        assertThrows(IllegalStateException.class, () -> config.resourceServerFilterChain(http, properties));
+        assertThrows(IllegalStateException.class,
+                () -> config.resourceServerFilterChain(http, properties, stepUp, handler));
     }
 
     /** The opaque variant refuses to start without an accepted audience. */

@@ -17,14 +17,15 @@
 # openapi-generator, and OpenApiDriftIT fails when the pages the running application serves (the springdoc group
 # "pages", /v3/api-docs/pages) differ from it. Every page answers text/html rendered from a Thymeleaf template.
 # The endpoints Spring Security and Spring Authorization Server answer themselves are not part of it: the login form
-# post (POST /login), the sign-out (POST /logout), the consent decision (POST /oauth2/authorize) and every other
+# post (POST /login), the second-factor post (POST /login/second-factor/totp), the sign-out (POST /logout), the
+# consent decision (POST /oauth2/authorize) and every other
 # OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error controller (/error).
 openapi: 3.1.0
 info:
   title: Irurueta Auth Server Pages
   description: >-
-    Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, consent and
-    sign-out confirmation. They are meant for a browser, never for a script.
+    Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, second
+    factor, recovery codes, consent and sign-out confirmation. They are meant for a browser, never for a script.
   version: 1.0.0
   license:
     name: Apache License 2.0
@@ -35,6 +36,11 @@ servers:
 tags:
   - name: Login page
     description: The sign-in page, which hosts the sign-in methods
+  - name: Second factor page
+    description: The page where a user who has signed in with a password presents a second factor
+  - name: Recovery codes page
+    description: >-
+      The page that shows, once, the recovery codes generated when an authenticator app is enrolled during the sign-in
   - name: Consent page
     description: The page where the user approves the scopes a client asks for
   - name: Logout page
@@ -77,6 +83,59 @@ paths:
               schema:
                 type: string
   # end::login-page-api[]
+  # tag::mfa-second-factor-page-api[]
+  /login/second-factor:
+    get:
+      tags: [ Second factor page ]
+      operationId: secondFactorPage
+      summary: Renders the second-factor page
+      description: >-
+        Renders the page a user who has signed in with a password is sent to when the request needs a second factor
+        (each SecondFactorFragment bean contributes the form of one second factor, with the data it needs for the
+        signed-in user). A user without a confirmed authenticator app gets its enrolment form instead: a new pending
+        secret as a QR code and an otpauth URI, and the field of the first code. A user with one gets the forms of its
+        code and of a recovery code, with a warning when three or fewer recovery codes are left. The forms post to the
+        security chain (for the TOTP code, a recovery code or the enrolment code, POST /login/second-factor/totp),
+        never to this operation; once the factor is verified the browser resumes the request that was interrupted
+        (after an enrolment, it first goes to the recovery codes page). A request without a signed-in session is
+        redirected to the sign-in page.
+      parameters:
+        - name: error
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the previous attempt failed; the page then shows the
+            message of that failure, which never reveals whether the code was close.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The second-factor page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::mfa-second-factor-page-api[]
+  # tag::totp-recovery-codes-page-api[]
+  /login/second-factor/recovery-codes:
+    get:
+      tags: [ Recovery codes page ]
+      operationId: recoveryCodesPage
+      summary: Renders the recovery codes of a new authenticator app, once
+      description: >-
+        Renders the recovery codes generated when the signed-in user enrolled an authenticator app on the
+        second-factor page, which redirects here after the enrolment code is accepted. The codes are kept in the
+        session only until this page is rendered, so a second request shows none. Its Continue link resumes the request
+        the sign-in interrupted (typically /oauth2/authorize), or goes to the root when there is none. A request
+        without a signed-in session is redirected to the sign-in page.
+      responses:
+        '200':
+          description: The recovery codes page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::totp-recovery-codes-page-api[]
   # tag::consent-page-api[]
   /oauth2/consent:
     get:

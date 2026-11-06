@@ -69,6 +69,6 @@ class LoginContentSecurityPolicyIT {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("src=\"" + LOGO_URL + "\"")))
                 .andExpect(header().string("Content-Security-Policy",
-                        "default-src 'self'; frame-ancestors 'none'; img-src 'self' https://cdn.example.com:8443"));
+                        LoginContentSecurityPolicy.DEFAULT_POLICY + " https://cdn.example.com:8443"));
     }
 }

@@ -43,12 +43,13 @@ import java.util.Objects;
  * @param postLogoutRedirectUris URIs an end-user may be redirected to after an OpenID Connect RP-initiated logout;
  *                           a {@code post_logout_redirect_uri} that is not listed is never honoured.
  * @param requireConsent     whether the end-user must explicitly grant the requested scopes on a consent page.
+ * @param mfaRequired        whether every user signing in through the client must complete a second factor.
  */
 public record ClientRegistration(
         String clientId, String name, boolean confidential, List<String> authMethods, List<String> grantTypes,
         List<String> redirectUris, List<String> scopes, boolean requireProofKey, List<String> audiences,
         Duration accessTokenTtl, Duration refreshTokenTtl, String accessTokenFormat, boolean reuseRefreshTokens,
-        List<String> postLogoutRedirectUris, boolean requireConsent) {
+        List<String> postLogoutRedirectUris, boolean requireConsent, boolean mfaRequired) {
 
     /** Access token format of self-contained (JWT) tokens. */
     public static final String FORMAT_SELF_CONTAINED = "self-contained";

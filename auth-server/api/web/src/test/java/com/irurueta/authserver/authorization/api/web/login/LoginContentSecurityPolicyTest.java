@@ -35,7 +35,8 @@ class LoginContentSecurityPolicyTest {
      */
     @Test
     void defaultPolicy_whenRead_restrictsResourcesAndFramesWithoutFormAction() {
-        assertEquals("default-src 'self'; frame-ancestors 'none'", LoginContentSecurityPolicy.DEFAULT_POLICY);
+        assertEquals("default-src 'self'; frame-ancestors 'none'; img-src 'self' data:",
+                LoginContentSecurityPolicy.DEFAULT_POLICY);
     }
 
     /**
@@ -73,7 +74,8 @@ class LoginContentSecurityPolicyTest {
         "HTTP://CDN.Example.com:8080/logo.png, http://cdn.example.com:8080",
         "https://cdn.example.com, https://cdn.example.com"})
     void policy_whenLogoIsAnAbsoluteWebUrl_allowsItsOriginForImages(final String logoUrl, final String origin) {
-        assertEquals("default-src 'self'; frame-ancestors 'none'; img-src 'self' " + origin, policyFor(logoUrl));
+        assertEquals("default-src 'self'; frame-ancestors 'none'; img-src 'self' data: " + origin,
+                policyFor(logoUrl));
     }
 
     /**

@@ -52,14 +52,21 @@ public class JdbcAuthorizationServerConfiguration {
      *
      * @param jdbcTemplate             JDBC template of the application datasource.
      * @param registeredClientRepository repository used to resolve the client of each authorization.
+     * @param jsonMapperFactory        creates the mapper that serializes the stored attributes and claims.
      * @return the authorization service.
      */
     @Bean
     public OAuth2AuthorizationService authorizationService(
-            final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository) {
-        return new ReuseDetectingAuthorizationService(
-                new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository),
-                JdbcClient.create(jdbcTemplate));
+            final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository,
+            final AuthorizationJsonMapperFactory jsonMapperFactory) {
+        final var jsonMapper = jsonMapperFactory.create();
+        final var service = new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository);
+        service.setAuthorizationRowMapper(
+                new JdbcOAuth2AuthorizationService.JsonMapperOAuth2AuthorizationRowMapper(
+                        registeredClientRepository, jsonMapper));
+        service.setAuthorizationParametersMapper(
+                new JdbcOAuth2AuthorizationService.JsonMapperOAuth2AuthorizationParametersMapper(jsonMapper));
+        return new ReuseDetectingAuthorizationService(service, JdbcClient.create(jdbcTemplate));
     }
 
     /**

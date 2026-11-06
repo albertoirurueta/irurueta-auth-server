@@ -44,7 +44,7 @@ under `/api/**`), from which the interfaces and DTOs of `auth-server/api/web` ar
 
 |{pages-url}/openapi/auth-server-pages-v1.yaml[Pages contract of `auth-server`], {pages-url}/openapi/auth-server/pages-v1/index.html[HTML]
 |The OpenAPI contract `apis/auth-server/web-pages/auth-server-pages-v1.yaml` of the server-rendered pages (`/login`,
-`/oauth2/consent`, `/logout`, each answering `text/html`), from which the interfaces of the page controllers are
+`/login/second-factor`, `/login/second-factor/recovery-codes`, `/oauth2/consent`, `/logout`, each answering `text/html`), from which the interfaces of the page controllers are
 generated, and its HTML rendering. `OpenApiDriftIT` compares it with the springdoc group `pages`.
 
 |{pages-url}/openapi/resource-server-api-v1.yaml[API contract of `resource-server`], {pages-url}/openapi/resource-server/v1/index.html[HTML]

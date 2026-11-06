@@ -29,9 +29,18 @@ NOTE: This documentation was generated with the assistance of AI. Please report 
 |`V240__authorization_created_at.sql`
 |Adds `created_at` to `oauth2_authorization`, so the authorizations that never got a token (abandoned authorization
 or consent requests) can be cleaned up once they are old enough.
+
+|`V400__mfa_security_events.sql`
+|Security events and the failed second-factor attempts used for lockout (see xref:mfa-and-step-up.adoc[]).
+
+|`V410__totp_recovery_codes.sql`
+|TOTP secrets and recovery codes.
+
+|`V420__trusted_devices.sql`
+|Devices trusted to skip the second factor.
 |===
 
-Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`. A
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`. A
 migration is never written outside the range of the issue that adds it.
 
 [source,sql]

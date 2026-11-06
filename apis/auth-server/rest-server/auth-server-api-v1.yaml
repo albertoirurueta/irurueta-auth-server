@@ -31,6 +31,12 @@ servers:
 tags:
   - name: Account
     description: Self-service account management
+  - name: Totp
+    description: Enrolment and removal of the authenticator app (TOTP) of the authenticated account
+  - name: Recovery codes
+    description: Single-use recovery codes that replace the authenticator app code
+  - name: Trusted devices
+    description: Browsers on which the second factor is skipped for a limited time
   - name: Signing keys
     description: Administration of the signing keys
   - name: Clients
@@ -170,6 +176,150 @@ paths:
         '429':
           $ref: '#/components/responses/TooManyRequests'
   # end::account-api[]
+  # tag::totp-api-contract[]
+  /api/account/totp:
+    post:
+      tags: [ Totp ]
+      operationId: enrollTotp
+      summary: Starts the enrolment of an authenticator app
+      description: >-
+        Generates a new shared secret for the authenticated account and answers the otpauth URI and its QR code. The
+        enrolment is pending until it is confirmed with a code; starting it again replaces a pending secret. Requires
+        a bearer token issued by this server.
+      responses:
+        '200':
+          description: Enrolment started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotpEnrollmentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: An authenticator app is already enabled for the account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags: [ Totp ]
+      operationId: disableTotp
+      summary: Disables the authenticator app
+      description: >-
+        Removes the authenticator app and the recovery codes of the authenticated account and revokes every trusted
+        device of the account. Disabling a factor that is not enabled succeeds as well. While the account has a
+        confirmed second factor, the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
+      responses:
+        '204':
+          description: The authenticator app is disabled
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+  /api/account/totp/confirm:
+    post:
+      tags: [ Totp ]
+      operationId: confirmTotp
+      summary: Confirms the enrolment of the authenticator app
+      description: >-
+        Checks a code produced by the authenticator app against the pending secret, enables the factor and generates
+        a fresh set of recovery codes, shown only in this answer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmTotpRequest'
+      responses:
+        '200':
+          description: The authenticator app is enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          description: Invalid request, no enrolment in progress or wrong code
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: The authenticator app is already enabled
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/account/recovery-codes:
+    post:
+      tags: [ Recovery codes ]
+      operationId: generateRecoveryCodes
+      summary: Generates a new set of recovery codes
+      description: >-
+        Replaces every existing recovery code of the authenticated account with a new set, shown only in this answer.
+        Recovery codes only stand in for a second factor, so the account must have a confirmed authenticator app;
+        the bearer token must also show a recent multi-factor sign-in (step-up, RFC 9470).
+      responses:
+        '200':
+          description: The new recovery codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          description: The account has no confirmed authenticator app (problem type urn:problem:mfa:totp-not-enrolled)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+  /api/account/trusted-devices:
+    get:
+      tags: [ Trusted devices ]
+      operationId: listTrustedDevices
+      summary: Lists the trusted devices
+      description: Lists the devices of the authenticated account that are still trusted, never anything of another account.
+      responses:
+        '200':
+          description: The trusted devices
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The trusted devices, possibly empty.
+                items:
+                  $ref: '#/components/schemas/TrustedDeviceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/trusted-devices/{id}:
+    delete:
+      tags: [ Trusted devices ]
+      operationId: revokeTrustedDevice
+      summary: Revokes a trusted device
+      description: >-
+        The device is asked for the second factor again. A device of another account is never touched and is answered
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of the trusted device.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Device revoked
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: No such trusted device for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  # end::totp-api-contract[]
   # tag::clients-api[]
   /api/admin/clients:
     get:
@@ -405,7 +555,9 @@ components:
         format: int64
         minimum: 1
     WwwAuthenticate:
-      description: RFC 6750 bearer challenge, for example Bearer error="invalid_token".
+      description: >-
+        RFC 6750 bearer challenge, for example Bearer error="invalid_token", or the RFC 9470 step-up challenge
+        Bearer error="insufficient_user_authentication", acr_values="...", max_age="...".
       schema:
         type: string
   responses:
@@ -414,6 +566,23 @@ components:
       headers:
         WWW-Authenticate:
           $ref: '#/components/headers/WwwAuthenticate'
+    # tag::mfa-step-up-response[]
+    StepUpRequired:
+      description: >-
+        Missing or invalid bearer token (an RFC 6750 challenge and no body), or the account has a confirmed second
+        factor and the token does not show a multi-factor sign-in (acr urn:irurueta:acr:mfa) whose auth_time is within
+        authserver.mfa.step-up-max-age (default 5 minutes). The latter is answered as RFC 9470 describes, with
+        WWW-Authenticate Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa",
+        max_age="300" (the configured age in seconds) and a problem body; the client signs the user in again with
+        those acr_values and max_age and retries with the new token.
+      headers:
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    # end::mfa-step-up-response[]
     AdminScopeRequired:
       description: The token lacks the admin scope
       headers:
@@ -496,7 +665,7 @@ components:
           format: password
           description: >-
             Reset token received by e-mail; it must contain a non-blank character. Declared with the password
-            format because it is a secret: it is never logged.
+            format because it is confidential and never logged.
           minLength: 1
           pattern: '[\s\S]*\S[\s\S]*'
         newPassword:
@@ -506,6 +675,63 @@ components:
           minLength: 1
           pattern: '[\s\S]*\S[\s\S]*'
     # end::account-schemas[]
+    # tag::totp-schemas[]
+    TotpEnrollmentResponse:
+      type: object
+      description: The secret of a pending authenticator app enrolment, as a URI and as a QR code
+      required: [ otpauthUri, qrCode ]
+      properties:
+        otpauthUri:
+          type: string
+          description: The otpauth:// URI that carries the shared secret. Never logged.
+        qrCode:
+          type: string
+          description: The otpauth URI as a PNG QR code in a data URI (data:image/png;base64,...).
+    ConfirmTotpRequest:
+      type: object
+      description: A code produced by the authenticator app
+      required: [ code ]
+      properties:
+        code:
+          type: string
+          description: Six-digit one-time code shown by the authenticator app.
+          pattern: '^[0-9]{6}$'
+    RecoveryCodesResponse:
+      type: object
+      description: A set of recovery codes, shown only once
+      required: [ recoveryCodes, remaining ]
+      properties:
+        recoveryCodes:
+          type: array
+          description: The new codes in clear text, each usable once. Never logged and never shown again.
+          items:
+            type: string
+        remaining:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of unused recovery codes, which is the size of the new set.
+    TrustedDeviceResponse:
+      type: object
+      description: A browser on which the second factor is skipped until it expires
+      required: [ id, createdAt, expiresAt ]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the trusted device.
+        userAgentSummary:
+          type: string
+          description: Short description of the browser, taken from its user agent; absent when unknown.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the device was trusted.
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the device stops being trusted.
+    # end::totp-schemas[]
     # tag::clients-schemas[]
     ClientRequest:
       type: object
@@ -585,6 +811,12 @@ components:
             Whether the end-user must explicitly grant the requested scopes on a consent page.
             Defaults to false.
           default: false
+        mfaRequired:
+          type: boolean
+          description: >-
+            Whether every user who signs in through this client must complete a second factor, whatever their
+            account setting. Defaults to false.
+          default: false
     ClientResponse:
       type: object
       description: A registered client, without any secret
@@ -604,6 +836,7 @@ components:
         - reuseRefreshTokens
         - postLogoutRedirectUris
         - requireConsent
+        - mfaRequired
       properties:
         clientId:
           type: string
@@ -664,6 +897,9 @@ components:
         requireConsent:
           type: boolean
           description: Whether the end-user must explicitly grant the requested scopes on a consent page.
+        mfaRequired:
+          type: boolean
+          description: Whether every user who signs in through this client must complete a second factor.
     CreatedClientResponse:
       type: object
       description: The created client; the secret is shown only once

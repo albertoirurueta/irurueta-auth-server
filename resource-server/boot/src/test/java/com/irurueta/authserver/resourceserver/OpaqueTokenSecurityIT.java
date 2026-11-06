@@ -31,7 +31,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -195,7 +197,7 @@ class OpaqueTokenSecurityIT {
     void documents_whenDeleting_requiresTheDeleteScope() throws Exception {
         documentRepository.save(new Document("opaque-delete", SUBJECT, "Delete", "text"));
         final var reader = register(active(ACCEPTED_AUDIENCE, READ_SCOPE));
-        final var deleter = register(active(ACCEPTED_AUDIENCE, DELETE_SCOPE));
+        final var deleter = register(strong(active(ACCEPTED_AUDIENCE, DELETE_SCOPE), Instant.now()));
 
         mockMvc.perform(delete(DocumentController.PATH + "/opaque-delete")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + reader))
@@ -206,6 +208,39 @@ class OpaqueTokenSecurityIT {
                 .andExpect(status().isNoContent());
         assertTrue(documentRepository.findByOwner(SUBJECT).stream()
                 .noneMatch(document -> "opaque-delete".equals(document.id())));
+    }
+
+    /**
+     * Verifies that an opaque token with the delete scope but the password-level {@code acr}, or a stale
+     * {@code auth_time}, is answered with the RFC 9470 step-up challenge.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void documents_whenDeletingWithoutRecentStrongAuthentication_requiresStepUp() throws Exception {
+        final var weak = register(active(ACCEPTED_AUDIENCE, DELETE_SCOPE));
+        final var stale = register(strong(active(ACCEPTED_AUDIENCE, DELETE_SCOPE), Instant.now().minusSeconds(3600)));
+
+        for (final var token : List.of(weak, stale)) {
+            mockMvc.perform(delete(DocumentController.PATH + "/anything")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString(
+                            "error=\"insufficient_user_authentication\", acr_values=\"urn:irurueta:acr:mfa\", "
+                                    + "max_age=\"300\"")));
+        }
+    }
+
+    /**
+     * Adds the strong {@code acr} and an {@code auth_time} to an introspection answer.
+     *
+     * @param answer   JSON answer.
+     * @param authTime time the user authenticated.
+     * @return the JSON answer.
+     */
+    private static String strong(final String answer, final Instant authTime) {
+        return answer.substring(0, answer.length() - 1) + ",\"acr\":\"urn:irurueta:acr:mfa\",\"auth_time\":"
+                + authTime.getEpochSecond() + "}";
     }
 
     /**

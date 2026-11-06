@@ -1,0 +1,38 @@
+/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.mfa;
+
+/**
+ * How much an authentication factor proves on its own.
+ */
+public enum FactorStrength {
+
+    /** A factor that is sufficient alone, for example a passkey: it is possession plus user verification. */
+    PRIMARY_STRONG,
+
+    /** A factor that identifies the user but needs a second one, for example a password. */
+    PRIMARY,
+
+    /** A factor that only counts once a {@link #PRIMARY} factor has been presented, for example a TOTP code. */
+    SECOND,
+
+    /**
+     * A factor that only stands in for a {@link #SECOND} one at sign-in, for example a trusted device: it lets the
+     * sign-in policy be satisfied without asking for a code again, but proves nothing about this sign-in, so it is
+     * never reported in {@code amr}, {@code acr} or {@code auth_time} and never satisfies a step-up request.
+     */
+    REMEMBERED
+}
