@@ -58,17 +58,31 @@ public final class DefaultClientDefinitions {
     // tag::clients-seed[]
     /**
      * Defines the {@code bff} client: confidential, {@code client_secret_basic}, authorization code with PKCE and
-     * refresh tokens, with refresh token rotation on.
+     * refresh tokens, with refresh token rotation on. It requires the end-user's consent to the requested scopes.
      *
      * @param redirectUris redirect URIs of the deployment.
      * @param apiAudience  audience of the authorization server's own API.
      * @return the client.
      */
     public static ClientRegistration bff(final List<String> redirectUris, final String apiAudience) {
+        return bff(redirectUris, apiAudience, List.of());
+    }
+
+    /**
+     * Defines the {@code bff} client with the URIs it may be sent to after an OpenID Connect RP-initiated logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List<String> redirectUris, final String apiAudience,
+                                         final List<String> postLogoutRedirectUris) {
         return new ClientRegistration(BFF_CLIENT_ID, "Backend for Frontend", true,
                 List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
                 redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
-                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, true);
     }
 
     /**
@@ -79,10 +93,25 @@ public final class DefaultClientDefinitions {
      * @return the client.
      */
     public static ClientRegistration spaPublic(final List<String> redirectUris, final String apiAudience) {
+        return spaPublic(redirectUris, apiAudience, List.of());
+    }
+
+    /**
+     * Defines the {@code spa-public} client with the URIs it may be sent to after an OpenID Connect RP-initiated
+     * logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List<String> redirectUris, final String apiAudience,
+                                               final List<String> postLogoutRedirectUris) {
         return new ClientRegistration(SPA_PUBLIC_CLIENT_ID, "Single-page application", false,
                 List.of("none"), List.of("authorization_code", "refresh_token"),
                 redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
-                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, false);
     }
     // end::clients-seed[]
 }

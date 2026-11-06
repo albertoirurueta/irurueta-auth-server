@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!-- tag::consent-page[] -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
+<head>
+  <title th:text="#{consent.title}">Authorize application</title>
+</head>
+<body>
+<main>
+  <h1 th:text="#{consent.heading(${consent.clientName})}">Authorize application</h1>
+  <p th:text="#{consent.intro(${consent.clientName}, ${consent.principalName})}">The application wants access.</p>
+  <!-- the decision is posted back to the authorization endpoint, which reads client_id, state and the approved scopes -->
+  <form method="post" th:action="@{/oauth2/authorize}">
+    <input type="hidden" name="client_id" th:value="${consent.clientId}">
+    <input type="hidden" name="state" th:value="${consent.state}">
+    <p th:if="${#lists.isEmpty(consent.scopesToApprove)}" th:text="#{consent.none}">No additional permission.</p>
+    <ul class="scopes">
+      <li th:each="scope, status : ${consent.scopesToApprove}">
+        <input type="checkbox" name="scope" th:id="${'scope-' + status.index}" th:value="${scope.name}" checked>
+        <label th:for="${'scope-' + status.index}" th:text="${scope.description}">Scope</label>
+      </li>
+    </ul>
+    <button type="submit" id="allow" th:text="#{consent.allow}">Allow</button>
+  </form>
+  <!-- denying posts no scope at all, which the authorization endpoint answers with error=access_denied -->
+  <form method="post" th:action="@{/oauth2/authorize}">
+    <input type="hidden" name="client_id" th:value="${consent.clientId}">
+    <input type="hidden" name="state" th:value="${consent.state}">
+    <button type="submit" id="deny" class="secondary" th:text="#{consent.deny}">Deny</button>
+  </form>
+  <section th:if="${!#lists.isEmpty(consent.approvedScopes)}">
+    <p th:text="#{consent.previous}">You already granted these permissions:</p>
+    <ul class="scopes">
+      <li th:each="scope : ${consent.approvedScopes}" th:text="${scope.description}">Scope</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
+<!-- end::consent-page[] -->

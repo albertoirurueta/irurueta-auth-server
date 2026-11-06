@@ -66,7 +66,7 @@ class ClientSeedPropertiesTest {
     void seededClient_whenRedirectUrisAreGiven_isConfiguredWithACopy() {
         final var uris = new ArrayList<>(List.of(REDIRECT_URI));
 
-        final var client = new SeededClient(uris);
+        final var client = new SeededClient(uris, List.of());
         uris.clear();
 
         assertTrue(client.isConfigured());
@@ -79,6 +79,20 @@ class ClientSeedPropertiesTest {
      */
     @Test
     void seededClient_whenRedirectUrisAreNull_isNotConfigured() {
-        assertFalse(new SeededClient(null).isConfigured());
+        assertFalse(new SeededClient(null, List.of()).isConfigured());
+    }
+
+    /**
+     * Post-logout redirect URIs are copied, and a missing list means none.
+     */
+    @Test
+    void seededClient_whenPostLogoutRedirectUrisAreGiven_copiesThem() {
+        final var uris = new ArrayList<>(List.of(REDIRECT_URI));
+
+        final var client = new SeededClient(List.of(REDIRECT_URI), uris);
+        uris.clear();
+
+        assertEquals(List.of(REDIRECT_URI), client.postLogoutRedirectUris());
+        assertEquals(List.of(), new SeededClient(List.of(REDIRECT_URI), null).postLogoutRedirectUris());
     }
 }

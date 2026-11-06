@@ -19,12 +19,17 @@ package com.irurueta.authserver.authorization.api.web.login;
 import io.swagger.v3.oas.annotations.Hidden;
 import java.util.Comparator;
 import java.util.List;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttribute;
 
 /**
- * Serves the login page, supplying the ordered login method fragments to the template.
+ * Serves the login page, supplying the ordered login method fragments and the outcome of the last attempt to the
+ * template.
  */
 // HTML page, not part of the OpenAPI contract
 @Hidden
@@ -40,28 +45,51 @@ public class LoginController {
     /** Name of the model attribute that holds the path the login form posts to. */
     static final String LOGIN_PATH_ATTRIBUTE = "loginPath";
 
+    /** Name of the model attribute that holds the key of the message of a failed sign-in. */
+    static final String ERROR_MESSAGE_ATTRIBUTE = "errorMessageKey";
+
+    /** Name of the model attribute that tells the user has just signed out. */
+    static final String LOGGED_OUT_ATTRIBUTE = "loggedOut";
+
     /** Fragments contributed by the authentication methods, sorted by order. */
     private final List<LoginMethodFragment> fragments;
+
+    /** Maps the last authentication exception to a message key. */
+    private final LoginErrorMessages errorMessages;
 
     /**
      * Creates the controller.
      *
-     * @param methods fragments contributed by the authentication methods.
+     * @param methods       fragments contributed by the authentication methods.
+     * @param errorMessages mapper of the authentication exceptions to message keys.
      */
-    public LoginController(final List<LoginMethodFragment> methods) {
+    public LoginController(final List<LoginMethodFragment> methods, final LoginErrorMessages errorMessages) {
         this.fragments = methods.stream().sorted(Comparator.comparingInt(LoginMethodFragment::order)).toList();
+        this.errorMessages = errorMessages;
     }
 
     /**
      * Renders the login page.
      *
-     * @param model model of the view.
+     * @param model     model of the view.
+     * @param error     present (even if empty) when the previous attempt failed.
+     * @param logout    present (even if empty) when the user has just signed out.
+     * @param exception exception of the previous failed attempt, kept in the session by Spring Security.
      * @return the login template name.
      */
     @GetMapping(LOGIN_PATH)
-    public String login(final Model model) {
+    public String login(
+            final Model model,
+            @RequestParam(name = "error", required = false) final String error,
+            @RequestParam(name = "logout", required = false) final String logout,
+            @SessionAttribute(name = WebAttributes.AUTHENTICATION_EXCEPTION, required = false)
+            final AuthenticationException exception) {
         model.addAttribute(LOGIN_PATH_ATTRIBUTE, LOGIN_PATH);
         model.addAttribute("fragments", fragments);
+        if (error != null) {
+            model.addAttribute(ERROR_MESSAGE_ATTRIBUTE, errorMessages.keyOf(exception));
+        }
+        model.addAttribute(LOGGED_OUT_ATTRIBUTE, logout != null);
         return "login";
     }
 }

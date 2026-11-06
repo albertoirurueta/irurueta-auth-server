@@ -203,6 +203,49 @@ final class RunningAuthServer implements AutoCloseable {
         assertEquals(0, result.getExitCode(), result.getStderr());
     }
 
+    /**
+     * Runs a SQL query against one of the databases of the container and returns the first column of every row.
+     *
+     * @param database name of the database.
+     * @param query    the query.
+     * @return the values of the first column, one per row (an empty list when there are no rows).
+     * @throws Exception if the query cannot be run.
+     */
+    List<String> query(final String database, final String query) throws Exception {
+        final var result = postgres.execInContainer("psql", "-U", postgres.getUsername(), "-d", database,
+                "-v", "ON_ERROR_STOP=1", "-t", "-A", "-c", query);
+        assertEquals(0, result.getExitCode(), result.getStderr());
+        return result.getStdout().lines().filter(line -> !line.isBlank()).toList();
+    }
+
+    /**
+     * Runs a SQL query against the database of the authorization server.
+     *
+     * @param query the query.
+     * @return the values of the first column, one per row.
+     * @throws Exception if the query cannot be run.
+     */
+    List<String> query(final String query) throws Exception {
+        return query(postgres.getDatabaseName(), query);
+    }
+
+    /**
+     * Creates the {@code bff} database in the server's PostgreSQL container, the way the compose init script does,
+     * and returns the command-line arguments that point a packaged BFF at it.
+     *
+     * @return the datasource arguments of the BFF.
+     * @throws Exception if the database cannot be created.
+     */
+    List<String> bffDatabaseArguments() throws Exception {
+        final var result = postgres.execInContainer("psql", "-U", postgres.getUsername(), "-d",
+                postgres.getDatabaseName(), "-v", "ON_ERROR_STOP=1", "-c", "CREATE DATABASE bff");
+        assertEquals(0, result.getExitCode(), result.getStderr());
+        return List.of(
+                "--spring.datasource.url=" + postgres.getJdbcUrl().replace("/" + postgres.getDatabaseName(), "/bff"),
+                "--spring.datasource.username=" + postgres.getUsername(),
+                "--spring.datasource.password=" + postgres.getPassword());
+    }
+
     /** Stops the server and the database. */
     @Override
     public void close() {

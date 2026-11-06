@@ -63,10 +63,11 @@ public class RegisteredClientMapper {
                 .authorizationGrantTypes(types -> registration.grantTypes()
                         .forEach(type -> types.add(new AuthorizationGrantType(type))))
                 .redirectUris(uris -> uris.addAll(registration.redirectUris()))
+                .postLogoutRedirectUris(uris -> uris.addAll(registration.postLogoutRedirectUris()))
                 .scopes(scopes -> scopes.addAll(registration.scopes()))
                 .clientSettings(ClientSettings.builder()
                         .requireProofKey(registration.requireProofKey())
-                        .requireAuthorizationConsent(false)
+                        .requireAuthorizationConsent(registration.requireConsent())
                         .setting(AUDIENCES_SETTING, new ArrayList<>(registration.audiences()))
                         .build())
                 // tag::tokens-settings[]
@@ -99,7 +100,9 @@ public class RegisteredClientMapper {
                 client.getRedirectUris().stream().sorted().toList(), client.getScopes().stream().sorted().toList(),
                 settings.isRequireProofKey(), audiencesOf(settings), tokenSettings.getAccessTokenTimeToLive(),
                 tokenSettings.getRefreshTokenTimeToLive(), tokenSettings.getAccessTokenFormat().getValue(),
-                tokenSettings.isReuseRefreshTokens());
+                tokenSettings.isReuseRefreshTokens(),
+                client.getPostLogoutRedirectUris().stream().sorted().toList(),
+                settings.isRequireAuthorizationConsent());
     }
 
     /**

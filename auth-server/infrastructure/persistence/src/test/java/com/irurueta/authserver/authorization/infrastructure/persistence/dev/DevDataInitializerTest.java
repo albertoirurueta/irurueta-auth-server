@@ -78,6 +78,7 @@ class DevDataInitializerTest {
     @BeforeEach
     void setUp() {
         initializer = new DevDataInitializer(jdbc, encoder, clients, REDIRECT_URIS,
+                List.of(),
                 DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
     }
 
@@ -151,6 +152,7 @@ class DevDataInitializerTest {
         when(encoder.encode(anyString())).thenReturn(ENCODED);
         when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID)).thenReturn(Optional.empty());
         final var unconfigured = new DevDataInitializer(jdbc, encoder, clients, List.of(),
+                List.of(),
                 DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
 
         unconfigured.run(new DefaultApplicationArguments());

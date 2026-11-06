@@ -50,6 +50,7 @@ class DefaultClientDefinitionsTest {
         assertEquals(List.of("authorization_code", "refresh_token"), bff.grantTypes());
         assertTrue(bff.requireProofKey());
         assertFalse(bff.reuseRefreshTokens());
+        assertTrue(bff.requireConsent());
         assertEquals(List.of(REDIRECT_URI), bff.redirectUris());
         assertEquals(List.of(DefaultClientDefinitions.RESOURCE_SERVER_AUDIENCE, API_AUDIENCE), bff.audiences());
     }
@@ -66,6 +67,7 @@ class DefaultClientDefinitionsTest {
         assertFalse(spa.confidential());
         assertEquals(List.of("none"), spa.authMethods());
         assertTrue(spa.requireProofKey());
+        assertFalse(spa.requireConsent());
         assertEquals(List.of(REDIRECT_URI), spa.redirectUris());
         assertEquals(List.of(DefaultClientDefinitions.RESOURCE_SERVER_AUDIENCE, API_AUDIENCE), spa.audiences());
     }
@@ -82,5 +84,22 @@ class DefaultClientDefinitionsTest {
         assertEquals(SCOPES, spa.scopes());
         assertFalse(bff.scopes().contains("admin"));
         assertFalse(spa.scopes().contains("admin"));
+    }
+
+    /**
+     * Verifies that the post-logout redirect URIs reach both clients, and that they are empty by default.
+     */
+    @Test
+    void definitions_whenPostLogoutRedirectUrisAreGiven_carryThem() {
+        final var uris = List.of("https://app.example.test/");
+
+        assertEquals(uris, DefaultClientDefinitions.bff(List.of(REDIRECT_URI), API_AUDIENCE, uris)
+                .postLogoutRedirectUris());
+        assertEquals(uris, DefaultClientDefinitions.spaPublic(List.of(REDIRECT_URI), API_AUDIENCE, uris)
+                .postLogoutRedirectUris());
+        assertEquals(List.of(), DefaultClientDefinitions.bff(List.of(REDIRECT_URI), API_AUDIENCE)
+                .postLogoutRedirectUris());
+        assertEquals(List.of(), DefaultClientDefinitions.spaPublic(List.of(REDIRECT_URI), API_AUDIENCE)
+                .postLogoutRedirectUris());
     }
 }

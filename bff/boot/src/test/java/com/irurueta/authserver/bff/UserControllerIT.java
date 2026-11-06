@@ -21,16 +21,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.testsupport.PostgresIT;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Integration tests of {@code GET /bff/user} through the whole filter chain.
  */
-@SpringBootTest
+@PostgresIT
 @AutoConfigureMockMvc
 class UserControllerIT {
 
@@ -52,15 +53,21 @@ class UserControllerIT {
     }
 
     /**
-     * Verifies that a signed-in user gets a JSON body holding its subject.
+     * Verifies that a signed-in user gets a JSON body holding its UI-safe claims and no token.
      *
      * @throws Exception if the request cannot be performed.
      */
     @Test
-    void user_whenCallerIsSignedIn_returnsItsSubject() throws Exception {
+    void user_whenCallerIsSignedIn_returnsItsClaims() throws Exception {
         mockMvc.perform(get("/bff/user")
-                        .with(oidcLogin().idToken(token -> token.subject(SUBJECT))))
+                        .with(oidcLogin().idToken(token -> token.subject(SUBJECT).claim("name", "Demo User")
+                                .claim("email", "demo@example.com").claim("roles", List.of("ROLE_USER")))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.subject").value(SUBJECT));
+                .andExpect(jsonPath("$.subject").value(SUBJECT))
+                .andExpect(jsonPath("$.name").value("Demo User"))
+                .andExpect(jsonPath("$.email").value("demo@example.com"))
+                .andExpect(jsonPath("$.roles[0]").value("ROLE_USER"))
+                .andExpect(jsonPath("$.access_token").doesNotExist())
+                .andExpect(jsonPath("$.idToken").doesNotExist());
     }
 }

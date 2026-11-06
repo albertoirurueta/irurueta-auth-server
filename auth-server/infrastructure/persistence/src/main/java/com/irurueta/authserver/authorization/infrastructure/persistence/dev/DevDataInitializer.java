@@ -83,6 +83,13 @@ public class DevDataInitializer implements ApplicationRunner {
     @Value("${authserver.clients.bff.redirect-uris:}")
     private final List<String> bffRedirectUris;
 
+    /**
+     * Post-logout redirect URIs of the BFF client ({@code authserver.clients.bff.post-logout-redirect-uris}); empty
+     * when not configured.
+     */
+    @Value("${authserver.clients.bff.post-logout-redirect-uris:}")
+    private final List<String> bffPostLogoutRedirectUris;
+
     /** Audience of the authorization server's own API ({@code authserver.api.audience}). */
     @Value("${authserver.api.audience:" + DefaultClientDefinitions.DEFAULT_API_AUDIENCE + "}")
     private final String apiAudience;
@@ -133,7 +140,8 @@ public class DevDataInitializer implements ApplicationRunner {
             return;
         }
         final var secret = generateSecret();
-        clients.save(DefaultClientDefinitions.bff(bffRedirectUris, apiAudience), encoder.encode(secret));
+        clients.save(DefaultClientDefinitions.bff(bffRedirectUris, apiAudience, bffPostLogoutRedirectUris),
+                encoder.encode(secret));
         log.warn("DEV ONLY, never use outside local development: created client '{}' with generated secret: {}",
                 DefaultClientDefinitions.BFF_CLIENT_ID, secret);
     }

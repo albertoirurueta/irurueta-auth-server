@@ -26,12 +26,32 @@ info:
   license:
     name: Apache License 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.txt
+# The relay of the BFF is a pass-through, not an operation of this contract: every /api/** call of the browser is
+# forwarded to the resource server with the access token of the session (which never reaches the browser), and the
+# resource server's own contract describes what is behind it. It is therefore documented as an extension and kept out
+# of `paths`, which the generated interfaces and OpenApiDriftIT are built from. Implemented by ApiRelayController.
+# tag::bff-relay-api[]
+x-token-relay:
+  path: /api/**
+  methods: [ GET, POST, PUT, PATCH, DELETE ]
+  description: >-
+    Relays the call to the resource server (bff.relay.target-uri) with the access token of the session as bearer
+    token. Method, path, query, allowed headers (Accept, Accept-Language, Content-Type, conditional and Range headers)
+    and body are copied; Cookie, Authorization and the CSRF headers are dropped inbound and Set-Cookie outbound. The
+    response of the resource server is returned unchanged. Answers 401 when the session is not signed in or its token
+    cannot be renewed, 502 when the resource server is unreachable. State-changing calls need the CSRF token
+    (X-XSRF-TOKEN header).
+# end::bff-relay-api[]
 servers:
   - url: http://localhost:8080
     description: Local development instance.
 tags:
   - name: User
     description: The user signed in to the BFF session
+  - name: Login
+    description: Starts the OpenID Connect login against the authorization server
+  - name: Logout
+    description: Ends the BFF session and the single sign-on session of the authorization server
 paths:
   # tag::bff-user-api[]
   /bff/user:
@@ -39,7 +59,9 @@ paths:
       tags: [ User ]
       operationId: getSessionUser
       summary: Returns the signed-in user
-      description: Answers the subject of the user signed in to the BFF session.
+      description: >-
+        Answers the user signed in to the BFF session, as UI-safe claims of its ID token. Tokens are never part of the
+        response: they stay on the server.
       security:
         - session: [ ]
       responses:
@@ -52,23 +74,120 @@ paths:
         '401':
           description: There is no signed-in user
   # end::bff-user-api[]
+  # tag::bff-login-api[]
+  /bff/login:
+    get:
+      tags: [ Login ]
+      operationId: login
+      summary: Starts the login
+      description: >-
+        Redirects the browser to the OpenID Connect authorization request of the authorization server. Once the user
+        has signed in, the BFF sends the browser back to returnTo (or to the root of the application when it is
+        absent). The SPA navigates to this endpoint; it is not called through fetch.
+      security: [ ]
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: >-
+            Relative path (with an optional query string) of the SPA page to return to after the login. It must be
+            one of the paths listed in bff.login.allowed-return-paths; anything else (absolute URLs, scheme-relative
+            URLs starting with //, backslashes, control characters) is rejected to prevent open redirects.
+          schema:
+            type: string
+            maxLength: 2048
+            examples:
+              - /orders
+      responses:
+        '302':
+          description: Redirect to the authorization request of the authorization server
+          headers:
+            Location:
+              description: URL of the authorization request, /oauth2/authorization/bff
+              schema:
+                type: string
+        '400':
+          description: returnTo is not an allowed relative path
+  # end::bff-login-api[]
+  # tag::bff-logout-api[]
+  /bff/logout:
+    post:
+      tags: [ Logout ]
+      operationId: logout
+      summary: Ends the session
+      description: >-
+        Invalidates the BFF session and answers the RP-initiated logout URL of the authorization server, which ends
+        its single sign-on session and sends the browser back to the root of the application. The SPA navigates to the
+        returned URL. The request must carry the CSRF token (see the csrf security scheme).
+      security:
+        - session: [ ]
+          csrf: [ ]
+      responses:
+        '200':
+          description: The session has ended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: There is no signed-in user
+        '403':
+          description: The CSRF token is missing or invalid
+  # end::bff-logout-api[]
 components:
   securitySchemes:
     session:
       type: apiKey
       in: cookie
-      name: JSESSIONID
+      name: __Host-SESSION
       description: >-
-        Session cookie of the BFF, set after the OpenID Connect login against the authorization server. Requests
-        without a signed-in session are answered 401 instead of being redirected to the login page.
+        Session cookie of the BFF (Secure, HttpOnly, SameSite=Lax, Path=/, no Domain), set after the OpenID Connect
+        login against the authorization server. Requests without a signed-in session are answered 401 instead of
+        being redirected to the login page.
+    csrf:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+      description: >-
+        CSRF protection of every state-changing request. The BFF sets the XSRF-TOKEN cookie, readable by the SPA
+        (not HttpOnly); the SPA copies its value into this header.
   schemas:
     SessionUserResponse:
       type: object
       description: The user signed in to the BFF session
-      required: [ subject ]
+      required: [ subject, roles ]
       properties:
         subject:
           type: string
           description: Identifier (OpenID Connect subject) of the signed-in user.
           examples:
             - demo-user
+        name:
+          type: string
+          description: Display name of the user, when the ID token carries one.
+          examples:
+            - Demo User
+        email:
+          type: string
+          description: Email address of the user, when the ID token carries one.
+          examples:
+            - demo@example.com
+        roles:
+          type: array
+          description: Roles granted to the user (empty when the ID token carries none), to adapt the UI.
+          items:
+            type: string
+          examples:
+            - [ ROLE_USER ]
+    LogoutResponse:
+      type: object
+      description: Where to send the browser to finish the logout
+      required: [ logoutUrl ]
+      properties:
+        logoutUrl:
+          type: string
+          description: >-
+            RP-initiated logout URL of the authorization server (with id_token_hint and post_logout_redirect_uri), or
+            the root of the application when the server does not advertise an end session endpoint.
+          examples:
+            - http://localhost:9000/connect/logout?id_token_hint=abc&post_logout_redirect_uri=http://localhost:8080/

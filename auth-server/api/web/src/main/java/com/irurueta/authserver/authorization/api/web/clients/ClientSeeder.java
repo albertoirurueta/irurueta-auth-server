@@ -63,10 +63,12 @@ public class ClientSeeder implements ApplicationRunner {
     public void run(final ApplicationArguments args) {
         final var definitions = new ArrayList<ClientRegistration>();
         if (properties.bff().isConfigured()) {
-            definitions.add(DefaultClientDefinitions.bff(properties.bff().redirectUris(), apiAudience));
+            definitions.add(DefaultClientDefinitions.bff(properties.bff().redirectUris(), apiAudience,
+                    properties.bff().postLogoutRedirectUris()));
         }
         if (properties.spaPublic().isConfigured()) {
-            definitions.add(DefaultClientDefinitions.spaPublic(properties.spaPublic().redirectUris(), apiAudience));
+            definitions.add(DefaultClientDefinitions.spaPublic(properties.spaPublic().redirectUris(), apiAudience,
+                    properties.spaPublic().postLogoutRedirectUris()));
         }
         final var secrets = StringUtils.hasText(properties.bffSecret())
                 ? Map.of(DefaultClientDefinitions.BFF_CLIENT_ID, properties.bffSecret())

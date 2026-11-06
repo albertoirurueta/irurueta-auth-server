@@ -45,6 +45,9 @@ class ClientDtoMapperTest {
     /** Redirect URI of the test clients. */
     private static final String REDIRECT_URI = "https://app.example.test/callback";
 
+    /** Post-logout redirect URI of the test clients. */
+    private static final String POST_LOGOUT_URI = "https://app.example.test/";
+
     /** Mapper under test. */
     private final ClientDtoMapper mapper = new ClientDtoMapper();
 
@@ -56,14 +59,14 @@ class ClientDtoMapperTest {
         final var request = new ClientRequest("app", "App", true, List.of("client_secret_basic"),
                 List.of("authorization_code"), List.of(REDIRECT_URI), List.of("openid"), true, List.of("api"),
                 Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS),
-                ClientRegistration.FORMAT_REFERENCE, true);
+                ClientRegistration.FORMAT_REFERENCE, true, List.of(POST_LOGOUT_URI), true);
 
         final var registration = mapper.toRegistration(request);
 
         assertEquals(new ClientRegistration("app", "App", true, List.of("client_secret_basic"),
                 List.of("authorization_code"), List.of(REDIRECT_URI), List.of("openid"), true, List.of("api"),
                 Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS),
-                ClientRegistration.FORMAT_REFERENCE, true), registration);
+                ClientRegistration.FORMAT_REFERENCE, true, List.of(POST_LOGOUT_URI), true), registration);
     }
 
     /**
@@ -74,12 +77,14 @@ class ClientDtoMapperTest {
     void toRegistration_whenOptionalFieldsAreAbsent_appliesDefaults() {
         final var request = new ClientRequest("app", "App", true, List.of("client_secret_basic"),
                 List.of("client_credentials"), List.of(), List.of("api.read"), null, null,
-                Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS), null, null);
+                Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS), null, null, null, null);
 
         final var registration = mapper.toRegistration(request);
 
         assertFalse(registration.requireProofKey());
         assertFalse(registration.reuseRefreshTokens());
+        assertEquals(List.of(), registration.postLogoutRedirectUris());
+        assertFalse(registration.requireConsent());
         assertEquals(List.of("app"), registration.audiences());
         assertEquals(ClientRegistration.FORMAT_SELF_CONTAINED, registration.accessTokenFormat());
     }
@@ -91,7 +96,7 @@ class ClientDtoMapperTest {
     void toRegistration_whenFormatIsBlank_usesSelfContainedTokens() {
         final var request = new ClientRequest("app", "App", true, List.of("client_secret_basic"),
                 List.of("client_credentials"), List.of(), List.of("api.read"), false, List.of(),
-                Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS), " ", false);
+                Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS), " ", false, null, null);
 
         assertEquals(ClientRegistration.FORMAT_SELF_CONTAINED, mapper.toRegistration(request).accessTokenFormat());
     }
@@ -104,7 +109,7 @@ class ClientDtoMapperTest {
     void toRegistration_whenPublicClientSkipsPkce_throwsIllegalArgumentException() {
         final var request = new ClientRequest("spa", "SPA", false, List.of("none"),
                 List.of("authorization_code"), List.of(REDIRECT_URI), List.of("openid"), false, null,
-                Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS), null, false);
+                Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS), null, false, null, null);
 
         assertThrows(IllegalArgumentException.class, () -> mapper.toRegistration(request));
     }
@@ -131,6 +136,8 @@ class ClientDtoMapperTest {
         assertEquals(registration.refreshTokenTtl(), response.refreshTokenTtl());
         assertEquals(registration.accessTokenFormat(), response.accessTokenFormat());
         assertFalse(response.reuseRefreshTokens());
+        assertEquals(registration.postLogoutRedirectUris(), response.postLogoutRedirectUris());
+        assertEquals(registration.requireConsent(), response.requireConsent());
     }
 
     /**
@@ -189,7 +196,7 @@ class ClientDtoMapperTest {
         return new ClientRegistration("app", "App", true, List.of("client_secret_basic"),
                 List.of("authorization_code", "refresh_token"), List.of(REDIRECT_URI), List.of("openid"), true,
                 List.of("api"), Duration.ofMinutes(ACCESS_MINUTES), Duration.ofHours(REFRESH_HOURS),
-                ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
     }
 
     /**
@@ -200,6 +207,6 @@ class ClientDtoMapperTest {
     private static ClientRegistration publicClient() {
         return new ClientRegistration("spa", "SPA", false, List.of("none"), List.of("authorization_code"),
                 List.of(REDIRECT_URI), List.of("openid"), true, List.of(), Duration.ofMinutes(ACCESS_MINUTES),
-                Duration.ofHours(REFRESH_HOURS), ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                Duration.ofHours(REFRESH_HOURS), ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
     }
 }

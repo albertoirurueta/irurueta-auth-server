@@ -45,7 +45,8 @@ Each application is a Maven sub-reactor split into modules by hexagonal layer. T
 |Business logic: it only wires beans, holds `application*.yml` and the integration tests
 |===
 
-A layer is only created once it has code: `bff` has no `application` or `infrastructure` module yet,
+A layer is only created once it has code: `bff` has no `application` or `infrastructure` module yet (its `api/web` holds the security, login, logout and relay
+adapters, and its `boot` the session configuration and the SPA),
 `resource-server` has `domain`, `application`, `infrastructure/memory` and `api/web`, and
 `service-client` is a single `boot` module. A port is an interface in `domain` (for example `UserAccountRepository`);
 its implementation lives in an `infrastructure/*` adapter. Domain models are never returned from a controller: the
@@ -89,7 +90,8 @@ parallel. These extension points avoid editing shared files:
 
 * `LoginChainCustomizer` (package `api.web.login`) is a functional interface over `HttpSecurity` (deliberately not a `Customizer<HttpSecurity>`, which Spring Security would apply to every chain). Every bean of this type is applied
   to the login chain in `@Order` order, before its catch-all rule.
-* `LoginMethodFragment` contributes a Thymeleaf fragment to the login page, which is `templates/login.html`.
+* `LoginMethodFragment` contributes a Thymeleaf fragment to the login page (`templates/login.html`); the username and
+  password form is the fragment in `templates/password.html`. See xref:login-and-bff.adoc[].
 * `ProtocolChainCustomizer` (package `api.web`) is the same idea for the protocol endpoints: every bean receives the
   `OAuth2AuthorizationServerConfigurer` of the protocol chain, in `@Order` order. It is how the UserInfo mapper and the
   optional dynamic client registration are configured. It is also deliberately not a `Customizer`, which Spring
@@ -99,7 +101,7 @@ parallel. These extension points avoid editing shared files:
 
 [source,html]
 ----
-include::example$auth-server/api/web/src/main/resources/templates/login.html[tag=login-form]
+include::example$auth-server/api/web/src/main/resources/templates/password.html[tag=login-form]
 ----
 
 == Users and clients
@@ -131,7 +133,11 @@ include::example$auth-server/infrastructure/mail/src/main/java/com/irurueta/auth
 
 == BFF and resource server
 
-The `bff` is an `oauth2Login()` client using the authorization code grant with PKCE, and exposes `GET /bff/user`.
+The `bff` is an `oauth2Login()` client using the authorization code grant with PKCE. It keeps the user's tokens in a
+server-side session (Spring Session JDBC, cookie `__Host-SESSION`), protects state-changing requests with CSRF
+(`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header), serves the SPA, exposes `GET /bff/user`, `GET /bff/login` and
+`POST /bff/logout`, and relays `/api/**` calls to the resource server with the access token of the user. It is described
+in xref:login-and-bff.adoc[].
 
 [source,java]
 ----

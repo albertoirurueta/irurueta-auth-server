@@ -17,7 +17,10 @@
 package com.irurueta.authserver.authorization.api.web.login;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -25,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.ui.ExtendedModelMap;
 
 /**
@@ -42,6 +47,10 @@ class LoginControllerTest {
     /** Order of the fragment that is rendered second. */
     private static final int SECOND_ORDER = 20;
 
+    /** Maps authentication exceptions to message keys. */
+    @Mock
+    private LoginErrorMessages errorMessages;
+
     /** Fragment that is rendered first. */
     @Mock
     private LoginMethodFragment first;
@@ -57,7 +66,7 @@ class LoginControllerTest {
     void login_whenThereAreNoFragments_putsAnEmptyList() {
         final var model = new ExtendedModelMap();
 
-        final var view = new LoginController(List.of()).login(model);
+        final var view = new LoginController(List.of(), errorMessages).login(model, null, null, null);
 
         assertEquals("login", view);
         assertEquals(LoginController.LOGIN_PATH, model.get(LoginController.LOGIN_PATH_ATTRIBUTE));
@@ -73,8 +82,61 @@ class LoginControllerTest {
         when(second.order()).thenReturn(SECOND_ORDER);
         final var model = new ExtendedModelMap();
 
-        new LoginController(List.of(second, first)).login(model);
+        new LoginController(List.of(second, first), errorMessages).login(model, null, null, null);
 
         assertEquals(List.of(first, second), model.get(FRAGMENTS));
+    }
+
+    /**
+     * Verifies that a failed attempt puts the message key of its exception in the model.
+     */
+    @Test
+    void login_whenPreviousAttemptFailed_putsTheMessageKeyOfTheException() {
+        final var exception = new LockedException("locked");
+        when(errorMessages.keyOf(exception)).thenReturn(LoginErrorMessages.LOCKED);
+        final var model = new ExtendedModelMap();
+
+        new LoginController(List.of(), errorMessages).login(model, "", null, exception);
+
+        assertEquals(LoginErrorMessages.LOCKED, model.get(LoginController.ERROR_MESSAGE_ATTRIBUTE));
+        assertFalse((Boolean) model.get(LoginController.LOGGED_OUT_ATTRIBUTE));
+    }
+
+    /**
+     * Verifies that a failed attempt without a stored exception still shows an error.
+     */
+    @Test
+    void login_whenErrorHasNoStoredException_putsTheKeyOfNoException() {
+        when(errorMessages.keyOf(null)).thenReturn(LoginErrorMessages.GENERIC);
+        final var model = new ExtendedModelMap();
+
+        new LoginController(List.of(), errorMessages).login(model, "", null, null);
+
+        assertEquals(LoginErrorMessages.GENERIC, model.get(LoginController.ERROR_MESSAGE_ATTRIBUTE));
+    }
+
+    /**
+     * Verifies that a stale exception in the session is ignored when the page is not an error page.
+     */
+    @Test
+    void login_whenThereIsNoErrorParameter_ignoresTheStoredException() {
+        final var model = new ExtendedModelMap();
+
+        new LoginController(List.of(), errorMessages).login(model, null, null, new BadCredentialsException("x"));
+
+        assertNull(model.get(LoginController.ERROR_MESSAGE_ATTRIBUTE));
+        verifyNoInteractions(errorMessages);
+    }
+
+    /**
+     * Verifies that the logout parameter is reflected in the model.
+     */
+    @Test
+    void login_whenUserHasSignedOut_flagsIt() {
+        final var model = new ExtendedModelMap();
+
+        new LoginController(List.of(), errorMessages).login(model, null, "", null);
+
+        assertTrue((Boolean) model.get(LoginController.LOGGED_OUT_ATTRIBUTE));
     }
 }

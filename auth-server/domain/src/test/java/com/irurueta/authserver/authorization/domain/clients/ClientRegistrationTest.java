@@ -65,7 +65,7 @@ class ClientRegistrationTest {
         assertThrows(IllegalArgumentException.class, () -> create(" ", "Name", true, true, List.of(), TTL, TTL));
         assertThrows(IllegalArgumentException.class, () -> create(CLIENT_ID, null, true, true, List.of(), TTL, TTL));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
-                List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL, "", false));
+                List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL, "", false, List.of(), false));
     }
 
     /**
@@ -78,10 +78,10 @@ class ClientRegistrationTest {
 
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true, null,
                 List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), withNull, true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false));
     }
 
     /**
@@ -124,6 +124,27 @@ class ClientRegistrationTest {
             final List<String> audiences, final Duration access, final Duration refresh) {
         return new ClientRegistration(id, name, confidential, List.of("none"), List.of("authorization_code"),
                 List.of("http://localhost/cb"), List.of("openid"), pkce, audiences, access, refresh,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
+    }
+
+    /**
+     * Verifies that post-logout redirect URIs are copied and that a null list or a null element is rejected.
+     */
+    @Test
+    void constructor_whenPostLogoutRedirectUrisAreGiven_copiesThemAndRejectsNulls() {
+        final var uris = new ArrayList<>(List.of("https://app.example.test/"));
+        final var registration = new ClientRegistration(CLIENT_ID, "Name", true, List.of(), List.of(), List.of(),
+                List.of(), true, List.of(), TTL, TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, uris, false);
+        uris.clear();
+        final var withNull = new ArrayList<String>();
+        withNull.add(null);
+
+        assertEquals(List.of("https://app.example.test/"), registration.postLogoutRedirectUris());
+        assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
+                List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, null, false));
+        assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
+                List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, withNull, false));
     }
 }

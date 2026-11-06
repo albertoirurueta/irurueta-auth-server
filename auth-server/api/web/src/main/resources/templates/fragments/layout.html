@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  Usage: <html th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"> in a page with a title and a main.
+  No inline script or style: the Content-Security-Policy only allows same-origin resources.
+-->
+<!-- tag::login-layout[] -->
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)" th:lang="${#locale.language}" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:replace="${title}">Authorization server</title>
+  <link rel="stylesheet" th:href="@{/css/pages.css}">
+</head>
+<body>
+<header class="branding">
+  <img th:if="${branding != null and !#strings.isEmpty(branding.logoUrl)}" th:src="${branding.logoUrl}" alt=""
+       class="branding-logo">
+  <span class="branding-name" th:text="${branding != null} ? ${branding.applicationName} : 'Irurueta Auth Server'">
+    Irurueta Auth Server</span>
+</header>
+<main th:replace="${content}">
+  <p>Page content</p>
+</main>
+<footer th:if="${branding != null and !#strings.isEmpty(branding.footerText)}" th:text="${branding.footerText}"></footer>
+</body>
+</html>
+<!-- end::login-layout[] -->

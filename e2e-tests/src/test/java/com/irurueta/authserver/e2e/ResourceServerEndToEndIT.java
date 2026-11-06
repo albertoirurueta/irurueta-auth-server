@@ -20,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Route;
+import com.microsoft.playwright.TimeoutError;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -82,6 +84,11 @@ class ResourceServerEndToEndIT {
      * Number of random bytes of a PKCE code verifier.
      */
     private static final int VERIFIER_BYTES = 32;
+
+    /**
+     * Longest wait for the consent page, in milliseconds, before assuming the consent was granted earlier.
+     */
+    private static final double CONSENT_WAIT_MILLIS = 5_000;
 
     /**
      * HTTP status of a successful response.
@@ -266,7 +273,11 @@ class ResourceServerEndToEndIT {
         page.waitForURL(url -> url.startsWith(authServer.issuer() + "/login"));
         page.fill("#username", "demo");
         page.fill("#password", authServer.demoPassword());
-        final var redirect = page.waitForRequest(REDIRECT_URI + "**", () -> page.click("button[type=submit]"));
+        // the bff client requires consent (and so do the copies of it): allow every requested scope
+        final var redirect = page.waitForRequest(REDIRECT_URI + "**", () -> {
+            page.click("button[type=submit]");
+            allowWhenAsked(page);
+        });
 
         final var query = URI.create(redirect.url()).getRawQuery();
         for (final var pair : query.split("&")) {
@@ -275,6 +286,22 @@ class ResourceServerEndToEndIT {
             }
         }
         throw new IllegalStateException("The redirect carries no authorization code: " + redirect.url());
+    }
+
+    /**
+     * Allows the requested scopes when the consent page is shown. The page is skipped when the user already granted
+     * the scopes to the client in an earlier flow of this run.
+     *
+     * @param page the page of the browser, after the credentials were submitted.
+     */
+    private static void allowWhenAsked(final Page page) {
+        try {
+            page.waitForURL(url -> url.startsWith(authServer.issuer() + "/oauth2/consent"),
+                    new Page.WaitForURLOptions().setTimeout(CONSENT_WAIT_MILLIS));
+        } catch (final TimeoutError notAsked) {
+            return;
+        }
+        page.click("#allow");
     }
 
     /**

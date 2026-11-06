@@ -50,15 +50,20 @@ public record ClientSeedProperties(String bffSecret, SeededClient bff, SeededCli
     /**
      * Seeding of one default client.
      *
-     * @param redirectUris redirect URIs of the client in this deployment; empty when the client is not seeded.
+     * @param redirectUris           redirect URIs of the client in this deployment; empty when the client is not
+     *                               seeded.
+     * @param postLogoutRedirectUris URIs the client may send the user to after an OpenID Connect RP-initiated logout
+     *                               ({@code post-logout-redirect-uris}); empty when none is configured, in which
+     *                               case no {@code post_logout_redirect_uri} is honoured.
      */
-    public record SeededClient(List<String> redirectUris) {
+    public record SeededClient(List<String> redirectUris, List<String> postLogoutRedirectUris) {
 
         /**
-         * Copies the redirect URIs, treating a missing list as an empty one.
+         * Copies the URIs, treating a missing list as an empty one.
          */
         public SeededClient {
             redirectUris = redirectUris == null ? List.of() : List.copyOf(redirectUris);
+            postLogoutRedirectUris = postLogoutRedirectUris == null ? List.of() : List.copyOf(postLogoutRedirectUris);
         }
 
         /**
@@ -67,7 +72,7 @@ public record ClientSeedProperties(String bffSecret, SeededClient bff, SeededCli
          * @return a section without redirect URIs.
          */
         public static SeededClient unconfigured() {
-            return new SeededClient(List.of());
+            return new SeededClient(List.of(), List.of());
         }
 
         /**

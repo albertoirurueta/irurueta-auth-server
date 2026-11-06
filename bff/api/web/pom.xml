@@ -39,6 +39,11 @@
       <artifactId>spring-boot-starter-security-oauth2-client</artifactId>
     </dependency>
     <dependency>
+      <!-- RestClient.Builder auto-configuration, used by the token relay -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <dependency>
       <!-- Bean Validation annotations of the interfaces and DTOs generated from the contract -->
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>

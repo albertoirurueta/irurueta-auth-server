@@ -66,8 +66,8 @@ class ClientSeederTest {
         when(seedRegisteredClientsUseCase.execute(any(), any()))
                 .thenReturn(new SeedResult(List.of("bff", "spa-public"), List.of()));
 
-        seeder(new ClientSeedProperties(secret, new SeededClient(List.of(BFF_URI)),
-                new SeededClient(List.of(SPA_URI)))).run(mock(ApplicationArguments.class));
+        seeder(new ClientSeedProperties(secret, new SeededClient(List.of(BFF_URI), List.of()),
+                new SeededClient(List.of(SPA_URI), List.of()))).run(mock(ApplicationArguments.class));
 
         final var definitions = ArgumentCaptor.<List<ClientRegistration>>captor();
         final var secrets = ArgumentCaptor.<Map<String, String>>captor();
@@ -97,11 +97,29 @@ class ClientSeederTest {
     void run_whenOnlyTheBffIsConfiguredWithoutSecret_passesOnlyTheBffAndNoSecrets() {
         when(seedRegisteredClientsUseCase.execute(any(), any())).thenReturn(new SeedResult(List.of(), List.of("bff")));
 
-        seeder(new ClientSeedProperties("", new SeededClient(List.of(BFF_URI)), SeededClient.unconfigured()))
+        seeder(new ClientSeedProperties("", new SeededClient(List.of(BFF_URI), List.of()), SeededClient.unconfigured()))
                 .run(mock(ApplicationArguments.class));
 
         verify(seedRegisteredClientsUseCase).execute(
                 List.of(DefaultClientDefinitions.bff(List.of(BFF_URI), API_AUDIENCE)), Map.of());
+    }
+
+    /**
+     * The configured post-logout redirect URIs reach the definitions of both clients.
+     */
+    @Test
+    void run_whenPostLogoutRedirectUrisAreConfigured_passesThemToTheDefinitions() {
+        when(seedRegisteredClientsUseCase.execute(any(), any())).thenReturn(new SeedResult(List.of(), List.of()));
+        final var bffLogout = List.of("https://bff.example.test/");
+        final var spaLogout = List.of("https://spa.example.test/");
+
+        seeder(new ClientSeedProperties("secret", new SeededClient(List.of(BFF_URI), bffLogout),
+                new SeededClient(List.of(SPA_URI), spaLogout))).run(mock(ApplicationArguments.class));
+
+        verify(seedRegisteredClientsUseCase).execute(
+                List.of(DefaultClientDefinitions.bff(List.of(BFF_URI), API_AUDIENCE, bffLogout),
+                        DefaultClientDefinitions.spaPublic(List.of(SPA_URI), API_AUDIENCE, spaLogout)),
+                Map.of("bff", "secret"));
     }
 
     /**

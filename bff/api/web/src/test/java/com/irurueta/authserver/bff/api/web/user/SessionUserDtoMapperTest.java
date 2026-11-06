@@ -17,37 +17,69 @@
 package com.irurueta.authserver.bff.api.web.user;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 
 /**
  * Unit tests of {@link SessionUserDtoMapper}.
  */
-@ExtendWith(MockitoExtension.class)
 class SessionUserDtoMapperTest {
 
     /** Subject used by the tests. */
     private static final String SUBJECT = "demo-user";
 
-    /** The authenticated OIDC user. */
-    @Mock
-    private OidcUser oidcUser;
+    /** Seconds the ID token lives. */
+    private static final long TOKEN_LIFETIME_SECONDS = 60;
 
     /** Mapper under test. */
     private final SessionUserDtoMapper mapper = new SessionUserDtoMapper();
 
     /**
-     * Verifies that only the subject of the user is exposed.
+     * Verifies that subject, name, email and roles are exposed, and nothing else of the token.
      */
     @Test
-    void toResponse_whenUserIsGiven_exposesItsSubject() {
-        when(oidcUser.getSubject()).thenReturn(SUBJECT);
+    void toResponse_whenIdTokenHasAllClaims_exposesThem() {
+        final var user = user(Map.of("sub", SUBJECT, "name", "Demo User", "email", "demo@example.com",
+                "roles", List.of("ROLE_USER", "ROLE_ADMIN")));
 
-        assertEquals(SUBJECT, mapper.toResponse(oidcUser).subject());
+        final var response = mapper.toResponse(user);
+
+        assertEquals(SUBJECT, response.subject());
+        assertEquals("Demo User", response.name());
+        assertEquals("demo@example.com", response.email());
+        assertEquals(List.of("ROLE_USER", "ROLE_ADMIN"), response.roles());
+    }
+
+    /**
+     * Verifies that the preferred username stands in for a missing full name, and that missing roles give an empty
+     * list.
+     */
+    @Test
+    void toResponse_whenOnlySubjectAndUsernameArePresent_usesUsernameAndNoRoles() {
+        final var response = mapper.toResponse(user(Map.of("sub", SUBJECT, "preferred_username", "demo")));
+
+        assertEquals("demo", response.name());
+        assertNull(response.email());
+        assertTrue(response.roles().isEmpty());
+    }
+
+    /**
+     * Builds an OIDC user whose ID token carries the given claims.
+     *
+     * @param claims claims of the ID token.
+     * @return the user.
+     */
+    private static DefaultOidcUser user(final Map<String, Object> claims) {
+        final var now = Instant.now();
+        final var token = new OidcIdToken("token-value", now, now.plusSeconds(TOKEN_LIFETIME_SECONDS), claims);
+        return new DefaultOidcUser(AuthorityUtils.NO_AUTHORITIES, token);
     }
 }

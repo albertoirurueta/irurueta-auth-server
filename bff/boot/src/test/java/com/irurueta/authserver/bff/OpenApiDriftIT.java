@@ -23,11 +23,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.irurueta.authserver.bff.api.web.OpenApiConfig;
 import com.irurueta.authserver.testsupport.OpenApiContract;
+import com.irurueta.authserver.testsupport.PostgresIT;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * signed-in user, like every BFF page) is built from the running application's mappings and the annotations
  * generated from the contract, and both are compared through {@link OpenApiContract}.
  */
-@SpringBootTest
+@PostgresIT
 @AutoConfigureMockMvc
 class OpenApiDriftIT {
 

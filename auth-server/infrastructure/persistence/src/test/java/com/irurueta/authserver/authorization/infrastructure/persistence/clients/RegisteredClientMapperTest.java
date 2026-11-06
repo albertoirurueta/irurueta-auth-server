@@ -106,7 +106,8 @@ class RegisteredClientMapperTest {
     void toRegistration_whenClientAuthenticatesWithNone_isNotConfidential() {
         final var registration = new ClientRegistration("spa", "Single-page application", false, List.of("none"),
                 List.of("authorization_code"), List.of("http://localhost:3000/callback"), List.of("openid"), true,
-                List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL, ClientRegistration.FORMAT_REFERENCE, true);
+                List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL, ClientRegistration.FORMAT_REFERENCE, true,
+                List.of(), false);
 
         final var found = mapper.toRegistration(mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, null));
 
@@ -197,6 +198,43 @@ class RegisteredClientMapperTest {
         return new ClientRegistration(CLIENT_ID, "Backend for Frontend", true, List.of("client_secret_basic"),
                 List.of("authorization_code", "refresh_token"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid", "profile"), true, List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false);
+    }
+
+    /**
+     * Verifies that the post-logout redirect URIs are mapped both ways, sorted.
+     */
+    @Test
+    void toRegisteredClient_whenPostLogoutRedirectUrisAreGiven_mapsThemBothWays() {
+        final var base = confidential();
+        final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
+                base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
+                base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
+                base.reuseRefreshTokens(), List.of("http://localhost:8080/b", "http://localhost:8080/a"), false);
+
+        final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
+
+        assertTrue(client.getPostLogoutRedirectUris().contains("http://localhost:8080/a"));
+        assertEquals(List.of("http://localhost:8080/a", "http://localhost:8080/b"),
+                mapper.toRegistration(client).postLogoutRedirectUris());
+    }
+
+    /**
+     * Verifies that the consent requirement is mapped both ways.
+     */
+    @Test
+    void toRegisteredClient_whenConsentIsRequired_mapsItBothWays() {
+        final var base = confidential();
+        final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
+                base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
+                base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
+                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), true);
+
+        final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
+
+        assertTrue(client.getClientSettings().isRequireAuthorizationConsent());
+        assertTrue(mapper.toRegistration(client).requireConsent());
+        assertFalse(mapper.toRegistration(
+                mapper.toRegisteredClient(base, ROW_ID, ISSUED_AT, encoded())).requireConsent());
     }
 }

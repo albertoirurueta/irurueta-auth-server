@@ -41,8 +41,14 @@ public class OpenApiConfig {
     /** Name of the session-cookie security scheme the contract's operations refer to. */
     public static final String SESSION_SCHEME = "session";
 
-    /** Name of the session cookie. */
-    static final String SESSION_COOKIE = "JSESSIONID";
+    /** Name of the CSRF security scheme the contract's state-changing operations refer to. */
+    public static final String CSRF_SCHEME = "csrf";
+
+    /** Name of the session cookie (set by {@code SessionConfiguration} in the boot module). */
+    static final String SESSION_COOKIE = "__Host-SESSION";
+
+    /** Name of the header carrying the CSRF token. */
+    static final String CSRF_HEADER = "X-XSRF-TOKEN";
 
     /**
      * Describes the API.
@@ -58,10 +64,15 @@ public class OpenApiConfig {
                         .version("1.0.0")
                         .license(new License().name("Apache License 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
-                .components(new Components().addSecuritySchemes(SESSION_SCHEME, new SecurityScheme()
-                        .type(SecurityScheme.Type.APIKEY)
-                        .in(SecurityScheme.In.COOKIE)
-                        .name(SESSION_COOKIE)));
+                .components(new Components()
+                        .addSecuritySchemes(SESSION_SCHEME, new SecurityScheme()
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.COOKIE)
+                                .name(SESSION_COOKIE))
+                        .addSecuritySchemes(CSRF_SCHEME, new SecurityScheme()
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER)
+                                .name(CSRF_HEADER)));
     }
 
     /**
