@@ -38,9 +38,12 @@ or consent requests) can be cleaned up once they are old enough.
 
 |`V420__trusted_devices.sql`
 |Devices trusted to skip the second factor.
+
+|`V500__webauthn.sql`
+|Spring Security's WebAuthn tables (`user_entities`, `user_credentials`) and an index on the credential owner (see xref:passkeys.adoc[]).
 |===
 
-Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`. A
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`. A
 migration is never written outside the range of the issue that adds it.
 
 [source,sql]

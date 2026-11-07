@@ -18,14 +18,16 @@
 # "pages", /v3/api-docs/pages) differ from it. Every page answers text/html rendered from a Thymeleaf template.
 # The endpoints Spring Security and Spring Authorization Server answer themselves are not part of it: the login form
 # post (POST /login), the second-factor post (POST /login/second-factor/totp), the sign-out (POST /logout), the
-# consent decision (POST /oauth2/authorize) and every other
-# OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error controller (/error).
+# consent decision (POST /oauth2/authorize), the WebAuthn endpoints of the passkeys (/webauthn/**, POST /login/webauthn)
+# and every other OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error
+# controller (/error).
 openapi: 3.1.0
 info:
   title: Irurueta Auth Server Pages
   description: >-
     Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, second
-    factor, recovery codes, consent and sign-out confirmation. They are meant for a browser, never for a script.
+    factor, recovery codes, consent, sign-out confirmation and the passkeys of the account. They are meant for a
+    browser, never for a script.
   version: 1.0.0
   license:
     name: Apache License 2.0
@@ -45,6 +47,8 @@ tags:
     description: The page where the user approves the scopes a client asks for
   - name: Logout page
     description: The page that asks the user to confirm signing out
+  - name: Passkeys page
+    description: The account page where a signed-in user registers passkeys and sees the ones already registered
 security:
   - session: [ ]
 paths:
@@ -200,6 +204,28 @@ paths:
               schema:
                 type: string
   # end::logout-page-api[]
+  # tag::passkeys-page-api[]
+  /account/passkeys:
+    get:
+      tags: [ Passkeys page ]
+      operationId: passkeysPage
+      summary: Renders the passkeys account page
+      description: >-
+        Renders the page where the signed-in user names and registers a new passkey (the page script asks the
+        WebAuthn endpoints of the security chain, POST /webauthn/register/options and POST /webauthn/register, never
+        this operation) and sees the passkeys already registered, read only: renaming and deleting them is the
+        bearer-protected REST API (/api/account/passkeys). Like the consent page it needs a session that satisfies the
+        multi-factor policy of the account: a session that only presented the password of an account that still has to
+        complete its second factor is sent to the second-factor page, so it can never register a passkey of its own.
+        A request without a signed-in session is redirected to the sign-in page.
+      responses:
+        '200':
+          description: The passkeys page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::passkeys-page-api[]
 components:
   securitySchemes:
     session:

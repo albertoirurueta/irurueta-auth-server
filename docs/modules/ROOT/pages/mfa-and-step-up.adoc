@@ -13,7 +13,7 @@ A second factor is required when the client asks for it (its `mfaRequired` setti
 on the account (`users.mfa_required`) or when the user has confirmed a second factor: a factor the user enrolled
 protects every sign-in, whatever the client. The administrator flag stays separate, so removing the last second factor
 lifts the requirement only when no administrator set it. "Has a confirmed second factor" asks every
-`SecondFactorEnrolmentQuery` bean (TOTP's is `IsTotpEnabledUseCase`), so a later second factor joins by declaring its
+`SecondFactorEnrolmentQuery` bean (TOTP's is `IsTotpEnabledUseCase`, and the passkeys' is `HasConfirmedPasskeyUseCase`, see xref:passkeys.adoc[]), so a later second factor joins by declaring its
 own.
 
 [source,java]

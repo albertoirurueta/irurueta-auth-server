@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+<!--
+  Passkeys account page (PasskeysPageController). It lists the passkeys registered by the signed-in user, read only,
+  and hosts the registration helper: a name for the new passkey and a button, driven by the script of the passkeys
+  feature through the WebAuthn endpoints of the security chain. Renaming and deleting passkeys is the bearer-protected
+  REST API, which asks for a recent multi-factor sign-in before a deletion.
+-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
+<head>
+  <title th:text="#{passkeys.account.title}">Passkeys</title>
+</head>
+<body>
+<main>
+  <h1 th:text="#{passkeys.account.heading}">Your passkeys</h1>
+  <p th:if="${#lists.isEmpty(passkeys)}" th:text="#{passkeys.account.none}">You have not registered a passkey yet.</p>
+  <ul th:unless="${#lists.isEmpty(passkeys)}" class="passkey-list">
+    <li th:each="passkey : ${passkeys}">
+      <strong th:text="${passkey.label}">Laptop</strong>
+      <span th:text="#{passkeys.account.created(${passkey.createdAt})}">Registered 2026-01-01T00:00:00Z</span>
+      <span th:if="${passkey.lastUsedAt != null}" th:text="#{passkeys.account.lastUsed(${passkey.lastUsedAt})}">
+        Last used 2026-01-02T00:00:00Z</span>
+      <span th:if="${passkey.backedUp}" th:text="#{passkeys.account.synced}">Synced</span>
+    </li>
+  </ul>
+  <!-- tag::passkeys-register-form[] -->
+  <section class="passkey-register" data-passkey-register
+           th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+           th:data-label-message="#{passkeys.account.labelRequired}"
+           th:data-success-message="#{passkeys.account.registered}"
+           th:data-failure-message="#{passkeys.account.failed}">
+    <h2 th:text="#{passkeys.account.add}">Add a passkey</h2>
+    <p>
+      <label for="passkey-label" th:text="#{passkeys.account.label}">Name of the passkey</label>
+      <input type="text" id="passkey-label" name="passkey-label" required maxlength="100" autocomplete="off"
+             data-passkey-label>
+    </p>
+    <button type="button" data-passkey-register-button th:text="#{passkeys.account.register}">Register</button>
+    <p role="status" data-passkey-status hidden></p>
+    <p role="alert" data-passkey-error hidden></p>
+    <script th:src="@{/js/passkeys.js}" defer></script>
+  </section>
+  <!-- end::passkeys-register-form[] -->
+</main>
+</body>
+</html>

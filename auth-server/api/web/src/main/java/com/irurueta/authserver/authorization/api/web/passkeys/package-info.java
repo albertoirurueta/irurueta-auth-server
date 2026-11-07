@@ -15,6 +15,7 @@
  */
 
 /**
- * Passkey (WebAuthn) authentication. Filled by the passkeys issue.
+ * Passkeys (WebAuthn): the factor, the chain wiring, the login and second-factor fragments, the account API and
+ * the account page.
  */
 package com.irurueta.authserver.authorization.api.web.passkeys;

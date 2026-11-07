@@ -77,7 +77,7 @@ class OpenApiConfigTest {
 
         assertEquals(OpenApiConfig.PAGES_GROUP, group.getGroup());
         assertEquals(List.of("/login", "/login/second-factor", "/login/second-factor/recovery-codes", "/oauth2/consent",
-                "/logout"), group.getPathsToMatch());
+                "/logout", "/account/passkeys"), group.getPathsToMatch());
         assertEquals("/v3/api-docs/pages", OpenApiConfig.PAGES_DOCS_PATH);
     }
 

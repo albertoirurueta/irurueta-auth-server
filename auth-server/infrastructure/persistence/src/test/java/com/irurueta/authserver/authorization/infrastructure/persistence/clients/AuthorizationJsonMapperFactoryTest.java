@@ -17,10 +17,16 @@
 package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.authority.FactorGrantedAuthority;
+import org.springframework.security.web.webauthn.api.Bytes;
+import org.springframework.security.web.webauthn.api.ImmutablePublicKeyCredentialUserEntity;
+import org.springframework.security.web.webauthn.authentication.WebAuthnAuthentication;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -47,5 +53,30 @@ class AuthorizationJsonMapperFactoryTest {
         final var json = mapper.writerFor(type).writeValueAsString(claims);
         final var read = mapper.readValue(json, type);
         assertEquals(EPOCH_SECOND, ((Number) read.get("auth_time")).longValue());
+    }
+
+    /**
+     * Verifies that the principal of an authorization started with a passkey, a {@code WebAuthnAuthentication} that
+     * holds a user entity, survives a round trip, with the factor authority it carries.
+     */
+    @Test
+    void create_whenMapHoldsAPasskeyAuthentication_roundTripsIt() {
+        final JsonMapper mapper = factory.create();
+        final var type = new TypeReference<Map<String, Object>>() { };
+        final var entity = ImmutablePublicKeyCredentialUserEntity.builder().name("alice").id(Bytes.random())
+                .displayName("alice").build();
+        final var authentication = new WebAuthnAuthentication(entity,
+                List.of(FactorGrantedAuthority.fromAuthority(FactorGrantedAuthority.WEBAUTHN_AUTHORITY)));
+        final var attributes = new HashMap<String, Object>();
+        attributes.put("principal", authentication);
+
+        final var json = mapper.writerFor(type).writeValueAsString(attributes);
+        final var read = mapper.readValue(json, type);
+
+        final var principal = assertInstanceOf(WebAuthnAuthentication.class, read.get("principal"));
+        assertEquals("alice", principal.getName());
+        assertEquals(entity.getId(), principal.getPrincipal().getId());
+        assertEquals(List.of(FactorGrantedAuthority.WEBAUTHN_AUTHORITY),
+                principal.getAuthorities().stream().map(authority -> authority.getAuthority()).toList());
     }
 }
