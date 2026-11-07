@@ -163,12 +163,14 @@ class PasswordAuthenticationIT {
     }
 
     /**
-     * Removes the CSRF token value from a page.
+     * Removes the CSRF token values from a page: the hidden field of the password form and the attribute with which
+     * the passkey section hands the token to its script.
      *
      * @param html the page.
-     * @return the page without the token value.
+     * @return the page without the token values.
      */
     private static String stripToken(final String html) {
-        return html.replaceAll("name=\"_csrf\" value=\"[^\"]*\"", "name=\"_csrf\"");
+        return html.replaceAll("name=\"_csrf\" value=\"[^\"]*\"", "name=\"_csrf\"")
+                .replaceAll("data-csrf-token=\"[^\"]*\"", "data-csrf-token=\"\"");
     }
 }

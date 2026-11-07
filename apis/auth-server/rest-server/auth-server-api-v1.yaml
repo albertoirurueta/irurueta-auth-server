@@ -37,6 +37,8 @@ tags:
     description: Single-use recovery codes that replace the authenticator app code
   - name: Trusted devices
     description: Browsers on which the second factor is skipped for a limited time
+  - name: Passkeys
+    description: WebAuthn credentials of the authenticated account
   - name: Signing keys
     description: Administration of the signing keys
   - name: Clients
@@ -319,6 +321,93 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  # tag::passkeys-api-contract[]
+  /api/account/passkeys:
+    get:
+      tags: [ Passkeys ]
+      operationId: listPasskeys
+      summary: Lists the passkeys
+      description: Lists the passkeys registered by the authenticated account, never anything of another account.
+      responses:
+        '200':
+          description: The passkeys
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The passkeys, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Passkey'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/passkeys/{id}:
+    patch:
+      tags: [ Passkeys ]
+      operationId: renamePasskey
+      summary: Renames a passkey
+      description: >-
+        Changes the label that identifies the passkey in the list. A passkey of another account is never touched and
+        is answered as not found.
+      parameters:
+        - $ref: '#/components/parameters/PasskeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenamePasskeyRequest'
+      responses:
+        '200':
+          description: The renamed passkey
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passkey'
+        '400':
+          description: >-
+            The identifier is not unpadded base64url (problem type invalid-parameter) or the label is blank or too
+            long once trimmed (problem type invalid-label)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such passkey for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags: [ Passkeys ]
+      operationId: deletePasskey
+      summary: Deletes a passkey
+      description: >-
+        The passkey can no longer be used to sign in. A passkey of another account is never touched and is answered
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470). When the deletion leaves the account without any confirmed second
+        factor, every trusted device of the account is revoked too.
+      parameters:
+        - $ref: '#/components/parameters/PasskeyId'
+      responses:
+        '204':
+          description: Passkey deleted
+        '400':
+          description: The identifier is not unpadded base64url (problem type invalid-parameter)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: No such passkey for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  # end::passkeys-api-contract[]
   # end::totp-api-contract[]
   # tag::clients-api[]
   /api/admin/clients:
@@ -547,6 +636,18 @@ components:
       description: Public identifier of the client.
       schema:
         type: string
+  # tag::passkeys-parameters[]
+    PasskeyId:
+      name: id
+      in: path
+      required: true
+      description: Credential identifier of the passkey, as unpadded base64url.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 1000
+        pattern: '^[A-Za-z0-9_-]+$'
+  # end::passkeys-parameters[]
   headers:
     RetryAfter:
       description: Seconds to wait before retrying; at least 1.
@@ -732,6 +833,54 @@ components:
           format: date-time
           description: When the device stops being trusted.
     # end::totp-schemas[]
+    # tag::passkeys-schemas[]
+    Passkey:
+      type: object
+      description: A WebAuthn credential registered by the account
+      required: [ id, label, createdAt, signatureCount, backupEligible, backedUp ]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '^[A-Za-z0-9_-]+$'
+          description: Credential identifier, as unpadded base64url.
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name that identifies the passkey in the list.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the passkey was registered.
+        lastUsedAt:
+          type: [ string, 'null' ]
+          format: date-time
+          description: When the passkey was last used to authenticate; equal to createdAt until its first use, because the credential store always records a value.
+        signatureCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Signature counter reported by the authenticator at its last use.
+        backupEligible:
+          type: boolean
+          description: Whether the credential may be synchronised (the WebAuthn BE flag).
+        backedUp:
+          type: boolean
+          description: Whether the credential is currently synchronised (the WebAuthn BS flag).
+    RenamePasskeyRequest:
+      type: object
+      description: The new label of a passkey
+      required: [ label ]
+      properties:
+        label:
+          type: string
+          description: New name of the passkey; it must contain a non-blank character.
+          minLength: 1
+          maxLength: 100
+          pattern: '[\s\S]*\S[\s\S]*'
+    # end::passkeys-schemas[]
     # tag::clients-schemas[]
     ClientRequest:
       type: object

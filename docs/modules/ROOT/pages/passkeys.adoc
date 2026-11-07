@@ -1,0 +1,89 @@
+= Passkeys (WebAuthn)
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A passkey is a phishing-resistant credential held by the user's device. It works as a passwordless primary sign-in
+and as the second factor after a password. The ceremonies are Spring Security's own (`http.webAuthn(...)`); this
+server adds the factor registration, the persistence port, the account API and the pages.
+
+== Factor and sign-in
+
+`PasskeyFactor` registers `FACTOR_WEBAUTHN` as a strong primary factor (`amr` value `hwk`), so a passkey alone
+satisfies `MfaPolicy`. After a password, the factors merge and `amr` is `pwd`, `hwk` and `mfa`; see
+xref:mfa-and-step-up.adoc[].
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/passkeys/PasskeyFactor.java[tag=passkeys-factor]
+----
+
+The chain customizer applies the relying party settings, guards the registration endpoints, denies
+`DELETE /webauthn/register/**` (a passkey is removed only through the account API, with step-up) and gives the
+WebAuthn filter the chain's session strategy and a user service that refuses disabled accounts.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/passkeys/PasskeyChainCustomizer.java[tag=passkeys-chain]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/passkeys/PasskeyConfiguration.java[tag=passkeys-chain-customizer]
+----
+
+The login page shows a passkey button and conditional-mediation autofill; the second-factor page offers "use a passkey".
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/passkeys.html[tag=passkeys-login]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/passkeys-second-factor.html[tag=passkeys-second-factor]
+----
+
+== Registration and management
+
+A passkey is registered from `GET /account/passkeys`, which needs a signed-in session, and managed with
+`GET`, `PATCH` and `DELETE /api/account/passkeys` (the `id` is the base64url credential id). Deleting one calls
+`StepUpGuard` while the account has a confirmed second factor.
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/account-passkeys.html[tag=passkeys-register-form]
+----
+
+[source,yaml]
+----
+include::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=passkeys-schemas]
+----
+
+== Settings
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=passkeys-config]
+----
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/passkeys/PasskeyProperties.java[tag=passkeys-properties]
+----
+
+== Database
+
+Migration `V500` (issue #5); see xref:data-model.adoc[].
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V500__webauthn.sql[tag=passkeys-schema]
+----
+
+== Limitations
+
+* Passkey-first sign-up is not possible: registration needs an authenticated session, so an account starts with
+  another primary factor.
+* A passkey-only session gets the password `acr`, so it cannot satisfy the step-up check of the account API.
+* Spring's relying party operations fix user verification to `preferred`.
+* `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.

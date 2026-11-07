@@ -101,6 +101,9 @@ final class RunningAuthServer implements AutoCloseable {
      * Starts the database and the server with extra command-line arguments (for example the redirect URIs of the
      * seeded clients), and waits until the seeded credentials are logged.
      *
+     * The relying party of the passkeys is {@code localhost} (the default) and its allowed origin is the random port
+     * of the server, as browsers only run a WebAuthn ceremony from an origin the server lists.
+     *
      * @param extraArguments arguments added after the default ones, so they win over them.
      * @return the running server.
      * @throws Exception if the container or the server cannot be started.
@@ -115,6 +118,7 @@ final class RunningAuthServer implements AutoCloseable {
                 "--spring.profiles.active=dev",
                 "--spring.docker.compose.enabled=false",
                 "--server.port=" + port,
+                "--authserver.passkeys.allowed-origins=http://localhost:" + port,
                 "--spring.datasource.url=" + postgres.getJdbcUrl(),
                 "--spring.datasource.username=" + postgres.getUsername(),
                 "--spring.datasource.password=" + postgres.getPassword()));
@@ -201,6 +205,27 @@ final class RunningAuthServer implements AutoCloseable {
         final var result = postgres.execInContainer("psql", "-U", postgres.getUsername(), "-d",
                 postgres.getDatabaseName(), "-v", "ON_ERROR_STOP=1", "-c", statement);
         assertEquals(0, result.getExitCode(), result.getStderr());
+    }
+
+    /**
+     * Creates a user that is a copy of the seeded {@code demo} user (same password, authorities, tenant) under another
+     * name, so that a test can change the state of its user (register passkeys, for example) without affecting the
+     * tests that share the server.
+     *
+     * @param username name of the new user; it is also its e-mail local part.
+     * @throws Exception if the statement cannot be run.
+     */
+    void createUserLikeDemo(final String username) throws Exception {
+        sql("WITH src AS (SELECT id, tenant FROM users WHERE username = 'demo'), "
+                + "created AS (INSERT INTO users (id, username, email, email_verified, tenant) "
+                + "SELECT gen_random_uuid(), '" + username + "', '" + username + "@example.com', TRUE, tenant "
+                + "FROM src RETURNING id), "
+                + "granted AS (INSERT INTO user_authorities (user_id, authority) "
+                + "SELECT created.id, ua.authority FROM created, src, user_authorities ua WHERE ua.user_id = src.id "
+                + "RETURNING 1) "
+                + "INSERT INTO user_passwords (user_id, encoded_password) "
+                + "SELECT created.id, up.encoded_password FROM created, src, user_passwords up "
+                + "WHERE up.user_id = src.id");
     }
 
     /**

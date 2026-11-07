@@ -18,6 +18,7 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.clients
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -55,8 +56,8 @@ class JdbcAuthorizationServerConfigurationTest {
      */
     @Test
     void authorizationService_whenCalled_createsService() {
-        assertNotNull(configuration.authorizationService(
-                jdbcTemplate, repository, new AuthorizationJsonMapperFactory()));
+        final var factory = new AuthorizationJsonMapperFactory(List.<AuthorizationJacksonModuleContributor>of());
+        assertNotNull(configuration.authorizationService(jdbcTemplate, repository, factory));
     }
 
     /**

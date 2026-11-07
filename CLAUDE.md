@@ -86,7 +86,7 @@ can be developed in parallel without editing shared files: `…domain.<feature>`
 `clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `social`, `x509`, `implicit`, `account`, `admin`. Each
 placeholder package holds a `package-info.java` saying which issue fills it. `mfa` (factor model, policy, lockout,
 trusted devices, security events, step-up) and `totp` (authenticator-app second factor and recovery codes) are filled
-in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are still placeholders.
+in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509` and `implicit` are still placeholders.
 
 ### Extension points: adding a login method without editing shared files
 
@@ -94,6 +94,11 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
   `@Order`, to the login/UI chain by `SecurityConfig`, **before** its catch-all `anyRequest().authenticated()`, so a
   customizer may still permit its own endpoints. A new method declares one in its own `@Configuration` to enable its
   `HttpSecurity` features (for example `http.oneTimeTokenLogin(...)`); `SecurityConfig` is never edited.
+  **Shared objects are chain-wide**: `PasskeyChainCustomizer` sets the login chain's shared `UserDetailsService` to
+  `AccountStatusUserDetailsService` (which refuses disabled, locked or expired accounts), so every configurer of that
+  chain that reads the shared object (the WebAuthn one today, and a later method's such as one-time tokens) gets the
+  account-status check too. A later login method relies on that instead of setting its own; a customizer that replaces
+  the shared object changes it for every method of the chain.
 - `api.web.login.LoginMethodFragment`: every bean of this type contributes a Thymeleaf fragment (`templateName()`,
   `fragmentName()`, `order()`; `reference()` builds the `template :: fragment` expression) that `LoginController`
   passes to `templates/login.html`, which renders them below the password form.
@@ -103,6 +108,14 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
   `SecurityConfig.authorizationServerSecurityFilterChain`, right after OIDC is enabled. A feature declares one in its
   own `@Configuration` to add a converter or provider to a protocol endpoint (for example `x509` or `implicit`);
   `SecurityConfig` is never edited.
+- `infrastructure.persistence.clients.AuthorizationJacksonModuleContributor` (a functional interface,
+  `JacksonModule module(BasicPolymorphicTypeValidator.Builder validator)`): every bean of this type adds a Jackson
+  module to the mapper of the stored authorizations, built by `AuthorizationJsonMapperFactory`, which creates the
+  contributed modules **before** `SecurityJacksonModules.getModules(...)` so each can allow its types in the validator
+  first. A feature whose authentication or attribute types the framework's modules leave out registers one (the
+  passkeys' `WebauthnJacksonModuleContributor` adds `WebauthnJacksonModule`, or the stored principal of a passkey
+  sign-in could not be read back at the token request); the factory is never edited. It is deliberately **not** a
+  plain `JacksonModule` bean: Spring Boot adds every such bean to the application-wide `JsonMapper`.
 - `api.web.tokens.JwtClaimsContributor` (introduced by the token customisation task): every bean of this type adds
   claims, through `IssuedTokenClaims`, to the access tokens of both formats and to the ID tokens:
   `RolesTenantAudienceTokenCustomizer` (the one `OAuth2TokenCustomizer<JwtEncodingContext>`) applies it to the JWTs and
@@ -130,7 +143,8 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
   - **"The user requires MFA"** (`application.mfa.IsUserMfaRequiredUseCase`) is `users.mfa_required` (forced by an
     administrator, kept separate) **or** "the user has a confirmed second factor"
     (`HasConfirmedSecondFactorUseCase`, which asks every `application.mfa.SecondFactorEnrolmentQuery` bean; TOTP's is
-    `IsTotpEnabledUseCase`). A later second factor (#5 passkeys used as a second factor, #6 one-time tokens, #7
+    `IsTotpEnabledUseCase`; the second one is the passkeys' `HasConfirmedPasskeyUseCase`: a user with a registered passkey
+    requires MFA). A later second factor (#6 one-time tokens, #7
     social/x509 when they act as a second factor) extends it by declaring its own `SecondFactorEnrolmentQuery` bean;
     nothing else is edited. The same query decides whether `StepUpGuard` applies.
   - **Enforcement, already wired**: `MfaLoginChainCustomizer` (a `LoginChainCustomizer`, `@Order(0)`) guards
@@ -190,7 +204,7 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
     secret takes a new purpose label, never the signing-key key. A second-factor filter changes the session id (and renews the CSRF token) on
     success: `TotpChainCustomizer` hands the chain's shared `SessionAuthenticationStrategy`, the form login's, to
     `TotpAuthenticationFilter`.
-  - **How a later factor (for example `passkeys`, `ott`, `social` or `x509`) registers**, with no shared file edited:
+  - **How a later factor (for example `ott`, `social` or `x509`) registers**, with no shared file edited:
     1. an `AuthenticationFactor` bean (a `@Configuration` with a `@Bean` like `TotpFactor`) with its `FACTOR_*`
        authority, `amr` value and strength;
     2. a `LoginChainCustomizer` bean (`@Order` above the existing ones) that permits its own endpoints and adds its
@@ -202,6 +216,52 @@ in every layer (#4); `passkeys`, `ott`, `social`, `x509` and `implicit` are stil
        cases above) and returns the authentication with the factor added through `FactorGrantor` (see
        `TotpAuthenticationProvider`, driven by a `ProviderManager` inside its own filter);
     5. its migration in its own Flyway range. Claims, step-up and the policy then pick the factor up by authority.
+- **Passkeys (`passkeys`, #5)**: the reference for a `PRIMARY_STRONG` factor, built on Spring Security's `http.webAuthn(...)`
+  (no hand-rolled ceremony) and registered through the extension points above. The shared files it still touches,
+  and why: the `pages` group of `OpenApiConfig` (to publish `/account/passkeys`), `application.yml` (the
+  `authserver.passkeys.*` settings), `messages.properties` (the texts of its fragments and page),
+  `PasswordAuthenticationIT` (the login page now carries the passkey fragment), `TotpSecondFactorFragment` and
+  `totp.html` (the TOTP enrolment is not offered to a user whose passkey already completes the second factor), the
+  two API contracts and `apis/README.md`, the poms of `api/web` and `infrastructure/persistence` (the WebAuthn
+  dependency), and the new `AuthorizationJacksonModuleContributor` extension point (added once so the passkeys no
+  longer edit `AuthorizationJsonMapperFactory`).
+  - `PasskeyFactor` (`FACTOR_WEBAUTHN`, `amr` `hwk`, `PRIMARY_STRONG`, so a passkey alone satisfies `MfaPolicy`; after a
+    password it adds to `FACTOR_PASSWORD` because Spring merges the authorities of a re-authentication of the same
+    user name, and `amr` is `pwd`, `hwk`, `mfa`); `PasskeyConfiguration` returns the `PasskeyChainCustomizer`
+    (`LoginChainCustomizer`, `@Order(2)`); `PasskeyLoginMethodFragment` and `PasskeySecondFactorFragment` are the two
+    fragments; `passkeys.js` is the only browser script (conditional-mediation autofill, button, registration).
+  - `PasskeyRegistrationFilter` guards `/webauthn/register/**` with the MFA policy (Spring's creation-options filter answers
+    before the chain's authorization filter). `DELETE /webauthn/register/**` is denied: a passkey is removed only through
+    `DELETE /api/account/passkeys/{id}`, which calls `StepUpGuard`; deleting the last passkey of an account that has no
+    other confirmed second factor revokes its trusted devices (`DeletePasskeyUseCase`, as `DisableTotpUseCase` does).
+    The account page is `GET /account/passkeys`. The URLs of the WebAuthn endpoints reach `passkeys.js` as `data-*`
+    attributes rendered with `@{...}`; the script never redirects after a failed automatic (conditional) sign-in.
+  - **Lockout**: `PasskeySecondFactorLockoutFilter` (built by `PasskeyChainCustomizer`, not a bean; added before
+    `BasicAuthenticationFilter`, where the WebAuthn configurer later puts its authentication filter, so it runs first)
+    answers `401` to `POST /login/webauthn` when the session already holds a signed-in user (the passkey completes a
+    second-factor step) and `CheckSecondFactorLockoutUseCase` reports that user locked; a passwordless sign-in is not
+    affected. Failed passkey assertions are deliberately **not** counted as second-factor failures: an assertion is a
+    signature over a fresh challenge by a key that never leaves the authenticator, so it cannot be guessed, and
+    counting cancelled ceremonies would only let users lock themselves out of their other factors.
+  - `AccountStatusUserDetailsService` wraps the user service of the WebAuthn chain: Spring's provider never checks the
+    account status, so without it a disabled account could sign in (it is the chain's shared `UserDetailsService`, see
+    `LoginChainCustomizer` above). `WebauthnJacksonModuleContributor` (an `AuthorizationJacksonModuleContributor`)
+    adds `WebauthnJacksonModule`, or the stored principal of a passkey sign-in cannot be read back at the token request.
+  - Credentials live in Spring's `JdbcPublicKeyCredentialUserEntityRepository` / `JdbcUserCredentialRepository`
+    (`WebAuthnJdbcConfiguration`); the management API reads them through the domain port `PasskeyRepository`.
+    `Passkey.id` is the base64url credential id and `userId` the WebAuthn user handle, both strings, never uuids.
+    `V500` keeps Spring's columns but makes `user_entities.name` unique and `created`/`last_used`
+    `timestamp with time zone`; `PasskeyRepository.existsForAccount` answers the enrolment query in one statement.
+    A refused label is `InvalidPasskeyLabelException` (`400 invalid-label`), never a bare `IllegalArgumentException`.
+  - Settings: `authserver.passkeys.rp-name`, `rp-id` and `allowed-origins`, bound into `PasskeyProperties` (default
+    `localhost`: a deployment must set its public host).
+  - **Gap, passkey-first sign-up**: not possible with the Spring APIs used. Registration (`/webauthn/register/**`) needs an
+    authenticated session, so a user first signs in with a password (or any other primary factor) and then registers a
+    passkey on `/account/passkeys`; an account cannot be created with a passkey and no password.
+  - **Known limitations** (they need a shared-file or design decision): a passkey-only session gets `acr` = the password URN
+    (`MfaClaimsContributor` reports `mfa` only for two distinct factors), so it cannot satisfy `StepUpGuard` and must
+    re-authenticate with a second factor; `Webauthn4JRelyingPartyOperations` hardcodes user verification to `PREFERRED`;
+    `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.
 - `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
   own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
   and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
@@ -220,7 +280,8 @@ Migrations live in `auth-server/infrastructure/persistence/src/main/resources/db
 (`classpath:db/migration`). The skeleton (#1) uses `V100`–`V199` (`V100` Spring Authorization Server schema, `V101`
 users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens, `V240` authorization creation time,
 `V400` MFA security events, per-user MFA flag and second-factor attempts, `V410` TOTP credentials and recovery codes, `V420`
-trusted devices. Each issue states its own
+trusted devices, `V500` WebAuthn schema (Spring's `user_entities` and `user_credentials`, which already hold `label`,
+`created` and `last_used`). Each issue states its own
 range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
 history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 
@@ -247,7 +308,7 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
   `ClientDtoMapper`) in the api adapter converts between generated DTOs and the domain; problem details go through
   `ProblemJsonExceptionHandler` or the feature's scoped `@RestControllerAdvice`.
 - **HTML pages**: `apis/<app>/web-pages/<app>-pages-v1.yaml` (today `auth-server-pages-v1.yaml`: `/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
   `text/html`; its controller renders the Thymeleaf template with `PageRenderer` (`api.web.pages`), which resolves the
   view with the request's locale, renders it against the current request (CSRF fields, `@{}` links and messages keep
   working) and adds the branding. The pages are published by the springdoc group `pages` (`/v3/api-docs/pages`) and
@@ -258,7 +319,7 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
   `RestDocumentGateway` in `bff/infrastructure/resourceserver`). There is no generic pass-through relay: every
   operation an application exposes is in its own contract.
 - **Exempt** are only the endpoints owned by frameworks: the Spring Security filters (`POST /login`, `POST /logout`,
-  `POST /bff/logout`, `/oauth2/**`, `/login/oauth2/**`), the Spring Authorization Server protocol endpoints
+  `POST /bff/logout`, `/oauth2/**`, `/login/oauth2/**`, and the `webAuthn` ones: `/webauthn/**`, `POST /login/webauthn`), the Spring Authorization Server protocol endpoints
   (`/oauth2/**`, `/.well-known/**`, `/connect/**`, `/userinfo`), Spring Boot's `BasicErrorController` (`/error`,
   customised only through an `ErrorViewResolver` bean) and actuator.
 - Generated code is never committed or edited, and is excluded from Checkstyle, PMD/CPD, SpotBugs, JaCoCo and Sonar.
@@ -387,7 +448,7 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameters, bodies, security, schemas). To change an API or a page, edit the contract; there is nothing else to
   regenerate or commit. springdoc only documents its groups (see each `OpenApiConfig`): `api` (`/api/**` in
   `auth-server` and `resource-server`, `/bff/**` and `/api/**` in `bff`) and, in `auth-server`, `pages` (`/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 

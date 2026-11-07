@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
 
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.jackson.SecurityJacksonModules;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
@@ -26,20 +27,27 @@ import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
  *
  * <p>It is the framework's own mapper with {@link Long} added to the allowed types, because claims such as
  * {@code auth_time} are numeric dates that the polymorphic type validator would otherwise reject when an
- * authorization is read back.
+ * authorization is read back. Every {@link AuthorizationJacksonModuleContributor} bean adds its module too.
  */
 @Component
+@RequiredArgsConstructor
 public class AuthorizationJsonMapperFactory {
 
+    /** Contributors of the modules the framework's security modules do not include. */
+    private final List<AuthorizationJacksonModuleContributor> contributors;
+
     /**
-     * Creates the mapper.
+     * Creates the mapper. The contributed modules are created first, so each has configured the type validator
+     * before the framework's modules are created with it.
      *
-     * @return a mapper with the framework's security modules and {@link Long} allowed.
+     * @return a mapper with the framework's security modules and the contributed ones, and {@link Long} allowed.
      */
     public JsonMapper create() {
         final var validator = BasicPolymorphicTypeValidator.builder().allowIfSubType(Long.class);
+        final var contributed = contributors.stream().map(contributor -> contributor.module(validator)).toList();
         return JsonMapper.builder()
                 .addModules(SecurityJacksonModules.getModules(getClass().getClassLoader(), validator))
+                .addModules(contributed)
                 .build();
     }
 }
