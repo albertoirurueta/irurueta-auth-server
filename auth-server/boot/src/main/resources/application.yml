@@ -142,9 +142,11 @@ authserver:
     verification-code-ttl: PT10M
     verification-max-attempts: 5
     ledger-retention: P2D
-    # Which gateway sends the messages is chosen with a Spring profile, never with a property: no profile logs the
-    # message to a bounded in-memory outbox (the dev profile shows it at /dev/sms-inbox), "twilio" sends through Twilio
-    # (application-twilio.yml) and "sns" through Amazon SNS (application-sns.yml, default AWS credential chain).
+    # Which gateway sends the messages is chosen with a Spring profile, never with a property: "twilio" sends through
+    # Twilio (application-twilio.yml) and "sns" through Amazon SNS (application-sns.yml, default AWS credential chain);
+    # only "dev" and "test" log the message to a bounded in-memory outbox (the dev profile shows it at
+    # /dev/sms-inbox). With none of these profiles the application refuses to start, so a deployment never silently
+    # keeps its messages in memory.
   # end::sms-config[]
   oidc:
     client-registration:

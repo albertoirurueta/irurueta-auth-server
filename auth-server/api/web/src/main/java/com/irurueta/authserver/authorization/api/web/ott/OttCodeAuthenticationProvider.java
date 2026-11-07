@@ -18,7 +18,9 @@ package com.irurueta.authserver.authorization.api.web.ott;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.application.ott.OttVerificationResult;
 import com.irurueta.authserver.authorization.application.ott.VerifyOneTimeCodeUseCase;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
 import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
+import java.util.EnumSet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -60,7 +62,7 @@ public class OttCodeAuthenticationProvider implements AuthenticationProvider {
     public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
         final var request = (OttCodeAuthenticationToken) authentication;
         final var result = verifyOneTimeCodeUseCase.execute(request.bindingId(), request.getPrincipal(),
-                request.getCredentials(), OttPurpose.LOGIN);
+                request.getCredentials(), OttPurpose.LOGIN, EnumSet.allOf(OttChannel.class));
         if (result.status() == OttVerificationResult.Status.LOCKED) {
             throw new LockedException("The second factor is locked");
         }

@@ -37,9 +37,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * <ul>
  * <li>a link requested for a sign-in answers with the user's authentication plus {@code FACTOR_OTT};</li>
  * <li>a link requested as a second factor is refused unless the session that confirms it is the signed-in session of
- * the same user, with a primary factor that is not the e-mail channel itself; it then answers with the second-factor
- * authority of the e-mail channel, and Spring Security's authentication filter merges it with the factors the session
- * holds.</li>
+ * the same user, with a primary factor, and {@link OttSecondFactorChannels} allows the e-mail channel for that session
+ * (it did not sign the user in, and the user has no other confirmed second factor); it then answers with the
+ * second-factor authority of the e-mail channel, and Spring Security's authentication filter merges it with the
+ * factors the session holds.</li>
  * </ul>
  * Links are delivered by e-mail only. The account is loaded through the user service of the chain, which refuses a
  * disabled, locked or expired account.
@@ -58,6 +59,9 @@ public class OttLinkAuthenticationProvider implements AuthenticationProvider {
 
     /** Rules about the session a second factor is presented in. */
     private final PrimaryFactorSession primaryFactorSession;
+
+    /** Decides which channels may be the second factor of the user. */
+    private final OttSecondFactorChannels secondFactorChannels;
 
     /**
      * Consumes the token and builds the authentication.
@@ -104,13 +108,13 @@ public class OttLinkAuthenticationProvider implements AuthenticationProvider {
      * Requires the current session to be the signed-in session of a user who still has to present a second factor.
      *
      * @param username the user the link was requested for.
-     * @throws BadCredentialsException if the session is another user's, holds no primary factor, or signed in through
-     *                                 the e-mail channel the link was delivered by.
+     * @throws BadCredentialsException if the session is another user's, holds no primary factor, or may not use the
+     *                                 e-mail channel the link was delivered by as its second factor.
      */
     private void requirePrimaryFactorSessionOf(final String username) {
         final var current = SecurityContextHolder.getContext().getAuthentication();
         if (!primaryFactorSession.holdsPrimaryFactor(current) || !username.equals(current.getName())
-                || primaryFactorSession.signedInThrough(current, OttChannel.EMAIL)) {
+                || !secondFactorChannels.isAllowed(current, OttChannel.EMAIL)) {
             throw new BadCredentialsException("A second-factor link only works in the session it was requested in");
         }
     }

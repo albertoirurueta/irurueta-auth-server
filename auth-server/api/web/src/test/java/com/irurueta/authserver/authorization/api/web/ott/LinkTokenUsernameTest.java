@@ -69,6 +69,22 @@ class LinkTokenUsernameTest {
         assertEquals(LinkTokenUsername.MAX_LENGTH, stored.length());
     }
 
+    /** A user name fits a second-factor link only when the marker still leaves room for all of it. */
+    @Test
+    void fitsSecondFactorLink_whenTheNameIsShortEnoughOrNot_tellsWhetherItFits() {
+        assertTrue(LinkTokenUsername.fitsSecondFactorLink("a".repeat(LinkTokenUsername.MAX_SECOND_FACTOR_LENGTH)));
+        assertFalse(LinkTokenUsername.fitsSecondFactorLink("a".repeat(LinkTokenUsername.MAX_LENGTH)));
+        assertFalse(LinkTokenUsername.fitsSecondFactorLink(null));
+    }
+
+    /** The longest user name that fits keeps every character next to the marker. */
+    @Test
+    void forLink_whenTheNameFitsASecondFactorLink_keepsItWhole() {
+        final var name = "a".repeat(LinkTokenUsername.MAX_SECOND_FACTOR_LENGTH);
+
+        assertEquals(name, LinkTokenUsername.identifierOf(LinkTokenUsername.forLink(name, true)));
+    }
+
     /** A plain or empty stored value is not a second-factor one. */
     @Test
     void isSecondFactor_whenPlainOrEmpty_isFalse() {

@@ -24,15 +24,19 @@ import java.lang.annotation.Target;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Meta-annotation for integration tests backed by a PostgreSQL Testcontainers container.
- * Annotating an {@code *IT} class with it starts a Spring Boot test context wired to the container.
+ * Annotating an {@code *IT} class with it starts a Spring Boot test context wired to the container, with the
+ * {@code test} profile active (it selects test-only adapters, such as the logging SMS sender of {@code auth-server},
+ * which a deployment never gets by default). A test class that declares {@code @ActiveProfiles} itself replaces it.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @SpringBootTest
+@ActiveProfiles("test")
 @Import({PostgresTestConfiguration.class, KeyEncryptionTestConfiguration.class})
 public @interface PostgresIT {
 

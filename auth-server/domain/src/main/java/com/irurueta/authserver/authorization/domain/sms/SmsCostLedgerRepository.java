@@ -15,7 +15,6 @@
  */
 package com.irurueta.authserver.authorization.domain.sms;
 
-import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -24,15 +23,19 @@ import java.time.Instant;
 public interface SmsCostLedgerRepository {
 
     /**
-     * Records a message and returns what was spent in a window that ends at the message, the message included.
+     * Records a message only when it keeps the spend within both caps, atomically: of concurrent callers, the ones
+     * whose messages would together exceed a cap are refused, so a budget is never overshot. Nothing is recorded for a
+     * refused message. It runs in the caller's transaction and the reservation is kept only if that transaction
+     * commits.
      *
      * @param sentAt     instant of the message.
      * @param country    ISO 3166-1 alpha-2 code of the destination country.
      * @param costMicros cost of the message, in millionths of the budget currency.
-     * @param window     length of the window that ends at {@code sentAt}.
-     * @return total cost recorded in {@code (sentAt - window, sentAt]}, in millionths of the budget currency.
+     * @param windowCap  cap of the short window that ends at {@code sentAt}.
+     * @param dailyCap   cap of the day that ends at {@code sentAt}.
+     * @return {@code true} when the message was recorded; {@code false} when it would exceed a cap.
      */
-    long recordAndGetSpend(Instant sentAt, String country, long costMicros, Duration window);
+    boolean tryRecord(Instant sentAt, String country, long costMicros, SmsSpendCap windowCap, SmsSpendCap dailyCap);
 
     /**
      * Deletes the entries older than an instant.

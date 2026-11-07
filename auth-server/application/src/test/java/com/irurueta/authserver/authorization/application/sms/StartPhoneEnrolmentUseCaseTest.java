@@ -28,11 +28,11 @@ import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeGenerator;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
+import com.irurueta.authserver.authorization.domain.sms.PhoneCountryResolver;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNormalizer;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
 import com.irurueta.authserver.authorization.domain.sms.PhoneVerification;
 import com.irurueta.authserver.authorization.domain.sms.PhoneVerificationRepository;
-import com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException;
 import com.irurueta.authserver.authorization.domain.sms.UserPhone;
 import com.irurueta.authserver.authorization.domain.sms.UserPhoneRepository;
 import java.time.Clock;
@@ -204,19 +204,18 @@ class StartPhoneEnrolmentUseCaseTest {
     }
 
     /**
-     * Verifies that an exhausted budget and a provider failure are not reported.
+     * Verifies that an exhausted budget is not reported. (A provider failure cannot reach the use case: the message is
+     * sent after the transaction commits.)
      */
     @Test
-    void execute_whenSendingIsRefusedOrFails_returnsSameResult() {
+    void execute_whenSendingIsRefused_returnsSameResult() {
         stubNumber();
         stubCode();
         when(clock.instant()).thenReturn(NOW);
         when(userPhoneRepository.findByPhone(PHONE)).thenReturn(Optional.empty());
-        doThrow(new SmsBudgetExceededException(),
-                new SmsDeliveryException("provider down", new IllegalStateException()))
+        doThrow(new SmsBudgetExceededException())
                 .when(sendSmsOneTimeCodeUseCase).execute(any(PhoneNumber.class), anyString());
 
-        assertEquals(new PhoneEnrolmentStarted(TTL), useCase.execute(USER_ID, TYPED));
         assertEquals(new PhoneEnrolmentStarted(TTL), useCase.execute(USER_ID, TYPED));
     }
 

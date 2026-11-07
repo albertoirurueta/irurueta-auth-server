@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.irurueta.authserver.authorization.application.sms;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.domain.sms.PhoneCountryResolver;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
 import com.irurueta.authserver.authorization.domain.sms.SmsCostLedgerRepository;
 import com.irurueta.authserver.authorization.domain.sms.SmsCostPolicy;
-import com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException;
-import com.irurueta.authserver.authorization.domain.sms.SmsSender;
+import com.irurueta.authserver.authorization.domain.sms.SmsSpendCap;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -44,6 +38,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Unit tests of {@link SendSmsOneTimeCodeUseCase}.
@@ -84,9 +79,9 @@ class SendSmsOneTimeCodeUseCaseTest {
     @Mock
     private SmsCostLedgerRepository smsCostLedgerRepository;
 
-    /** Port that sends the message. */
+    /** Publishes the request to send the message. */
     @Mock
-    private SmsSender smsSender;
+    private ApplicationEventPublisher eventPublisher;
 
     /** Source of the current time. */
     @Mock
@@ -97,23 +92,22 @@ class SendSmsOneTimeCodeUseCaseTest {
     private SendSmsOneTimeCodeUseCase useCase;
 
     /**
-     * Verifies that a message within both caps is recorded once with its cost and sent.
+     * Verifies that a message within both caps is recorded once, atomically, with its cost and the caps of the policy,
+     * and then requested through an event instead of being sent inside the transaction.
      */
     @Test
-    void execute_whenWithinCaps_recordsCostAndSends() {
-        stubCountry();
-        when(clock.instant()).thenReturn(NOW);
-        when(smsCostLedgerRepository.recordAndGetSpend(NOW, "ES", 0L, WINDOW)).thenReturn(WINDOW_CAP - COST);
-        when(smsCostLedgerRepository.recordAndGetSpend(NOW, "ES", 0L, Duration.ofDays(1))).thenReturn(DAY_CAP - COST);
+    void execute_whenWithinCaps_recordsCostAndRequestsTheMessage() {
+        stubLedger(true);
 
         useCase.execute(TO, TEXT);
 
-        verify(smsCostLedgerRepository).recordAndGetSpend(NOW, "ES", COST, WINDOW);
-        verify(smsSender).send(TO, TEXT);
+        verify(smsCostLedgerRepository).tryRecord(NOW, "ES", COST, new SmsSpendCap(WINDOW, WINDOW_CAP),
+                new SmsSpendCap(SmsCostPolicy.DAY, DAY_CAP));
+        verify(eventPublisher).publishEvent(new SmsRequested(TO, TEXT));
     }
 
     /**
-     * Verifies that an unknown country is refused before anything is recorded or sent.
+     * Verifies that an unknown country is refused before anything is recorded or requested.
      */
     @Test
     void execute_whenCountryIsUnknown_throwsSmsCountryNotAllowedException() {
@@ -121,7 +115,7 @@ class SendSmsOneTimeCodeUseCaseTest {
 
         assertThrows(SmsCountryNotAllowedException.class, () -> useCase.execute(TO, TEXT));
 
-        verifyNoInteractions(smsCostLedgerRepository, smsSender);
+        verifyNoInteractions(smsCostLedgerRepository, eventPublisher);
     }
 
     /**
@@ -133,64 +127,31 @@ class SendSmsOneTimeCodeUseCaseTest {
 
         assertThrows(SmsCountryNotAllowedException.class, () -> useCase.execute(TO, TEXT));
 
-        verifyNoInteractions(smsCostLedgerRepository, smsSender);
+        verifyNoInteractions(smsCostLedgerRepository, eventPublisher);
     }
 
     /**
-     * Verifies that exceeding the window cap refuses the message and records no spend.
+     * Verifies that a message the ledger refuses (a cap would be exceeded) is refused and never requested.
      */
     @Test
-    void execute_whenWindowCapWouldBeExceeded_throwsSmsBudgetExceededException() {
-        stubCountry();
-        when(clock.instant()).thenReturn(NOW);
-        when(smsCostLedgerRepository.recordAndGetSpend(NOW, "ES", 0L, WINDOW)).thenReturn(WINDOW_CAP - COST + 1);
-        when(smsCostLedgerRepository.recordAndGetSpend(NOW, "ES", 0L, Duration.ofDays(1))).thenReturn(0L);
-
-        assertThrows(SmsBudgetExceededException.class, () -> useCase.execute(TO, TEXT));
-
-        verify(smsCostLedgerRepository, never()).recordAndGetSpend(NOW, "ES", COST, WINDOW);
-        verifyNoInteractions(smsSender);
-    }
-
-    /**
-     * Verifies that exceeding the daily cap refuses the message and records no spend.
-     */
-    @Test
-    void execute_whenDailyCapWouldBeExceeded_throwsSmsBudgetExceededException() {
-        stubCountry();
-        when(clock.instant()).thenReturn(NOW);
-        when(smsCostLedgerRepository.recordAndGetSpend(NOW, "ES", 0L, WINDOW)).thenReturn(0L);
-        when(smsCostLedgerRepository.recordAndGetSpend(NOW, "ES", 0L, Duration.ofDays(1)))
-                .thenReturn(DAY_CAP - COST + 1);
+    void execute_whenACapWouldBeExceeded_throwsSmsBudgetExceededException() {
+        stubLedger(false);
 
         final var error = assertThrows(SmsBudgetExceededException.class, () -> useCase.execute(TO, TEXT));
 
         assertFalse(error.getMessage().contains(TO.e164()));
-        verify(smsCostLedgerRepository, never()).recordAndGetSpend(NOW, "ES", COST, WINDOW);
-        verifyNoInteractions(smsSender);
+        verifyNoInteractions(eventPublisher);
     }
 
     /**
-     * Verifies that a provider failure propagates as is.
+     * Stubs the country of the destination as Spain, the clock and the answer of the ledger.
+     *
+     * @param withinCaps whether the ledger records the message.
      */
-    @Test
-    void execute_whenProviderFails_propagatesSmsDeliveryException() {
-        stubCountry();
-        when(clock.instant()).thenReturn(NOW);
-        when(smsCostLedgerRepository.recordAndGetSpend(eq(NOW), eq("ES"), eq(0L), any()))
-                .thenReturn(0L);
-        final var failure = new SmsDeliveryException("provider down", new IllegalStateException());
-        doThrow(failure).when(smsSender).send(TO, TEXT);
-
-        final var thrown = assertThrows(SmsDeliveryException.class, () -> useCase.execute(TO, TEXT));
-
-        assertSame(failure, thrown);
-    }
-
-    /**
-     * Stubs the country of the destination as Spain.
-     */
-    private void stubCountry() {
+    private void stubLedger(final boolean withinCaps) {
         when(phoneCountryResolver.countryOf(TO)).thenReturn(Optional.of("ES"));
+        when(clock.instant()).thenReturn(NOW);
+        when(smsCostLedgerRepository.tryRecord(NOW, "ES", COST, new SmsSpendCap(WINDOW, WINDOW_CAP),
+                new SmsSpendCap(SmsCostPolicy.DAY, DAY_CAP))).thenReturn(withinCaps);
     }
 }

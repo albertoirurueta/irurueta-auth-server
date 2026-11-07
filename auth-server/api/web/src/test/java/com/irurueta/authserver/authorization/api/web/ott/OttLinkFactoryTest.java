@@ -16,9 +16,11 @@
 package com.irurueta.authserver.authorization.api.web.ott;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.URI;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 
 /** Unit tests of {@link OttLinkFactory}. */
 class OttLinkFactoryTest {
@@ -26,7 +28,7 @@ class OttLinkFactoryTest {
     /** The link points at the confirmation page of the issuer and carries the token. */
     @Test
     void confirmationLink_whenCalled_pointsAtTheConfirmationPageOfTheIssuer() {
-        final var link = new OttLinkFactory("https://auth.example.com").confirmationLink("abc-123");
+        final var link = new OttLinkFactory(settings("https://auth.example.com")).confirmationLink("abc-123");
 
         assertEquals(URI.create("https://auth.example.com/login/ott/confirm?token=abc-123"), link);
     }
@@ -34,8 +36,26 @@ class OttLinkFactoryTest {
     /** An issuer with a path keeps it. */
     @Test
     void confirmationLink_whenIssuerHasAPath_keepsIt() {
-        final var link = new OttLinkFactory("http://localhost:9000/auth").confirmationLink("t");
+        final var link = new OttLinkFactory(settings("http://localhost:9000/auth")).confirmationLink("t");
 
         assertEquals(URI.create("http://localhost:9000/auth/login/ott/confirm?token=t"), link);
+    }
+
+    /** Settings without an issuer are refused, so a link is never built from the request. */
+    @Test
+    void constructor_whenIssuerIsMissing_throwsIllegalStateException() {
+        final var settings = AuthorizationServerSettings.builder().build();
+
+        assertThrows(IllegalStateException.class, () -> new OttLinkFactory(settings));
+    }
+
+    /**
+     * Builds the settings of an authorization server.
+     *
+     * @param issuer the issuer.
+     * @return the settings.
+     */
+    private static AuthorizationServerSettings settings(final String issuer) {
+        return AuthorizationServerSettings.builder().issuer(issuer).build();
     }
 }

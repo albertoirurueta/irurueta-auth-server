@@ -18,7 +18,7 @@ package com.irurueta.authserver.authorization.infrastructure.sms;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.irurueta.authserver.authorization.application.sms.PhoneCountryResolver;
+import com.irurueta.authserver.authorization.domain.sms.PhoneCountryResolver;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

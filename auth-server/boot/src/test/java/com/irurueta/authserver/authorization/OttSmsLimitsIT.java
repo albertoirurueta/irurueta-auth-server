@@ -30,7 +30,8 @@ import org.springframework.test.context.TestPropertySource;
 /**
  * Checks the limits that protect the SMS bill, with settings that make them easy to reach: a message to a country
  * that is not on the allow-list is never sent (neither as a sign-in code nor as the verification code of a phone being
- * enrolled), and once the spend of the window reaches its cap no more messages are sent, while every request is still
+ * enrolled), and once the spend of the window reaches its cap no more messages are sent (the cap is checked, and the
+ * cost recorded, atomically before the message is handed to the sender), while every request is still
  * answered the same so nothing is revealed. Only one test sends messages, because the spend is kept for the whole
  * application context.
  */
@@ -97,6 +98,9 @@ class OttSmsLimitsIT extends AbstractOttFlow {
             requestToken(new MockHttpSession(), owner.user().username(), "sms", "code", "login");
         }
 
+        for (final var owner : owners.subList(0, AFFORDABLE)) {
+            assertEquals(1L, awaitSmsCount(owner.phone(), 1L));
+        }
         final var sent = owners.stream().mapToLong(owner -> smsCount(owner.phone())).sum();
         assertEquals(AFFORDABLE, sent);
         assertEquals(0L, smsCount(owners.getLast().phone()));

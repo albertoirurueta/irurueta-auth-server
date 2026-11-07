@@ -446,7 +446,9 @@ paths:
         enrolment is pending until it is confirmed with the code on POST /api/account/phone/verify; starting it again
         replaces the pending one. The answer is the same whether or not the number already belongs to another
         account, and in that case no message is sent, so the endpoint never reveals which numbers are registered.
-        Limited per client address and per account.
+        The message is sent after the answer, so a slow or failing SMS gateway never shows in it. Limited per client
+        address and per account. While the account has a confirmed second factor (the new number would replace the
+        verified one), the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
       requestBody:
         required: true
         content:
@@ -470,7 +472,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/StepUpRequired'
         '429':
           $ref: '#/components/responses/TooManyRequests'
     delete:
@@ -479,7 +481,8 @@ paths:
       summary: Removes the phone number
       description: >-
         Removes the verified phone number and any pending verification of the authenticated account, so SMS codes can
-        no longer be used. Removing a phone that is not set succeeds as well. While the account has a confirmed second
+        no longer be used, and audits the removal; when the account is then left without any confirmed second factor,
+        every trusted device of the account is revoked. Removing a phone that is not set succeeds as well. While the account has a confirmed second
         factor, the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
       responses:
         '204':
@@ -494,7 +497,8 @@ paths:
       description: >-
         Checks the code against the pending verification of the authenticated account. A correct code makes the
         number the verified phone of the account; a wrong one counts as an attempt, and the verification is discarded
-        after too many. Limited per client address and per account.
+        after too many. A number that replaces another verified one is audited as the removal of a second factor and
+        revokes every trusted device of the account. Limited per client address and per account.
       requestBody:
         required: true
         content:

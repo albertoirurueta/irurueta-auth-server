@@ -38,8 +38,9 @@ import org.springframework.web.bind.annotation.RestController;
  * The paths, status codes and bodies are those of the contract {@code apis/auth-server/rest-server/
  * auth-server-api-v1.yaml}, through the generated {@link PhoneApi}; failures are answered by
  * {@link OttExceptionHandler}. Starting an enrolment and verifying it spend SMS budget and guess a code, so both are
- * limited per client address and per account ({@link OttRateLimiter}). Removing the phone needs a recent multi-factor
- * sign-in ({@link StepUpGuard}).
+ * limited per client address and per account ({@link OttRateLimiter}). Starting an enrolment (which may replace the
+ * verified phone, a second factor) and removing the phone need a recent multi-factor sign-in while the account has a
+ * confirmed second factor ({@link StepUpGuard}).
  */
 @RestController
 @RequiredArgsConstructor
@@ -63,7 +64,7 @@ public class PhoneController implements PhoneApi {
     /** Removes the phone. */
     private final RemovePhoneUseCase removePhoneUseCase;
 
-    /** Requires a recent multi-factor sign-in before the phone is removed. */
+    /** Requires a recent multi-factor sign-in before the phone is replaced or removed. */
     private final StepUpGuard stepUpGuard;
 
     /** Limits the requests. */
@@ -93,12 +94,15 @@ public class PhoneController implements PhoneApi {
      *
      * @param startPhoneEnrolmentRequest the number.
      * @return {@code 202 Accepted} with how long the code stays valid.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException if the account
+     *         has a confirmed second factor and the token does not show a recent multi-factor sign-in.
      * @throws OttRateLimitExceededException if the client or the account asked too many times.
      */
     @Override
     public ResponseEntity<PhoneEnrolmentResponse> startPhoneEnrolment(
             final StartPhoneEnrolmentRequest startPhoneEnrolmentRequest) {
         final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
         rateLimiter.checkGeneration(request.getRemoteAddr(), ACCOUNT_KEY_PREFIX + account.id());
         final var started = startPhoneEnrolmentUseCase.execute(account.id(), startPhoneEnrolmentRequest.phone());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(phoneDtoMapper.toResponse(started));
@@ -116,7 +120,7 @@ public class PhoneController implements PhoneApi {
     public ResponseEntity<PhoneResponse> verifyPhone(final VerifyPhoneRequest verifyPhoneRequest) {
         final var account = currentAccountResolver.resolve();
         rateLimiter.checkVerification(request.getRemoteAddr(), ACCOUNT_KEY_PREFIX + account.id());
-        if (!confirmPhoneUseCase.execute(account.id(), verifyPhoneRequest.code())) {
+        if (!confirmPhoneUseCase.execute(account.id(), account.username(), verifyPhoneRequest.code())) {
             throw new InvalidPhoneCodeException();
         }
         final var phone = findUserPhoneUseCase.execute(account.id()).orElseThrow(PhoneNotFoundException::new);
@@ -134,7 +138,7 @@ public class PhoneController implements PhoneApi {
     public ResponseEntity<Void> removePhone() {
         final var account = currentAccountResolver.resolve();
         stepUpGuard.requireRecentMultiFactor(account.id());
-        removePhoneUseCase.execute(account.id());
+        removePhoneUseCase.execute(account.id(), account.username());
         return ResponseEntity.noContent().build();
     }
 }

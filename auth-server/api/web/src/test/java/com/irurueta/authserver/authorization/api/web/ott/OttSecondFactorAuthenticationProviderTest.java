@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.irurueta.authserver.authorization.api.web.mfa.AuthenticationFactorRegistry;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.application.ott.OttVerificationResult;
 import com.irurueta.authserver.authorization.application.ott.VerifyOneTimeCodeUseCase;
@@ -30,6 +29,7 @@ import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,26 +52,33 @@ class OttSecondFactorAuthenticationProviderTest {
     /** The code. */
     private static final String CODE = "123456";
 
+    /** Every channel. */
+    private static final Set<OttChannel> ALL = EnumSet.allOf(OttChannel.class);
+
     /** Verifies the code. */
     @Mock
     private VerifyOneTimeCodeUseCase verifyOneTimeCodeUseCase;
 
+    /** Decides which channels may be the second factor. */
+    @Mock
+    private OttSecondFactorChannels secondFactorChannels;
+
     /** Provider under test. */
     private OttSecondFactorAuthenticationProvider provider;
 
-    /** Creates the provider over a real grantor and rules. */
+    /** Creates the provider over a real grantor. */
     @BeforeEach
     void setUp() {
         provider = new OttSecondFactorAuthenticationProvider(verifyOneTimeCodeUseCase,
-                new FactorGrantor(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)),
-                new PrimaryFactorSession(new AuthenticationFactorRegistry(List.of())));
+                new FactorGrantor(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)), secondFactorChannels);
     }
 
     /** A correct e-mail code adds the e-mail second factor to what the user holds. */
     @Test
     void authenticate_whenAnEmailCodeIsCorrect_addsTheEmailSecondFactor() {
         final var primary = primary("FACTOR_PASSWORD");
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR))
+        when(secondFactorChannels.allowed(primary)).thenReturn(ALL);
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR, ALL))
                 .thenReturn(OttVerificationResult.success(OttChannel.EMAIL));
 
         final var result = provider.authenticate(new OttSecondFactorToken(primary, CODE, "binding"));
@@ -83,7 +90,8 @@ class OttSecondFactorAuthenticationProviderTest {
     @Test
     void authenticate_whenAnSmsCodeIsCorrect_addsTheSmsSecondFactor() {
         final var primary = primary("FACTOR_PASSWORD");
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR))
+        when(secondFactorChannels.allowed(primary)).thenReturn(ALL);
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR, ALL))
                 .thenReturn(OttVerificationResult.success(OttChannel.SMS));
 
         final var result = provider.authenticate(new OttSecondFactorToken(primary, CODE, "binding"));
@@ -95,7 +103,8 @@ class OttSecondFactorAuthenticationProviderTest {
     @Test
     void authenticate_whenTheCodeIsWrong_throwsBadCredentialsException() {
         final var primary = primary("FACTOR_PASSWORD");
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR))
+        when(secondFactorChannels.allowed(primary)).thenReturn(ALL);
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR, ALL))
                 .thenReturn(OttVerificationResult.failure());
         final var request = new OttSecondFactorToken(primary, CODE, "binding");
 
@@ -106,19 +115,25 @@ class OttSecondFactorAuthenticationProviderTest {
     @Test
     void authenticate_whenTheSecondFactorIsLocked_throwsLockedException() {
         final var primary = primary("FACTOR_PASSWORD");
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR))
+        when(secondFactorChannels.allowed(primary)).thenReturn(ALL);
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR, ALL))
                 .thenReturn(OttVerificationResult.locked());
         final var request = new OttSecondFactorToken(primary, CODE, "binding");
 
         assertThrows(LockedException.class, () -> provider.authenticate(request));
     }
 
-    /** The channel that signed the user in cannot be the second factor. */
+    /**
+     * Only the allowed channels are handed to the verification, before the code is compared: a code of another channel
+     * (here the e-mail that signed the user in) is a failure counted by the use case, and refused.
+     */
     @Test
-    void authenticate_whenTheChannelSignedTheUserIn_throwsBadCredentialsException() {
+    void authenticate_whenTheChannelIsNotAllowed_passesTheAllowedChannelsAndThrowsBadCredentialsException() {
         final var primary = primary("FACTOR_OTT");
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR))
-                .thenReturn(OttVerificationResult.success(OttChannel.EMAIL));
+        final var allowed = EnumSet.of(OttChannel.SMS);
+        when(secondFactorChannels.allowed(primary)).thenReturn(allowed);
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.SECOND_FACTOR, allowed))
+                .thenReturn(OttVerificationResult.failure());
         final var request = new OttSecondFactorToken(primary, CODE, "binding");
 
         assertThrows(BadCredentialsException.class, () -> provider.authenticate(request));

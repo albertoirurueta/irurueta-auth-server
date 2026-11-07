@@ -23,10 +23,9 @@ import static org.mockito.Mockito.mock;
 import com.irurueta.authserver.authorization.api.web.mfa.AuthenticationFactorRegistry;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.application.ott.RequestMagicLinkUseCase;
 import com.irurueta.authserver.authorization.application.ott.RequestOneTimeCodeUseCase;
-import com.irurueta.authserver.authorization.application.ott.ResolveOttDestinationUseCase;
 import com.irurueta.authserver.authorization.application.ott.VerifyOneTimeCodeUseCase;
-import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
 import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
 import java.time.Duration;
 import java.util.List;
@@ -75,15 +74,16 @@ class OttConfigurationTest {
     @Test
     void ottGenerationSuccessHandler_whenCalled_returnsTheHandler() {
         assertNotNull(configuration.ottGenerationSuccessHandler(mock(RequestOneTimeCodeUseCase.class),
-                mock(ResolveOttDestinationUseCase.class), mock(OttDelivery.class), tokenService, policy,
-                mock(OttLinkFactory.class)));
+                mock(RequestMagicLinkUseCase.class), tokenService, mock(OttLinkFactory.class),
+                mock(OttSecondFactorChannels.class)));
     }
 
     /** The three providers are built and kept together. */
     @Test
     void ottProviders_whenCalled_returnsTheThreeProviders() {
         final var providers = configuration.ottProviders(tokenService, mock(UserDetailsService.class),
-                mock(VerifyOneTimeCodeUseCase.class), mock(FactorGrantor.class), primaryFactorSession);
+                mock(VerifyOneTimeCodeUseCase.class), mock(FactorGrantor.class), primaryFactorSession,
+                mock(OttSecondFactorChannels.class));
 
         assertInstanceOf(OttLinkAuthenticationProvider.class, providers.link());
         assertInstanceOf(OttCodeAuthenticationProvider.class, providers.code());
@@ -94,7 +94,8 @@ class OttConfigurationTest {
     @Test
     void ottChainCustomizer_whenCalled_returnsTheCustomizerOrderedAfterThePasskeyOne() throws Exception {
         final var providers = configuration.ottProviders(tokenService, mock(UserDetailsService.class),
-                mock(VerifyOneTimeCodeUseCase.class), mock(FactorGrantor.class), primaryFactorSession);
+                mock(VerifyOneTimeCodeUseCase.class), mock(FactorGrantor.class), primaryFactorSession,
+                mock(OttSecondFactorChannels.class));
 
         final var customizer = configuration.ottChainCustomizer(mock(OttRateLimiter.class),
                 configuration.ottGenerateRequestResolver(policy), mock(OttGenerationSuccessHandler.class),

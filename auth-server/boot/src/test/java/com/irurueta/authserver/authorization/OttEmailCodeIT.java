@@ -16,6 +16,7 @@
 package com.irurueta.authserver.authorization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,15 +24,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
+import com.irurueta.authserver.authorization.domain.totp.TotpCredential;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 
 /**
  * Checks the numeric code sent by e-mail, read from Mailpit, as a primary sign-in and as a second factor: the tokens
  * say how the user authenticated, a code only works in the browser that asked for it, a code is spent when it is used
- * and a wrong code is refused.
+ * and a wrong code is refused. As a second factor the e-mail is offered, delivered and accepted only to a user without
+ * any other confirmed second factor.
  */
 class OttEmailCodeIT extends AbstractOttFlow {
 
@@ -40,6 +46,10 @@ class OttEmailCodeIT extends AbstractOttFlow {
 
     /** Where a failed code attempt is sent. */
     private static final String CODE_ERROR = "/login/ott?error";
+
+    /** Port that stores user accounts. */
+    @Autowired
+    private UserAccountRepository userAccounts;
 
     /**
      * Verifies that a user who asks for a code by e-mail and posts it signs in without a password, and that the
@@ -96,6 +106,52 @@ class OttEmailCodeIT extends AbstractOttFlow {
         final var access = AuthServerFixtures.claimsOf(tokens.get("access_token").asString());
         assertEquals(MFA_AMR, strings(access.get(AMR)));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, access.get(ACR).asString());
+    }
+
+    /**
+     * Verifies that a user with another confirmed second factor (an authenticator app) is neither offered nor sent an
+     * e-mail code as the second factor, although the request is answered as any other.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenUserHasAnotherSecondFactor_sendsNoEmailCode() throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var user = enrolled.user();
+        final var session = new MockHttpSession();
+        final var authorizeUri = signInForAuthorization(user, getFixtures().createMfaCodeClient(), newVerifier(),
+                Map.of(), session);
+        expectSecondFactorPage(authorizeUri, session);
+        assertFalse(secondFactorPage(session).contains("E-mail me a code"));
+
+        requestToken(session, user.username(), "email", "code", "second-factor");
+
+        assertEquals(0, mailpit().countMessagesTo(user.email()));
+    }
+
+    /**
+     * Verifies that an e-mail code delivered while the user had no other second factor is refused once the user has
+     * confirmed one: the rule is enforced when the code is presented, not only when it is offered.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenUserConfirmedAnotherSecondFactorMeanwhile_refusesTheEmailCode() throws Exception {
+        final var user = getFixtures().createUser();
+        getFixtures().requireMfa(user, getTools());
+        final var session = new MockHttpSession();
+        signInForAuthorization(user, getFixtures().createMfaCodeClient(), newVerifier(), Map.of(), session);
+        requestToken(session, user.username(), "email", "code", "second-factor");
+        final var code = mailpit().awaitMessageTo(user.email()).code();
+        final var tools = getTools();
+        final var userId = userAccounts.findByUsername(user.username()).orElseThrow().id();
+        tools.credentials().save(new TotpCredential(userId, tools.cipher().encrypt(tools.secrets().generate()), true,
+                TotpCredential.NEVER_USED, Instant.now()));
+
+        final var refused = postSecondFactorCode(session, code);
+
+        assertTrue(refused.getResponse().getRedirectedUrl().contains("error"),
+                "The code must be refused: " + refused.getResponse().getRedirectedUrl());
     }
 
     /**

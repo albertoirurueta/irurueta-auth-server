@@ -168,7 +168,27 @@ class PhoneControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.expiresIn").value("PT10M"));
 
-        verify(rateLimiter).checkGeneration(CLIENT, "phone:" + account.id());
+        final var order = inOrder(stepUpGuard, rateLimiter, startPhoneEnrolmentUseCase);
+        order.verify(stepUpGuard).requireRecentMultiFactor(account.id());
+        order.verify(rateLimiter).checkGeneration(CLIENT, "phone:" + account.id());
+        order.verify(startPhoneEnrolmentUseCase).execute(account.id(), "600 11 12 22");
+    }
+
+    /**
+     * Without a recent multi-factor sign-in, an account with a confirmed second factor cannot start replacing its
+     * phone: the challenge is answered, and nothing is limited or sent.
+     */
+    @Test
+    void startPhoneEnrolment_whenStepUpIsRequired_answersTheChallengeAndSendsNothing() throws Exception {
+        when(currentAccountResolver.resolve()).thenReturn(account);
+        doThrow(new InsufficientUserAuthenticationException(AuthenticationContextClass.MULTI_FACTOR,
+                Duration.ofMinutes(STEP_UP_MINUTES))).when(stepUpGuard).requireRecentMultiFactor(any());
+
+        mockMvc.perform(put(PATH).contentType(MediaType.APPLICATION_JSON).content("{\"phone\":\"600 11 12 22\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().exists("WWW-Authenticate"));
+
+        verifyNoInteractions(startPhoneEnrolmentUseCase, rateLimiter);
     }
 
     /** A number that is not a phone number is answered bad request. */
@@ -222,7 +242,7 @@ class PhoneControllerTest {
     @Test
     void verifyPhone_whenTheCodeIsCorrect_answersThePhone() throws Exception {
         when(currentAccountResolver.resolve()).thenReturn(account);
-        when(confirmPhoneUseCase.execute(account.id(), "123456")).thenReturn(true);
+        when(confirmPhoneUseCase.execute(account.id(), account.username(), "123456")).thenReturn(true);
         when(findUserPhoneUseCase.execute(account.id())).thenReturn(Optional.of(phone));
 
         mockMvc.perform(post(VERIFY_PATH).contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"123456\"}"))
@@ -237,7 +257,7 @@ class PhoneControllerTest {
     @Test
     void verifyPhone_whenTheCodeIsWrong_answersBadRequest() throws Exception {
         when(currentAccountResolver.resolve()).thenReturn(account);
-        when(confirmPhoneUseCase.execute(account.id(), "123456")).thenReturn(false);
+        when(confirmPhoneUseCase.execute(account.id(), account.username(), "123456")).thenReturn(false);
 
         mockMvc.perform(post(VERIFY_PATH).contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"123456\"}"))
                 .andExpect(status().isBadRequest())
@@ -275,7 +295,7 @@ class PhoneControllerTest {
 
         final var order = inOrder(stepUpGuard, removePhoneUseCase);
         order.verify(stepUpGuard).requireRecentMultiFactor(account.id());
-        order.verify(removePhoneUseCase).execute(account.id());
+        order.verify(removePhoneUseCase).execute(account.id(), account.username());
     }
 
     /** Without a recent multi-factor sign-in the phone is kept and the challenge is answered. */

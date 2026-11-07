@@ -39,7 +39,7 @@
     <p th:if="${status == 'invalid-code'}" class="error" th:text="#{phone.error.invalidCode}">Invalid code.</p>
     <p th:if="${status == 'rate-limited'}" class="error" th:text="#{phone.error.rateLimited}">Too many attempts.</p>
     <p th:if="${status == 'step-up-required'}" class="error">
-      <span th:text="#{phone.error.stepUp}">Sign in again with two factors to remove it.</span>
+      <span th:text="#{phone.error.stepUp}">Sign in again with two factors to change or remove it.</span>
       <a th:href="@{/logout}" th:text="#{phone.error.stepUp.link}">Sign out</a>
     </p>
   </div>

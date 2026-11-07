@@ -20,32 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests of the enumerations {@link OttChannel}, {@link OttKind} and {@link OttPurpose}, whose names are stored in
- * the database and must not change.
+ * Unit tests of the enumeration {@link OttPurpose}, whose names are stored in the database and must not change.
  */
-class OttEnumsTest {
-
-    /**
-     * Verifies the channels.
-     */
-    @Test
-    void channelValues_whenListed_areEmailAndSms() {
-        assertArrayEquals(new OttChannel[] {OttChannel.EMAIL, OttChannel.SMS}, OttChannel.values());
-    }
-
-    /**
-     * Verifies the kinds.
-     */
-    @Test
-    void kindValues_whenListed_areCodeAndLink() {
-        assertArrayEquals(new OttKind[] {OttKind.CODE, OttKind.LINK}, OttKind.values());
-    }
+class OttPurposeTest {
 
     /**
      * Verifies the purposes.
      */
     @Test
-    void purposeValues_whenListed_areLoginAndSecondFactor() {
+    void values_whenListed_areLoginAndSecondFactor() {
         assertArrayEquals(new OttPurpose[] {OttPurpose.LOGIN, OttPurpose.SECOND_FACTOR}, OttPurpose.values());
     }
 }

@@ -24,18 +24,15 @@ import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeGenerator;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeRepository;
 import com.irurueta.authserver.authorization.domain.ott.OttChannel;
-import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
-import com.irurueta.authserver.authorization.domain.ott.OttDeliveryException;
 import com.irurueta.authserver.authorization.domain.ott.OttKind;
 import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
 import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
-import com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,13 +41,15 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>The request is enumeration-safe: for an unknown identifier, a disabled account or an account without a verified
  * address for the channel nothing is stored or sent, yet the same result is returned and a code is still generated
- * and hashed, so the work done is alike. A refused SMS (country, budget) or a delivery failure is logged without the
- * identifier, the address or the code and is not reported to the caller.
+ * and hashed, so the work done is alike. The code is never delivered inside this transaction: an e-mail is requested
+ * through an {@link EmailCodeRequested} event and an SMS through {@link SendSmsOneTimeCodeUseCase}, which records its
+ * cost and publishes an {@code SmsRequested} event; both are handled after the transaction commits and off the request
+ * thread, so no remote call holds a database connection and the latency of the mail server or the SMS gateway cannot
+ * tell an existing account from an unknown one. A refused SMS (country, budget) is not reported to the caller.
  *
  * <p>A new code replaces the previous one of the same binding and user (the repository saves one active code per
  * binding and username). Magic links are not handled here: they use the framework's token service.
  */
-@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -68,10 +67,10 @@ public class RequestOneTimeCodeUseCase {
     /** Port that stores the codes. */
     private final OneTimeCodeRepository oneTimeCodeRepository;
 
-    /** Port that delivers the codes by e-mail. */
-    private final OttDelivery ottDelivery;
+    /** Publishes the request of an e-mail delivery. */
+    private final ApplicationEventPublisher eventPublisher;
 
-    /** Use case that sends the codes by SMS. */
+    /** Use case that records the cost of an SMS and requests its delivery. */
     private final SendSmsOneTimeCodeUseCase sendSmsOneTimeCodeUseCase;
 
     /** Policy of the codes. */
@@ -102,28 +101,27 @@ public class RequestOneTimeCodeUseCase {
         final var now = clock.instant();
         oneTimeCodeRepository.save(new OneTimeCode(UUID.randomUUID(), identifier, channel, purpose, hash, bindingId,
                 0, now.plus(ttl), now));
-        deliver(destination, code, ttl);
+        requestDelivery(destination, code, ttl);
         return result;
     }
 
     /**
-     * Delivers a code, swallowing any refusal or failure.
+     * Requests the delivery of a code, swallowing an SMS refusal so that it cannot be told apart from success.
      *
      * @param destination where to deliver it.
      * @param code        the clear-text code.
      * @param ttl         how long it is valid.
      */
-    private void deliver(final OttDestination destination, final String code, final Duration ttl) {
+    private void requestDelivery(final OttDestination destination, final String code, final Duration ttl) {
+        if (destination.channel() == OttChannel.EMAIL) {
+            eventPublisher.publishEvent(new EmailCodeRequested(destination.address(), code, ttl));
+            return;
+        }
         try {
-            if (destination.channel() == OttChannel.EMAIL) {
-                ottDelivery.deliverCode(OttChannel.EMAIL, destination.address(), code, ttl);
-            } else {
-                sendSmsOneTimeCodeUseCase.execute(new PhoneNumber(destination.address()),
-                        SmsMessages.verificationCode(code, ttl));
-            }
-        } catch (final OttDeliveryException | SmsDeliveryException | SmsRefusedException e) {
-            log.warn("A one-time code was not delivered by {}: {}", destination.channel(),
-                    e.getClass().getSimpleName());
+            sendSmsOneTimeCodeUseCase.execute(new PhoneNumber(destination.address()),
+                    SmsMessages.verificationCode(code, ttl));
+        } catch (final SmsRefusedException ignored) {
+            // refused by the country or budget policy: answered like a sent code, so nothing is revealed
         }
     }
 }

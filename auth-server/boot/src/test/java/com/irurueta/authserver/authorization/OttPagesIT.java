@@ -105,14 +105,17 @@ class OttPagesIT extends AbstractMfaFlow {
     }
 
     /**
-     * Verifies that the second-factor page offers a code and a link by e-mail to a user without a phone, and no SMS.
+     * Verifies that the second-factor page offers a code and a link by e-mail, and no SMS, to a user whose
+     * multi-factor authentication was forced without any second factor enrolled: the e-mail is then the only second
+     * factor available.
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
-    void secondFactorPage_whenUserHasNoPhone_offersEmailOnly() throws Exception {
-        final var enrolled = getFixtures().createEnrolledUser(getTools());
-        final var session = signInWithThePassword(enrolled.user());
+    void secondFactorPage_whenUserHasNoSecondFactorAndNoPhone_offersEmailOnly() throws Exception {
+        final var user = getFixtures().createUser();
+        getFixtures().requireMfa(user, getTools());
+        final var session = signInWithThePassword(user);
 
         getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(session))
                 .andExpect(status().isOk())
@@ -120,6 +123,23 @@ class OttPagesIT extends AbstractMfaFlow {
                 .andExpect(content().string(containsString("E-mail me a link")))
                 .andExpect(content().string(containsString("name=\"purpose\" value=\"second-factor\"")))
                 .andExpect(content().string(not(containsString("Send me a code by SMS"))));
+    }
+
+    /**
+     * Verifies that the second-factor page does not offer the e-mail to a user with another confirmed second factor
+     * (an authenticator app here): a mailbox, which also resets the password, never stands in for it.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactorPage_whenUserHasAnotherSecondFactor_doesNotOfferEmail() throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var session = signInWithThePassword(enrolled.user());
+
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("E-mail me a code"))))
+                .andExpect(content().string(not(containsString("E-mail me a link"))));
     }
 
     /**

@@ -30,8 +30,10 @@ import org.springframework.security.core.AuthenticationException;
  * Verifies a numeric one-time code, delivered by e-mail or SMS, as the second factor of the signed-in user through
  * {@link VerifyOneTimeCodeUseCase}, which counts the failures against the second-factor lockout, locks after too many,
  * clears the counter on success and records the security events: a locked second factor is rejected even for a
- * correct code. A channel that already signed the user in is refused as a second factor. A correct code answers with
- * the authentication the user already holds plus the second-factor authority of the channel.
+ * correct code. Only the channels {@link OttSecondFactorChannels} allows are accepted, and that is decided before the
+ * code is compared: a code of another channel (the one that signed the user in, or e-mail for a user with another
+ * confirmed second factor) is a failure counted against the lockout, never a success. A correct code answers with the
+ * authentication the user already holds plus the second-factor authority of the channel.
  */
 @RequiredArgsConstructor
 public class OttSecondFactorAuthenticationProvider implements AuthenticationProvider {
@@ -42,31 +44,28 @@ public class OttSecondFactorAuthenticationProvider implements AuthenticationProv
     /** Adds the factor authority to an authentication. */
     private final FactorGrantor factorGrantor;
 
-    /** Rules about the session a second factor is presented in. */
-    private final PrimaryFactorSession primaryFactorSession;
+    /** Decides which channels may be the second factor of the user. */
+    private final OttSecondFactorChannels secondFactorChannels;
 
     /**
      * Verifies the code.
      *
      * @param authentication the {@link OttSecondFactorToken} to verify.
      * @return the authentication the user already holds with the second factor of the channel added.
-     * @throws AuthenticationException if the code is wrong, the second factor is locked or the channel is the one that
-     *                                 signed the user in.
+     * @throws AuthenticationException if the code is wrong, the second factor is locked or the channel of the code is
+     *                                 not allowed for the user.
      */
     @Override
     public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
         final var request = (OttSecondFactorToken) authentication;
         final var primary = request.primary();
         final var result = verifyOneTimeCodeUseCase.execute(request.bindingId(), primary.getName(),
-                request.getCredentials(), OttPurpose.SECOND_FACTOR);
+                request.getCredentials(), OttPurpose.SECOND_FACTOR, secondFactorChannels.allowed(primary));
         if (result.status() == OttVerificationResult.Status.LOCKED) {
             throw new LockedException("The second factor is locked");
         }
         if (!result.isSuccess()) {
             throw new BadCredentialsException("The code is not valid");
-        }
-        if (primaryFactorSession.signedInThrough(primary, result.channel())) {
-            throw new BadCredentialsException("The channel that signed the user in cannot be the second factor");
         }
         return factorGrantor.grant(primary, OttFactors.secondFactorAuthority(result.channel()));
     }

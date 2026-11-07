@@ -277,11 +277,13 @@ paths:
       operationId: startPhoneEnrolmentPage
       summary: Starts the enrolment of a phone number from the page
       description: >-
-        Sends a verification code by SMS to the number (the same operation as POST /api/account/phone, for the
+        Sends a verification code by SMS to the number (the same operation as PUT /api/account/phone, for the
         session of a browser) and redirects to the page with status pending. The answer is the same whether or not the
         number already belongs to another account, so the page never reveals which numbers are registered. A number that
         is not valid or belongs to a country SMS messages are not sent to redirects with the status invalid-phone or
-        country-not-allowed, and too many requests with rate-limited.
+        country-not-allowed, and too many requests with rate-limited. While the account has a confirmed second factor
+        (the new number would replace the verified one), the session must show a recent multi-factor sign-in, or the
+        page is shown with the status step-up-required and nothing is sent.
       requestBody:
         content:
           application/x-www-form-urlencoded:

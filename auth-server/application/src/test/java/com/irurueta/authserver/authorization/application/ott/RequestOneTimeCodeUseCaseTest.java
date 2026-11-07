@@ -34,12 +34,9 @@ import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeGenerator;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeRepository;
 import com.irurueta.authserver.authorization.domain.ott.OttChannel;
-import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
-import com.irurueta.authserver.authorization.domain.ott.OttDeliveryException;
 import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
 import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
-import com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -52,6 +49,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Unit tests of {@link RequestOneTimeCodeUseCase}.
@@ -102,9 +100,9 @@ class RequestOneTimeCodeUseCaseTest {
     @Mock
     private OneTimeCodeRepository oneTimeCodeRepository;
 
-    /** Port that delivers by e-mail. */
+    /** Publishes the e-mail delivery requests. */
     @Mock
-    private OttDelivery ottDelivery;
+    private ApplicationEventPublisher eventPublisher;
 
     /** Use case that sends SMS. */
     @Mock
@@ -123,10 +121,11 @@ class RequestOneTimeCodeUseCaseTest {
     private RequestOneTimeCodeUseCase useCase;
 
     /**
-     * Verifies that a known user gets a stored hash and an e-mail with the clear code.
+     * Verifies that a known user gets a stored hash and that the e-mail with the clear code is requested through an
+     * event, never delivered inside the use case.
      */
     @Test
-    void execute_whenEmailDestinationExists_storesHashAndDeliversCode() {
+    void execute_whenEmailDestinationExists_storesHashAndRequestsTheEmail() {
         stubCode();
         when(clock.instant()).thenReturn(NOW);
         final var userId = UUID.randomUUID();
@@ -146,7 +145,7 @@ class RequestOneTimeCodeUseCaseTest {
         assertEquals(OttPurpose.LOGIN, saved.purpose());
         assertEquals(0, saved.attempts());
         assertEquals(NOW.plus(TTL), saved.expiresAt());
-        verify(ottDelivery).deliverCode(OttChannel.EMAIL, EMAIL, CODE, TTL);
+        verify(eventPublisher).publishEvent(new EmailCodeRequested(EMAIL, CODE, TTL));
         verifyNoInteractions(sendSmsOneTimeCodeUseCase);
     }
 
@@ -168,7 +167,7 @@ class RequestOneTimeCodeUseCaseTest {
         verify(sendSmsOneTimeCodeUseCase).execute(eq(new PhoneNumber(PHONE)),
                 text.capture());
         assertTrue(text.getValue().contains(CODE));
-        verifyNoInteractions(ottDelivery);
+        verifyNoInteractions(eventPublisher);
     }
 
     /**
@@ -183,43 +182,25 @@ class RequestOneTimeCodeUseCaseTest {
         final var result = useCase.execute(USERNAME, OttChannel.EMAIL, OttPurpose.LOGIN, BINDING);
 
         assertEquals(new OneTimeCodeRequestResult(true, TTL), result);
-        verifyNoInteractions(oneTimeCodeRepository, ottDelivery, sendSmsOneTimeCodeUseCase);
+        verifyNoInteractions(oneTimeCodeRepository, eventPublisher, sendSmsOneTimeCodeUseCase);
     }
 
     /**
-     * Verifies that an e-mail delivery failure is not reported.
+     * Verifies that a refused country and an exhausted budget are not reported.
      */
     @Test
-    void execute_whenEmailDeliveryFails_returnsSameResult() {
-        stubCode();
-        when(clock.instant()).thenReturn(NOW);
-        when(resolveOttDestinationUseCase.execute(USERNAME, OttChannel.EMAIL))
-                .thenReturn(Optional.of(new OttDestination(UUID.randomUUID(), OttChannel.EMAIL, EMAIL)));
-        doThrow(new OttDeliveryException("mail is down", new IllegalStateException(CODE)))
-                .when(ottDelivery).deliverCode(any(), anyString(), anyString(), any());
-
-        final var result = useCase.execute(USERNAME, OttChannel.EMAIL, OttPurpose.LOGIN, BINDING);
-
-        assertEquals(new OneTimeCodeRequestResult(true, TTL), result);
-    }
-
-    /**
-     * Verifies that an SMS provider failure, a refused country and an exhausted budget are not reported.
-     */
-    @Test
-    void execute_whenSmsIsRefusedOrFails_returnsSameResult() {
+    void execute_whenSmsIsRefused_returnsSameResult() {
         stubCode();
         when(clock.instant()).thenReturn(NOW);
         when(resolveOttDestinationUseCase.execute(USERNAME, OttChannel.SMS))
                 .thenReturn(Optional.of(new OttDestination(UUID.randomUUID(), OttChannel.SMS, PHONE)));
-        doThrow(new SmsDeliveryException("provider down", new IllegalStateException()),
-                new SmsCountryNotAllowedException(), new SmsBudgetExceededException())
+        doThrow(new SmsCountryNotAllowedException(), new SmsBudgetExceededException())
                 .when(sendSmsOneTimeCodeUseCase).execute(any(PhoneNumber.class), anyString());
 
         final var expected = new OneTimeCodeRequestResult(true, TTL);
         assertEquals(expected, useCase.execute(USERNAME, OttChannel.SMS, OttPurpose.LOGIN, BINDING));
         assertEquals(expected, useCase.execute(USERNAME, OttChannel.SMS, OttPurpose.LOGIN, BINDING));
-        assertEquals(expected, useCase.execute(USERNAME, OttChannel.SMS, OttPurpose.LOGIN, BINDING));
+        verifyNoInteractions(eventPublisher);
     }
 
     /**

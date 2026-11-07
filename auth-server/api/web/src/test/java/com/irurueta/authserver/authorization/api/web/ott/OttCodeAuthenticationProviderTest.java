@@ -32,6 +32,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,6 +57,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 @ExtendWith(MockitoExtension.class)
 class OttCodeAuthenticationProviderTest {
 
+    /** Every channel, as a sign-in accepts. */
+    private static final Set<OttChannel> ALL = EnumSet.allOf(OttChannel.class);
+
     /** The code. */
     private static final String CODE = "123456";
 
@@ -78,7 +82,7 @@ class OttCodeAuthenticationProviderTest {
     /** A correct e-mail code signs the user in with the e-mail factor. */
     @Test
     void authenticate_whenAnEmailCodeIsCorrect_grantsTheEmailFactor() {
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN))
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN, ALL))
                 .thenReturn(OttVerificationResult.success(OttChannel.EMAIL));
         when(userDetailsService.loadUserByUsername("alice")).thenReturn(user());
 
@@ -92,7 +96,7 @@ class OttCodeAuthenticationProviderTest {
     /** A correct SMS code signs the user in with the SMS factor. */
     @Test
     void authenticate_whenAnSmsCodeIsCorrect_grantsTheSmsFactor() {
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN))
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN, ALL))
                 .thenReturn(OttVerificationResult.success(OttChannel.SMS));
         when(userDetailsService.loadUserByUsername("alice")).thenReturn(user());
 
@@ -104,7 +108,7 @@ class OttCodeAuthenticationProviderTest {
     /** A wrong code is refused, and the account is not even looked at. */
     @Test
     void authenticate_whenTheCodeIsWrong_throwsBadCredentialsException() {
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN))
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN, ALL))
                 .thenReturn(OttVerificationResult.failure());
         final var request = new OttCodeAuthenticationToken("alice", CODE, "binding");
 
@@ -115,7 +119,7 @@ class OttCodeAuthenticationProviderTest {
     /** A locked second factor is refused as locked. */
     @Test
     void authenticate_whenTheUseCaseReportsLocked_throwsLockedException() {
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN))
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN, ALL))
                 .thenReturn(OttVerificationResult.locked());
         final var request = new OttCodeAuthenticationToken("alice", CODE, "binding");
 
@@ -125,7 +129,7 @@ class OttCodeAuthenticationProviderTest {
     /** An account that vanished is refused like a wrong code. */
     @Test
     void authenticate_whenTheAccountIsGone_throwsBadCredentialsException() {
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN))
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN, ALL))
                 .thenReturn(OttVerificationResult.success(OttChannel.EMAIL));
         when(userDetailsService.loadUserByUsername("alice")).thenThrow(new UsernameNotFoundException("alice"));
         final var request = new OttCodeAuthenticationToken("alice", CODE, "binding");
@@ -136,7 +140,7 @@ class OttCodeAuthenticationProviderTest {
     /** An account that cannot sign in is refused as the user service says. */
     @Test
     void authenticate_whenTheAccountIsDisabled_propagatesTheRefusal() {
-        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN))
+        when(verifyOneTimeCodeUseCase.execute("binding", "alice", CODE, OttPurpose.LOGIN, ALL))
                 .thenReturn(OttVerificationResult.success(OttChannel.EMAIL));
         when(userDetailsService.loadUserByUsername("alice")).thenThrow(new DisabledException("disabled"));
         final var request = new OttCodeAuthenticationToken("alice", CODE, "binding");

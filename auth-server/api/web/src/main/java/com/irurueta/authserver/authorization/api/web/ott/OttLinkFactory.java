@@ -17,8 +17,9 @@ package com.irurueta.authserver.authorization.api.web.ott;
 
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
 import java.net.URI;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
@@ -28,7 +29,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * link, which an attacker controls: a link built from it could carry the token of somebody else to another host.
  */
 @Component
-public class OttLinkFactory {
+public final class OttLinkFactory {
 
     /** Name of the query parameter that carries the token. */
     public static final String TOKEN_PARAMETER = "token";
@@ -39,10 +40,18 @@ public class OttLinkFactory {
     /**
      * Creates the factory.
      *
-     * @param issuer issuer of this server ({@code spring.security.oauth2.authorizationserver.issuer}).
+     * @param settings settings of the authorization server, whose issuer
+     *                 ({@code spring.security.oauth2.authorizationserver.issuer}) is the base of the links.
+     * @throws IllegalStateException if no issuer is configured: a link built from the request would trust its
+     *                               {@code Host} header.
      */
-    public OttLinkFactory(@Value("${spring.security.oauth2.authorizationserver.issuer}") final String issuer) {
-        this.issuer = issuer;
+    public OttLinkFactory(final AuthorizationServerSettings settings) {
+        final var configured = settings.getIssuer();
+        if (!StringUtils.hasText(configured)) {
+            throw new IllegalStateException(
+                    "spring.security.oauth2.authorizationserver.issuer must be set to build magic links");
+        }
+        issuer = configured;
     }
 
     /**

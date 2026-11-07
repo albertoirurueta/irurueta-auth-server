@@ -32,6 +32,7 @@ import com.irurueta.authserver.authorization.domain.sms.UserPhoneRepository;
 import com.irurueta.authserver.testsupport.MailpitClient;
 import com.irurueta.authserver.testsupport.MailpitTestConfiguration;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -52,7 +53,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 /**
  * Shared set-up of the one-time token integration tests: the application with a real database and a Mailpit
  * container that receives its e-mail (read back through the Mailpit HTTP API), the logging SMS sender whose messages
- * the tests read through the {@link SmsInbox} port, and the steps of the browser flow: ask for a token, post a code,
+ * the tests read through the {@link SmsInbox} port (both delivered after the request, off its thread, so the tests
+ * wait for them), and the steps of the browser flow: ask for a token, post a code,
  * open and confirm a magic link. Every user, password and token is generated at runtime. The per-client limits are
  * raised so that the many requests of one test class, which all come from the same address, are not limited; the
  * per-identifier limits stay at their defaults and every test uses a user of its own.
@@ -92,6 +94,12 @@ abstract class AbstractOttFlow extends AbstractMfaFlow {
 
     /** Number of values of a decimal digit. */
     private static final int DECIMAL = 10;
+
+    /** Longest wait for an SMS, which is sent after the request that asked for it. */
+    private static final Duration SMS_WAIT = Duration.ofSeconds(15);
+
+    /** Pause between two looks at the SMS inbox, in milliseconds. */
+    private static final long SMS_POLL_MILLIS = 50L;
 
     /** Matches the digits of the code of an SMS. */
     private static final Pattern SMS_CODE = Pattern.compile("code is ([0-9]+)");
@@ -172,6 +180,16 @@ abstract class AbstractOttFlow extends AbstractMfaFlow {
      */
     protected UserWithPhone createDisabledUserWithPhone() {
         return attachPhone(createUserWithStatus(false, true), SPANISH_PREFIX + digits());
+    }
+
+    /**
+     * Gives an existing user a verified phone in a country SMS may be sent to.
+     *
+     * @param user the user.
+     * @return the user and its phone number.
+     */
+    protected UserWithPhone withPhone(final AuthServerFixtures.TestUser user) {
+        return attachPhone(user, SPANISH_PREFIX + digits());
     }
 
     /**
@@ -278,12 +296,14 @@ abstract class AbstractOttFlow extends AbstractMfaFlow {
     }
 
     /**
-     * Reads the code of the last SMS sent to a number.
+     * Reads the code of the last SMS sent to a number, waiting for the first one to arrive.
      *
      * @param phone the number.
      * @return the digits of the code.
+     * @throws InterruptedException if the wait is interrupted.
      */
-    protected String lastSmsCode(final PhoneNumber phone) {
+    protected String lastSmsCode(final PhoneNumber phone) throws InterruptedException {
+        awaitSmsCount(phone, 1L);
         final var texts = smsInbox.entries().stream().filter(entry -> entry.to().equals(phone))
                 .map(SmsInboxEntry::text).toList();
         assertFalse(texts.isEmpty(), "No SMS was sent to the number");
@@ -293,7 +313,26 @@ abstract class AbstractOttFlow extends AbstractMfaFlow {
     }
 
     /**
-     * Counts the SMS sent to a number.
+     * Waits until at least a number of SMS were sent to a number.
+     *
+     * @param phone    the number.
+     * @param expected the number of messages to wait for.
+     * @return the number of messages sent, at least {@code expected}.
+     * @throws InterruptedException if the wait is interrupted.
+     */
+    protected long awaitSmsCount(final PhoneNumber phone, final long expected) throws InterruptedException {
+        final var deadline = System.nanoTime() + SMS_WAIT.toNanos();
+        var count = smsCount(phone);
+        while (count < expected && System.nanoTime() < deadline) {
+            Thread.sleep(SMS_POLL_MILLIS);
+            count = smsCount(phone);
+        }
+        assertTrue(count >= expected, "Expected " + expected + " SMS for the number but found " + count);
+        return count;
+    }
+
+    /**
+     * Counts the SMS sent to a number so far.
      *
      * @param phone the number.
      * @return the number of messages.

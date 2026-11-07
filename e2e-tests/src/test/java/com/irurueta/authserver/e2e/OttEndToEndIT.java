@@ -69,6 +69,12 @@ class OttEndToEndIT {
     /** Matches the code of the verification SMS in the HTML of the inbox. */
     private static final Pattern SMS_CODE = Pattern.compile("Your verification code is ([0-9]+)");
 
+    /** Longest wait for the verification SMS, which is sent after the request that asked for it, in milliseconds. */
+    private static final long SMS_WAIT_MILLIS = 15_000L;
+
+    /** Pause between two looks at the development inbox, in milliseconds. */
+    private static final long SMS_POLL_MILLIS = 200L;
+
     /** Number of digits of the national number of a generated Spanish mobile phone. */
     private static final int PHONE_DIGITS = 8;
 
@@ -174,8 +180,7 @@ class OttEndToEndIT {
             page.fill("#phone-number", "+34 6" + national);
             page.click("section.phone-enrol form[action$='/account/phone'] button[type=submit]");
             page.waitForURL(url -> url.contains("status=pending"));
-            final var inbox = playwright.request().newContext().get(authServer.issuer() + INBOX_PATH).text();
-            final var code = lastCodeOf(inbox, "+346" + national);
+            final var code = awaitCodeOf(playwright, "+346" + national);
             page.fill("#phone-code", code);
             page.click("section.phone-enrol form[action$='/verify'] button[type=submit]");
             // the phone is now a confirmed second factor, so a session with only the e-mail code is asked for one
@@ -241,11 +246,33 @@ class OttEndToEndIT {
     }
 
     /**
+     * Waits for a verification SMS sent to a number to show in the development inbox, and reads its code.
+     *
+     * @param playwright the Playwright instance, whose request context reads the inbox.
+     * @param phone      number the message was sent to, in E.164 form.
+     * @return the digits of the code of the last such message.
+     * @throws InterruptedException if the wait is interrupted.
+     */
+    private static String awaitCodeOf(final Playwright playwright, final String phone) throws InterruptedException {
+        final var deadline = System.currentTimeMillis() + SMS_WAIT_MILLIS;
+        final var requests = playwright.request().newContext();
+        var inbox = requests.get(authServer.issuer() + INBOX_PATH).text();
+        var code = lastCodeOf(inbox, phone);
+        while (code == null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(SMS_POLL_MILLIS);
+            inbox = requests.get(authServer.issuer() + INBOX_PATH).text();
+            code = lastCodeOf(inbox, phone);
+        }
+        assertTrue(code != null, "The inbox holds no verification code for the number: " + inbox);
+        return code;
+    }
+
+    /**
      * Reads the code of the last verification SMS sent to a number from the HTML of the development inbox.
      *
      * @param inbox HTML of the inbox.
      * @param phone number the message was sent to, in E.164 form.
-     * @return the digits of the code.
+     * @return the digits of the code, or {@code null} when the inbox holds none for the number.
      */
     private static String lastCodeOf(final String inbox, final String phone) {
         String code = null;
@@ -257,7 +284,6 @@ class OttEndToEndIT {
                 }
             }
         }
-        assertTrue(code != null, "The inbox holds no verification code for the number: " + inbox);
         return code;
     }
 

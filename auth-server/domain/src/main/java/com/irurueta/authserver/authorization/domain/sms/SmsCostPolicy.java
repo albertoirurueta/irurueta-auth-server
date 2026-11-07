@@ -25,6 +25,9 @@ import java.util.Set;
  */
 public final class SmsCostPolicy {
 
+    /** Length of the window of the daily budget. */
+    public static final Duration DAY = Duration.ofDays(1);
+
     /** Countries that may receive messages, as upper-case ISO alpha-2 codes. */
     private final Set<String> allowedCountries;
 
@@ -113,6 +116,24 @@ public final class SmsCostPolicy {
      */
     public Duration window() {
         return window;
+    }
+
+    /**
+     * Gets the cap of the short window, as the ledger checks it.
+     *
+     * @return the window and its budget.
+     */
+    public SmsSpendCap windowCap() {
+        return new SmsSpendCap(window, windowCapMicros);
+    }
+
+    /**
+     * Gets the cap of a day, as the ledger checks it.
+     *
+     * @return {@link #DAY} and its budget.
+     */
+    public SmsSpendCap dailyCap() {
+        return new SmsSpendCap(DAY, dailyCapMicros);
     }
 
     /**

@@ -17,6 +17,7 @@ package com.irurueta.authserver.authorization;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -139,6 +140,26 @@ class OttMagicLinkIT extends AbstractOttFlow {
         assertAccepted(postToken(other, token));
 
         getMockMvc().perform(get(SIGNED_IN_PAGE).session(other)).andExpect(status().isOk());
+    }
+
+    /**
+     * Verifies that a user with another confirmed second factor (an authenticator app) is neither offered nor sent a
+     * magic link as the second factor, although the request is answered as any other.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenUserHasAnotherSecondFactor_sendsNoLink() throws Exception {
+        final var user = getFixtures().createEnrolledUser(getTools()).user();
+        final var session = new MockHttpSession();
+        final var authorizeUri = signInForAuthorization(user, getFixtures().createMfaCodeClient(), newVerifier(),
+                Map.of(), session);
+        expectSecondFactorPage(authorizeUri, session);
+        assertFalse(secondFactorPage(session).contains("E-mail me a link"));
+
+        requestToken(session, user.username(), "email", "link", "second-factor");
+
+        assertEquals(0, mailpit().countMessagesTo(user.email()));
     }
 
     /**

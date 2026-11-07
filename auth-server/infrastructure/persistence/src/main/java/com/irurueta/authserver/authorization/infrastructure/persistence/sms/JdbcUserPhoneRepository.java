@@ -24,16 +24,21 @@ import com.irurueta.authserver.authorization.domain.sms.UserPhoneRepository;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * {@link UserPhoneRepository} over the verified columns of the {@code user_phones} table. It opens no transaction.
+ * {@link UserPhoneRepository} over the verified columns of the {@code user_phones} table. It opens no transaction: a
+ * save runs in the caller's, where it first takes a PostgreSQL transaction-level advisory lock on the number, so two
+ * users confirming the same number are serialised and the unique constraint is never violated (a violation would
+ * abort the caller's transaction).
  */
 @Repository
 @RequiredArgsConstructor
 public class JdbcUserPhoneRepository implements UserPhoneRepository {
+
+    /** First key of the advisory locks of the numbers, which keeps them apart from every other advisory lock. */
+    static final int PHONE_LOCK_NAMESPACE = 620;
 
     /** Query returning the verified phone of a user. */
     private static final String FIND_BY_USER = """
@@ -46,10 +51,14 @@ public class JdbcUserPhoneRepository implements UserPhoneRepository {
             SELECT user_id, phone_e164, verified_at FROM user_phones WHERE phone_e164 = ?
             """;
 
+    /** Statement taking the advisory lock of a number, released when the caller's transaction ends. */
+    private static final String LOCK_NUMBER = "SELECT pg_advisory_xact_lock(?, hashtext(?))";
+
     /**
      * Statement that stores the verified phone of a user, creating the row or updating its verified columns only
-     * (the pending ones are untouched), unless another user already owns the number. One statement, so the check
-     * and the write cannot be separated by another statement of the same connection.
+     * (the pending ones are untouched), unless another user already owns the number. It runs after the lock of the
+     * number is taken, so (in the default {@code READ COMMITTED} isolation) it sees the row of any user who confirmed
+     * the same number before, and the unique constraint cannot be hit.
      */
     private static final String UPSERT = """
             INSERT INTO user_phones (user_id, phone_e164, verified_at)
@@ -83,23 +92,14 @@ public class JdbcUserPhoneRepository implements UserPhoneRepository {
         return jdbcClient.sql(FIND_BY_PHONE).param(phone.e164()).query(userPhoneRowMapper).optional();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>A concurrent insert of the same number by another user, between the ownership check and the write, makes
-     * the unique constraint refuse the statement; that is also reported as {@code false}, but PostgreSQL then aborts
-     * the caller's transaction, which must be rolled back.</p>
-     */
     @Override
     public boolean save(final UserPhone phone) {
-        try {
-            return jdbcClient.sql(UPSERT)
-                    .params(phone.userId(), phone.phone().e164(), toTimestamp(phone.verifiedAt()),
-                            phone.phone().e164(), phone.userId())
-                    .update() > 0;
-        } catch (final DuplicateKeyException e) {
-            return false;
-        }
+        final var e164 = phone.phone().e164();
+        // the row mapper only drains the (void) result of the lock function
+        jdbcClient.sql(LOCK_NUMBER).params(PHONE_LOCK_NAMESPACE, e164).query((rs, rowNum) -> Boolean.TRUE).list();
+        return jdbcClient.sql(UPSERT)
+                .params(phone.userId(), e164, toTimestamp(phone.verifiedAt()), e164, phone.userId())
+                .update() > 0;
     }
 
     @Override

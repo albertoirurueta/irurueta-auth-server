@@ -20,13 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
 import com.irurueta.authserver.authorization.api.web.passkeys.PasskeySecondFactorFragment;
-import com.irurueta.authserver.authorization.application.sms.HasVerifiedPhoneUseCase;
 import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,27 +38,13 @@ import org.springframework.security.core.authority.AuthorityUtils;
 @ExtendWith(MockitoExtension.class)
 class OttSecondFactorFragmentTest {
 
-    /** The user. */
-    private static final String USERNAME = "alice";
-
-    /** Identifier of the account. */
-    private final UUID userId = UUID.randomUUID();
-
     /** The signed-in user. */
     private final UsernamePasswordAuthenticationToken user =
-            UsernamePasswordAuthenticationToken.authenticated(USERNAME, null, List.of());
+            UsernamePasswordAuthenticationToken.authenticated("alice", null, List.of());
 
-    /** Rules about the session. */
+    /** Decides which channels may be the second factor. */
     @Mock
-    private PrimaryFactorSession primaryFactorSession;
-
-    /** Resolves the account of the user. */
-    @Mock
-    private SecondFactorUserResolver userResolver;
-
-    /** Tells whether the user has a verified phone. */
-    @Mock
-    private HasVerifiedPhoneUseCase hasVerifiedPhoneUseCase;
+    private OttSecondFactorChannels secondFactorChannels;
 
     /** Fragment under test. */
     @InjectMocks
@@ -79,51 +63,31 @@ class OttSecondFactorFragmentTest {
         assertTrue(fragment.order() > PasskeySecondFactorFragment.ORDER);
     }
 
-    /** A user who signed in with a password and has a verified phone is offered both channels. */
+    /** Both channels are offered when both are allowed. */
     @Test
-    void modelAttributes_whenNoChannelSignedTheUserInAndThereIsAPhone_offersBoth() {
-        when(primaryFactorSession.signedInThrough(user, OttChannel.EMAIL)).thenReturn(false);
-        when(primaryFactorSession.signedInThrough(user, OttChannel.SMS)).thenReturn(false);
-        when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
-        when(hasVerifiedPhoneUseCase.execute(userId)).thenReturn(true);
+    void modelAttributes_whenBothChannelsAreAllowed_offersBoth() {
+        when(secondFactorChannels.allowed(user)).thenReturn(EnumSet.allOf(OttChannel.class));
 
         assertEquals(Map.of(OttSecondFactorFragment.EMAIL_AVAILABLE_ATTRIBUTE, true,
                 OttSecondFactorFragment.SMS_AVAILABLE_ATTRIBUTE, true), fragment.modelAttributes(user));
     }
 
-    /** A user without a verified phone is offered e-mail only. */
+    /** Only the allowed channel is offered: SMS alone, for example, to a user with another second factor. */
     @Test
-    void modelAttributes_whenThereIsNoPhone_offersEmailOnly() {
-        when(primaryFactorSession.signedInThrough(user, OttChannel.EMAIL)).thenReturn(false);
-        when(primaryFactorSession.signedInThrough(user, OttChannel.SMS)).thenReturn(false);
-        when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
-        when(hasVerifiedPhoneUseCase.execute(userId)).thenReturn(false);
-
-        assertEquals(Map.of(OttSecondFactorFragment.EMAIL_AVAILABLE_ATTRIBUTE, true,
-                OttSecondFactorFragment.SMS_AVAILABLE_ATTRIBUTE, false), fragment.modelAttributes(user));
-    }
-
-    /** A user who signed in by e-mail is not offered e-mail again. */
-    @Test
-    void modelAttributes_whenEmailSignedTheUserIn_doesNotOfferEmail() {
-        when(primaryFactorSession.signedInThrough(user, OttChannel.EMAIL)).thenReturn(true);
-        when(primaryFactorSession.signedInThrough(user, OttChannel.SMS)).thenReturn(false);
-        when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
-        when(hasVerifiedPhoneUseCase.execute(userId)).thenReturn(true);
+    void modelAttributes_whenOnlySmsIsAllowed_offersSmsOnly() {
+        when(secondFactorChannels.allowed(user)).thenReturn(EnumSet.of(OttChannel.SMS));
 
         assertEquals(Map.of(OttSecondFactorFragment.EMAIL_AVAILABLE_ATTRIBUTE, false,
                 OttSecondFactorFragment.SMS_AVAILABLE_ATTRIBUTE, true), fragment.modelAttributes(user));
     }
 
-    /** A user who signed in by SMS is not offered SMS again, and the phone is not even looked up. */
+    /** Nothing is offered when no channel is allowed. */
     @Test
-    void modelAttributes_whenSmsSignedTheUserIn_doesNotOfferSms() {
-        when(primaryFactorSession.signedInThrough(user, OttChannel.EMAIL)).thenReturn(false);
-        when(primaryFactorSession.signedInThrough(user, OttChannel.SMS)).thenReturn(true);
+    void modelAttributes_whenNoChannelIsAllowed_offersNothing() {
+        when(secondFactorChannels.allowed(user)).thenReturn(EnumSet.noneOf(OttChannel.class));
 
-        assertEquals(Map.of(OttSecondFactorFragment.EMAIL_AVAILABLE_ATTRIBUTE, true,
+        assertEquals(Map.of(OttSecondFactorFragment.EMAIL_AVAILABLE_ATTRIBUTE, false,
                 OttSecondFactorFragment.SMS_AVAILABLE_ATTRIBUTE, false), fragment.modelAttributes(user));
-        verifyNoInteractions(hasVerifiedPhoneUseCase, userResolver);
     }
 
     /** Nothing is looked up when nobody is signed in. */
@@ -134,6 +98,6 @@ class OttSecondFactorFragmentTest {
 
         assertTrue(fragment.modelAttributes(anonymous).isEmpty());
         assertTrue(fragment.modelAttributes(null).isEmpty());
-        verifyNoInteractions(primaryFactorSession, userResolver, hasVerifiedPhoneUseCase);
+        verifyNoInteractions(secondFactorChannels);
     }
 }

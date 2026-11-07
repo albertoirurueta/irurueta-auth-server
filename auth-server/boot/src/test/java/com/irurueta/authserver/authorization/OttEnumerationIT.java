@@ -87,7 +87,7 @@ class OttEnumerationIT extends AbstractOttFlow {
                 observe(disabled.user().username(), "sms", "code"), observe(unknown, "sms", "code"));
 
         others.forEach(other -> assertEquals(known, other));
-        assertEquals(1L, smsCount(owner.phone()));
+        assertEquals(1L, awaitSmsCount(owner.phone(), 1L));
         assertEquals(0L, smsCount(disabled.phone()));
     }
 

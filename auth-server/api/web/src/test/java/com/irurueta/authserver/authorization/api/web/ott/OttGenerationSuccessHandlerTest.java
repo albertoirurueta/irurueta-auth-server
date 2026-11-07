@@ -16,30 +16,21 @@
 package com.irurueta.authserver.authorization.api.web.ott;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.ott.OneTimeCodeRequestResult;
-import com.irurueta.authserver.authorization.application.ott.OttDestination;
+import com.irurueta.authserver.authorization.application.ott.RequestMagicLinkUseCase;
 import com.irurueta.authserver.authorization.application.ott.RequestOneTimeCodeUseCase;
-import com.irurueta.authserver.authorization.application.ott.ResolveOttDestinationUseCase;
 import com.irurueta.authserver.authorization.domain.ott.OttChannel;
-import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
-import com.irurueta.authserver.authorization.domain.ott.OttDeliveryException;
 import com.irurueta.authserver.authorization.domain.ott.OttKind;
-import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
 import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +44,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.authentication.ott.DefaultOneTimeToken;
 import org.springframework.security.authentication.ott.OneTimeTokenAuthenticationToken;
 import org.springframework.security.authentication.ott.OneTimeTokenService;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -66,29 +58,16 @@ class OttGenerationSuccessHandlerTest {
     /** Lifetime of a code. */
     private static final Duration CODE_TTL = Duration.ofMinutes(10);
 
-    /** Lifetime of a link. */
-    private static final Duration LINK_TTL = Duration.ofMinutes(15);
-
-    /** Length of a code. */
-    private static final int CODE_LENGTH = 6;
-
-    /** Attempts tolerated. */
-    private static final int MAX_ATTEMPTS = 5;
-
-    /** Address the mail is sent to. */
-    private static final String ADDRESS = "alice@example.com";
+    /** Path of the page that says to check the inbox. */
+    private static final String CODE_PAGE = "/login/ott";
 
     /** Starts a numeric code. */
     @Mock
     private RequestOneTimeCodeUseCase requestOneTimeCodeUseCase;
 
-    /** Finds where a token goes. */
+    /** Requests the delivery of a link. */
     @Mock
-    private ResolveOttDestinationUseCase resolveOttDestinationUseCase;
-
-    /** Delivers the link. */
-    @Mock
-    private OttDelivery ottDelivery;
+    private RequestMagicLinkUseCase requestMagicLinkUseCase;
 
     /** Store of the link tokens. */
     @Mock
@@ -97,6 +76,10 @@ class OttGenerationSuccessHandlerTest {
     /** Builds the link. */
     @Mock
     private OttLinkFactory linkFactory;
+
+    /** Decides which channels may be the second factor. */
+    @Mock
+    private OttSecondFactorChannels secondFactorChannels;
 
     /** Handler under test. */
     private OttGenerationSuccessHandler handler;
@@ -107,12 +90,11 @@ class OttGenerationSuccessHandlerTest {
     /** The response. */
     private MockHttpServletResponse response;
 
-    /** Creates the handler over a real policy. */
+    /** Creates the handler. */
     @BeforeEach
     void setUp() {
-        handler = new OttGenerationSuccessHandler(requestOneTimeCodeUseCase, resolveOttDestinationUseCase,
-                ottDelivery, oneTimeTokenService, new OttPolicy(CODE_LENGTH, CODE_TTL, LINK_TTL, MAX_ATTEMPTS),
-                linkFactory);
+        handler = new OttGenerationSuccessHandler(requestOneTimeCodeUseCase, requestMagicLinkUseCase,
+                oneTimeTokenService, linkFactory, secondFactorChannels);
         request = new MockHttpServletRequest("POST", "/ott/generate");
         response = new MockHttpServletResponse();
     }
@@ -135,24 +117,22 @@ class OttGenerationSuccessHandlerTest {
         final var binding = ArgumentCaptor.<String>captor();
         verify(requestOneTimeCodeUseCase).execute(eq("alice"), eq(OttChannel.SMS), eq(OttPurpose.LOGIN),
                 binding.capture());
-        final var discarded = ArgumentCaptor.<OneTimeTokenAuthenticationToken>captor();
-        verify(oneTimeTokenService).consume(discarded.capture());
-        assertEquals(TOKEN_VALUE, discarded.getValue().getTokenValue());
+        assertTokenDiscarded();
         final var pending = PendingOtt.of(request).orElseThrow();
         assertEquals(binding.getValue(), pending.bindingId());
         assertEquals("alice", pending.identifier());
         assertEquals(OttKind.CODE, pending.kind());
         assertEquals(OttChannel.SMS, pending.channel());
-        assertEquals("/login/ott", response.getRedirectedUrl());
-        verifyNoInteractions(ottDelivery);
+        assertEquals(CODE_PAGE, response.getRedirectedUrl());
+        verifyNoInteractions(requestMagicLinkUseCase, secondFactorChannels);
     }
 
-    /** A code request as a second factor of the signed-in user is started for that purpose. */
+    /** A code request as a second factor through an allowed channel is started for that purpose. */
     @Test
-    void handle_whenASecondFactorCodeIsRequested_startsItForThatPurpose() throws Exception {
-        SecurityContextHolder.getContext().setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated("alice", "x", AuthorityUtils.NO_AUTHORITIES));
+    void handle_whenAnAllowedSecondFactorCodeIsRequested_startsItForThatPurpose() throws Exception {
+        final var current = signIn("alice");
         request.setParameter(OttGenerationParameters.PURPOSE_PARAMETER, "second-factor");
+        when(secondFactorChannels.isAllowed(current, OttChannel.EMAIL)).thenReturn(true);
         when(requestOneTimeCodeUseCase.execute(eq("alice"), eq(OttChannel.EMAIL), eq(OttPurpose.SECOND_FACTOR),
                 anyString())).thenReturn(new OneTimeCodeRequestResult(true, CODE_TTL));
 
@@ -161,63 +141,108 @@ class OttGenerationSuccessHandlerTest {
         assertEquals(OttPurpose.SECOND_FACTOR, PendingOtt.of(request).orElseThrow().purpose());
     }
 
-    /** A link request delivers the confirmation link by e-mail and keeps the token. */
+    /**
+     * A second-factor code through a channel the user may not use (the one that signed the user in, or e-mail for a
+     * user with another confirmed second factor) is answered the same, but nothing is stored or sent.
+     */
     @Test
-    void handle_whenALinkIsRequested_deliversTheConfirmationLinkByEmail() throws Exception {
+    void handle_whenASecondFactorCodeChannelIsNotAllowed_redirectsTheSameAndSendsNothing() throws Exception {
+        final var current = signIn("alice");
+        request.setParameter(OttGenerationParameters.PURPOSE_PARAMETER, "second-factor");
+        when(secondFactorChannels.isAllowed(current, OttChannel.EMAIL)).thenReturn(false);
+
+        handler.handle(request, response, token("alice"));
+
+        verifyNoInteractions(requestOneTimeCodeUseCase, requestMagicLinkUseCase);
+        assertTokenDiscarded();
+        assertEquals(OttPurpose.SECOND_FACTOR, PendingOtt.of(request).orElseThrow().purpose());
+        assertEquals(CODE_PAGE, response.getRedirectedUrl());
+    }
+
+    /** A link request asks for the delivery of the confirmation link and keeps the token. */
+    @Test
+    void handle_whenALinkIsRequested_requestsTheConfirmationLink() throws Exception {
         request.setParameter(OttGenerationParameters.KIND_PARAMETER, "link");
         final var link = URI.create("https://auth.example.com/login/ott/confirm?token=" + TOKEN_VALUE);
-        when(resolveOttDestinationUseCase.execute("alice", OttChannel.EMAIL))
-                .thenReturn(Optional.of(new OttDestination(UUID.randomUUID(), OttChannel.EMAIL, ADDRESS)));
         when(linkFactory.confirmationLink(TOKEN_VALUE)).thenReturn(link);
 
         handler.handle(request, response, token("alice"));
 
-        verify(ottDelivery).deliverLink(OttChannel.EMAIL, ADDRESS, link, LINK_TTL);
+        verify(requestMagicLinkUseCase).execute("alice", link);
         verifyNoInteractions(requestOneTimeCodeUseCase, oneTimeTokenService);
         assertEquals(OttKind.LINK, PendingOtt.of(request).orElseThrow().kind());
-        assertEquals("/login/ott", response.getRedirectedUrl());
+        assertEquals(CODE_PAGE, response.getRedirectedUrl());
     }
 
-    /** The marker of a second-factor link is not part of the identifier. */
+    /** The marker of an allowed second-factor link is not part of the identifier the link is requested for. */
     @Test
-    void handle_whenASecondFactorLinkIsRequested_resolvesTheUnmarkedIdentifier() throws Exception {
-        SecurityContextHolder.getContext().setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated("alice", "x", AuthorityUtils.NO_AUTHORITIES));
+    void handle_whenAnAllowedSecondFactorLinkIsRequested_requestsItForTheUnmarkedIdentifier() throws Exception {
+        final var current = signIn("alice");
         request.setParameter(OttGenerationParameters.KIND_PARAMETER, "link");
         request.setParameter(OttGenerationParameters.PURPOSE_PARAMETER, "second-factor");
-        when(resolveOttDestinationUseCase.execute("alice", OttChannel.EMAIL)).thenReturn(Optional.empty());
+        final var link = URI.create("https://auth.example.com/login/ott/confirm?token=" + TOKEN_VALUE);
+        when(secondFactorChannels.isAllowed(current, OttChannel.EMAIL)).thenReturn(true);
+        when(linkFactory.confirmationLink(TOKEN_VALUE)).thenReturn(link);
 
         handler.handle(request, response, token(LinkTokenUsername.forLink("alice", true)));
 
+        verify(requestMagicLinkUseCase).execute("alice", link);
         assertEquals("alice", PendingOtt.of(request).orElseThrow().identifier());
     }
 
-    /** An identifier with nowhere to deliver to gets the same redirect and nothing is sent. */
+    /** A second-factor link the user may not use is answered the same, its token discarded and nothing sent. */
     @Test
-    void handle_whenThereIsNoDestination_stillRedirectsAndSendsNothing() throws Exception {
+    void handle_whenASecondFactorLinkIsNotAllowed_redirectsTheSameAndSendsNothing() throws Exception {
+        final var current = signIn("alice");
         request.setParameter(OttGenerationParameters.KIND_PARAMETER, "link");
-        when(resolveOttDestinationUseCase.execute("ghost", OttChannel.EMAIL)).thenReturn(Optional.empty());
+        request.setParameter(OttGenerationParameters.PURPOSE_PARAMETER, "second-factor");
+        when(secondFactorChannels.isAllowed(current, OttChannel.EMAIL)).thenReturn(false);
 
-        handler.handle(request, response, token("ghost"));
+        handler.handle(request, response, token(LinkTokenUsername.forLink("alice", true)));
 
-        verifyNoInteractions(ottDelivery);
-        assertNotNull(PendingOtt.of(request).orElse(null));
-        assertEquals("/login/ott", response.getRedirectedUrl());
+        verifyNoInteractions(requestMagicLinkUseCase, requestOneTimeCodeUseCase, linkFactory);
+        assertTokenDiscarded();
+        assertEquals(CODE_PAGE, response.getRedirectedUrl());
     }
 
-    /** A delivery that fails is answered like any other. */
+    /**
+     * A second-factor link of a user name too long to fit next to the marker would never match its user: it is
+     * answered the same, its token discarded and nothing sent, whatever the channels allowed.
+     */
     @Test
-    void handle_whenTheDeliveryFails_stillRedirects() throws Exception {
+    void handle_whenTheUserNameIsTooLongForASecondFactorLink_redirectsTheSameAndSendsNothing() throws Exception {
+        final var longName = "a".repeat(LinkTokenUsername.MAX_LENGTH);
+        signIn(longName);
         request.setParameter(OttGenerationParameters.KIND_PARAMETER, "link");
-        when(resolveOttDestinationUseCase.execute("alice", OttChannel.EMAIL))
-                .thenReturn(Optional.of(new OttDestination(UUID.randomUUID(), OttChannel.EMAIL, ADDRESS)));
-        when(linkFactory.confirmationLink(TOKEN_VALUE)).thenReturn(URI.create("https://auth.example.com/x"));
-        doThrow(new OttDeliveryException("down", new IllegalStateException())).when(ottDelivery)
-                .deliverLink(any(), anyString(), any(), any());
+        request.setParameter(OttGenerationParameters.PURPOSE_PARAMETER, "second-factor");
 
-        handler.handle(request, response, token("alice"));
+        handler.handle(request, response, token(LinkTokenUsername.forLink(longName, true)));
 
-        assertEquals("/login/ott", response.getRedirectedUrl());
+        verifyNoInteractions(requestMagicLinkUseCase, requestOneTimeCodeUseCase, linkFactory, secondFactorChannels);
+        assertTokenDiscarded();
+        assertEquals(CODE_PAGE, response.getRedirectedUrl());
+    }
+
+    /**
+     * Signs a user in.
+     *
+     * @param username the name of the user.
+     * @return the authentication of the user.
+     */
+    private static Authentication signIn(final String username) {
+        final var current = UsernamePasswordAuthenticationToken.authenticated(username, "x",
+                AuthorityUtils.NO_AUTHORITIES);
+        SecurityContextHolder.getContext().setAuthentication(current);
+        return current;
+    }
+
+    /**
+     * Checks that the token Spring generated was consumed, so it can never be used.
+     */
+    private void assertTokenDiscarded() {
+        final var discarded = ArgumentCaptor.<OneTimeTokenAuthenticationToken>captor();
+        verify(oneTimeTokenService).consume(discarded.capture());
+        assertEquals(TOKEN_VALUE, discarded.getValue().getTokenValue());
     }
 
     /**

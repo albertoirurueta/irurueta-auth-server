@@ -22,13 +22,17 @@ import org.springframework.util.StringUtils;
  * the purpose of a link travels in it: the token of a link requested as a second factor starts with a control
  * character that no identifier can carry (identifiers are stripped of control characters before they are used), and
  * {@link OttLinkAuthenticationProvider} accepts it only in the session of the signed-in user it was requested for.
- * The column holds {@value #MAX_LENGTH} characters, so an identifier is cut to what fits; no user name that long exists
- * with the marker, which means a user whose name takes the whole column cannot use a link as a second factor.
+ * The column holds {@value #MAX_LENGTH} characters, so an identifier is cut to what fits; a second-factor link of a
+ * user name longer than {@value #MAX_SECOND_FACTOR_LENGTH} characters would be cut and never match its user, so
+ * {@link OttGenerationSuccessHandler} does not deliver it ({@link #fitsSecondFactorLink(String)}).
  */
 public final class LinkTokenUsername {
 
     /** Characters the user name column of the token store holds. */
     public static final int MAX_LENGTH = 100;
+
+    /** Characters a user name may have to fit the column next to the marker of a second-factor link. */
+    public static final int MAX_SECOND_FACTOR_LENGTH = MAX_LENGTH - 1;
 
     /** Marker of the token of a link requested as a second factor. */
     static final char SECOND_FACTOR_MARKER = '\u001f';
@@ -66,6 +70,17 @@ public final class LinkTokenUsername {
         }
         final var marked = SECOND_FACTOR_MARKER + identifier;
         return marked.length() > MAX_LENGTH ? marked.substring(0, MAX_LENGTH) : marked;
+    }
+
+    /**
+     * Tells whether a user name fits the column next to the marker of a second-factor link, so that the stored name of
+     * the link still identifies the user.
+     *
+     * @param username the name of the signed-in user.
+     * @return {@code true} when it has at most {@value #MAX_SECOND_FACTOR_LENGTH} characters.
+     */
+    public static boolean fitsSecondFactorLink(final String username) {
+        return username != null && username.length() <= MAX_SECOND_FACTOR_LENGTH;
     }
 
     /**

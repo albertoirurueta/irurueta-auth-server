@@ -13,23 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.irurueta.authserver.authorization.domain.ott;
 
-package com.irurueta.authserver.authorization.application.ott;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-import java.time.Instant;
+import org.junit.jupiter.api.Test;
 
 /**
- * Port that removes the expired magic-link tokens. The tokens are kept by Spring Security's one-time-token service,
- * a framework type the application layer must not use, so the persistence adapter implements this port over the
- * {@code one_time_tokens} table.
+ * Unit tests of the enumeration {@link OttChannel}, whose names are stored in the database and must not change.
  */
-public interface ExpiredLinkTokenPurger {
+class OttChannelTest {
 
     /**
-     * Deletes the tokens that expired at or before an instant.
-     *
-     * @param now the current instant.
-     * @return the number of tokens deleted.
+     * Verifies the channels.
      */
-    int deleteExpired(Instant now);
+    @Test
+    void values_whenListed_areEmailAndSms() {
+        assertArrayEquals(new OttChannel[] {OttChannel.EMAIL, OttChannel.SMS}, OttChannel.values());
+    }
 }

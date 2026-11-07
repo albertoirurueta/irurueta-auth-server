@@ -18,17 +18,16 @@ package com.irurueta.authserver.authorization.application.sms;
 
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeGenerator;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
+import com.irurueta.authserver.authorization.domain.sms.PhoneCountryResolver;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNormalizer;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
 import com.irurueta.authserver.authorization.domain.sms.PhoneVerification;
 import com.irurueta.authserver.authorization.domain.sms.PhoneVerificationRepository;
-import com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException;
 import com.irurueta.authserver.authorization.domain.sms.UserPhone;
 import com.irurueta.authserver.authorization.domain.sms.UserPhoneRepository;
 import java.time.Clock;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,10 +38,10 @@ import org.springframework.transaction.annotation.Transactional;
  * is not served ({@link SmsCountryNotAllowedException}) depend on the input alone and reveal nothing about any
  * account, so they fail visibly. Everything that depends on the state of other accounts or of the system is
  * indistinguishable from success: a number already verified by another user (no message is sent, no state is
- * stored, but the same work is done), an exhausted SMS budget and a provider failure (logged without the number or
- * the code). Otherwise an attacker could learn which numbers belong to accounts.
+ * stored, but the same work is done), an exhausted SMS budget and a provider failure (the message is sent after the
+ * transaction commits, off the request thread, by the delivery of {@link SmsRequested}, which records a failure without
+ * the number or the code). Otherwise an attacker could learn which numbers belong to accounts.
  */
-@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -66,7 +65,7 @@ public class StartPhoneEnrolmentUseCase {
     /** Hasher of the verification code. */
     private final OneTimeCodeHasher oneTimeCodeHasher;
 
-    /** Use case that sends the message. */
+    /** Use case that records the cost of the message and requests it. */
     private final SendSmsOneTimeCodeUseCase sendSmsOneTimeCodeUseCase;
 
     /** SMS settings. */
@@ -107,7 +106,7 @@ public class StartPhoneEnrolmentUseCase {
     }
 
     /**
-     * Sends the code, swallowing a refusal or a failure so that it cannot be told apart from success.
+     * Requests the code, swallowing a refusal so that it cannot be told apart from success.
      *
      * @param number the destination.
      * @param code   the clear-text code.
@@ -116,8 +115,8 @@ public class StartPhoneEnrolmentUseCase {
         try {
             sendSmsOneTimeCodeUseCase.execute(number, SmsMessages.verificationCode(code,
                     smsProperties.verificationCodeTtl()));
-        } catch (final SmsRefusedException | SmsDeliveryException e) {
-            log.warn("The phone verification code was not sent: {}", e.getClass().getSimpleName());
+        } catch (final SmsRefusedException ignored) {
+            // refused by the budget policy: answered like a sent code, so nothing is revealed
         }
     }
 }

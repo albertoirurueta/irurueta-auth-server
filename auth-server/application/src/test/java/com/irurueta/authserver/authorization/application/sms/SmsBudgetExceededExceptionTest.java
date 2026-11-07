@@ -13,23 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.irurueta.authserver.authorization.application.sms;
 
-import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
-import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+import org.junit.jupiter.api.Test;
 
 /**
- * Port that tells the country of a phone number. The application layer has no phone-number library, so the SMS
- * adapter implements this port.
+ * Unit tests of {@link SmsBudgetExceededException}.
  */
-public interface PhoneCountryResolver {
+class SmsBudgetExceededExceptionTest {
 
     /**
-     * Finds the country of a number.
-     *
-     * @param phone the number.
-     * @return the upper-case ISO 3166-1 alpha-2 code, or empty when the number belongs to no known region.
+     * Verifies that it is a refusal with a fixed message, without any phone number.
      */
-    Optional<String> countryOf(PhoneNumber phone);
+    @Test
+    void constructor_whenCreated_isARefusalWithAFixedMessage() {
+        final var error = new SmsBudgetExceededException();
+
+        assertInstanceOf(SmsRefusedException.class, error);
+        assertEquals("The SMS spending cap has been reached", error.getMessage());
+    }
 }

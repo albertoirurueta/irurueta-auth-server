@@ -20,10 +20,9 @@ import com.irurueta.authserver.authorization.api.web.mfa.AuthenticationFactorReg
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
 import com.irurueta.authserver.authorization.api.web.passkeys.AccountStatusUserDetailsService;
+import com.irurueta.authserver.authorization.application.ott.RequestMagicLinkUseCase;
 import com.irurueta.authserver.authorization.application.ott.RequestOneTimeCodeUseCase;
-import com.irurueta.authserver.authorization.application.ott.ResolveOttDestinationUseCase;
 import com.irurueta.authserver.authorization.application.ott.VerifyOneTimeCodeUseCase;
-import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
 import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,21 +69,20 @@ public class OttConfiguration {
     /**
      * Declares the handler that delivers a generated token.
      *
-     * @param requestOneTimeCodeUseCase    starts a numeric code.
-     * @param resolveOttDestinationUseCase finds where a token goes.
-     * @param ottDelivery                  delivers a magic link.
-     * @param tokenService                 store of the magic link tokens.
-     * @param ottPolicy                    the rules of one-time tokens.
-     * @param linkFactory                  builds the magic link.
+     * @param requestOneTimeCodeUseCase starts a numeric code.
+     * @param requestMagicLinkUseCase   requests the delivery of a magic link.
+     * @param tokenService              store of the magic link tokens.
+     * @param linkFactory               builds the magic link.
+     * @param secondFactorChannels      decides which channels may be the second factor of the signed-in user.
      * @return the handler.
      */
     @Bean
     public OttGenerationSuccessHandler ottGenerationSuccessHandler(
             final RequestOneTimeCodeUseCase requestOneTimeCodeUseCase,
-            final ResolveOttDestinationUseCase resolveOttDestinationUseCase, final OttDelivery ottDelivery,
-            final OneTimeTokenService tokenService, final OttPolicy ottPolicy, final OttLinkFactory linkFactory) {
-        return new OttGenerationSuccessHandler(requestOneTimeCodeUseCase, resolveOttDestinationUseCase, ottDelivery,
-                tokenService, ottPolicy, linkFactory);
+            final RequestMagicLinkUseCase requestMagicLinkUseCase, final OneTimeTokenService tokenService,
+            final OttLinkFactory linkFactory, final OttSecondFactorChannels secondFactorChannels) {
+        return new OttGenerationSuccessHandler(requestOneTimeCodeUseCase, requestMagicLinkUseCase, tokenService,
+                linkFactory, secondFactorChannels);
     }
 
     /**
@@ -96,18 +94,21 @@ public class OttConfiguration {
      * @param verifyOneTimeCodeUseCase verifies a numeric code.
      * @param factorGrantor            adds the factor authority to an authentication.
      * @param primaryFactorSession     rules about the session a second factor is presented in.
+     * @param secondFactorChannels     decides which channels may be the second factor of the signed-in user.
      * @return the providers.
      */
     @Bean
     public OttProviders ottProviders(final OneTimeTokenService tokenService,
             final UserDetailsService userDetailsService, final VerifyOneTimeCodeUseCase verifyOneTimeCodeUseCase,
-            final FactorGrantor factorGrantor, final PrimaryFactorSession primaryFactorSession) {
+            final FactorGrantor factorGrantor, final PrimaryFactorSession primaryFactorSession,
+            final OttSecondFactorChannels secondFactorChannels) {
         final var users = new AccountStatusUserDetailsService(userDetailsService);
         return new OttProviders(
-                new OttLinkAuthenticationProvider(tokenService, users, factorGrantor, primaryFactorSession),
+                new OttLinkAuthenticationProvider(tokenService, users, factorGrantor, primaryFactorSession,
+                        secondFactorChannels),
                 new OttCodeAuthenticationProvider(verifyOneTimeCodeUseCase, users, factorGrantor),
                 new OttSecondFactorAuthenticationProvider(verifyOneTimeCodeUseCase, factorGrantor,
-                        primaryFactorSession));
+                        secondFactorChannels));
     }
 
     // tag::ott-chain-customizer[]

@@ -88,6 +88,17 @@ class SmsCostPolicyTest {
     }
 
     /**
+     * Verifies that the caps handed to the ledger carry the windows and budgets of the policy.
+     */
+    @Test
+    void windowCapAndDailyCap_whenCreated_carryTheConfiguredBudgets() {
+        final var policy = create();
+
+        assertEquals(new SmsSpendCap(WINDOW, WINDOW_CAP), policy.windowCap());
+        assertEquals(new SmsSpendCap(SmsCostPolicy.DAY, DAILY_CAP), policy.dailyCap());
+    }
+
+    /**
      * Verifies the window budget boundary.
      */
     @Test

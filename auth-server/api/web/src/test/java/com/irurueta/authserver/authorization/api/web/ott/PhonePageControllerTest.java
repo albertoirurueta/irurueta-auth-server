@@ -180,6 +180,7 @@ class PhonePageControllerTest {
     @Test
     void startPhoneEnrolmentPage_whenTheNumberIsAccepted_redirectsAsPending() {
         givenAccount();
+        givenStepUp(true);
         when(request.getRemoteAddr()).thenReturn(ADDRESS);
         when(startPhoneEnrolmentUseCase.execute(userId, TYPED))
                 .thenReturn(new PhoneEnrolmentStarted(Duration.ofMinutes(1)));
@@ -194,6 +195,7 @@ class PhonePageControllerTest {
     @Test
     void startPhoneEnrolmentPage_whenTheNumberIsInvalid_redirectsAsInvalidPhone() {
         givenAccount();
+        givenStepUp(true);
         when(request.getRemoteAddr()).thenReturn(ADDRESS);
         when(startPhoneEnrolmentUseCase.execute(userId, TYPED)).thenThrow(new InvalidPhoneNumberException());
 
@@ -204,6 +206,7 @@ class PhonePageControllerTest {
     @Test
     void startPhoneEnrolmentPage_whenTheCountryIsNotAllowed_redirectsAsCountryNotAllowed() {
         givenAccount();
+        givenStepUp(true);
         when(request.getRemoteAddr()).thenReturn(ADDRESS);
         when(startPhoneEnrolmentUseCase.execute(userId, TYPED)).thenThrow(new SmsCountryNotAllowedException());
 
@@ -214,6 +217,7 @@ class PhonePageControllerTest {
     @Test
     void startPhoneEnrolmentPage_whenOverTheLimit_redirectsAsRateLimitedWithoutSending() {
         givenAccount();
+        givenStepUp(true);
         when(request.getRemoteAddr()).thenReturn(ADDRESS);
         doThrow(new OttRateLimitExceededException(Duration.ofSeconds(RETRY_SECONDS))).when(rateLimiter)
                 .checkGeneration(any(), any());
@@ -222,12 +226,25 @@ class PhonePageControllerTest {
         verifyNoInteractions(startPhoneEnrolmentUseCase);
     }
 
+    /**
+     * A session that does not satisfy the step-up of an account with a confirmed second factor cannot start replacing
+     * the phone: nothing is limited or sent.
+     */
+    @Test
+    void startPhoneEnrolmentPage_whenTheStepUpIsNotSatisfied_redirectsAsStepUpRequiredWithoutSending() {
+        givenAccount();
+        givenStepUp(false);
+
+        assertRedirect(controller.startPhoneEnrolmentPage(TYPED), "step-up-required");
+        verifyNoInteractions(startPhoneEnrolmentUseCase, rateLimiter);
+    }
+
     /** A right code verifies the phone. */
     @Test
     void verifyPhonePage_whenTheCodeIsRight_redirectsAsVerified() {
         givenAccount();
         when(request.getRemoteAddr()).thenReturn(ADDRESS);
-        when(confirmPhoneUseCase.execute(userId, CODE)).thenReturn(true);
+        when(confirmPhoneUseCase.execute(userId, "alice", CODE)).thenReturn(true);
 
         assertRedirect(controller.verifyPhonePage(CODE), "verified");
         verify(rateLimiter).checkVerification(ADDRESS, "phone:" + userId);
@@ -238,7 +255,7 @@ class PhonePageControllerTest {
     void verifyPhonePage_whenTheCodeIsWrong_redirectsAsInvalidCode() {
         givenAccount();
         when(request.getRemoteAddr()).thenReturn(ADDRESS);
-        when(confirmPhoneUseCase.execute(userId, CODE)).thenReturn(false);
+        when(confirmPhoneUseCase.execute(userId, "alice", CODE)).thenReturn(false);
 
         assertRedirect(controller.verifyPhonePage(CODE), "invalid-code");
     }
@@ -264,7 +281,7 @@ class PhonePageControllerTest {
         when(stepUp.isSatisfied(userId, authentication)).thenReturn(true);
 
         assertRedirect(controller.removePhonePage(), "removed");
-        verify(removePhoneUseCase).execute(userId);
+        verify(removePhoneUseCase).execute(userId, "alice");
     }
 
     /** A session that does not satisfy the step-up removes nothing. */
@@ -283,6 +300,17 @@ class PhonePageControllerTest {
     @Test
     void phonePath_whenRead_isTheContractPath() {
         assertEquals("/account/phone", PhonePageController.PHONE_PATH);
+    }
+
+    /**
+     * Signs the session in and tells whether it satisfies the step-up.
+     *
+     * @param satisfied whether the step-up is satisfied.
+     */
+    private void givenStepUp(final boolean satisfied) {
+        final var authentication = UsernamePasswordAuthenticationToken.authenticated("alice", null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(stepUp.isSatisfied(userId, authentication)).thenReturn(satisfied);
     }
 
     /** Makes the request come from the account. */

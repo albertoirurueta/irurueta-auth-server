@@ -25,6 +25,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
 import com.irurueta.authserver.authorization.domain.sms.PhoneVerification;
@@ -64,8 +67,17 @@ class ConfirmPhoneUseCaseTest {
     /** Phone being verified. */
     private static final PhoneNumber PHONE = new PhoneNumber("+34600000000");
 
+    /** Another phone, verified before. */
+    private static final PhoneNumber PREVIOUS_PHONE = new PhoneNumber("+34600000001");
+
     /** Identifier of the user. */
     private static final UUID USER_ID = UUID.randomUUID();
+
+    /** Name of the user. */
+    private static final String USERNAME = "alice";
+
+    /** Number of trusted devices revoked by a replacement. */
+    private static final int REVOKED = 2;
 
     /** Port that stores the verified phones. */
     @Mock
@@ -78,6 +90,14 @@ class ConfirmPhoneUseCaseTest {
     /** Hasher of the code. */
     @Mock
     private OneTimeCodeHasher oneTimeCodeHasher;
+
+    /** Port that stores the trusted devices. */
+    @Mock
+    private TrustedDeviceRepository trustedDeviceRepository;
+
+    /** Use case that records the audit events. */
+    @Mock
+    private RecordSecurityEventUseCase recordSecurityEventUseCase;
 
     /** Real settings with three attempts. */
     @Spy
@@ -103,11 +123,49 @@ class ConfirmPhoneUseCaseTest {
         when(userPhoneRepository.save(any(UserPhone.class))).thenReturn(true);
         final var saved = ArgumentCaptor.<UserPhone>captor();
 
-        assertTrue(useCase.execute(USER_ID, CODE));
+        assertTrue(useCase.execute(USER_ID, USERNAME, CODE));
 
         verify(userPhoneRepository).save(saved.capture());
         assertEquals(new UserPhone(USER_ID, PHONE, NOW), saved.getValue());
         verify(phoneVerificationRepository).deleteByUserId(USER_ID);
+        verifyNoInteractions(trustedDeviceRepository, recordSecurityEventUseCase);
+    }
+
+    /**
+     * Verifies that confirming a number that replaces another verified one revokes the trusted devices and audits
+     * the removal of the old phone.
+     */
+    @Test
+    void execute_whenNumberReplacesAnotherVerifiedOne_revokesTrustedDevicesAndAudits() {
+        stubPending(NOW.plusSeconds(1));
+        when(phoneVerificationRepository.incrementAttempts(USER_ID)).thenReturn(1);
+        when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
+        when(userPhoneRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(new UserPhone(USER_ID, PREVIOUS_PHONE, NOW.minusSeconds(1))));
+        when(userPhoneRepository.save(any(UserPhone.class))).thenReturn(true);
+        when(trustedDeviceRepository.deleteByUser(USER_ID)).thenReturn(REVOKED);
+
+        assertTrue(useCase.execute(USER_ID, USERNAME, CODE));
+
+        verify(recordSecurityEventUseCase).execute(SecurityEventType.SECOND_FACTOR_REMOVED, USER_ID, USERNAME,
+                ConfirmPhoneUseCase.REPLACED_DETAIL + REVOKED);
+    }
+
+    /**
+     * Verifies that confirming the number the user already has verified is not a replacement.
+     */
+    @Test
+    void execute_whenNumberIsTheVerifiedOne_doesNotRevokeAnything() {
+        stubPending(NOW.plusSeconds(1));
+        when(phoneVerificationRepository.incrementAttempts(USER_ID)).thenReturn(1);
+        when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
+        when(userPhoneRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(new UserPhone(USER_ID, PHONE, NOW.minusSeconds(1))));
+        when(userPhoneRepository.save(any(UserPhone.class))).thenReturn(true);
+
+        assertTrue(useCase.execute(USER_ID, USERNAME, CODE));
+
+        verifyNoInteractions(trustedDeviceRepository, recordSecurityEventUseCase);
     }
 
     /**
@@ -120,9 +178,10 @@ class ConfirmPhoneUseCaseTest {
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
         when(userPhoneRepository.save(any(UserPhone.class))).thenReturn(false);
 
-        assertFalse(useCase.execute(USER_ID, CODE));
+        assertFalse(useCase.execute(USER_ID, USERNAME, CODE));
 
         verify(phoneVerificationRepository).deleteByUserId(USER_ID);
+        verifyNoInteractions(trustedDeviceRepository, recordSecurityEventUseCase);
     }
 
     /**
@@ -133,7 +192,7 @@ class ConfirmPhoneUseCaseTest {
         when(clock.instant()).thenReturn(NOW);
         when(phoneVerificationRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
 
-        assertFalse(useCase.execute(USER_ID, CODE));
+        assertFalse(useCase.execute(USER_ID, USERNAME, CODE));
 
         verifyNoInteractions(userPhoneRepository, oneTimeCodeHasher);
     }
@@ -145,7 +204,7 @@ class ConfirmPhoneUseCaseTest {
     void execute_whenVerificationIsExpired_deletesItAndReturnsFalse() {
         stubPending(NOW);
 
-        assertFalse(useCase.execute(USER_ID, CODE));
+        assertFalse(useCase.execute(USER_ID, USERNAME, CODE));
 
         verify(phoneVerificationRepository).deleteByUserId(USER_ID);
         verifyNoInteractions(oneTimeCodeHasher);
@@ -160,7 +219,7 @@ class ConfirmPhoneUseCaseTest {
         when(phoneVerificationRepository.incrementAttempts(USER_ID)).thenReturn(1);
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(false);
 
-        assertFalse(useCase.execute(USER_ID, CODE));
+        assertFalse(useCase.execute(USER_ID, USERNAME, CODE));
 
         verify(phoneVerificationRepository, never()).deleteByUserId(USER_ID);
         verifyNoInteractions(userPhoneRepository);
@@ -175,7 +234,7 @@ class ConfirmPhoneUseCaseTest {
         when(phoneVerificationRepository.incrementAttempts(USER_ID)).thenReturn(MAX_ATTEMPTS);
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(false);
 
-        assertFalse(useCase.execute(USER_ID, CODE));
+        assertFalse(useCase.execute(USER_ID, USERNAME, CODE));
 
         verify(phoneVerificationRepository).deleteByUserId(USER_ID);
     }
@@ -188,7 +247,7 @@ class ConfirmPhoneUseCaseTest {
         stubPending(NOW.plusSeconds(1));
         when(phoneVerificationRepository.incrementAttempts(USER_ID)).thenReturn(MAX_ATTEMPTS + 1);
 
-        assertFalse(useCase.execute(USER_ID, CODE));
+        assertFalse(useCase.execute(USER_ID, USERNAME, CODE));
 
         verify(phoneVerificationRepository).deleteByUserId(USER_ID);
         verifyNoInteractions(oneTimeCodeHasher, userPhoneRepository);

@@ -17,8 +17,6 @@ package com.irurueta.authserver.authorization.api.web.ott;
 
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorFragment;
-import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
-import com.irurueta.authserver.authorization.application.sms.HasVerifiedPhoneUseCase;
 import com.irurueta.authserver.authorization.domain.ott.OttChannel;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +27,8 @@ import org.springframework.stereotype.Component;
 /**
  * Contributes the one-time token second factor to the second-factor page: the buttons that send a code or a magic link
  * by e-mail and a code by SMS to the signed-in user, each posting to {@code POST /ott/generate} with the second-factor
- * purpose. A channel is not offered when it is the one that signed the user in (the same mailbox or phone would be
- * proved twice), and SMS only to a user with a verified phone.
+ * purpose. Only the channels {@link OttSecondFactorChannels} allows are offered: never the one that signed the user in,
+ * SMS only to a user with a verified phone, and e-mail only to a user without any other confirmed second factor.
  */
 @Component
 @RequiredArgsConstructor
@@ -45,14 +43,8 @@ public class OttSecondFactorFragment implements SecondFactorFragment {
     /** Model attribute telling the fragment whether to offer the SMS code. */
     public static final String SMS_AVAILABLE_ATTRIBUTE = "ottSmsAvailable";
 
-    /** Rules about the session a one-time token is used as a second factor in. */
-    private final PrimaryFactorSession primaryFactorSession;
-
-    /** Resolves the identifier of the account of the signed-in user. */
-    private final SecondFactorUserResolver userResolver;
-
-    /** Tells whether the user has a verified phone. */
-    private final HasVerifiedPhoneUseCase hasVerifiedPhoneUseCase;
+    /** Decides which channels may be the second factor of the user. */
+    private final OttSecondFactorChannels secondFactorChannels;
 
     /**
      * Gets the template that holds the fragment.
@@ -95,11 +87,10 @@ public class OttSecondFactorFragment implements SecondFactorFragment {
         if (!MfaAuthorizationManager.isUser(authentication)) {
             return Map.of();
         }
-        final var sms = !primaryFactorSession.signedInThrough(authentication, OttChannel.SMS)
-                && hasVerifiedPhoneUseCase.execute(userResolver.userIdOf(authentication.getName()));
+        final var channels = secondFactorChannels.allowed(authentication);
         return Map.of(
-                EMAIL_AVAILABLE_ATTRIBUTE, !primaryFactorSession.signedInThrough(authentication, OttChannel.EMAIL),
-                SMS_AVAILABLE_ATTRIBUTE, sms);
+                EMAIL_AVAILABLE_ATTRIBUTE, channels.contains(OttChannel.EMAIL),
+                SMS_AVAILABLE_ATTRIBUTE, channels.contains(OttChannel.SMS));
     }
 }
 // end::ott-second-factor-fragment[]

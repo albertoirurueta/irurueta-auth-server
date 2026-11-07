@@ -17,6 +17,7 @@
 package com.irurueta.authserver.authorization.application.ott;
 
 import com.irurueta.authserver.authorization.application.sms.SmsProperties;
+import com.irurueta.authserver.authorization.domain.ott.ExpiredLinkTokenPurger;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeRepository;
 import com.irurueta.authserver.authorization.domain.sms.PhoneVerificationRepository;
 import com.irurueta.authserver.authorization.domain.sms.SmsCostLedgerRepository;

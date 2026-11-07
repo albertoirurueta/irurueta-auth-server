@@ -18,7 +18,7 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.ott;
 
 import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
 
-import com.irurueta.authserver.authorization.application.ott.ExpiredLinkTokenPurger;
+import com.irurueta.authserver.authorization.domain.ott.ExpiredLinkTokenPurger;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;

@@ -17,7 +17,7 @@
 package com.irurueta.authserver.authorization.infrastructure.sms;
 
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.irurueta.authserver.authorization.application.sms.PhoneCountryResolver;
+import com.irurueta.authserver.authorization.domain.sms.PhoneCountryResolver;
 import com.irurueta.authserver.authorization.domain.sms.PhoneNormalizer;
 import com.irurueta.authserver.authorization.domain.sms.SmsSender;
 import java.time.Clock;
@@ -28,13 +28,18 @@ import org.springframework.context.annotation.Profile;
 
 // tag::sms-adapters[]
 /**
- * Wires the phone normaliser and the default {@link SmsSender}. The profile expressions make the three senders
- * (logging, Twilio, SNS) mutually exclusive in every combination of profiles: the logging one only when neither
- * gateway profile is active, Twilio unless SNS is also active, and SNS whenever it is active.
+ * Wires the phone normaliser and the logging {@link SmsSender} of development and tests. The profile expressions make
+ * the three senders (logging, Twilio, SNS) mutually exclusive in every combination of profiles: the logging one only
+ * under {@code dev} or {@code test} and when neither gateway profile is active, Twilio unless SNS is also active, and
+ * SNS whenever it is active. With none of those profiles there is no sender at all and
+ * {@link MissingSmsGatewayConfiguration} stops the startup: a deployment never silently keeps its messages in memory.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SmsOutboxProperties.class)
 public class SmsAdapterConfiguration {
+
+    /** Profiles under which the logging sender (and its outbox) is used: development or tests, and no gateway. */
+    public static final String LOGGING_SENDER_PROFILES = "(dev | test) & !twilio & !sns";
 
     /**
      * Creates the phone normaliser.
@@ -63,20 +68,20 @@ public class SmsAdapterConfiguration {
      * @return the outbox, readable by the development inbox.
      */
     @Bean
-    @Profile("!twilio & !sns")
+    @Profile(LOGGING_SENDER_PROFILES)
     public SmsOutbox smsOutbox(final SmsOutboxProperties properties) {
         return new SmsOutbox(properties.capacity());
     }
 
     /**
-     * Creates the default sender.
+     * Creates the logging sender of development and tests.
      *
      * @param outbox records the messages.
      * @param clock  source of the recording instant.
      * @return the logging sender.
      */
     @Bean
-    @Profile("!twilio & !sns")
+    @Profile(LOGGING_SENDER_PROFILES)
     public SmsSender loggingSmsSender(final SmsOutbox outbox, final Clock clock) {
         return new LoggingSmsSender(outbox, clock);
     }

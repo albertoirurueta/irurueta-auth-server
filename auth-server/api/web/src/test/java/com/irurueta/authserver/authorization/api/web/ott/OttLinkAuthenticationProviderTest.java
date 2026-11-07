@@ -27,6 +27,7 @@ import com.irurueta.authserver.authorization.api.web.mfa.AuthenticationFactorReg
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -69,6 +70,10 @@ class OttLinkAuthenticationProviderTest {
     @Mock
     private UserDetailsService userDetailsService;
 
+    /** Decides which channels may be the second factor. */
+    @Mock
+    private OttSecondFactorChannels secondFactorChannels;
+
     /** Provider under test. */
     private OttLinkAuthenticationProvider provider;
 
@@ -80,7 +85,8 @@ class OttLinkAuthenticationProviderTest {
                 new AuthenticationFactor("ott-email", "otp", "FACTOR_OTT", FactorStrength.PRIMARY),
                 new AuthenticationFactor("totp", "otp", "FACTOR_TOTP", FactorStrength.SECOND)));
         provider = new OttLinkAuthenticationProvider(oneTimeTokenService, userDetailsService,
-                new FactorGrantor(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)), new PrimaryFactorSession(registry));
+                new FactorGrantor(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)), new PrimaryFactorSession(registry),
+                secondFactorChannels);
     }
 
     /** Clears the security context. */
@@ -106,6 +112,8 @@ class OttLinkAuthenticationProviderTest {
     void authenticate_whenASecondFactorLinkIsConfirmedInTheSessionOfItsUser_grantsTheSecondFactor() {
         consumes(LinkTokenUsername.forLink("alice", true));
         signedIn("alice", "FACTOR_PASSWORD");
+        when(secondFactorChannels.isAllowed(SecurityContextHolder.getContext().getAuthentication(),
+                OttChannel.EMAIL)).thenReturn(true);
         when(userDetailsService.loadUserByUsername("alice")).thenReturn(user());
 
         final var result = provider.authenticate(new OneTimeTokenAuthenticationToken(TOKEN));
@@ -143,14 +151,20 @@ class OttLinkAuthenticationProviderTest {
         assertThrows(BadCredentialsException.class, () -> provider.authenticate(request));
     }
 
-    /** An e-mail link cannot be the second factor of a user who signed in by e-mail. */
+    /**
+     * An e-mail link cannot be the second factor of a session the e-mail channel is not allowed for (a user who signed
+     * in by e-mail, or who has another confirmed second factor), and the account is not even loaded.
+     */
     @Test
-    void authenticate_whenTheUserSignedInByEmail_throwsBadCredentialsException() {
+    void authenticate_whenTheEmailChannelIsNotAllowed_throwsBadCredentialsException() {
         consumes(LinkTokenUsername.forLink("alice", true));
-        signedIn("alice", "FACTOR_OTT");
+        signedIn("alice", "FACTOR_PASSWORD");
+        when(secondFactorChannels.isAllowed(SecurityContextHolder.getContext().getAuthentication(),
+                OttChannel.EMAIL)).thenReturn(false);
         final var request = new OneTimeTokenAuthenticationToken(TOKEN);
 
         assertThrows(BadCredentialsException.class, () -> provider.authenticate(request));
+        verifyNoInteractions(userDetailsService);
     }
 
     /** An unknown, used or expired token is refused. */

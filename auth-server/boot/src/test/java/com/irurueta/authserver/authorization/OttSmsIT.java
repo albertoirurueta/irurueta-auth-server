@@ -47,7 +47,7 @@ class OttSmsIT extends AbstractOttFlow {
     /** {@code amr} of a user who presented a password, an SMS code and so more than one factor. */
     private static final List<String> MFA_AMR = List.of("pwd", "sms", "mfa");
 
-    /** {@code amr} of a user who signed in with an SMS code and then an e-mail code. */
+    /** {@code amr} of a user who signed in with an SMS code and then a code of the authenticator app. */
     private static final List<String> SMS_MFA_AMR = List.of("sms", "otp", "mfa");
 
     /** Path of the phone page. */
@@ -64,14 +64,17 @@ class OttSmsIT extends AbstractOttFlow {
     /**
      * Verifies that a user with a verified phone who asks for a code by SMS and posts it signs in without a password,
      * and, because a verified phone is a confirmed second factor that makes MFA required, is then asked for a second
-     * factor: an e-mail code completes the sign-in and the tokens carry {@code amr} {@code sms}, {@code otp} and
-     * {@code mfa}.
+     * factor. Neither one-time token channel is offered or delivered as that second factor: not SMS, which signed the
+     * user in, and not e-mail, because the user has another confirmed second factor (a mailbox, which also resets the
+     * password, never stands in for it). The authenticator app of the user completes the sign-in and the tokens carry
+     * {@code amr} {@code sms}, {@code otp} and {@code mfa}.
      *
      * @throws Exception if a request cannot be performed.
      */
     @Test
     void login_whenCodeFromSmsIsPosted_signsInAndIsAskedForASecondFactor() throws Exception {
-        final var owner = createUserWithPhone();
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var owner = withPhone(enrolled.user());
         final var client = getFixtures().createCodeClient();
         final var verifier = newVerifier();
         final var session = new MockHttpSession();
@@ -84,10 +87,13 @@ class OttSmsIT extends AbstractOttFlow {
         assertNotEquals(sessionId, session.getId(), "The session id must change when the user signs in");
         expectSecondFactorPage(authorizeUri, session);
         final var page = secondFactorPage(session);
-        assertTrue(page.contains("E-mail me a code"));
+        assertFalse(page.contains("E-mail me a code"), "E-mail is not offered next to another second factor");
         assertFalse(page.contains("Send me a code by SMS"), "The channel that signed the user in is not offered");
         requestToken(session, owner.user().username(), "email", "code", "second-factor");
-        assertAccepted(postSecondFactorCode(session, mailpit().awaitMessageTo(owner.user().email()).code()));
+        requestToken(session, owner.user().username(), "sms", "code", "second-factor");
+        assertEquals(0, mailpit().countMessagesTo(owner.user().email()), "No e-mail second factor is delivered");
+        assertEquals(1L, smsCount(owner.phone()), "No SMS second factor is delivered after an SMS sign-in");
+        assertAccepted(postSecondFactor(session, getTools().codeNow(enrolled.id(), 0), false, false));
         final var tokens = completeAuthorization(authorizeUri, client, verifier, session);
 
         final var access = AuthServerFixtures.claimsOf(tokens.get("access_token").asString());
@@ -159,7 +165,7 @@ class OttSmsIT extends AbstractOttFlow {
         getMockMvc().perform(form(PHONE_PAGE, session, "phone", typed))
                 .andExpect(status().isSeeOther())
                 .andExpect(redirectedUrl("/account/phone?status=pending"));
-        assertEquals(1L, smsCount(phone));
+        assertEquals(1L, awaitSmsCount(phone, 1L));
         getMockMvc().perform(form(PHONE_PAGE + "/verify", session, "code", lastSmsCode(phone)))
                 .andExpect(status().isSeeOther())
                 .andExpect(redirectedUrl("/account/phone?status=verified"));

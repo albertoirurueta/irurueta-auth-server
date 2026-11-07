@@ -16,22 +16,19 @@
 package com.irurueta.authserver.authorization.api.web.ott;
 
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import com.irurueta.authserver.authorization.application.ott.RequestMagicLinkUseCase;
 import com.irurueta.authserver.authorization.application.ott.RequestOneTimeCodeUseCase;
-import com.irurueta.authserver.authorization.application.ott.ResolveOttDestinationUseCase;
-import com.irurueta.authserver.authorization.domain.ott.OttChannel;
-import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
-import com.irurueta.authserver.authorization.domain.ott.OttDeliveryException;
 import com.irurueta.authserver.authorization.domain.ott.OttKind;
-import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
+import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.ott.OneTimeToken;
 import org.springframework.security.authentication.ott.OneTimeTokenAuthenticationToken;
 import org.springframework.security.authentication.ott.OneTimeTokenService;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.RedirectStrategy;
@@ -44,30 +41,32 @@ import org.springframework.security.web.authentication.ott.OneTimeTokenGeneratio
  * {@link RequestOneTimeCodeUseCase} stores the code in its own table, bound to a new binding id kept in the session.
  * Nothing is sent, and nothing differs for the caller, when the identifier is unknown, disabled or has no verified
  * e-mail address or phone: the browser is always redirected to the page that says to check the inbox, so the response
- * does not tell whether the account exists. A delivery that fails is logged without its destination and answered the
- * same.
+ * does not tell whether the account exists. The use cases only request the delivery, which happens after their
+ * transaction commits and off the request thread, so neither a slow mail server or SMS gateway nor a delivery failure
+ * shows in the response.
+ *
+ * <p>A token asked for as a second factor is delivered only through a channel {@link OttSecondFactorChannels} allows
+ * for the signed-in user (never the channel that signed the user in, and e-mail only to a user without another
+ * confirmed second factor), and a second-factor link only for a user name that fits next to the marker of
+ * {@link LinkTokenUsername}. Any other request is answered the same, but its token is discarded and nothing is sent.
  */
-@Slf4j
 @RequiredArgsConstructor
 public class OttGenerationSuccessHandler implements OneTimeTokenGenerationSuccessHandler {
 
     /** Starts the numeric code of a channel. */
     private final RequestOneTimeCodeUseCase requestOneTimeCodeUseCase;
 
-    /** Finds where a token for an identifier goes. */
-    private final ResolveOttDestinationUseCase resolveOttDestinationUseCase;
-
-    /** Delivers the magic link. */
-    private final OttDelivery ottDelivery;
+    /** Requests the delivery of a magic link. */
+    private final RequestMagicLinkUseCase requestMagicLinkUseCase;
 
     /** Store of the link tokens, which the code requests discard their unused token from. */
     private final OneTimeTokenService oneTimeTokenService;
 
-    /** The rules of one-time tokens, which set the lifetime shown with a link. */
-    private final OttPolicy ottPolicy;
-
     /** Builds the magic link. */
     private final OttLinkFactory linkFactory;
+
+    /** Decides which channels may be the second factor of the signed-in user. */
+    private final OttSecondFactorChannels secondFactorChannels;
 
     /** Redirects to the page that says to check the inbox. */
     private final RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
@@ -83,15 +82,19 @@ public class OttGenerationSuccessHandler implements OneTimeTokenGenerationSucces
     @Override
     public void handle(final HttpServletRequest request, final HttpServletResponse response, final OneTimeToken token)
             throws IOException {
-        final var parameters = OttGenerationParameters.from(request,
-                SecurityContextHolder.getContext().getAuthentication());
+        final var current = SecurityContextHolder.getContext().getAuthentication();
+        final var parameters = OttGenerationParameters.from(request, current);
         final var identifier = LinkTokenUsername.identifierOf(token.getUsername());
         final var bindingId = UUID.randomUUID().toString();
-        if (parameters.kind() == OttKind.CODE) {
-            oneTimeTokenService.consume(new OneTimeTokenAuthenticationToken(token.getTokenValue()));
-            requestOneTimeCodeUseCase.execute(identifier, parameters.channel(), parameters.purpose(), bindingId);
+        final var deliverable = isDeliverable(parameters, current);
+        if (parameters.kind() == OttKind.LINK && deliverable) {
+            requestMagicLinkUseCase.execute(identifier, linkFactory.confirmationLink(token.getTokenValue()));
         } else {
-            deliverLink(identifier, token);
+            // a code, or a link that is not sent, never uses the token of the stock service
+            oneTimeTokenService.consume(new OneTimeTokenAuthenticationToken(token.getTokenValue()));
+            if (deliverable) {
+                requestOneTimeCodeUseCase.execute(identifier, parameters.channel(), parameters.purpose(), bindingId);
+            }
         }
         new PendingOtt(identifier, bindingId, parameters.kind(), parameters.purpose(), parameters.channel())
                 .saveTo(request.getSession());
@@ -99,21 +102,20 @@ public class OttGenerationSuccessHandler implements OneTimeTokenGenerationSucces
     }
 
     /**
-     * Sends the magic link of a token to the e-mail address of the account, when there is one.
+     * Tells whether a token may be delivered: always for a sign-in; for a second factor only through a channel the
+     * signed-in user may use, and a link only when the user name fits the token store with its marker.
      *
-     * @param identifier the identifier the link was requested for.
-     * @param token      the token.
+     * @param parameters what the request asks for.
+     * @param current    the authentication of the request.
+     * @return {@code true} when the token may be delivered.
      */
-    private void deliverLink(final String identifier, final OneTimeToken token) {
-        final var destination = resolveOttDestinationUseCase.execute(identifier, OttChannel.EMAIL).orElse(null);
-        if (destination == null) {
-            return;
+    private boolean isDeliverable(final OttGenerationParameters parameters, final Authentication current) {
+        if (parameters.purpose() != OttPurpose.SECOND_FACTOR) {
+            return true;
         }
-        try {
-            ottDelivery.deliverLink(OttChannel.EMAIL, destination.address(),
-                    linkFactory.confirmationLink(token.getTokenValue()), ottPolicy.ttl(OttKind.LINK));
-        } catch (final OttDeliveryException e) {
-            log.warn("A magic link was not delivered: {}", e.getClass().getSimpleName());
+        if (parameters.kind() == OttKind.LINK && !LinkTokenUsername.fitsSecondFactorLink(current.getName())) {
+            return false;
         }
+        return secondFactorChannels.isAllowed(current, parameters.channel());
     }
 }

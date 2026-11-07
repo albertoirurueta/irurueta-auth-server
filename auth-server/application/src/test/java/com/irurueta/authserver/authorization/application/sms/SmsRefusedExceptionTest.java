@@ -13,27 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.irurueta.authserver.authorization.application.sms;
 
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests of {@link SmsRefusedException} and its subclasses and of {@link InvalidPhoneNumberException}.
+ * Unit tests of {@link SmsRefusedException}.
  */
 class SmsRefusedExceptionTest {
 
     /**
-     * Verifies that the refusals share the base type and carry fixed messages.
+     * Verifies that the message is kept.
      */
     @Test
-    void constructor_whenSubclassesAreCreated_areRefusalsWithFixedMessages() {
-        assertInstanceOf(SmsRefusedException.class, new SmsCountryNotAllowedException());
-        assertInstanceOf(SmsRefusedException.class, new SmsBudgetExceededException());
+    void constructor_whenMessageIsGiven_keepsIt() {
         assertEquals("custom", new SmsRefusedException("custom").getMessage());
-        assertEquals("The phone number is not valid", new InvalidPhoneNumberException().getMessage());
     }
 }

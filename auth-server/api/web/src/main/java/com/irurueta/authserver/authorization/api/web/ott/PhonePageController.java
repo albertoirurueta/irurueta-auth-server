@@ -82,7 +82,7 @@ public class PhonePageController implements PhonePageApi {
     /** Status of a request over a limit. */
     static final String RATE_LIMITED = "rate-limited";
 
-    /** Status of a removal that needs a recent multi-factor sign-in. */
+    /** Status of an enrolment or a removal that needs a recent multi-factor sign-in. */
     static final String STEP_UP_REQUIRED = "step-up-required";
 
     /** The statuses the page tells; any other value of the parameter is ignored. */
@@ -104,7 +104,7 @@ public class PhonePageController implements PhonePageApi {
     /** Removes the phone. */
     private final RemovePhoneUseCase removePhoneUseCase;
 
-    /** Requires a recent multi-factor sign-in before the phone is removed. */
+    /** Requires a recent multi-factor sign-in before the phone is replaced or removed. */
     private final PhoneSessionStepUp stepUp;
 
     /** Limits the requests. */
@@ -142,7 +142,8 @@ public class PhonePageController implements PhonePageApi {
     }
 
     /**
-     * Sends the verification code to the number.
+     * Sends the verification code to the number, when the session shows a recent enough multi-factor sign-in for an
+     * account that already has a confirmed second factor (the new number would replace the verified one).
      *
      * @param phone the number.
      * @return a redirect to the page; the status is {@code pending} whether or not the number belongs to another
@@ -151,6 +152,9 @@ public class PhonePageController implements PhonePageApi {
     @Override
     public ResponseEntity<Void> startPhoneEnrolmentPage(final String phone) {
         final var account = currentAccountResolver.resolve();
+        if (!stepUp.isSatisfied(account.id(), SecurityContextHolder.getContext().getAuthentication())) {
+            return redirect(STEP_UP_REQUIRED);
+        }
         try {
             rateLimiter.checkGeneration(request.getRemoteAddr(), PhoneController.ACCOUNT_KEY_PREFIX + account.id());
             startPhoneEnrolmentUseCase.execute(account.id(), phone);
@@ -178,7 +182,7 @@ public class PhonePageController implements PhonePageApi {
         } catch (final OttRateLimitExceededException e) {
             return redirect(RATE_LIMITED);
         }
-        return redirect(confirmPhoneUseCase.execute(account.id(), code) ? VERIFIED : INVALID_CODE);
+        return redirect(confirmPhoneUseCase.execute(account.id(), account.username(), code) ? VERIFIED : INVALID_CODE);
     }
 
     /**
@@ -192,7 +196,7 @@ public class PhonePageController implements PhonePageApi {
         if (!stepUp.isSatisfied(account.id(), SecurityContextHolder.getContext().getAuthentication())) {
             return redirect(STEP_UP_REQUIRED);
         }
-        removePhoneUseCase.execute(account.id());
+        removePhoneUseCase.execute(account.id(), account.username());
         return redirect(REMOVED);
     }
 

@@ -25,10 +25,12 @@ import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCode;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
 import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeRepository;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
 import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
 import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import java.time.Clock;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
  * before the comparison, and the code is burnt (consumed) after the last wrong attempt or when the counter is already
  * past the limit. A correct code is accepted once: consuming it must succeed, so of two concurrent submissions of the
  * same code only one is accepted. Wrong, expired, burnt, already used and mismatching-purpose codes all give the same
- * {@link OttVerificationResult#failure()}.
+ * {@link OttVerificationResult#failure()}. So does a code delivered through a channel the caller does not accept (for a
+ * second factor, the channel that signed the user in, or e-mail for a user with another confirmed second factor): it is
+ * burnt and, as a second factor, counted against the lockout and never audited as a success.
  *
  * <p>For {@link OttPurpose#SECOND_FACTOR} the shared second-factor lockout applies exactly as for TOTP: it is checked
  * first (a locked user gets {@link OttVerificationResult#locked()} and nothing is compared), every failure is
@@ -90,12 +94,13 @@ public class VerifyOneTimeCodeUseCase {
      * @param username  name of the user.
      * @param code      the code as typed.
      * @param purpose   what the code is for.
+     * @param channels  the channels whose codes are accepted; a code of any other channel is a failure.
      * @return the outcome.
      */
-    public OttVerificationResult execute(
-            final String bindingId, final String username, final String code, final OttPurpose purpose) {
+    public OttVerificationResult execute(final String bindingId, final String username, final String code,
+            final OttPurpose purpose, final Set<OttChannel> channels) {
         if (purpose != OttPurpose.SECOND_FACTOR) {
-            return check(bindingId, username, code, purpose);
+            return check(bindingId, username, code, purpose, channels);
         }
         final var account = findUserAccountUseCase.execute(username).orElse(null);
         if (account == null) {
@@ -105,7 +110,7 @@ public class VerifyOneTimeCodeUseCase {
         if (checkSecondFactorLockoutUseCase.execute(userId)) {
             return OttVerificationResult.locked();
         }
-        final var result = check(bindingId, username, code, purpose);
+        final var result = check(bindingId, username, code, purpose, channels);
         recordSecondFactorOutcome(result, account);
         return result;
     }
@@ -134,14 +139,19 @@ public class VerifyOneTimeCodeUseCase {
      * @param username  name of the user.
      * @param code      the code as typed.
      * @param purpose   what the code is for.
+     * @param channels  the channels whose codes are accepted.
      * @return success when the code is valid and was consumed, failure otherwise.
      */
-    private OttVerificationResult check(
-            final String bindingId, final String username, final String code, final OttPurpose purpose) {
+    private OttVerificationResult check(final String bindingId, final String username, final String code,
+            final OttPurpose purpose, final Set<OttChannel> channels) {
         final var active = oneTimeCodeRepository.findActive(bindingId, username, clock.instant())
                 .filter(stored -> stored.purpose() == purpose)
                 .orElse(null);
         if (active == null) {
+            return OttVerificationResult.failure();
+        }
+        if (!channels.contains(active.channel())) {
+            oneTimeCodeRepository.consume(active.id());
             return OttVerificationResult.failure();
         }
         final var attempts = oneTimeCodeRepository.incrementAttempts(active.id());

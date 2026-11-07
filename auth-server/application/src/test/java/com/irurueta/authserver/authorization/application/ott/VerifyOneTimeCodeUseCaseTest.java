@@ -39,8 +39,10 @@ import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -78,6 +80,9 @@ class VerifyOneTimeCodeUseCaseTest {
 
     /** Identifier of the user. */
     private static final UUID USER_ID = UUID.randomUUID();
+
+    /** Every channel, as a sign-in accepts. */
+    private static final Set<OttChannel> ALL = EnumSet.allOf(OttChannel.class);
 
     /** Port that stores the codes. */
     @Mock
@@ -129,7 +134,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
         when(oneTimeCodeRepository.consume(CODE_ID)).thenReturn(true);
 
-        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN);
+        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL);
 
         assertTrue(result.isSuccess());
         assertEquals(OttChannel.EMAIL, result.channel());
@@ -147,7 +152,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
         when(oneTimeCodeRepository.consume(CODE_ID)).thenReturn(false);
 
-        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN));
+        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL));
     }
 
     /**
@@ -158,7 +163,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(clock.instant()).thenReturn(NOW);
         when(oneTimeCodeRepository.findActive(BINDING, USERNAME, NOW)).thenReturn(Optional.empty());
 
-        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN));
+        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL));
 
         verify(oneTimeCodeRepository, never()).incrementAttempts(CODE_ID);
     }
@@ -170,7 +175,7 @@ class VerifyOneTimeCodeUseCaseTest {
     void execute_whenPurposeDiffers_returnsFailure() {
         stubActive(OttPurpose.SECOND_FACTOR);
 
-        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN));
+        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL));
 
         verify(oneTimeCodeRepository, never()).incrementAttempts(CODE_ID);
     }
@@ -184,7 +189,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeRepository.incrementAttempts(CODE_ID)).thenReturn(1);
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(false);
 
-        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN));
+        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL));
 
         verify(oneTimeCodeRepository, never()).consume(CODE_ID);
     }
@@ -198,7 +203,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeRepository.incrementAttempts(CODE_ID)).thenReturn(MAX_ATTEMPTS);
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(false);
 
-        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN));
+        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL));
 
         verify(oneTimeCodeRepository).consume(CODE_ID);
     }
@@ -213,7 +218,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
         when(oneTimeCodeRepository.consume(CODE_ID)).thenReturn(true);
 
-        assertTrue(useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN).isSuccess());
+        assertTrue(useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL).isSuccess());
     }
 
     /**
@@ -224,7 +229,7 @@ class VerifyOneTimeCodeUseCaseTest {
         stubActive(OttPurpose.LOGIN);
         when(oneTimeCodeRepository.incrementAttempts(CODE_ID)).thenReturn(MAX_ATTEMPTS + 1);
 
-        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN));
+        assertEquals(OttVerificationResult.failure(), useCase.execute(BINDING, USERNAME, CODE, OttPurpose.LOGIN, ALL));
 
         verify(oneTimeCodeRepository).consume(CODE_ID);
         verifyNoInteractions(oneTimeCodeHasher);
@@ -239,7 +244,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(checkSecondFactorLockoutUseCase.execute(USER_ID)).thenReturn(true);
 
         assertEquals(OttVerificationResult.locked(),
-                useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR));
+                useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR, ALL));
 
         verifyNoInteractions(oneTimeCodeRepository, oneTimeCodeHasher);
     }
@@ -252,7 +257,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.empty());
 
         assertEquals(OttVerificationResult.failure(),
-                useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR));
+                useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR, ALL));
 
         verifyNoInteractions(checkSecondFactorLockoutUseCase, oneTimeCodeRepository);
     }
@@ -269,13 +274,34 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(true);
         when(oneTimeCodeRepository.consume(CODE_ID)).thenReturn(true);
 
-        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR);
+        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR, ALL);
 
         assertTrue(result.isSuccess());
         verify(resetSecondFactorFailuresUseCase).execute(USER_ID);
         verify(recordSecurityEventUseCase).execute(SecurityEventType.SECOND_FACTOR_SUCCESS, USER_ID, USERNAME,
                 "one-time code");
         verify(registerSecondFactorFailureUseCase, never()).execute(USER_ID, USERNAME);
+    }
+
+    /**
+     * Verifies that a second-factor code of a channel the caller does not accept (the e-mail code of the stubs, for a
+     * user who may only use SMS) is burnt without being compared, counted against the lockout and never audited as a
+     * success, even though it is the right code.
+     */
+    @Test
+    void execute_whenSecondFactorCodeChannelIsNotAccepted_burnsItAndRegistersFailure() {
+        when(findUserAccountUseCase.execute(USERNAME)).thenReturn(Optional.of(account()));
+        when(checkSecondFactorLockoutUseCase.execute(USER_ID)).thenReturn(false);
+        stubActive(OttPurpose.SECOND_FACTOR);
+
+        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR,
+                EnumSet.of(OttChannel.SMS));
+
+        assertEquals(OttVerificationResult.failure(), result);
+        verify(oneTimeCodeRepository).consume(CODE_ID);
+        verify(oneTimeCodeRepository, never()).incrementAttempts(CODE_ID);
+        verifyNoInteractions(oneTimeCodeHasher, resetSecondFactorFailuresUseCase, recordSecurityEventUseCase);
+        verify(registerSecondFactorFailureUseCase).execute(USER_ID, USERNAME);
     }
 
     /**
@@ -289,7 +315,7 @@ class VerifyOneTimeCodeUseCaseTest {
         when(oneTimeCodeRepository.incrementAttempts(CODE_ID)).thenReturn(1);
         when(oneTimeCodeHasher.matches(CODE, HASH)).thenReturn(false);
 
-        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR);
+        final var result = useCase.execute(BINDING, USERNAME, CODE, OttPurpose.SECOND_FACTOR, ALL);
 
         assertEquals(OttVerificationResult.failure(), result);
         verify(registerSecondFactorFailureUseCase).execute(USER_ID, USERNAME);
