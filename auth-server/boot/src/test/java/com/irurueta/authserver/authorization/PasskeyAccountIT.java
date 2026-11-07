@@ -27,10 +27,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.authorization.application.mfa.CreateTrustedDeviceUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -64,6 +69,21 @@ class PasskeyAccountIT extends AbstractPasskeyFlow {
 
     /** Seconds since a multi-factor sign-in that is too old for a step-up (the default maximum is five minutes). */
     private static final long OLD_SIGN_IN_SECONDS = 600;
+
+    /** Summary of the browser of the trusted devices the tests create. */
+    private static final String BROWSER = "Firefox on Linux";
+
+    /** Creates the trusted devices of the tests. */
+    @Autowired
+    private CreateTrustedDeviceUseCase createTrustedDeviceUseCase;
+
+    /** Port the trusted devices are read through. */
+    @Autowired
+    private TrustedDeviceRepository trustedDevices;
+
+    /** Port that resolves the identifier of an account. */
+    @Autowired
+    private UserAccountRepository userAccounts;
 
     /**
      * Verifies that the endpoints need a bearer token.
@@ -220,6 +240,37 @@ class PasskeyAccountIT extends AbstractPasskeyFlow {
     }
 
     /**
+     * Verifies that deleting a passkey keeps the trusted devices while another passkey still stands as a second
+     * factor, and revokes every one of them once the last passkey (the only second factor) is gone, as disabling the
+     * authenticator app does; another account's trusted device is never touched.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void deletePasskey_whenTheLastSecondFactorIsDeleted_revokesTheTrustedDevices() throws Exception {
+        final var user = getFixtures().createUser();
+        final var other = getFixtures().createUser();
+        final var userId = idOf(user.username());
+        final var otherId = idOf(other.username());
+        final var first = seedPasskey(user.username(), "Laptop");
+        final var second = seedPasskey(user.username(), "Phone");
+        createTrustedDeviceUseCase.execute(userId, user.username(), BROWSER);
+        createTrustedDeviceUseCase.execute(otherId, other.username(), BROWSER);
+
+        getMockMvc().perform(delete(PASSKEYS_API + "/" + first.credentialId()).with(stepUpBearerOf(user.username())))
+                .andExpect(status().isNoContent());
+        assertEquals(1, trustedDevices.findByUser(userId, Instant.now()).size(),
+                "A remaining passkey still stands as a second factor");
+
+        getMockMvc().perform(delete(PASSKEYS_API + "/" + second.credentialId()).with(stepUpBearerOf(user.username())))
+                .andExpect(status().isNoContent());
+        assertEquals(0, trustedDevices.findByUser(userId, Instant.now()).size());
+        assertEquals(1, trustedDevices.findByUser(otherId, Instant.now()).size());
+        assertEquals(1, getJdbc().sql("SELECT count(*) FROM security_events WHERE user_id = ? AND detail = ?")
+                .params(userId, "passkey; trusted devices revoked: 1").query(Long.class).single());
+    }
+
+    /**
      * Verifies that a passkey that does not exist, or whose identifier is malformed, is answered as not found or as
      * a bad request.
      *
@@ -270,6 +321,16 @@ class PasskeyAccountIT extends AbstractPasskeyFlow {
         assertEquals(1, countCredentials(foreign.credentialId()));
         getMockMvc().perform(get(PASSKEYS_API).with(bearerOf(other.username())))
                 .andExpect(jsonPath("$[0].label").value("Someone else's"));
+    }
+
+    /**
+     * Resolves the identifier of an account.
+     *
+     * @param username name of the account.
+     * @return its identifier.
+     */
+    private UUID idOf(final String username) {
+        return userAccounts.findByUsername(username).orElseThrow().id();
     }
 
     /**

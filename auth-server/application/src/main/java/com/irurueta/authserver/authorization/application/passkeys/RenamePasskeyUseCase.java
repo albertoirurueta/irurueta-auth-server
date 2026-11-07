@@ -16,14 +16,14 @@
 
 package com.irurueta.authserver.authorization.application.passkeys;
 
-import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
-
+import com.irurueta.authserver.authorization.domain.passkeys.InvalidPasskeyLabelException;
 import com.irurueta.authserver.authorization.domain.passkeys.Passkey;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /**
  * Use case that renames a passkey of a user.
@@ -46,13 +46,16 @@ public class RenamePasskeyUseCase {
      * @param id       credential identifier.
      * @param label    new label; it is trimmed.
      * @return the renamed passkey.
-     * @throws IllegalArgumentException if the label is blank or longer than {@link #MAX_LABEL_LENGTH}.
+     * @throws InvalidPasskeyLabelException if the label is blank or longer than {@link #MAX_LABEL_LENGTH} once trimmed.
      * @throws PasskeyNotFoundException if the account has no passkey with that identifier.
      */
     public Passkey execute(final String username, final String id, final String label) {
-        final var trimmed = requireText(label, "label").trim();
+        if (!StringUtils.hasText(label)) {
+            throw new InvalidPasskeyLabelException("label must not be blank");
+        }
+        final var trimmed = label.trim();
         if (trimmed.length() > MAX_LABEL_LENGTH) {
-            throw new IllegalArgumentException("label must have at most " + MAX_LABEL_LENGTH + " characters");
+            throw new InvalidPasskeyLabelException("label must have at most " + MAX_LABEL_LENGTH + " characters");
         }
         final var userId = passkeyRepository.findUserIdByUsername(username)
                 .orElseThrow(() -> new PasskeyNotFoundException("The account has no passkeys"));

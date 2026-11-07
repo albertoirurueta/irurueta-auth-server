@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -34,12 +36,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
+import com.irurueta.authserver.authorization.application.mfa.RegisterSecondFactorFailureUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -81,6 +87,18 @@ class PasskeyConfigurationIT extends AbstractPasskeyFlow {
     /** Relying party operations, which would verify the cryptography of the credential. */
     @MockitoBean
     private WebAuthnRelyingPartyOperations relyingParty;
+
+    /** Settings of the multi-factor authentication. */
+    @Autowired
+    private MfaProperties mfaProperties;
+
+    /** Counts the failed second-factor attempts of a user. */
+    @Autowired
+    private RegisterSecondFactorFailureUseCase registerSecondFactorFailureUseCase;
+
+    /** Port that stores user accounts. */
+    @Autowired
+    private UserAccountRepository userAccounts;
 
     /**
      * Makes the mocked relying party answer options for every authentication ceremony.
@@ -160,6 +178,37 @@ class PasskeyConfigurationIT extends AbstractPasskeyFlow {
         getMockMvc().perform(delete(PASSKEYS_API + "/" + passkey.credentialId()).header(AUTHORIZATION, bearer))
                 .andExpect(status().isNoContent());
         assertEquals(0, countCredentials(passkey.credentialId()));
+    }
+
+    /**
+     * Verifies that a passkey cannot step around the second-factor lockout: once the second factor of a user who
+     * signed in with the password is locked (after too many failed codes), the passkey post is answered {@code 401}
+     * before the assertion is even verified, the session stays at the second factor, and a passwordless sign-in of
+     * the same account (no user in the session yet) is not affected.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void signIn_whenSecondFactorIsLocked_refusesThePasskeyAsASecondFactor() throws Exception {
+        final var user = getFixtures().createUser();
+        seedPasskey(user.username(), "Laptop");
+        when(relyingParty.authenticate(any())).thenReturn(entityOf(user));
+        final var client = getFixtures().createCodeClient();
+        final var session = new MockHttpSession();
+        final var authorizeUri = signInForAuthorization(user, client, newVerifier(), Map.of(), session);
+        expectSecondFactorPage(authorizeUri, session);
+        final var userId = userAccounts.findByUsername(user.username()).orElseThrow().id();
+        for (var attempt = 0; attempt < mfaProperties.maxFailedAttempts(); attempt++) {
+            registerSecondFactorFailureUseCase.execute(userId, user.username());
+        }
+
+        authenticateWithPasskey(session).andExpect(status().isUnauthorized());
+
+        verify(relyingParty, never()).authenticate(any());
+        expectSecondFactorPage(authorizeUri, session);
+        authenticateWithPasskey(new MockHttpSession())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authenticated").value(true));
     }
 
     /**

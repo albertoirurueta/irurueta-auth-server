@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.domain.passkeys.InvalidPasskeyLabelException;
 import com.irurueta.authserver.authorization.domain.passkeys.Passkey;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
@@ -72,13 +73,28 @@ class RenamePasskeyUseCaseTest {
      * Verifies that a blank or too long label is rejected before anything is read.
      */
     @Test
-    void execute_whenLabelIsInvalid_throwsIllegalArgumentException() {
+    void execute_whenLabelIsInvalid_throwsInvalidPasskeyLabelException() {
         final var tooLong = "x".repeat(RenamePasskeyUseCase.MAX_LABEL_LENGTH + 1);
 
-        assertThrows(IllegalArgumentException.class, () -> useCase.execute("alice", ID, " "));
-        assertThrows(IllegalArgumentException.class, () -> useCase.execute("alice", ID, tooLong));
+        assertThrows(InvalidPasskeyLabelException.class, () -> useCase.execute("alice", ID, null));
+        assertThrows(InvalidPasskeyLabelException.class, () -> useCase.execute("alice", ID, " "));
+        assertThrows(InvalidPasskeyLabelException.class, () -> useCase.execute("alice", ID, tooLong));
 
         verifyNoInteractions(passkeyRepository);
+    }
+
+    /**
+     * Verifies that a label of the maximum length once trimmed is accepted, the surrounding blanks not counting.
+     */
+    @Test
+    void execute_whenTrimmedLabelHasMaximumLength_isAccepted() {
+        final var longest = "y".repeat(RenamePasskeyUseCase.MAX_LABEL_LENGTH);
+        final var renamed = new Passkey(ID, HANDLE, longest, Instant.EPOCH, null, 0L, false, false);
+        when(passkeyRepository.findUserIdByUsername("alice")).thenReturn(Optional.of(HANDLE));
+        when(passkeyRepository.rename(ID, HANDLE, longest)).thenReturn(true);
+        when(passkeyRepository.findByIdAndUserId(ID, HANDLE)).thenReturn(Optional.of(renamed));
+
+        assertSame(renamed, useCase.execute("alice", ID, " " + longest + " "));
     }
 
     /**

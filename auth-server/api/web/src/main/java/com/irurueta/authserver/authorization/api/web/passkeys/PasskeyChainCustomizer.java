@@ -18,6 +18,8 @@ package com.irurueta.authserver.authorization.api.web.passkeys;
 
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
 import com.irurueta.authserver.authorization.application.passkeys.PasskeyProperties;
 import java.util.LinkedHashSet;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 /**
  * Customizes the login/UI chain with the passkeys (WebAuthn).
@@ -40,7 +43,12 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
  *   {@code DELETE /api/account/passkeys/{id}}, which asks for a recent multi-factor sign-in, and its default
  *   registration page is turned off;</li>
  *   <li>the WebAuthn filter gets the chain's session strategy (new session id on sign-in) and a user service that
- *   refuses disabled accounts.</li>
+ *   refuses disabled accounts. That user service is set as the chain's shared {@link UserDetailsService}, so it is
+ *   chain-wide: every configurer of the login chain that reads the shared object gets the account-status check;</li>
+ *   <li>a passkey that completes a second-factor step is refused while the user's second factor is locked, see
+ *   {@link PasskeySecondFactorLockoutFilter}. That filter is added before {@link BasicAuthenticationFilter}, the
+ *   position the WebAuthn configurer gives its authentication filter later, when the chain is built; being added
+ *   first, it runs first.</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -67,6 +75,12 @@ public class PasskeyChainCustomizer implements LoginChainCustomizer {
     /** Loads the account of the user a passkey belongs to. */
     private final UserDetailsService userDetailsService;
 
+    /** Resolves the account of the signed-in user, for the lockout check. */
+    private final SecondFactorUserResolver secondFactorUserResolver;
+
+    /** Tells whether the second factor of a user is locked. */
+    private final CheckSecondFactorLockoutUseCase checkSecondFactorLockoutUseCase;
+
     /**
      * Customizes the login/UI chain.
      *
@@ -84,6 +98,9 @@ public class PasskeyChainCustomizer implements LoginChainCustomizer {
         http.addFilterBefore(
                 new PasskeyRegistrationFilter(new PasskeyRegistrationAuthorizationManager(mfaAuthorizationManager)),
                 AuthorizationFilter.class);
+        http.addFilterBefore(
+                new PasskeySecondFactorLockoutFilter(secondFactorUserResolver, checkSecondFactorLockoutUseCase),
+                BasicAuthenticationFilter.class);
         http.webAuthn(webAuthn -> webAuthn
                 .rpName(properties.rpName())
                 .rpId(properties.rpId())

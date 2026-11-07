@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web.totp;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorFragment;
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.totp.CountRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.application.totp.EnrollTotpUseCase;
 import com.irurueta.authserver.authorization.application.totp.IsTotpEnabledUseCase;
@@ -33,7 +34,9 @@ import org.springframework.stereotype.Component;
  * {@link SecondFactorFragment} extension point. What the fragment shows depends on the signed-in user:
  *
  * <ul>
- *   <li>without a confirmed authenticator app, the enrolment form: a new secret is generated (replacing any pending
+ *   <li>without a confirmed authenticator app but with another confirmed second factor (for example a passkey),
+ *       nothing: that factor completes the sign-in, so no secret is generated and no enrolment is offered;</li>
+ *   <li>without any confirmed second factor, the enrolment form: a new secret is generated (replacing any pending
  *       one), shown as a QR code and as its {@code otpauth} URI, and the first code confirms it;</li>
  *   <li>with one, the form of its code and the recovery-code form, plus a warning when
  *       {@value CountRecoveryCodesUseCase#LOW_THRESHOLD} or fewer recovery codes are left.</li>
@@ -45,6 +48,9 @@ public class TotpSecondFactorFragment implements SecondFactorFragment {
 
     /** Position of the TOTP forms in the second-factor page. */
     public static final int ORDER = 100;
+
+    /** Model attribute telling the fragment to show anything at all. */
+    public static final String OFFERED_ATTRIBUTE = "totpOffered";
 
     /** Model attribute telling the fragment to show the enrolment form. */
     public static final String ENROLMENT_ATTRIBUTE = "totpEnrolment";
@@ -66,6 +72,9 @@ public class TotpSecondFactorFragment implements SecondFactorFragment {
 
     /** Tells whether the user has a confirmed authenticator app. */
     private final IsTotpEnabledUseCase isTotpEnabledUseCase;
+
+    /** Tells whether the user has confirmed another second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
 
     /** Starts an enrolment. */
     private final EnrollTotpUseCase enrollTotpUseCase;
@@ -92,8 +101,9 @@ public class TotpSecondFactorFragment implements SecondFactorFragment {
     }
 
     /**
-     * Supplies the enrolment (a new pending secret) to a user without a confirmed authenticator app, and the number
-     * of recovery codes left to a user with one.
+     * Supplies the enrolment (a new pending secret) to a user without any confirmed second factor, the number of
+     * recovery codes left to a user with a confirmed authenticator app, and hides the forms from a user whose only
+     * confirmed second factors are other ones.
      *
      * @param authentication the authentication of the user the page is rendered for.
      * @return the model attributes; none when nobody is signed in.
@@ -106,12 +116,15 @@ public class TotpSecondFactorFragment implements SecondFactorFragment {
         final var username = authentication.getName();
         final var userId = userResolver.userIdOf(username);
         if (!isTotpEnabledUseCase.execute(userId)) {
+            if (hasConfirmedSecondFactorUseCase.execute(userId)) {
+                return Map.of(OFFERED_ATTRIBUTE, false);
+            }
             final var otpauthUri = enrollTotpUseCase.execute(userId, username);
-            return Map.of(ENROLMENT_ATTRIBUTE, true, OTPAUTH_URI_ATTRIBUTE, otpauthUri,
+            return Map.of(OFFERED_ATTRIBUTE, true, ENROLMENT_ATTRIBUTE, true, OTPAUTH_URI_ATTRIBUTE, otpauthUri,
                     QR_CODE_ATTRIBUTE, qrCodeRenderer.render(otpauthUri));
         }
         final var left = countRecoveryCodesUseCase.execute(userId);
-        return Map.of(ENROLMENT_ATTRIBUTE, false, CODES_LEFT_ATTRIBUTE, left,
+        return Map.of(OFFERED_ATTRIBUTE, true, ENROLMENT_ATTRIBUTE, false, CODES_LEFT_ATTRIBUTE, left,
                 CODES_LOW_ATTRIBUTE, left <= CountRecoveryCodesUseCase.LOW_THRESHOLD);
     }
 }

@@ -26,6 +26,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
 import com.irurueta.authserver.authorization.application.passkeys.PasskeyProperties;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +43,7 @@ import org.springframework.security.config.annotation.web.configurers.AuthorizeH
 import org.springframework.security.config.annotation.web.configurers.WebAuthnConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 /**
  * Unit tests of {@link PasskeyChainCustomizer}.
@@ -64,6 +67,14 @@ class PasskeyChainCustomizerTest {
     /** Loads the accounts. */
     @Mock
     private UserDetailsService userDetailsService;
+
+    /** Resolves the account of the signed-in user. */
+    @Mock
+    private SecondFactorUserResolver userResolver;
+
+    /** Tells whether the second factor of a user is locked. */
+    @Mock
+    private CheckSecondFactorLockoutUseCase lockoutUseCase;
 
     /**
      * Verifies the rules of the chain: the script and the public endpoints are open, the framework's removal of a
@@ -96,7 +107,8 @@ class PasskeyChainCustomizerTest {
     }
 
     /**
-     * Verifies that the registration guard is installed before the chain's authorization filter, that the user
+     * Verifies that the registration guard is installed before the chain's authorization filter, that the lockout
+     * filter is installed where the WebAuthn authentication filter will be, before it, that the user
      * service that refuses disabled accounts is the one the WebAuthn configurer will find, and that the configurer
      * is given the relying party, the origins, no default registration page and the session strategy hook.
      */
@@ -112,6 +124,8 @@ class PasskeyChainCustomizerTest {
         webAuthnCaptor.getValue().customize(configurer);
 
         verify(http).addFilterBefore(any(PasskeyRegistrationFilter.class), eq(AuthorizationFilter.class));
+        verify(http).addFilterBefore(any(PasskeySecondFactorLockoutFilter.class),
+                eq(BasicAuthenticationFilter.class));
         final var userDetailsCaptor = ArgumentCaptor.<UserDetailsService>captor();
         verify(http).setSharedObject(eq(UserDetailsService.class), userDetailsCaptor.capture());
         assertInstanceOf(AccountStatusUserDetailsService.class, userDetailsCaptor.getValue());
@@ -139,6 +153,6 @@ class PasskeyChainCustomizerTest {
      */
     private PasskeyChainCustomizer customizer() {
         return new PasskeyChainCustomizer(new PasskeyProperties(RP_NAME, RP_ID, List.of(ORIGIN)),
-                authorizationManager, userDetailsService);
+                authorizationManager, userDetailsService, userResolver, lockoutUseCase);
     }
 }

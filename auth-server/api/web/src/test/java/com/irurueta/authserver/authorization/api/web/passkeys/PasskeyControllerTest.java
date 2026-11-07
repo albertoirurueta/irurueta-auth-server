@@ -37,6 +37,7 @@ import com.irurueta.authserver.authorization.application.passkeys.DeletePasskeyU
 import com.irurueta.authserver.authorization.application.passkeys.ListPasskeysUseCase;
 import com.irurueta.authserver.authorization.application.passkeys.RenamePasskeyUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import com.irurueta.authserver.authorization.domain.passkeys.InvalidPasskeyLabelException;
 import com.irurueta.authserver.authorization.domain.passkeys.Passkey;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import java.time.Duration;
@@ -178,7 +179,7 @@ class PasskeyControllerTest {
      */
     @Test
     void renamePasskey_whenLabelIsRefused_answersBadRequest() throws Exception {
-        when(renamePasskeyUseCase.execute(USERNAME, ID, "Phone")).thenThrow(new IllegalArgumentException("long"));
+        when(renamePasskeyUseCase.execute(USERNAME, ID, "Phone")).thenThrow(new InvalidPasskeyLabelException("long"));
 
         mockMvc.perform(patch(PATH + "/" + ID).contentType(MediaType.APPLICATION_JSON).content("{\"label\":\"Phone\"}"))
                 .andExpect(status().isBadRequest())

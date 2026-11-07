@@ -20,6 +20,7 @@ import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler
 import com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler;
 import com.irurueta.authserver.authorization.api.web.v1.generated.api.PasskeysApi;
+import com.irurueta.authserver.authorization.domain.passkeys.InvalidPasskeyLabelException;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
@@ -57,13 +58,14 @@ public class PasskeyExceptionHandler extends ProblemJsonExceptionHandler {
     }
 
     /**
-     * Answers a label the use case refuses (blank, or too long once trimmed).
+     * Answers a label the use case refuses (blank, or too long once trimmed). Only that domain exception is answered
+     * as a {@code 400}: any other {@link IllegalArgumentException} is a programming error and stays a {@code 500}.
      *
      * @param exception the failure.
      * @return the {@code 400} problem detail.
      */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleInvalidLabel(final IllegalArgumentException exception) {
+    @ExceptionHandler(InvalidPasskeyLabelException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidLabel(final InvalidPasskeyLabelException exception) {
         return respond(HttpStatus.BAD_REQUEST, "invalid-label", "Invalid label", exception.getMessage());
     }
 

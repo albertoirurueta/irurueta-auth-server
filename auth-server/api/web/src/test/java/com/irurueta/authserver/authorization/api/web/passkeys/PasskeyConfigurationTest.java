@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
 import com.irurueta.authserver.authorization.application.passkeys.PasskeyProperties;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,14 @@ class PasskeyConfigurationTest {
     @Mock
     private UserDetailsService userDetailsService;
 
+    /** Resolves the account of the signed-in user. */
+    @Mock
+    private SecondFactorUserResolver userResolver;
+
+    /** Tells whether the second factor of a user is locked. */
+    @Mock
+    private CheckSecondFactorLockoutUseCase lockoutUseCase;
+
     /**
      * Verifies that the customizer bean is the chain customizer of the passkeys, ordered after the TOTP one.
      *
@@ -53,12 +63,13 @@ class PasskeyConfigurationTest {
             throws NoSuchMethodException {
         final var properties = new PasskeyProperties("Name", "localhost", List.of("http://localhost:9000"));
 
-        final var customizer = new PasskeyConfiguration()
-                .passkeyChainCustomizer(properties, authorizationManager, userDetailsService);
+        final var customizer = new PasskeyConfiguration().passkeyChainCustomizer(properties, authorizationManager,
+                userDetailsService, userResolver, lockoutUseCase);
 
         assertInstanceOf(PasskeyChainCustomizer.class, customizer);
         final var order = PasskeyConfiguration.class.getMethod("passkeyChainCustomizer", PasskeyProperties.class,
-                MfaAuthorizationManager.class, UserDetailsService.class).getAnnotation(Order.class);
+                MfaAuthorizationManager.class, UserDetailsService.class, SecondFactorUserResolver.class,
+                CheckSecondFactorLockoutUseCase.class).getAnnotation(Order.class);
         assertEquals(PasskeyChainCustomizer.ORDER, order.value());
     }
 }

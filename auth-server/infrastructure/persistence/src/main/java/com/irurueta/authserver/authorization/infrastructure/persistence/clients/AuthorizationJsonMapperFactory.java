@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
 
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.jackson.SecurityJacksonModules;
-import org.springframework.security.web.webauthn.jackson.WebauthnJacksonModule;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -27,28 +27,27 @@ import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
  *
  * <p>It is the framework's own mapper with {@link Long} added to the allowed types, because claims such as
  * {@code auth_time} are numeric dates that the polymorphic type validator would otherwise reject when an
- * authorization is read back. It also adds the module of the passkeys, which {@link SecurityJacksonModules} leaves out
- * on purpose: the principal of an authorization started with a passkey is a {@code WebAuthnAuthentication} holding a
- * user entity, and without the module (which allows exactly those two types) the authorization could be written but
- * never read back, so no token would be issued after a passkey sign-in.
+ * authorization is read back. Every {@link AuthorizationJacksonModuleContributor} bean adds its module too.
  */
 @Component
+@RequiredArgsConstructor
 public class AuthorizationJsonMapperFactory {
 
-    // tag::passkeys-json-mapper[]
+    /** Contributors of the modules the framework's security modules do not include. */
+    private final List<AuthorizationJacksonModuleContributor> contributors;
+
     /**
-     * Creates the mapper.
+     * Creates the mapper. The contributed modules are created first, so each has configured the type validator
+     * before the framework's modules are created with it.
      *
-     * @return a mapper with the framework's security modules and the passkeys one, and {@link Long} allowed.
+     * @return a mapper with the framework's security modules and the contributed ones, and {@link Long} allowed.
      */
     public JsonMapper create() {
         final var validator = BasicPolymorphicTypeValidator.builder().allowIfSubType(Long.class);
-        final var webauthn = new WebauthnJacksonModule();
-        webauthn.configurePolymorphicTypeValidator(validator);
+        final var contributed = contributors.stream().map(contributor -> contributor.module(validator)).toList();
         return JsonMapper.builder()
                 .addModules(SecurityJacksonModules.getModules(getClass().getClassLoader(), validator))
-                .addModule(webauthn)
+                .addModules(contributed)
                 .build();
     }
-    // end::passkeys-json-mapper[]
 }

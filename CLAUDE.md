@@ -94,6 +94,11 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509
   `@Order`, to the login/UI chain by `SecurityConfig`, **before** its catch-all `anyRequest().authenticated()`, so a
   customizer may still permit its own endpoints. A new method declares one in its own `@Configuration` to enable its
   `HttpSecurity` features (for example `http.oneTimeTokenLogin(...)`); `SecurityConfig` is never edited.
+  **Shared objects are chain-wide**: `PasskeyChainCustomizer` sets the login chain's shared `UserDetailsService` to
+  `AccountStatusUserDetailsService` (which refuses disabled, locked or expired accounts), so every configurer of that
+  chain that reads the shared object (the WebAuthn one today, and a later method's such as one-time tokens) gets the
+  account-status check too. A later login method relies on that instead of setting its own; a customizer that replaces
+  the shared object changes it for every method of the chain.
 - `api.web.login.LoginMethodFragment`: every bean of this type contributes a Thymeleaf fragment (`templateName()`,
   `fragmentName()`, `order()`; `reference()` builds the `template :: fragment` expression) that `LoginController`
   passes to `templates/login.html`, which renders them below the password form.
@@ -103,6 +108,14 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509
   `SecurityConfig.authorizationServerSecurityFilterChain`, right after OIDC is enabled. A feature declares one in its
   own `@Configuration` to add a converter or provider to a protocol endpoint (for example `x509` or `implicit`);
   `SecurityConfig` is never edited.
+- `infrastructure.persistence.clients.AuthorizationJacksonModuleContributor` (a functional interface,
+  `JacksonModule module(BasicPolymorphicTypeValidator.Builder validator)`): every bean of this type adds a Jackson
+  module to the mapper of the stored authorizations, built by `AuthorizationJsonMapperFactory`, which creates the
+  contributed modules **before** `SecurityJacksonModules.getModules(...)` so each can allow its types in the validator
+  first. A feature whose authentication or attribute types the framework's modules leave out registers one (the
+  passkeys' `WebauthnJacksonModuleContributor` adds `WebauthnJacksonModule`, or the stored principal of a passkey
+  sign-in could not be read back at the token request); the factory is never edited. It is deliberately **not** a
+  plain `JacksonModule` bean: Spring Boot adds every such bean to the application-wide `JsonMapper`.
 - `api.web.tokens.JwtClaimsContributor` (introduced by the token customisation task): every bean of this type adds
   claims, through `IssuedTokenClaims`, to the access tokens of both formats and to the ID tokens:
   `RolesTenantAudienceTokenCustomizer` (the one `OAuth2TokenCustomizer<JwtEncodingContext>`) applies it to the JWTs and
@@ -204,7 +217,14 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509
        `TotpAuthenticationProvider`, driven by a `ProviderManager` inside its own filter);
     5. its migration in its own Flyway range. Claims, step-up and the policy then pick the factor up by authority.
 - **Passkeys (`passkeys`, #5)**: the reference for a `PRIMARY_STRONG` factor, built on Spring Security's `http.webAuthn(...)`
-  (no hand-rolled ceremony) and registered with no shared file edited.
+  (no hand-rolled ceremony) and registered through the extension points above. The shared files it still touches,
+  and why: the `pages` group of `OpenApiConfig` (to publish `/account/passkeys`), `application.yml` (the
+  `authserver.passkeys.*` settings), `messages.properties` (the texts of its fragments and page),
+  `PasswordAuthenticationIT` (the login page now carries the passkey fragment), `TotpSecondFactorFragment` and
+  `totp.html` (the TOTP enrolment is not offered to a user whose passkey already completes the second factor), the
+  two API contracts and `apis/README.md`, the poms of `api/web` and `infrastructure/persistence` (the WebAuthn
+  dependency), and the new `AuthorizationJacksonModuleContributor` extension point (added once so the passkeys no
+  longer edit `AuthorizationJsonMapperFactory`).
   - `PasskeyFactor` (`FACTOR_WEBAUTHN`, `amr` `hwk`, `PRIMARY_STRONG`, so a passkey alone satisfies `MfaPolicy`; after a
     password it adds to `FACTOR_PASSWORD` because Spring merges the authorities of a re-authentication of the same
     user name, and `amr` is `pwd`, `hwk`, `mfa`); `PasskeyConfiguration` returns the `PasskeyChainCustomizer`
@@ -212,13 +232,27 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509
     fragments; `passkeys.js` is the only browser script (conditional-mediation autofill, button, registration).
   - `PasskeyRegistrationFilter` guards `/webauthn/register/**` with the MFA policy (Spring's creation-options filter answers
     before the chain's authorization filter). `DELETE /webauthn/register/**` is denied: a passkey is removed only through
-    `DELETE /api/account/passkeys/{id}`, which calls `StepUpGuard`. The account page is `GET /account/passkeys`.
+    `DELETE /api/account/passkeys/{id}`, which calls `StepUpGuard`; deleting the last passkey of an account that has no
+    other confirmed second factor revokes its trusted devices (`DeletePasskeyUseCase`, as `DisableTotpUseCase` does).
+    The account page is `GET /account/passkeys`. The URLs of the WebAuthn endpoints reach `passkeys.js` as `data-*`
+    attributes rendered with `@{...}`; the script never redirects after a failed automatic (conditional) sign-in.
+  - **Lockout**: `PasskeySecondFactorLockoutFilter` (built by `PasskeyChainCustomizer`, not a bean; added before
+    `BasicAuthenticationFilter`, where the WebAuthn configurer later puts its authentication filter, so it runs first)
+    answers `401` to `POST /login/webauthn` when the session already holds a signed-in user (the passkey completes a
+    second-factor step) and `CheckSecondFactorLockoutUseCase` reports that user locked; a passwordless sign-in is not
+    affected. Failed passkey assertions are deliberately **not** counted as second-factor failures: an assertion is a
+    signature over a fresh challenge by a key that never leaves the authenticator, so it cannot be guessed, and
+    counting cancelled ceremonies would only let users lock themselves out of their other factors.
   - `AccountStatusUserDetailsService` wraps the user service of the WebAuthn chain: Spring's provider never checks the
-    account status, so without it a disabled account could sign in. `AuthorizationJsonMapperFactory` adds
-    `WebauthnJacksonModule`, or the stored principal of a passkey sign-in cannot be read back at the token request.
+    account status, so without it a disabled account could sign in (it is the chain's shared `UserDetailsService`, see
+    `LoginChainCustomizer` above). `WebauthnJacksonModuleContributor` (an `AuthorizationJacksonModuleContributor`)
+    adds `WebauthnJacksonModule`, or the stored principal of a passkey sign-in cannot be read back at the token request.
   - Credentials live in Spring's `JdbcPublicKeyCredentialUserEntityRepository` / `JdbcUserCredentialRepository`
     (`WebAuthnJdbcConfiguration`); the management API reads them through the domain port `PasskeyRepository`.
     `Passkey.id` is the base64url credential id and `userId` the WebAuthn user handle, both strings, never uuids.
+    `V500` keeps Spring's columns but makes `user_entities.name` unique and `created`/`last_used`
+    `timestamp with time zone`; `PasskeyRepository.existsForAccount` answers the enrolment query in one statement.
+    A refused label is `InvalidPasskeyLabelException` (`400 invalid-label`), never a bare `IllegalArgumentException`.
   - Settings: `authserver.passkeys.rp-name`, `rp-id` and `allowed-origins`, bound into `PasskeyProperties` (default
     `localhost`: a deployment must set its public host).
   - **Gap, passkey-first sign-up**: not possible with the Spring APIs used. Registration (`/webauthn/register/**`) needs an

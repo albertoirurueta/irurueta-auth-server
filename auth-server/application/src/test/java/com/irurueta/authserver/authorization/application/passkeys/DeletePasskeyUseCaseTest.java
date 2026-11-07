@@ -17,12 +17,15 @@
 package com.irurueta.authserver.authorization.application.passkeys;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
 import java.util.Optional;
@@ -45,9 +48,20 @@ class DeletePasskeyUseCaseTest {
     /** Credential identifier. */
     private static final String ID = "cred";
 
+    /** Number of trusted devices revoked in the test. */
+    private static final int REVOKED = 2;
+
     /** Port that stores the passkeys. */
     @Mock
     private PasskeyRepository passkeyRepository;
+
+    /** Use case telling whether the user still has a confirmed second factor. */
+    @Mock
+    private HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /** Port that stores the trusted devices. */
+    @Mock
+    private TrustedDeviceRepository trustedDeviceRepository;
 
     /** Use case that records the audit events. */
     @Mock
@@ -58,18 +72,37 @@ class DeletePasskeyUseCaseTest {
     private DeletePasskeyUseCase useCase;
 
     /**
-     * Verifies that deleting a passkey is audited.
+     * Verifies that deleting a passkey while another second factor remains is audited and keeps the trusted devices.
      */
     @Test
-    void execute_whenPasskeyExists_deletesAndAudits() {
+    void execute_whenAnotherSecondFactorRemains_deletesAndAuditsKeepingTrustedDevices() {
         final var userId = UUID.randomUUID();
         when(passkeyRepository.findUserIdByUsername("alice")).thenReturn(Optional.of(HANDLE));
         when(passkeyRepository.delete(ID, HANDLE)).thenReturn(true);
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
+
+        useCase.execute(userId, "alice", ID);
+
+        verify(trustedDeviceRepository, never()).deleteByUser(userId);
+        verify(recordSecurityEventUseCase).execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, "alice",
+                "passkey");
+    }
+
+    /**
+     * Verifies that deleting the last second factor revokes every trusted device and audits the count.
+     */
+    @Test
+    void execute_whenNoSecondFactorRemains_revokesTrustedDevicesAndAuditsCount() {
+        final var userId = UUID.randomUUID();
+        when(passkeyRepository.findUserIdByUsername("alice")).thenReturn(Optional.of(HANDLE));
+        when(passkeyRepository.delete(ID, HANDLE)).thenReturn(true);
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(false);
+        when(trustedDeviceRepository.deleteByUser(userId)).thenReturn(REVOKED);
 
         useCase.execute(userId, "alice", ID);
 
         verify(recordSecurityEventUseCase).execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, "alice",
-                "passkey");
+                "passkey; trusted devices revoked: " + REVOKED);
     }
 
     /**
@@ -82,7 +115,7 @@ class DeletePasskeyUseCaseTest {
 
         assertThrows(PasskeyNotFoundException.class, () -> useCase.execute(userId, "alice", ID));
 
-        verifyNoInteractions(recordSecurityEventUseCase);
+        verifyNoInteractions(recordSecurityEventUseCase, trustedDeviceRepository);
     }
 
     /**
@@ -96,6 +129,6 @@ class DeletePasskeyUseCaseTest {
 
         assertThrows(PasskeyNotFoundException.class, () -> useCase.execute(userId, "alice", ID));
 
-        verifyNoInteractions(recordSecurityEventUseCase);
+        verifyNoInteractions(recordSecurityEventUseCase, trustedDeviceRepository);
     }
 }

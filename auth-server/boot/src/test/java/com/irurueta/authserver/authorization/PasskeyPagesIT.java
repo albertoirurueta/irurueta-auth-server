@@ -67,8 +67,8 @@ class PasskeyPagesIT extends AbstractPasskeyFlow {
 
     /**
      * Verifies that the login page offers the passkey: a field the browser fills with passkeys (conditional
-     * mediation), a button, the CSRF header and token for the script, and no inline script, since the policy only
-     * allows same-origin resources.
+     * mediation), a button, the CSRF header and token and the URLs of the WebAuthn endpoints for the script, and no
+     * inline script, since the policy only allows same-origin resources.
      *
      * @throws Exception if a request cannot be performed.
      */
@@ -83,6 +83,9 @@ class PasskeyPagesIT extends AbstractPasskeyFlow {
                 .andExpect(content().string(containsString("src=\"/js/passkeys.js\"")))
                 .andExpect(content().string(containsString("data-csrf-header=\"X-CSRF-TOKEN\"")))
                 .andExpect(content().string(containsString("data-csrf-token=\"")))
+                .andExpect(content().string(containsString("data-options-url=\"/webauthn/authenticate/options\"")))
+                .andExpect(content().string(containsString("data-login-url=\"/login/webauthn\"")))
+                .andExpect(content().string(containsString("data-error-url=\"/login?error\"")))
                 .andExpect(content().string(containsString("autocomplete=\"current-password\"")))
                 .andReturn().getResponse().getContentAsString();
 
@@ -90,7 +93,8 @@ class PasskeyPagesIT extends AbstractPasskeyFlow {
     }
 
     /**
-     * Verifies that the script is served to anybody (the login page needs it before sign-in).
+     * Verifies that the script is served to anybody (the login page needs it before sign-in) and reads the URLs of
+     * the endpoints from the markup instead of hard-coding them.
      *
      * @throws Exception if a request cannot be performed.
      */
@@ -98,8 +102,11 @@ class PasskeyPagesIT extends AbstractPasskeyFlow {
     void script_whenRequestedAnonymously_isServed() throws Exception {
         getMockMvc().perform(get(SCRIPT))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("/webauthn/authenticate/options")))
-                .andExpect(content().string(containsString("/login/webauthn")));
+                .andExpect(content().string(containsString("container.dataset.optionsUrl")))
+                .andExpect(content().string(containsString("container.dataset.loginUrl")))
+                .andExpect(content().string(containsString("container.dataset.registerUrl")))
+                .andExpect(content().string(not(containsString("\"/login/webauthn\""))))
+                .andExpect(content().string(not(containsString("\"/webauthn/"))));
     }
 
     /**
@@ -122,7 +129,36 @@ class PasskeyPagesIT extends AbstractPasskeyFlow {
                 .andExpect(content().string(containsString("data-passkey-button")))
                 .andExpect(content().string(containsString("Use a passkey")))
                 .andExpect(content().string(containsString("data-error-url=\"/login/second-factor?error\"")))
+                .andExpect(content().string(containsString("data-options-url=\"/webauthn/authenticate/options\"")))
+                .andExpect(content().string(containsString("data-login-url=\"/login/webauthn\"")))
                 .andExpect(content().string(containsString("name=\"code\"")));
+    }
+
+    /**
+     * Verifies that a user whose only second factor is a passkey gets the passkey action on the second-factor page
+     * and neither the enrolment of an authenticator app nor its code forms, and that no authenticator app secret is
+     * generated for them by rendering the page.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactorPage_whenThePasskeyIsTheOnlySecondFactor_offersItWithoutEnrollingAnAuthenticatorApp()
+            throws Exception {
+        final var user = getFixtures().createUser();
+        seedPasskey(user.username(), "Laptop");
+        final var session = signInWithThePasswordOnly(user);
+
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-passkey-button")))
+                .andExpect(content().string(not(containsString("totp-enrolment"))))
+                .andExpect(content().string(not(containsString("otpauth://"))))
+                .andExpect(content().string(not(containsString("/login/second-factor/totp"))));
+
+        assertEquals(0L, getJdbc().sql("""
+                        SELECT count(*) FROM totp_credentials t JOIN users u ON u.id = t.user_id
+                        WHERE u.username = ?""").param(user.username()).query(Long.class).single(),
+                "Rendering the page must not create an authenticator app secret");
     }
 
     /**
@@ -155,7 +191,9 @@ class PasskeyPagesIT extends AbstractPasskeyFlow {
                 .andExpect(content().string(containsString("data-passkey-label")))
                 .andExpect(content().string(containsString("maxlength=\"100\"")))
                 .andExpect(content().string(containsString("src=\"/js/passkeys.js\"")))
-                .andExpect(content().string(containsString("data-csrf-header=\"X-CSRF-TOKEN\"")));
+                .andExpect(content().string(containsString("data-csrf-header=\"X-CSRF-TOKEN\"")))
+                .andExpect(content().string(containsString("data-options-url=\"/webauthn/register/options\"")))
+                .andExpect(content().string(containsString("data-register-url=\"/webauthn/register\"")));
     }
 
     /**

@@ -364,7 +364,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Passkey'
         '400':
-          description: The label is blank or too long
+          description: >-
+            The identifier is not unpadded base64url (problem type invalid-parameter) or the label is blank or too
+            long once trimmed (problem type invalid-label)
           content:
             application/problem+json:
               schema:
@@ -384,12 +386,19 @@ paths:
       description: >-
         The passkey can no longer be used to sign in. A passkey of another account is never touched and is answered
         as not found. While the account has a confirmed second factor, the bearer token must show a recent
-        multi-factor sign-in (step-up, RFC 9470).
+        multi-factor sign-in (step-up, RFC 9470). When the deletion leaves the account without any confirmed second
+        factor, every trusted device of the account is revoked too.
       parameters:
         - $ref: '#/components/parameters/PasskeyId'
       responses:
         '204':
           description: Passkey deleted
+        '400':
+          description: The identifier is not unpadded base64url (problem type invalid-parameter)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '401':
           $ref: '#/components/responses/StepUpRequired'
         '404':

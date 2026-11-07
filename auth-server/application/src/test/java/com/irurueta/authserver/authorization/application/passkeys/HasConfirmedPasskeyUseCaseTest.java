@@ -18,14 +18,9 @@ package com.irurueta.authserver.authorization.application.passkeys;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
-import com.irurueta.authserver.authorization.domain.password.UserAccount;
-import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,16 +34,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class HasConfirmedPasskeyUseCaseTest {
 
-    /** User handle of the account. */
-    private static final String HANDLE = "handle";
-
     /** Port that reads the passkeys. */
     @Mock
     private PasskeyRepository passkeyRepository;
-
-    /** Port that resolves the account of a user identifier. */
-    @Mock
-    private UserAccountRepository userAccountRepository;
 
     /** Use case under test. */
     @InjectMocks
@@ -60,60 +48,20 @@ class HasConfirmedPasskeyUseCaseTest {
     @Test
     void execute_whenUserHasAPasskey_returnsTrue() {
         final var userId = UUID.randomUUID();
-        stubAccount(userId);
-        when(passkeyRepository.findUserIdByUsername("alice")).thenReturn(Optional.of(HANDLE));
-        when(passkeyRepository.countByUserId(HANDLE)).thenReturn(1L);
+        when(passkeyRepository.existsForAccount(userId)).thenReturn(true);
 
         assertTrue(useCase.execute(userId));
         assertTrue(useCase.hasConfirmed(userId));
     }
 
     /**
-     * Verifies that a user whose passkeys were all deleted is not enrolled.
+     * Verifies that a user without any passkey is not enrolled.
      */
     @Test
-    void execute_whenUserHasNoPasskey_returnsFalse() {
+    void hasConfirmed_whenUserHasNoPasskey_returnsFalse() {
         final var userId = UUID.randomUUID();
-        stubAccount(userId);
-        when(passkeyRepository.findUserIdByUsername("alice")).thenReturn(Optional.of(HANDLE));
-        when(passkeyRepository.countByUserId(HANDLE)).thenReturn(0L);
-
-        assertFalse(useCase.execute(userId));
-    }
-
-    /**
-     * Verifies that a user that never registered a passkey is not enrolled.
-     */
-    @Test
-    void hasConfirmed_whenUserHasNoEntity_returnsFalse() {
-        final var userId = UUID.randomUUID();
-        stubAccount(userId);
-        when(passkeyRepository.findUserIdByUsername("alice")).thenReturn(Optional.empty());
+        when(passkeyRepository.existsForAccount(userId)).thenReturn(false);
 
         assertFalse(useCase.hasConfirmed(userId));
-    }
-
-    /**
-     * Verifies that an unknown user is not enrolled and no passkey is looked up.
-     */
-    @Test
-    void hasConfirmed_whenAccountIsUnknown_returnsFalse() {
-        final var userId = UUID.randomUUID();
-        when(userAccountRepository.findById(userId)).thenReturn(Optional.empty());
-
-        assertFalse(useCase.hasConfirmed(userId));
-
-        verifyNoInteractions(passkeyRepository);
-    }
-
-    /**
-     * Makes the account repository resolve the user to the account {@code alice}.
-     *
-     * @param userId identifier of the user.
-     */
-    private void stubAccount(final UUID userId) {
-        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(
-                new UserAccount(userId, "alice", "{noop}x", true, List.of(), null, false,
-                        UserAccount.DEFAULT_TENANT)));
     }
 }

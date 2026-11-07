@@ -13,6 +13,7 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
+  -->
 <!--
   Passkey as a second factor (PasskeySecondFactorFragment): offered to a user who has a passkey. The options the
   framework answers for a signed-in session only allow the credentials of that user. A passkey is a strong factor, so
@@ -24,6 +25,7 @@
 <!-- tag::passkeys-second-factor[] -->
 <div th:fragment="form" th:if="${passkeysAvailable}" class="passkey-second-factor" data-passkey-login
      th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+     th:data-options-url="@{/webauthn/authenticate/options}" th:data-login-url="@{/login/webauthn}"
      th:data-error-url="@{/login/second-factor?error}" th:data-failure-message="#{passkeys.login.failed}">
   <h2 th:text="#{passkeys.second.heading}">Use a passkey</h2>
   <p th:text="#{passkeys.second.instructions}">Confirm with a passkey registered to your account.</p>

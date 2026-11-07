@@ -27,6 +27,7 @@ import com.irurueta.authserver.authorization.domain.passkeys.Passkey;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -47,9 +48,6 @@ class JdbcPasskeyRepositoryTest {
 
     /** User handle of the owner. */
     private static final String USER = "user";
-
-    /** Number of passkeys the count query returns. */
-    private static final long COUNT = 3L;
 
     /** JDBC client that runs the statements. */
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -138,13 +136,25 @@ class JdbcPasskeyRepositoryTest {
     }
 
     /**
-     * Verifies that the count the query returns is passed through.
+     * Verifies that the answer of the existence query is passed through.
      */
     @Test
-    void countByUserId_whenCalled_returnsCount() {
-        when(client.sql(any(String.class)).param(USER).query(Long.class).single()).thenReturn(COUNT);
+    void existsForAccount_whenQueryAnswersTrue_returnsTrue() {
+        final var accountId = UUID.randomUUID();
+        when(client.sql(any(String.class)).param(accountId).query(Boolean.class).single()).thenReturn(true);
 
-        assertEquals(COUNT, repository.countByUserId(USER));
+        assertTrue(repository.existsForAccount(accountId));
+    }
+
+    /**
+     * Verifies that a {@code false} answer of the existence query is passed through.
+     */
+    @Test
+    void existsForAccount_whenQueryAnswersFalse_returnsFalse() {
+        final var accountId = UUID.randomUUID();
+        when(client.sql(any(String.class)).param(accountId).query(Boolean.class).single()).thenReturn(false);
+
+        assertFalse(repository.existsForAccount(accountId));
     }
 
     /**

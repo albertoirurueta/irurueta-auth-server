@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.totp.CountRecoveryCodesUseCase;
 import com.irurueta.authserver.authorization.application.totp.EnrollTotpUseCase;
 import com.irurueta.authserver.authorization.application.totp.IsTotpEnabledUseCase;
@@ -65,6 +66,10 @@ class TotpSecondFactorFragmentTest {
     @Mock
     private IsTotpEnabledUseCase isTotpEnabledUseCase;
 
+    /** Tells whether the user has confirmed another second factor. */
+    @Mock
+    private HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
     /** Starts an enrolment. */
     @Mock
     private EnrollTotpUseCase enrollTotpUseCase;
@@ -102,19 +107,35 @@ class TotpSecondFactorFragmentTest {
     }
 
     /**
-     * Verifies that a user without a confirmed app gets a new enrolment, as a URI and a QR code.
+     * Verifies that a user without any confirmed second factor gets a new enrolment, as a URI and a QR code.
      */
     @Test
     void modelAttributes_whenUserHasNoApp_startsAnEnrolment() {
         when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
         when(isTotpEnabledUseCase.execute(userId)).thenReturn(false);
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(false);
         when(enrollTotpUseCase.execute(userId, USERNAME)).thenReturn(OTPAUTH_URI);
         when(qrCodeRenderer.render(OTPAUTH_URI)).thenReturn(QR_CODE);
 
-        assertEquals(Map.of(TotpSecondFactorFragment.ENROLMENT_ATTRIBUTE, true,
+        assertEquals(Map.of(TotpSecondFactorFragment.OFFERED_ATTRIBUTE, true,
+                TotpSecondFactorFragment.ENROLMENT_ATTRIBUTE, true,
                 TotpSecondFactorFragment.OTPAUTH_URI_ATTRIBUTE, OTPAUTH_URI,
                 TotpSecondFactorFragment.QR_CODE_ATTRIBUTE, QR_CODE), fragment.modelAttributes(user));
         verifyNoInteractions(countRecoveryCodesUseCase);
+    }
+
+    /**
+     * Verifies that a user without an app whose sign-in another confirmed second factor completes is offered nothing,
+     * and that no secret is generated for them.
+     */
+    @Test
+    void modelAttributes_whenUserHasAnotherSecondFactor_hidesTheFormsWithoutEnrolling() {
+        when(userResolver.userIdOf(USERNAME)).thenReturn(userId);
+        when(isTotpEnabledUseCase.execute(userId)).thenReturn(false);
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
+
+        assertEquals(Map.of(TotpSecondFactorFragment.OFFERED_ATTRIBUTE, false), fragment.modelAttributes(user));
+        verifyNoInteractions(enrollTotpUseCase, qrCodeRenderer, countRecoveryCodesUseCase);
     }
 
     /**
@@ -126,7 +147,8 @@ class TotpSecondFactorFragmentTest {
         when(isTotpEnabledUseCase.execute(userId)).thenReturn(true);
         when(countRecoveryCodesUseCase.execute(userId)).thenReturn(CountRecoveryCodesUseCase.LOW_THRESHOLD);
 
-        assertEquals(Map.of(TotpSecondFactorFragment.ENROLMENT_ATTRIBUTE, false,
+        assertEquals(Map.of(TotpSecondFactorFragment.OFFERED_ATTRIBUTE, true,
+                TotpSecondFactorFragment.ENROLMENT_ATTRIBUTE, false,
                 TotpSecondFactorFragment.CODES_LEFT_ATTRIBUTE, CountRecoveryCodesUseCase.LOW_THRESHOLD,
                 TotpSecondFactorFragment.CODES_LOW_ATTRIBUTE, true), fragment.modelAttributes(user));
         verifyNoInteractions(enrollTotpUseCase);

@@ -20,6 +20,7 @@ import com.irurueta.authserver.authorization.domain.passkeys.Passkey;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -40,7 +41,7 @@ public class JdbcPasskeyRepository implements PasskeyRepository {
 
     /** Query returning the user handle of an account. */
     private static final String FIND_USER_ID_BY_USERNAME = """
-            SELECT id FROM user_entities WHERE name = ? ORDER BY id LIMIT 1
+            SELECT id FROM user_entities WHERE name = ?
             """;
 
     /** Query returning the credentials of a user. */
@@ -63,9 +64,10 @@ public class JdbcPasskeyRepository implements PasskeyRepository {
             DELETE FROM user_credentials WHERE credential_id = ? AND user_entity_user_id = ?
             """;
 
-    /** Query counting the credentials of a user. */
-    private static final String COUNT_BY_USER_ID = """
-            SELECT count(*) FROM user_credentials WHERE user_entity_user_id = ?
+    /** Query telling whether an account has at least one credential. */
+    private static final String EXISTS_FOR_ACCOUNT = """
+            SELECT EXISTS (SELECT 1 FROM users u JOIN user_entities e ON e.name = u.username
+            JOIN user_credentials c ON c.user_entity_user_id = e.id WHERE u.id = ?)
             """;
 
     /** JDBC client used to run the statements. */
@@ -100,7 +102,7 @@ public class JdbcPasskeyRepository implements PasskeyRepository {
     }
 
     @Override
-    public long countByUserId(final String userId) {
-        return jdbcClient.sql(COUNT_BY_USER_ID).param(userId).query(Long.class).single();
+    public boolean existsForAccount(final UUID accountId) {
+        return Boolean.TRUE.equals(jdbcClient.sql(EXISTS_FOR_ACCOUNT).param(accountId).query(Boolean.class).single());
     }
 }

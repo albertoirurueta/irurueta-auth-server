@@ -20,12 +20,13 @@
   by hand and the field of the first code, posted with the "enroll" field. A user with one gets the code of the
   authenticator app and, behind a link, a recovery code (the "recovery" field), plus a warning when few recovery codes
   are left. Every form posts to the filter of the TOTP feature (POST /login/second-factor/totp); th:action adds the
-  CSRF field. "one-time-code" lets password managers and phones fill the code.
+  CSRF field. "one-time-code" lets password managers and phones fill the code. A user without an authenticator app
+  whose sign-in another confirmed second factor (a passkey) completes gets nothing (totpOffered is false).
 -->
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <body>
 <!-- tag::totp-form[] -->
-<div th:fragment="form">
+<div th:fragment="form" th:unless="${totpOffered == false}">
   <!-- tag::totp-enrolment-form[] -->
   <div th:if="${totpEnrolment}" class="totp-enrolment">
     <h2 th:text="#{totp.enrol.heading}">Set up an authenticator app</h2>

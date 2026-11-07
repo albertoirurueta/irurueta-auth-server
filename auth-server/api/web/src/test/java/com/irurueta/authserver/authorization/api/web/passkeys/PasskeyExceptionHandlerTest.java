@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler;
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import com.irurueta.authserver.authorization.domain.passkeys.InvalidPasskeyLabelException;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
@@ -66,7 +67,7 @@ class PasskeyExceptionHandlerTest {
      */
     @Test
     void handleInvalidLabel_whenCalled_answersBadRequestAsAProblem() {
-        final var response = handler.handleInvalidLabel(new IllegalArgumentException("too long"));
+        final var response = handler.handleInvalidLabel(new InvalidPasskeyLabelException("too long"));
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         final var problem = response.getBody();

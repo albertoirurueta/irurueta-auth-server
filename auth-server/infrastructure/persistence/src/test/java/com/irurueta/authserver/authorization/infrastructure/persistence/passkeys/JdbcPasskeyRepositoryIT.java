@@ -18,16 +18,29 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.passkey
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.irurueta.authserver.authorization.infrastructure.persistence.MigratedPostgres;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.web.webauthn.api.AuthenticatorTransport;
+import org.springframework.security.web.webauthn.api.Bytes;
+import org.springframework.security.web.webauthn.api.ImmutableCredentialRecord;
+import org.springframework.security.web.webauthn.api.ImmutablePublicKeyCose;
+import org.springframework.security.web.webauthn.api.PublicKeyCredentialType;
+import org.springframework.security.web.webauthn.management.JdbcUserCredentialRepository;
 
 /**
  * Integration tests of {@link JdbcPasskeyRepository} against PostgreSQL, on the schema of the {@code V500} migration.
@@ -50,11 +63,17 @@ class JdbcPasskeyRepositoryIT {
     /** Instant the newer credential was created. */
     private static final Instant NEWER = Instant.parse("2026-01-02T10:00:00Z");
 
+    /** Instant the credential saved by the framework was last used, with the microseconds PostgreSQL keeps. */
+    private static final Instant LATEST = Instant.parse("2026-01-03T10:00:00.123456Z");
+
     /** JDBC client connected to the database. */
     private static JdbcClient jdbcClient;
 
     /** Repository under test. */
     private static JdbcPasskeyRepository repository;
+
+    /** Spring Security's own credential store, which writes and reads the same table. */
+    private static JdbcUserCredentialRepository frameworkRepository;
 
     /**
      * Connects to the migrated database and builds the repository.
@@ -63,6 +82,7 @@ class JdbcPasskeyRepositoryIT {
     static void connect() {
         jdbcClient = JdbcClient.create(MigratedPostgres.dataSource());
         repository = new JdbcPasskeyRepository(jdbcClient, new PasskeyRowMapper());
+        frameworkRepository = new JdbcUserCredentialRepository(new JdbcTemplate(MigratedPostgres.dataSource()));
     }
 
     /**
@@ -135,16 +155,102 @@ class JdbcPasskeyRepositoryIT {
     }
 
     /**
-     * Verifies that a passkey is deleted only through its owner, and the count follows.
+     * Verifies that a passkey is deleted only through its owner.
      */
     @Test
     void delete_whenPasskeyBelongsToAnotherUser_changesNothing() {
         assertFalse(repository.delete("older", BOB));
-        assertEquals(2L, repository.countByUserId(ALICE));
+        assertEquals(2, repository.findByUserId(ALICE).size());
 
         assertTrue(repository.delete("older", ALICE));
-        assertEquals(1L, repository.countByUserId(ALICE));
-        assertEquals(0L, repository.countByUserId("nobody"));
+        assertEquals(1, repository.findByUserId(ALICE).size());
+    }
+
+    /**
+     * Verifies that an account is found to have passkeys through its {@code users} row in a single query, and that
+     * an account without passkeys, one whose passkeys were deleted and an unknown account are not.
+     */
+    @Test
+    void existsForAccount_whenAccountHasPasskeys_returnsTrue() {
+        final var suffix = UUID.randomUUID().toString();
+        final var withPasskey = insertUser("passkey-" + suffix);
+        final var withoutPasskey = insertUser("plain-" + suffix);
+        final var handle = "handle-" + suffix;
+        jdbcClient.sql("INSERT INTO user_entities (id, name, display_name) VALUES (?, ?, ?)")
+                .params(handle, "passkey-" + suffix, "Passkey").update();
+        insertCredential("cred-" + suffix, handle, "Key", OLDER, null);
+
+        assertTrue(repository.existsForAccount(withPasskey));
+        assertFalse(repository.existsForAccount(withoutPasskey));
+        assertFalse(repository.existsForAccount(UUID.randomUUID()));
+
+        assertTrue(repository.delete("cred-" + suffix, handle));
+        assertFalse(repository.existsForAccount(withPasskey));
+    }
+
+    /**
+     * Verifies that two user entities can never share an account name, so the lookup by name has one answer.
+     */
+    @Test
+    void userEntities_whenNameIsRepeated_isRejected() {
+        final var duplicate = jdbcClient.sql("INSERT INTO user_entities (id, name, display_name) VALUES (?, ?, ?)")
+                .params("another-handle", "alice", "Alice again");
+
+        assertThrows(DuplicateKeyException.class, duplicate::update);
+    }
+
+    /**
+     * Verifies that Spring Security's own credential store still writes and reads the creation and last use of a
+     * credential, now that both columns are {@code timestamp with time zone}, and that this repository reads the same
+     * instants back, after an insert and after the update the framework makes on every sign-in.
+     */
+    @Test
+    void frameworkRepository_whenCredentialIsSavedAndUpdated_roundTripsTheInstants() {
+        final var credentialId = Bytes.random();
+        final var record = ImmutableCredentialRecord.builder()
+                .credentialType(PublicKeyCredentialType.PUBLIC_KEY)
+                .credentialId(credentialId)
+                .userEntityUserId(Bytes.fromBase64(ALICE))
+                .publicKey(new ImmutablePublicKeyCose("public-key".getBytes(StandardCharsets.UTF_8)))
+                .signatureCount(COUNTER)
+                .uvInitialized(true)
+                .transports(Set.of(AuthenticatorTransport.INTERNAL))
+                .backupEligible(true)
+                .backupState(false)
+                .created(OLDER)
+                .lastUsed(NEWER)
+                .label("Framework key")
+                .build();
+
+        frameworkRepository.save(record);
+
+        final var saved = frameworkRepository.findByCredentialId(credentialId);
+        assertNotNull(saved);
+        assertEquals(OLDER, saved.getCreated());
+        assertEquals(NEWER, saved.getLastUsed());
+        final var passkey = repository.findByIdAndUserId(credentialId.toBase64UrlString(), ALICE).orElseThrow();
+        assertEquals(OLDER, passkey.createdAt());
+        assertEquals(NEWER, passkey.lastUsedAt());
+
+        frameworkRepository.save(ImmutableCredentialRecord.fromCredentialRecord(record).lastUsed(LATEST).build());
+
+        final var updated = frameworkRepository.findByCredentialId(credentialId);
+        assertNotNull(updated);
+        assertEquals(LATEST, updated.getLastUsed());
+        assertEquals(LATEST,
+                repository.findByIdAndUserId(credentialId.toBase64UrlString(), ALICE).orElseThrow().lastUsedAt());
+    }
+
+    /**
+     * Inserts an account.
+     *
+     * @param username name of the account.
+     * @return identifier of the account.
+     */
+    private static UUID insertUser(final String username) {
+        final var id = UUID.randomUUID();
+        jdbcClient.sql("INSERT INTO users (id, username) VALUES (?, ?)").params(id, username).update();
+        return id;
     }
 
     /**

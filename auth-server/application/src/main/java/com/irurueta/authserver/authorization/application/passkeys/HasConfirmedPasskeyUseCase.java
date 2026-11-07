@@ -18,7 +18,6 @@ package com.irurueta.authserver.authorization.application.passkeys;
 
 import com.irurueta.authserver.authorization.application.mfa.SecondFactorEnrolmentQuery;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
-import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,9 +36,6 @@ public class HasConfirmedPasskeyUseCase implements SecondFactorEnrolmentQuery {
     /** Port that reads the passkeys. */
     private final PasskeyRepository passkeyRepository;
 
-    /** Port that resolves the account name of a user identifier. */
-    private final UserAccountRepository userAccountRepository;
-
     /**
      * Tells whether a user has at least one passkey.
      *
@@ -47,10 +43,7 @@ public class HasConfirmedPasskeyUseCase implements SecondFactorEnrolmentQuery {
      * @return {@code true} when the user has registered a passkey.
      */
     public boolean execute(final UUID userId) {
-        return userAccountRepository.findById(userId)
-                .flatMap(account -> passkeyRepository.findUserIdByUsername(account.username()))
-                .map(handle -> passkeyRepository.countByUserId(handle) > 0)
-                .orElse(false);
+        return passkeyRepository.existsForAccount(userId);
     }
 
     /**

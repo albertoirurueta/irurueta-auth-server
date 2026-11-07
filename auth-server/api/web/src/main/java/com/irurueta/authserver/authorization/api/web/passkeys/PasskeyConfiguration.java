@@ -18,6 +18,8 @@ package com.irurueta.authserver.authorization.api.web.passkeys;
 
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
 import com.irurueta.authserver.authorization.application.passkeys.PasskeyProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,13 +42,17 @@ public class PasskeyConfiguration {
      * @param properties           relying party settings.
      * @param authorizationManager applies the multi-factor policy.
      * @param userDetailsService   loads the account of the user a passkey belongs to.
+     * @param userResolver         resolves the account of the signed-in user, for the lockout check.
+     * @param lockoutUseCase       tells whether the second factor of a user is locked.
      * @return the customizer.
      */
     @Bean
     @Order(PasskeyChainCustomizer.ORDER)
     public LoginChainCustomizer passkeyChainCustomizer(final PasskeyProperties properties,
-            final MfaAuthorizationManager authorizationManager, final UserDetailsService userDetailsService) {
-        return new PasskeyChainCustomizer(properties, authorizationManager, userDetailsService);
+            final MfaAuthorizationManager authorizationManager, final UserDetailsService userDetailsService,
+            final SecondFactorUserResolver userResolver, final CheckSecondFactorLockoutUseCase lockoutUseCase) {
+        return new PasskeyChainCustomizer(properties, authorizationManager, userDetailsService, userResolver,
+                lockoutUseCase);
     }
     // end::passkeys-chain-customizer[]
 }

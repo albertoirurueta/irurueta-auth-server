@@ -27,15 +27,14 @@
  *    ([data-passkey-label]) and a button. The options returned by the server (including excludeCredentials, so the
  *    authenticator is not registered twice) are handed to the browser as they are, after decoding their binary
  *    fields from base64url.
- * The containers carry the CSRF header name and token and the messages they show, so nothing is inlined here.
- * The endpoints are the ones of Spring Security's WebAuthn filters.
+ * The containers carry the CSRF header name and token, the messages they show and the URLs of the endpoints (those
+ * of Spring Security's WebAuthn filters, rendered by the templates so they follow the context path): data-options-url
+ * on both, plus data-login-url on a sign-in container and data-register-url on a registration one. Nothing is
+ * inlined or hard-coded here.
+ * A failure of the automatic (conditional) sign-in the login page starts on load is never answered with a redirect:
+ * the error page would load the script again and loop. Only the button flow sends the browser to the error page.
  */
 (function () {
-  var OPTIONS_PATH = "/webauthn/authenticate/options";
-  var LOGIN_PATH = "/login/webauthn";
-  var REGISTER_OPTIONS_PATH = "/webauthn/register/options";
-  var REGISTER_PATH = "/webauthn/register";
-
   var base64url = {
     encode: function (buffer) {
       var binary = "";
@@ -108,7 +107,7 @@
    * authorization request, or the root).
    */
   async function authenticate(container, conditional) {
-    var optionsResponse = await post(container, OPTIONS_PATH);
+    var optionsResponse = await post(container, container.dataset.optionsUrl);
     if (!optionsResponse.ok) {
       throw new ServerError("options " + optionsResponse.status);
     }
@@ -123,7 +122,7 @@
     }
     var credential = await navigator.credentials.get(request);
     var response = credential.response;
-    var loginResponse = await post(container, LOGIN_PATH, {
+    var loginResponse = await post(container, container.dataset.loginUrl, {
       id: credential.id,
       rawId: base64url.encode(credential.rawId),
       response: {
@@ -153,9 +152,13 @@
     try {
       window.location.href = await authenticate(container, conditional);
     } catch (failure) {
+      if (conditional) {
+        // the automatic offer runs on every load of the page: a redirect here would loop through the error page
+        return;
+      }
       if (failure instanceof ServerError) {
         window.location.href = container.dataset.errorUrl;
-      } else if (!conditional && failure.name !== "AbortError") {
+      } else if (failure.name !== "AbortError") {
         show(error, container.dataset.failureMessage);
       }
     }
@@ -181,7 +184,7 @@
   // tag::passkeys-register[]
   /** Runs a registration ceremony for a passkey with the given name. */
   async function register(container, label) {
-    var optionsResponse = await post(container, REGISTER_OPTIONS_PATH);
+    var optionsResponse = await post(container, container.dataset.optionsUrl);
     if (optionsResponse.redirected) {
       // the session still has to complete its second factor: let the server send it there
       window.location.href = optionsResponse.url;
@@ -198,7 +201,7 @@
     });
     var created = await navigator.credentials.create({ publicKey: options, signal: newSignal() });
     var response = created.response;
-    var registerResponse = await post(container, REGISTER_PATH, {
+    var registerResponse = await post(container, container.dataset.registerUrl, {
       publicKey: {
         credential: {
           id: created.id,

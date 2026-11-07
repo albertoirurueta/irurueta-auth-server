@@ -13,6 +13,7 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
+  -->
 <!--
   Passkeys account page (PasskeysPageController). It lists the passkeys registered by the signed-in user, read only,
   and hosts the registration helper: a name for the new passkey and a button, driven by the script of the passkeys
@@ -39,6 +40,7 @@
   <!-- tag::passkeys-register-form[] -->
   <section class="passkey-register" data-passkey-register
            th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+           th:data-options-url="@{/webauthn/register/options}" th:data-register-url="@{/webauthn/register}"
            th:data-label-message="#{passkeys.account.labelRequired}"
            th:data-success-message="#{passkeys.account.registered}"
            th:data-failure-message="#{passkeys.account.failed}">

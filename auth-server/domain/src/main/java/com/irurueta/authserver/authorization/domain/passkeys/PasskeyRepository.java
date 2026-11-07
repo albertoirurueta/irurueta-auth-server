@@ -17,6 +17,7 @@ package com.irurueta.authserver.authorization.domain.passkeys;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Port that reads and manages the passkeys users registered. Creating a credential and verifying its signatures belong
@@ -69,10 +70,10 @@ public interface PasskeyRepository {
     boolean delete(String id, String userId);
 
     /**
-     * Counts the passkeys of a user.
+     * Tells whether an account has registered at least one passkey, in a single lookup.
      *
-     * @param userId WebAuthn user handle of the owner.
-     * @return the number of passkeys.
+     * @param accountId identifier of the account (the {@code users} row), not its WebAuthn user handle.
+     * @return {@code true} when the account has at least one passkey.
      */
-    long countByUserId(String userId);
+    boolean existsForAccount(UUID accountId);
 }

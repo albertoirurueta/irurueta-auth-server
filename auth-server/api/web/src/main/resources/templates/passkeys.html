@@ -13,18 +13,20 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
+  -->
 <!--
   Passkey sign-in method (PasskeyLoginMethodFragment). The field carries the "username webauthn" autocomplete tokens, so
   the browser offers the passkeys it knows right in it (conditional mediation) and the user may also press the button.
   The script is an external same-origin file, which the Content-Security-Policy (default-src 'self') allows without a
-  nonce. The container hands it the CSRF header and token (the WebAuthn endpoints keep CSRF protection) and the
-  messages it shows.
+  nonce. The container hands it the CSRF header and token (the WebAuthn endpoints keep CSRF protection), the URLs of
+  the WebAuthn endpoints (rendered with @{...}, so they follow the context path) and the messages it shows.
 -->
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <body>
 <!-- tag::passkeys-login[] -->
 <div th:fragment="login" class="passkey-login" data-passkey-login
      th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+     th:data-options-url="@{/webauthn/authenticate/options}" th:data-login-url="@{/login/webauthn}"
      th:data-error-url="@{/login?error}" th:data-failure-message="#{passkeys.login.failed}">
   <h2 th:text="#{passkeys.login.heading}">Sign in with a passkey</h2>
   <p>

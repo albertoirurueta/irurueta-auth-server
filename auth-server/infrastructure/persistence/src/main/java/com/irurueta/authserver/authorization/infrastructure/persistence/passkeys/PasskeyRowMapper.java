@@ -25,8 +25,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Maps a row of the {@code user_credentials} table to a {@link Passkey}. The {@code created} and {@code last_used}
- * columns are plain {@code timestamp}s that Spring Security's own repository writes from epoch milliseconds, so they
- * are read back the same way.
+ * columns are {@code timestamp with time zone}s that Spring Security's own repository writes as JDBC timestamps, so
+ * they are read back the same way, which keeps the instant whatever the time zone of the JVM.
  */
 @Component
 public class PasskeyRowMapper implements RowMapper<Passkey> {
@@ -47,7 +47,7 @@ public class PasskeyRowMapper implements RowMapper<Passkey> {
     }
 
     /**
-     * Reads a {@code timestamp} column that may be null.
+     * Reads a {@code timestamp with time zone} column that may be null.
      *
      * @param rs       result set positioned on a row.
      * @param column   name of the column.

@@ -16,8 +16,10 @@
 
 package com.irurueta.authserver.authorization.application.passkeys;
 
+import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
 import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
 import java.util.UUID;
@@ -26,7 +28,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Use case that deletes a passkey of a user and audits the removal.
+ * Use case that deletes a passkey of a user and audits the removal. When that leaves the user without any confirmed
+ * second factor, every trusted device of the user is revoked too, as disabling TOTP does: a remembered browser stands
+ * in for a second factor the user no longer has.
  */
 @Service
 @Transactional
@@ -35,6 +39,12 @@ public class DeletePasskeyUseCase {
 
     /** Port that stores the passkeys. */
     private final PasskeyRepository passkeyRepository;
+
+    /** Use case telling whether the user still has a confirmed second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /** Port that stores the trusted devices. */
+    private final TrustedDeviceRepository trustedDeviceRepository;
 
     /** Use case that records the audit events. */
     private final RecordSecurityEventUseCase recordSecurityEventUseCase;
@@ -53,6 +63,11 @@ public class DeletePasskeyUseCase {
         if (!passkeyRepository.delete(id, ownerId)) {
             throw new PasskeyNotFoundException("The account has no passkey " + id);
         }
-        recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, username, "passkey");
+        var detail = "passkey";
+        if (!hasConfirmedSecondFactorUseCase.execute(userId)) {
+            final var revoked = trustedDeviceRepository.deleteByUser(userId);
+            detail = detail + "; trusted devices revoked: " + revoked;
+        }
+        recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, username, detail);
     }
 }
