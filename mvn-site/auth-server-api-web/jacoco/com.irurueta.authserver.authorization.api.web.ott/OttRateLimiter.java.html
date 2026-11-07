@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttRateLimiter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttRateLimiter.java</span></div><h1>OttRateLimiter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.ratelimit.FixedWindowBuckets;
+import java.time.Clock;
+import java.util.Locale;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+// tag::ott-rate-limit[]
+/**
+ * Rate limiter of the one-time token endpoints, on the pattern of the account endpoints' limiter: Bucket4j token
+ * buckets in Caffeine caches ({@link FixedWindowBuckets}). Requests for a token (generation) and submissions of a token
+ * or code (verification) are limited separately, and each twice: per client address and per identifier (the user name
+ * the request names), so a single client cannot flood the mailboxes and the SMS budget, many clients cannot aim at one
+ * account, and a code cannot be guessed faster than the limits allow, on top of the attempt counter of the code
+ * itself. The identifier is limited whether or not it belongs to an account, so the limit never tells which ones
+ * exist.
+ *
+ * &lt;p&gt;Each bucket holds the limit of its key and is refilled all at once every
+ * {@link OttRateLimitProperties#window()}. The buckets live in this instance only: several instances each apply the
+ * limits on their own. The client address is {@code request.getRemoteAddr()}, so behind a proxy
+ * {@code server.forward-headers-strategy} must be set for it to be the real client.
+ */
+@Component
+@EnableConfigurationProperties(OttRateLimitProperties.class)
+public final class OttRateLimiter {
+
+    /** Key used when the client address is unknown. */
+    private static final String UNKNOWN_CLIENT = &quot;unknown&quot;;
+
+    /** Limits, window and bound of the tracked keys. */
+    private final OttRateLimitProperties properties;
+
+    /** Buckets of the token requests per client address. */
+    private final FixedWindowBuckets generationClients;
+
+    /** Buckets of the token requests per identifier. */
+    private final FixedWindowBuckets generationIdentifiers;
+
+    /** Buckets of the submissions per client address. */
+    private final FixedWindowBuckets verificationClients;
+
+    /** Buckets of the submissions per identifier. */
+    private final FixedWindowBuckets verificationIdentifiers;
+
+    /**
+     * Creates the limiter.
+     *
+     * @param properties limits, window and bound of the tracked keys.
+     * @param clock      source of the current time.
+     */
+<span class="fc" id="L67">    public OttRateLimiter(final OttRateLimitProperties properties, final Clock clock) {</span>
+<span class="fc" id="L68">        this.properties = properties;</span>
+<span class="fc" id="L69">        generationClients = buckets(clock);</span>
+<span class="fc" id="L70">        generationIdentifiers = buckets(clock);</span>
+<span class="fc" id="L71">        verificationClients = buckets(clock);</span>
+<span class="fc" id="L72">        verificationIdentifiers = buckets(clock);</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * Counts one request for a token and rejects it once a limit is exceeded.
+     *
+     * @param clientAddress address of the calling client.
+     * @param identifier    identifier the request names, or {@code null} when it names none.
+     * @throws OttRateLimitExceededException if the client or the identifier exceeded its limit.
+     */
+    public void checkGeneration(final String clientAddress, final String identifier) {
+<span class="fc" id="L83">        check(generationClients, properties.generationPerClient(), generationIdentifiers,</span>
+<span class="fc" id="L84">                properties.generationPerIdentifier(), clientAddress, identifier);</span>
+<span class="fc" id="L85">    }</span>
+
+    /**
+     * Counts one submission of a token or a code and rejects it once a limit is exceeded.
+     *
+     * @param clientAddress address of the calling client.
+     * @param identifier    identifier the submission is for, or {@code null} when it names none (a magic link).
+     * @throws OttRateLimitExceededException if the client or the identifier exceeded its limit.
+     */
+    public void checkVerification(final String clientAddress, final String identifier) {
+<span class="fc" id="L95">        check(verificationClients, properties.verificationPerClient(), verificationIdentifiers,</span>
+<span class="fc" id="L96">                properties.verificationPerIdentifier(), clientAddress, identifier);</span>
+<span class="fc" id="L97">    }</span>
+
+    /**
+     * Tells how many keys are tracked, after any pending eviction.
+     *
+     * @return the number of keys of the four kinds.
+     */
+    long trackedKeys() {
+<span class="fc" id="L105">        return generationClients.trackedKeys() + generationIdentifiers.trackedKeys()</span>
+<span class="fc" id="L106">                + verificationClients.trackedKeys() + verificationIdentifiers.trackedKeys();</span>
+    }
+
+    /**
+     * Applies the client and the identifier limits of one kind of request.
+     *
+     * @param clients         buckets per client address.
+     * @param clientLimit     requests per client address per window.
+     * @param identifiers     buckets per identifier.
+     * @param identifierLimit requests per identifier per window.
+     * @param clientAddress   address of the calling client.
+     * @param identifier      identifier, or {@code null}.
+     * @throws OttRateLimitExceededException if a limit is exceeded.
+     */
+    private void check(final FixedWindowBuckets clients, final int clientLimit, final FixedWindowBuckets identifiers,
+                       final int identifierLimit, final String clientAddress, final String identifier) {
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (!properties.enabled()) {</span>
+<span class="fc" id="L123">            return;</span>
+        }
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        consume(clients, clientAddress == null ? UNKNOWN_CLIENT : clientAddress, clientLimit);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (identifier != null) {</span>
+<span class="fc" id="L127">            consume(identifiers, identifier.toLowerCase(Locale.ROOT), identifierLimit);</span>
+        }
+<span class="fc" id="L129">    }</span>
+
+    /**
+     * Takes one token from the bucket of a key.
+     *
+     * @param buckets buckets of one kind of key.
+     * @param key     the key.
+     * @param limit   requests the key may make per window.
+     * @throws OttRateLimitExceededException if the bucket is empty.
+     */
+    private static void consume(final FixedWindowBuckets buckets, final String key, final int limit) {
+<span class="fc" id="L140">        final var wait = buckets.tryConsume(key, limit);</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (wait.isPresent()) {</span>
+<span class="fc" id="L142">            throw new OttRateLimitExceededException(wait.get());</span>
+        }
+<span class="fc" id="L144">    }</span>
+
+    /**
+     * Builds the buckets of one kind of key.
+     *
+     * @param clock source of the current time.
+     * @return the buckets.
+     */
+    private FixedWindowBuckets buckets(final Clock clock) {
+<span class="fc" id="L153">        return new FixedWindowBuckets(clock, properties.window(), properties.maxTrackedKeys());</span>
+    }
+}
+// end::ott-rate-limit[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttPagesController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttPagesController.java</span></div><h1>OttPagesController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.stereotype.Controller;
+
+/**
+ * Serves the two pages of the one-time token flow, as the contract {@code apis/auth-server/web-pages/
+ * auth-server-pages-v1.yaml} describes them through the generated {@link OneTimeTokenPageApi}: the page where the code
+ * is entered (or that says to check the inbox when a magic link was requested) and the page a magic link opens, whose
+ * button posts the token. What the first one shows comes from the pending token of the session (see
+ * {@link PendingOtt}), so it is the same page whatever identifier was typed.
+ */
+@Controller
+@RequiredArgsConstructor
+public class OttPagesController implements OneTimeTokenPageApi {
+
+    /** Path of the page where the code is entered, taken from the contract. */
+    public static final String OTT_CODE_PATH = PATH_OTT_CODE_PAGE;
+
+    /** Name of the template of the page where the code is entered. */
+    static final String CODE_VIEW_NAME = &quot;ott-code&quot;;
+
+    /** Name of the template of the confirmation page. */
+    static final String CONFIRM_VIEW_NAME = &quot;ott-confirm&quot;;
+
+    /** Name of the model attribute that tells whether this browser has asked for a token. */
+    static final String PENDING_ATTRIBUTE = &quot;pending&quot;;
+
+    /** Name of the model attribute that holds the kind of token, {@code code} or {@code link}. */
+    static final String KIND_ATTRIBUTE = &quot;kind&quot;;
+
+    /** Name of the model attribute that holds the channel, {@code email} or {@code sms}. */
+    static final String CHANNEL_ATTRIBUTE = &quot;channel&quot;;
+
+    /** Name of the model attribute that holds the purpose, {@code login} or {@code second-factor}. */
+    static final String PURPOSE_ATTRIBUTE = &quot;purpose&quot;;
+
+    /** Name of the model attribute that holds the path the code form posts to. */
+    static final String POST_PATH_ATTRIBUTE = &quot;postPath&quot;;
+
+    /** Name of the model attribute that holds the name of the form field of the code. */
+    static final String CODE_FIELD_ATTRIBUTE = &quot;codeField&quot;;
+
+    /** Name of the model attribute that holds the path a new token is requested at. */
+    static final String GENERATE_PATH_ATTRIBUTE = &quot;generatePath&quot;;
+
+    /** Name of the model attribute that holds the key of the message of a failed attempt. */
+    static final String ERROR_MESSAGE_ATTRIBUTE = &quot;errorMessageKey&quot;;
+
+    /** Name of the model attribute that holds the token of the magic link. */
+    static final String TOKEN_ATTRIBUTE = &quot;token&quot;;
+
+    /** Key of the message shown when a code is wrong. */
+    static final String GENERIC_ERROR = &quot;ott.error.generic&quot;;
+
+    /** Key of the message shown when the second factor is locked. */
+    static final String LOCKED_ERROR = &quot;ott.error.locked&quot;;
+
+    /** Value of the purpose attribute of a sign-in. */
+    static final String LOGIN_VALUE = &quot;login&quot;;
+
+    /** Value of the kind attribute of a numeric code. */
+    static final String CODE_VALUE = &quot;code&quot;;
+
+    /** Name of the header that tells browsers to send no referrer. */
+    static final String REFERRER_POLICY = &quot;Referrer-Policy&quot;;
+
+    /** Renders the pages. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy, whose session holds the pending token. */
+    private final HttpServletRequest request;
+
+    /**
+     * Renders the page where the code is entered.
+     *
+     * @param error present (even if empty) when the previous attempt failed.
+     * @return the page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; ottCodePage(final String error) {
+<span class="fc" id="L109">        final var pending = PendingOtt.of(request);</span>
+<span class="fc" id="L110">        final var secondFactor = pending.map(PendingOtt::purpose).filter(OttPurpose.SECOND_FACTOR::equals).isPresent();</span>
+<span class="fc" id="L111">        final var model = new HashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L112">        model.put(PENDING_ATTRIBUTE, pending.isPresent());</span>
+<span class="fc" id="L113">        model.put(KIND_ATTRIBUTE, pending.map(token -&gt; lowerCase(token.kind().name())).orElse(CODE_VALUE));</span>
+<span class="fc" id="L114">        model.put(CHANNEL_ATTRIBUTE, pending.map(token -&gt; lowerCase(token.channel().name()))</span>
+<span class="fc" id="L115">                .orElse(lowerCase(OttChannel.EMAIL.name())));</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        model.put(PURPOSE_ATTRIBUTE, secondFactor ? OttGenerationParameters.SECOND_FACTOR_VALUE : LOGIN_VALUE);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        model.put(POST_PATH_ATTRIBUTE, secondFactor ? OttSecondFactorFilter.SECOND_FACTOR_OTT_PATH : OTT_CODE_PATH);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        model.put(CODE_FIELD_ATTRIBUTE, secondFactor ? OttSecondFactorFilter.CODE_PARAMETER</span>
+<span class="fc" id="L119">                : OttAuthenticationConverter.TOKEN_PARAMETER);</span>
+<span class="fc" id="L120">        model.put(GENERATE_PATH_ATTRIBUTE, OttRateLimitFilter.GENERATE_PATH);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (error != null) {</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            model.put(ERROR_MESSAGE_ATTRIBUTE, lastFailureWasLockout() ? LOCKED_ERROR : GENERIC_ERROR);</span>
+        }
+<span class="fc" id="L124">        return pageRenderer.render(CODE_VIEW_NAME, model);</span>
+    }
+
+    /**
+     * Renders the page a magic link opens. It is never cached and a browser sends no referrer from it, because the
+     * token is in its address.
+     *
+     * @param token the token of the link, which is only posted back, never checked here.
+     * @return the confirmation page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; ottConfirmPage(final String token) {
+<span class="fc" id="L136">        final var page = pageRenderer.render(CONFIRM_VIEW_NAME, Map.of(</span>
+                TOKEN_ATTRIBUTE, token,
+                POST_PATH_ATTRIBUTE, OTT_CODE_PATH,
+                CODE_FIELD_ATTRIBUTE, OttAuthenticationConverter.TOKEN_PARAMETER));
+<span class="fc" id="L140">        return ResponseEntity.status(page.getStatusCode())</span>
+<span class="fc" id="L141">                .headers(page.getHeaders())</span>
+<span class="fc" id="L142">                .cacheControl(CacheControl.noStore())</span>
+<span class="fc" id="L143">                .header(REFERRER_POLICY, &quot;no-referrer&quot;)</span>
+<span class="fc" id="L144">                .body(page.getBody());</span>
+    }
+
+    /**
+     * Tells whether the previous attempt failed because the second factor is locked, which Spring Security keeps in
+     * the session.
+     *
+     * @return {@code true} when the session holds a {@link LockedException} as the last failure.
+     */
+    private boolean lastFailureWasLockout() {
+<span class="fc" id="L154">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        final var failure = session == null ? null : session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);</span>
+<span class="fc" id="L156">        return failure instanceof LockedException;</span>
+    }
+
+    /**
+     * Lower-cases a name, whatever the platform's locale is.
+     *
+     * @param name the name.
+     * @return the name in lower case.
+     */
+    private static String lowerCase(final String name) {
+<span class="fc" id="L166">        return name.toLowerCase(Locale.ROOT);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

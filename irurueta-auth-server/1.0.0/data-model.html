@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Data model :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="data-model.html">Data model</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/data-model.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Data model</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>auth-server</code> stores its state in PostgreSQL. Flyway applies the migrations in
+<code>auth-server/infrastructure/persistence/src/main/resources/db/migration</code> (<code>classpath:db/migration</code>) at start.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Migration</th>
+<th class="tableblock halign-left valign-top">Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V100__spring_authorization_server_schema.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tables of Spring Authorization Server: <code>oauth2_registered_client</code>, <code>oauth2_authorization_consent</code> and
+<code>oauth2_authorization</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V101__users.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tables <code>users</code>, <code>user_authorities</code> and <code>user_passwords</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V200__account.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Adds <code>email</code>, <code>email_verified</code> and <code>tenant</code> to <code>users</code>, and the <code>account_tokens</code> table (hashed single-use tokens).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V210__signing_keys.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Table <code>signing_keys</code> (public JWK, encrypted private JWK, status <code>NEXT</code>/<code>ACTIVE</code>/<code>RETIRED</code>); at most one <code>ACTIVE</code> key.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V230__consumed_refresh_tokens.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Table <code>consumed_refresh_tokens</code>, the hashes of rotated-out refresh tokens used for reuse detection.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V240__authorization_created_at.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Adds <code>created_at</code> to <code>oauth2_authorization</code>, so the authorizations that never got a token (abandoned authorization
+or consent requests) can be cleaned up once they are old enough.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V400__mfa_security_events.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Security events and the failed second-factor attempts used for lockout (see <a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V410__totp_recovery_codes.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TOTP secrets and recovery codes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V420__trusted_devices.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Devices trusted to skip the second factor.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V500__webauthn.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Security&#8217;s WebAuthn tables (<code>user_entities</code>, <code>user_credentials</code>) and an index on the credential owner (see <a href="passkeys.html" class="xref page">Passkeys (WebAuthn)</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V600__one_time_tokens.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Security&#8217;s <code>one_time_tokens</code> table for magic-link tokens (see <a href="one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V610__ott_codes.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hashed numeric e-mail / SMS codes with their attempt counters.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V620__user_phones.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Verified E.164 phone numbers (one per user) and pending phone verifications.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V630__sms_cost_ledger.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spend ledger used by the SMS cost caps.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Each issue owns a range of migration numbers so features never collide: the walking skeleton uses <code>V100</code>-<code>V199</code> and the credential and token core (issue #2) uses <code>V200</code>-<code>V299</code>; multi-factor authentication (issue #4) uses <code>V400</code>-<code>V499</code>; passkeys (issue #5) use <code>V500</code>-<code>V599</code>; one-time tokens and SMS (issue #6) use <code>V600</code>-<code>V699</code>. A
+migration is never written outside the range of the issue that adds it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE oauth2_registered_client
+(
+    id                            varchar(100)                            NOT NULL,
+    client_id                     varchar(100)                            NOT NULL,
+    client_id_issued_at           timestamp     DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    client_secret                 varchar(200)  DEFAULT NULL,
+    client_secret_expires_at      timestamp     DEFAULT NULL,
+    client_name                   varchar(200)                            NOT NULL,
+    client_authentication_methods varchar(1000)                           NOT NULL,
+    authorization_grant_types     varchar(1000)                           NOT NULL,
+    redirect_uris                 varchar(1000) DEFAULT NULL,
+    post_logout_redirect_uris     varchar(1000) DEFAULT NULL,
+    scopes                        varchar(1000)                           NOT NULL,
+    client_settings               varchar(2000)                           NOT NULL,
+    token_settings                varchar(2000)                           NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE oauth2_authorization_consent
+(
+    registered_client_id varchar(100)  NOT NULL,
+    principal_name       varchar(200)  NOT NULL,
+    authorities          varchar(1000) NOT NULL,
+    PRIMARY KEY (registered_client_id, principal_name)
+);
+
+CREATE TABLE oauth2_authorization
+(
+    id                            varchar(100) NOT NULL,
+    registered_client_id          varchar(100) NOT NULL,
+    principal_name                varchar(200) NOT NULL,
+    authorization_grant_type      varchar(100) NOT NULL,
+    authorized_scopes             varchar(1000) DEFAULT NULL,
+    attributes                    text          DEFAULT NULL,
+    state                         varchar(500)  DEFAULT NULL,
+    authorization_code_value      text          DEFAULT NULL,
+    authorization_code_issued_at  timestamp     DEFAULT NULL,
+    authorization_code_expires_at timestamp     DEFAULT NULL,
+    authorization_code_metadata   text          DEFAULT NULL,
+    access_token_value            text          DEFAULT NULL,
+    access_token_issued_at        timestamp     DEFAULT NULL,
+    access_token_expires_at       timestamp     DEFAULT NULL,
+    access_token_metadata         text          DEFAULT NULL,
+    access_token_type             varchar(100)  DEFAULT NULL,
+    access_token_scopes           varchar(1000) DEFAULT NULL,
+    oidc_id_token_value           text          DEFAULT NULL,
+    oidc_id_token_issued_at       timestamp     DEFAULT NULL,
+    oidc_id_token_expires_at      timestamp     DEFAULT NULL,
+    oidc_id_token_metadata        text          DEFAULT NULL,
+    refresh_token_value           text          DEFAULT NULL,
+    refresh_token_issued_at       timestamp     DEFAULT NULL,
+    refresh_token_expires_at      timestamp     DEFAULT NULL,
+    refresh_token_metadata        text          DEFAULT NULL,
+    user_code_value               text          DEFAULT NULL,
+    user_code_issued_at           timestamp     DEFAULT NULL,
+    user_code_expires_at          timestamp     DEFAULT NULL,
+    user_code_metadata            text          DEFAULT NULL,
+    device_code_value             text          DEFAULT NULL,
+    device_code_issued_at         timestamp     DEFAULT NULL,
+    device_code_expires_at        timestamp     DEFAULT NULL,
+    device_code_metadata          text          DEFAULT NULL,
+    PRIMARY KEY (id)
+);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE users
+(
+    id         uuid                     NOT NULL,
+    username   varchar(100)             NOT NULL,
+    enabled    boolean                  NOT NULL DEFAULT TRUE,
+    created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_users_username UNIQUE (username)
+);
+
+CREATE TABLE user_authorities
+(
+    user_id   uuid         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    authority varchar(100) NOT NULL,
+    PRIMARY KEY (user_id, authority)
+);
+
+CREATE TABLE user_passwords
+(
+    user_id          uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    encoded_password varchar(255)             NOT NULL,
+    updated_at       timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id)
+);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">ALTER TABLE users
+    ADD COLUMN email          varchar(320),
+    ADD COLUMN email_verified boolean      NOT NULL DEFAULT FALSE,
+    ADD COLUMN tenant         varchar(100) NOT NULL DEFAULT 'default';
+
+-- Existing rows have no e-mail; the unique index is case-insensitive and ignores the NULLs.
+CREATE UNIQUE INDEX uq_users_email ON users (lower(email));
+
+CREATE TABLE account_tokens
+(
+    id           uuid                     NOT NULL,
+    user_id      uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    purpose      varchar(50)              NOT NULL,
+    hashed_token varchar(128)             NOT NULL,
+    expires_at   timestamp with time zone NOT NULL,
+    used_at      timestamp with time zone,
+    created_at   timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_account_tokens_hashed_token UNIQUE (hashed_token)
+);
+
+CREATE INDEX ix_account_tokens_expires_at ON account_tokens (expires_at);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>See <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a> for the <code>signing_keys</code> and <code>consumed_refresh_tokens</code> tables and the <code>created_at</code> column
+of <code>oauth2_authorization</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_bff_database"><a class="anchor" href="#_bff_database"></a>BFF database</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>bff</code> has its own PostgreSQL database (<code>bff</code>, created by <code>compose/init-databases.sql</code> in development), separate from
+the one of <code>auth-server</code>. Its single Flyway migration, <code>V300__spring_session.sql</code> in
+<code>bff/infrastructure/session/src/main/resources/db/migration</code>, creates the Spring Session JDBC tables <code>spring_session</code> (one row per browser
+session) and <code>spring_session_attributes</code> (the serialized session attributes, among them the authorized OAuth2 client with
+the user&#8217;s tokens). Spring Session never creates them (<code>initialize-schema: never</code>). The schema and its use are described
+in <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.v1.generated.model,SessionUserResponse,15,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.v1.generated.model,DocumentResponse,15,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.v1.generated.model,Problem,18,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.logout,LogoutConfiguration,0,13,0,0,0,4,0,2,0,2
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web,OpenApiConfig,0,67,0,0,0,21,0,3,0,3
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.security,CsrfCookieFilter,0,19,0,2,0,6,0,3,0,2
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.security,SecurityConfig,151,21,0,0,24,8,9,3,9,3
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.documents,DocumentsController,0,21,0,0,0,3,0,2,0,2
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.documents,DocumentDtoMapper,0,15,0,0,0,2,0,2,0,2
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.documents,DocumentsExceptionHandler,0,39,0,0,0,8,0,6,0,6
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.user,UserController,0,26,0,4,0,4,0,3,0,1
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.user,SessionUserDtoMapper,0,33,0,4,0,6,0,5,0,3
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.login,BffLoginProperties,0,21,0,4,0,6,0,4,0,2
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.login,ReturnToValidator,0,113,1,35,0,20,1,22,0,5
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.login,BffLoginController,0,32,0,4,0,5,0,3,0,1
+com.irurueta.authserver:bff-api-web,com.irurueta.authserver.bff.api.web.login,ReturnToAuthenticationSuccessHandler,0,35,0,6,0,7,0,5,0,2

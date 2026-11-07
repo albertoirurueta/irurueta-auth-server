@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmtpAccountMailer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-mail</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.mail</a> &gt; <span class="el_source">SmtpAccountMailer.java</span></div><h1>SmtpAccountMailer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.mail;
+
+import com.irurueta.authserver.authorization.domain.account.AccountMailException;
+import com.irurueta.authserver.authorization.domain.account.AccountMailer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.mail.MailException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * {@link AccountMailer} that sends plain-text messages through SMTP. Subject and body come from a
+ * {@link MessageSource} resolved with the explicitly configured locale, never the platform's default. A delivery
+ * failure is reported as an {@link AccountMailException} that carries neither the address nor the token, so the
+ * calling use case rolls back whatever it stored for the message.
+ */
+@RequiredArgsConstructor
+public class SmtpAccountMailer implements AccountMailer {
+
+    /** Message key prefix of the e-mail verification message. */
+    static final String VERIFICATION = &quot;mail.verification&quot;;
+
+    /** Message key prefix of the already-registered message. */
+    static final String ALREADY_REGISTERED = &quot;mail.already-registered&quot;;
+
+    /** Message key prefix of the reset message. */
+    static final String RESET = &quot;mail.reset&quot;;
+
+    /** Path of the verification endpoint. */
+    static final String VERIFY_PATH = &quot;/api/account/verify?token=&quot;;
+
+    /** Path of the page that lets the user choose a new secret. */
+    static final String RESET_PATH = &quot;/account/reset?token=&quot;;
+
+    /** Sends the messages. */
+    private final JavaMailSender mailSender;
+
+    /** Source of the subjects and bodies. */
+    private final MessageSource messageSource;
+
+    /** Sender, base URL and locale. */
+    private final MailProperties properties;
+
+    @Override
+    public void sendEmailVerification(final String email, final String token) {
+<span class="fc" id="L65">        send(email, VERIFICATION, properties.baseUrl() + VERIFY_PATH + encode(token));</span>
+<span class="fc" id="L66">    }</span>
+
+    @Override
+    public void sendAlreadyRegistered(final String email) {
+<span class="fc" id="L70">        send(email, ALREADY_REGISTERED, properties.baseUrl());</span>
+<span class="fc" id="L71">    }</span>
+
+    @Override
+    public void sendPasswordReset(final String email, final String token) {
+<span class="fc" id="L75">        send(email, RESET, properties.baseUrl() + RESET_PATH + encode(token));</span>
+<span class="fc" id="L76">    }</span>
+
+    /**
+     * Builds and sends one message.
+     *
+     * @param email recipient address.
+     * @param prefix message key prefix; {@code .subject} and {@code .body} are appended.
+     * @param link link inserted as the first argument of the body.
+     * @throws AccountMailException if the message cannot be delivered.
+     */
+    private void send(final String email, final String prefix, final String link) {
+<span class="fc" id="L87">        final var locale = properties.locale();</span>
+<span class="fc" id="L88">        final var message = new SimpleMailMessage();</span>
+<span class="fc" id="L89">        message.setFrom(properties.from());</span>
+<span class="fc" id="L90">        message.setTo(email);</span>
+<span class="fc" id="L91">        message.setSubject(messageSource.getMessage(prefix + &quot;.subject&quot;, null, locale));</span>
+<span class="fc" id="L92">        message.setText(messageSource.getMessage(prefix + &quot;.body&quot;, new Object[]{link}, locale));</span>
+        try {
+<span class="fc" id="L94">            mailSender.send(message);</span>
+<span class="fc" id="L95">        } catch (final MailException e) {</span>
+<span class="fc" id="L96">            throw new AccountMailException(&quot;Could not deliver the &quot; + prefix + &quot; message&quot;, e);</span>
+<span class="fc" id="L97">        }</span>
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * Encodes a value for a query parameter.
+     *
+     * @param value value to encode.
+     * @return the encoded value.
+     */
+    private static String encode(final String value) {
+<span class="fc" id="L107">        return URLEncoder.encode(value, StandardCharsets.UTF_8);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

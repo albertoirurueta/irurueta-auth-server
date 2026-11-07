@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RecoveryCodes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.totp</a> &gt; <span class="el_source">RecoveryCodes.java</span></div><h1>RecoveryCodes.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.totp;
+
+import java.security.SecureRandom;
+import java.util.Locale;
+import org.springframework.stereotype.Component;
+
+/**
+ * Creates recovery codes (Crockford base-32 alphabet, so no {@code I}, {@code L}, {@code O} or {@code U}) and
+ * normalizes what a user types back into that form.
+ */
+@Component
+<span class="fc" id="L28">public class RecoveryCodes {</span>
+
+    /** Number of characters of a code. */
+    public static final int CODE_LENGTH = 10;
+
+    /** Crockford's base-32 alphabet. */
+    private static final String ALPHABET = &quot;0123456789ABCDEFGHJKMNPQRSTVWXYZ&quot;;
+
+    /** Source of randomness. */
+<span class="fc" id="L37">    private final SecureRandom random = new SecureRandom();</span>
+
+    /**
+     * Creates a new random code.
+     *
+     * @return the code, {@link #CODE_LENGTH} characters long.
+     */
+    public String newCode() {
+<span class="fc" id="L45">        final var code = new StringBuilder(CODE_LENGTH);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        for (var i = 0; i &lt; CODE_LENGTH; i++) {</span>
+<span class="fc" id="L47">            code.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));</span>
+        }
+<span class="fc" id="L49">        return code.toString();</span>
+    }
+
+    /**
+     * Normalizes a typed code: upper case, without separators, and with the look-alike letters Crockford maps
+     * ({@code O} to {@code 0}, {@code I} and {@code L} to {@code 1}).
+     *
+     * @param typed the code as typed.
+     * @return the canonical form.
+     */
+    public String normalize(final String typed) {
+<span class="fc" id="L60">        return typed.toUpperCase(Locale.ROOT)</span>
+<span class="fc" id="L61">                .replace(&quot;-&quot;, &quot;&quot;)</span>
+<span class="fc" id="L62">                .replace(&quot; &quot;, &quot;&quot;)</span>
+<span class="fc" id="L63">                .replace('O', '0')</span>
+<span class="fc" id="L64">                .replace('I', '1')</span>
+<span class="fc" id="L65">                .replace('L', '1');</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

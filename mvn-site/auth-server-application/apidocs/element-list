@@ -1,0 +1,11 @@
+com.irurueta.authserver.authorization.application.account
+com.irurueta.authserver.authorization.application.clients
+com.irurueta.authserver.authorization.application.keys
+com.irurueta.authserver.authorization.application.mfa
+com.irurueta.authserver.authorization.application.ott
+com.irurueta.authserver.authorization.application.passkeys
+com.irurueta.authserver.authorization.application.password
+com.irurueta.authserver.authorization.application.sms
+com.irurueta.authserver.authorization.application.time
+com.irurueta.authserver.authorization.application.tokens
+com.irurueta.authserver.authorization.application.totp

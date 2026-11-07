@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Passkeys (WebAuthn) :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="passkeys.html">Passkeys (WebAuthn)</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/passkeys.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Passkeys (WebAuthn)</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A passkey is a phishing-resistant credential held by the user&#8217;s device. It works as a passwordless primary sign-in
+and as the second factor after a password. The ceremonies are Spring Security&#8217;s own (<code>http.webAuthn(&#8230;&#8203;)</code>); this
+server adds the factor registration, the persistence port, the account API and the pages.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_factor_and_sign_in"><a class="anchor" href="#_factor_and_sign_in"></a>Factor and sign-in</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>PasskeyFactor</code> registers <code>FACTOR_WEBAUTHN</code> as a strong primary factor (<code>amr</code> value <code>hwk</code>), so a passkey alone
+satisfies <code>MfaPolicy</code>. After a password, the factors merge and <code>amr</code> is <code>pwd</code>, <code>hwk</code> and <code>mfa</code>; see
+<a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the passkey factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor passkeyAuthenticationFactor() {
+        return new AuthenticationFactor(ID, AMR_VALUE, AUTHORITY, FactorStrength.PRIMARY_STRONG);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The chain customizer applies the relying party settings, guards the registration endpoints, denies
+<code>DELETE /webauthn/register/**</code> (a passkey is removed only through the account API, with step-up) and gives the
+WebAuthn filter the chain&#8217;s session strategy and a user service that refuses disabled accounts.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public void customize(final HttpSecurity http) {
+        http.setSharedObject(UserDetailsService.class, new AccountStatusUserDetailsService(userDetailsService));
+        http.authorizeHttpRequests(authorize -&gt; authorize
+                .requestMatchers(SCRIPT_PATH, AUTHENTICATION_OPTIONS_PATH, AUTHENTICATION_PATH).permitAll()
+                .requestMatchers(HttpMethod.DELETE, PasskeyRegistrationAuthorizationManager.REGISTRATION_PATH + "/**")
+                .denyAll()
+                .requestMatchers(PasskeysPageController.PASSKEYS_PATH).access(mfaAuthorizationManager));
+        http.addFilterBefore(
+                new PasskeyRegistrationFilter(new PasskeyRegistrationAuthorizationManager(mfaAuthorizationManager)),
+                AuthorizationFilter.class);
+        http.addFilterBefore(
+                new PasskeySecondFactorLockoutFilter(secondFactorUserResolver, checkSecondFactorLockoutUseCase),
+                BasicAuthenticationFilter.class);
+        http.webAuthn(webAuthn -&gt; webAuthn
+                .rpName(properties.rpName())
+                .rpId(properties.rpId())
+                .allowedOrigins(new LinkedHashSet&lt;&gt;(properties.allowedOrigins()))
+                .disableDefaultRegistrationPage(true)
+                .addObjectPostProcessor(new SessionStrategyPostProcessor(http)));
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the customizer that enables {@code http.webAuthn(...)}, permits its public endpoints, keeps the
+     * registration endpoints behind the multi-factor policy and removes the ones that would bypass the step-up. It is
+     * applied after the TOTP customizer.
+     *
+     * @param properties           relying party settings.
+     * @param authorizationManager applies the multi-factor policy.
+     * @param userDetailsService   loads the account of the user a passkey belongs to.
+     * @param userResolver         resolves the account of the signed-in user, for the lockout check.
+     * @param lockoutUseCase       tells whether the second factor of a user is locked.
+     * @return the customizer.
+     */
+    @Bean
+    @Order(PasskeyChainCustomizer.ORDER)
+    public LoginChainCustomizer passkeyChainCustomizer(final PasskeyProperties properties,
+            final MfaAuthorizationManager authorizationManager, final UserDetailsService userDetailsService,
+            final SecondFactorUserResolver userResolver, final CheckSecondFactorLockoutUseCase lockoutUseCase) {
+        return new PasskeyChainCustomizer(properties, authorizationManager, userDetailsService, userResolver,
+                lockoutUseCase);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The login page shows a passkey button and conditional-mediation autofill; the second-factor page offers "use a passkey".</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;div th:fragment="login" class="passkey-login" data-passkey-login
+     th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+     th:data-options-url="@{/webauthn/authenticate/options}" th:data-login-url="@{/login/webauthn}"
+     th:data-error-url="@{/login?error}" th:data-failure-message="#{passkeys.login.failed}"&gt;
+  &lt;h2 th:text="#{passkeys.login.heading}"&gt;Sign in with a passkey&lt;/h2&gt;
+  &lt;p&gt;
+    &lt;label for="passkey-username" th:text="#{passkeys.login.username}"&gt;Username&lt;/label&gt;
+    &lt;input type="text" id="passkey-username" name="passkey-username" autocomplete="username webauthn"
+           data-passkey-field&gt;
+  &lt;/p&gt;
+  &lt;button type="button" data-passkey-button th:text="#{passkeys.login.button}"&gt;Use a passkey&lt;/button&gt;
+  &lt;p role="alert" data-passkey-error hidden&gt;&lt;/p&gt;
+  &lt;script th:src="@{/js/passkeys.js}" defer&gt;&lt;/script&gt;
+&lt;/div&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;div th:fragment="form" th:if="${passkeysAvailable}" class="passkey-second-factor" data-passkey-login
+     th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+     th:data-options-url="@{/webauthn/authenticate/options}" th:data-login-url="@{/login/webauthn}"
+     th:data-error-url="@{/login/second-factor?error}" th:data-failure-message="#{passkeys.login.failed}"&gt;
+  &lt;h2 th:text="#{passkeys.second.heading}"&gt;Use a passkey&lt;/h2&gt;
+  &lt;p th:text="#{passkeys.second.instructions}"&gt;Confirm with a passkey registered to your account.&lt;/p&gt;
+  &lt;button type="button" data-passkey-button th:text="#{passkeys.second.button}"&gt;Use a passkey&lt;/button&gt;
+  &lt;p role="alert" data-passkey-error hidden&gt;&lt;/p&gt;
+  &lt;script th:src="@{/js/passkeys.js}" defer&gt;&lt;/script&gt;
+&lt;/div&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_registration_and_management"><a class="anchor" href="#_registration_and_management"></a>Registration and management</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A passkey is registered from <code>GET /account/passkeys</code>, which needs a signed-in session, and managed with
+<code>GET</code>, <code>PATCH</code> and <code>DELETE /api/account/passkeys</code> (the <code>id</code> is the base64url credential id). Deleting one calls
+<code>StepUpGuard</code> while the account has a confirmed second factor.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">  &lt;section class="passkey-register" data-passkey-register
+           th:attr="data-csrf-header=${_csrf?.headerName},data-csrf-token=${_csrf?.token}"
+           th:data-options-url="@{/webauthn/register/options}" th:data-register-url="@{/webauthn/register}"
+           th:data-label-message="#{passkeys.account.labelRequired}"
+           th:data-success-message="#{passkeys.account.registered}"
+           th:data-failure-message="#{passkeys.account.failed}"&gt;
+    &lt;h2 th:text="#{passkeys.account.add}"&gt;Add a passkey&lt;/h2&gt;
+    &lt;p&gt;
+      &lt;label for="passkey-label" th:text="#{passkeys.account.label}"&gt;Name of the passkey&lt;/label&gt;
+      &lt;input type="text" id="passkey-label" name="passkey-label" required maxlength="100" autocomplete="off"
+             data-passkey-label&gt;
+    &lt;/p&gt;
+    &lt;button type="button" data-passkey-register-button th:text="#{passkeys.account.register}"&gt;Register&lt;/button&gt;
+    &lt;p role="status" data-passkey-status hidden&gt;&lt;/p&gt;
+    &lt;p role="alert" data-passkey-error hidden&gt;&lt;/p&gt;
+    &lt;script th:src="@{/js/passkeys.js}" defer&gt;&lt;/script&gt;
+  &lt;/section&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">    Passkey:
+      type: object
+      description: A WebAuthn credential registered by the account
+      required: [ id, label, createdAt, signatureCount, backupEligible, backedUp ]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '^[A-Za-z0-9_-]+$'
+          description: Credential identifier, as unpadded base64url.
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name that identifies the passkey in the list.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the passkey was registered.
+        lastUsedAt:
+          type: [ string, 'null' ]
+          format: date-time
+          description: When the passkey was last used to authenticate; equal to createdAt until its first use, because the credential store always records a value.
+        signatureCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Signature counter reported by the authenticator at its last use.
+        backupEligible:
+          type: boolean
+          description: Whether the credential may be synchronised (the WebAuthn BE flag).
+        backedUp:
+          type: boolean
+          description: Whether the credential is currently synchronised (the WebAuthn BS flag).
+    RenamePasskeyRequest:
+      type: object
+      description: The new label of a passkey
+      required: [ label ]
+      properties:
+        label:
+          type: string
+          description: New name of the passkey; it must contain a non-blank character.
+          minLength: 1
+          maxLength: 100
+          pattern: '[\s\S]*\S[\s\S]*'</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_settings"><a class="anchor" href="#_settings"></a>Settings</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  passkeys:
+    # Relying party of the passkeys (WebAuthn). The id is the host name credentials are scoped to and the origins are
+    # the ones browsers may run the ceremonies from: both default to the local development values and must be set to
+    # the public host name of a real deployment.
+    rp-name: ${AUTHSERVER_PASSKEYS_RP_NAME:Irurueta Auth Server}
+    rp-id: ${AUTHSERVER_PASSKEYS_RP_ID:localhost}
+    allowed-origins: ${AUTHSERVER_PASSKEYS_ALLOWED_ORIGINS:http://localhost:9000}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Relying party settings of the passkeys (WebAuthn), bound once from {@code authserver.passkeys.*} and injected
+ * wherever one of them is needed. An invalid value stops the application at startup. A browser only accepts a
+ * credential whose relying party id is the host of the page (or a registrable suffix of it) and whose origin is one of
+ * the allowed ones, so a deployment must set {@code rp-id} and {@code allowed-origins} to its public host name; the
+ * shipped {@code application.yml} defaults to {@code localhost} for local runs only.
+ *
+ * @param rpName         name of the relying party shown by the authenticator (default {@code Irurueta Auth Server}).
+ * @param rpId           relying party id: the host name credentials are scoped to.
+ * @param allowedOrigins origins (scheme, host and port) the browser may run the WebAuthn ceremonies from.
+ */
+@ConfigurationProperties("authserver.passkeys")
+public record PasskeyProperties(
+        @DefaultValue("Irurueta Auth Server") String rpName,
+        String rpId,
+        List&lt;String&gt; allowedOrigins) {
+
+    /**
+     * Validates the settings and copies the origins.
+     *
+     * @throws IllegalArgumentException if the name or the id is blank, or there is no allowed origin or one is blank.
+     */
+    public PasskeyProperties {
+        if (rpName == null || rpName.isBlank()) {
+            throw new IllegalArgumentException("authserver.passkeys.rp-name must not be blank");
+        }
+        if (rpId == null || rpId.isBlank()) {
+            throw new IllegalArgumentException("authserver.passkeys.rp-id must not be blank");
+        }
+        if (allowedOrigins == null || allowedOrigins.isEmpty()
+                || allowedOrigins.stream().anyMatch(origin -&gt; origin == null || origin.isBlank())) {
+            throw new IllegalArgumentException(
+                    "authserver.passkeys.allowed-origins must list at least one origin and none may be blank");
+        }
+        allowedOrigins = List.copyOf(allowedOrigins);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_database"><a class="anchor" href="#_database"></a>Database</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Migration <code>V500</code> (issue #5); see <a href="data-model.html" class="xref page">Data model</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE user_entities
+(
+    id           varchar(1000) NOT NULL,
+    name         varchar(100)  NOT NULL,
+    display_name varchar(200),
+    PRIMARY KEY (id),
+    CONSTRAINT uq_user_entities_name UNIQUE (name)
+);
+
+CREATE TABLE user_credentials
+(
+    credential_id                varchar(1000) NOT NULL,
+    user_entity_user_id          varchar(1000) NOT NULL,
+    public_key                   bytea         NOT NULL,
+    signature_count              bigint,
+    uv_initialized               boolean,
+    backup_eligible              boolean       NOT NULL,
+    authenticator_transports     varchar(1000),
+    public_key_credential_type   varchar(100),
+    backup_state                 boolean       NOT NULL,
+    attestation_object           bytea,
+    attestation_client_data_json bytea,
+    created                      timestamp with time zone,
+    last_used                    timestamp with time zone,
+    label                        varchar(1000) NOT NULL,
+    PRIMARY KEY (credential_id)
+);
+
+CREATE INDEX ix_user_credentials_user_entity_user_id ON user_credentials (user_entity_user_id);</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_limitations"><a class="anchor" href="#_limitations"></a>Limitations</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Passkey-first sign-up is not possible: registration needs an authenticated session, so an account starts with
+another primary factor.</p>
+</li>
+<li>
+<p>A passkey-only session gets the password <code>acr</code>, so it cannot satisfy the step-up check of the account API.</p>
+</li>
+<li>
+<p>Spring&#8217;s relying party operations fix user verification to <code>preferred</code>.</p>
+</li>
+<li>
+<p><code>lastUsedAt</code> equals <code>createdAt</code> until the first use, because Spring&#8217;s schema requires <code>last_used</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

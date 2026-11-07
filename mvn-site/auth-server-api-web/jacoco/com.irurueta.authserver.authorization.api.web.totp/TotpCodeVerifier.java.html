@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TotpCodeVerifier.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.totp</a> &gt; <span class="el_source">TotpCodeVerifier.java</span></div><h1>TotpCodeVerifier.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.totp;
+
+import com.irurueta.authserver.authorization.application.totp.ConfirmTotpAtSignInUseCase;
+import com.irurueta.authserver.authorization.application.totp.VerifyRecoveryCodeUseCase;
+import com.irurueta.authserver.authorization.application.totp.VerifyTotpUseCase;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+/**
+ * Sends a posted code to the use case of its kind ({@link TotpCodeKind}): a TOTP code, a recovery code, or the first
+ * code of an authenticator app enrolled during the sign-in. The use cases count the failures, lock the second factor
+ * after too many and clear the counter on success.
+ */
+@Component
+@RequiredArgsConstructor
+public class TotpCodeVerifier {
+
+    /** Use case that verifies a TOTP code. */
+    private final VerifyTotpUseCase verifyTotpUseCase;
+
+    /** Use case that verifies (and consumes) a recovery code. */
+    private final VerifyRecoveryCodeUseCase verifyRecoveryCodeUseCase;
+
+    /** Use case that confirms an enrolment during the sign-in. */
+    private final ConfirmTotpAtSignInUseCase confirmTotpAtSignInUseCase;
+
+    /**
+     * Verifies a posted code; for an enrolment, the new recovery codes are handed back through the request.
+     *
+     * @param request  the verification request.
+     * @param userId   identifier of the user.
+     * @param username name of the user, for the audit log.
+     * @return {@code true} when the code is accepted.
+     * @throws com.irurueta.authserver.authorization.domain.mfa.SecondFactorLockedException if the second factor of
+     *         the user is locked.
+     * @throws com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException if an enrolment code is
+     *         posted while no enrolment was started.
+     * @throws com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException if an enrolment code is
+     *         posted for an app that is already enabled.
+     */
+    public boolean verify(final TotpAuthenticationToken request, final UUID userId, final String username) {
+<span class="fc bfc" id="L58" title="All 3 branches covered.">        return switch (request.kind()) {</span>
+<span class="fc" id="L59">            case TOTP -&gt; verifyTotpUseCase.execute(userId, username, request.getCredentials());</span>
+<span class="fc" id="L60">            case RECOVERY -&gt; verifyRecoveryCodeUseCase.execute(userId, username, request.getCredentials());</span>
+<span class="fc" id="L61">            case ENROLMENT -&gt; confirmEnrolment(request, userId, username);</span>
+        };
+    }
+
+    /**
+     * Confirms an enrolment and hands the new recovery codes back through the request.
+     *
+     * @param request  the verification request.
+     * @param userId   identifier of the user.
+     * @param username name of the user.
+     * @return {@code true} when the code confirmed the enrolment.
+     */
+    private boolean confirmEnrolment(final TotpAuthenticationToken request, final UUID userId,
+            final String username) {
+<span class="fc" id="L75">        final var recoveryCodes = confirmTotpAtSignInUseCase.execute(userId, username, request.getCredentials());</span>
+<span class="fc" id="L76">        recoveryCodes.ifPresent(request::issueRecoveryCodes);</span>
+<span class="fc" id="L77">        return recoveryCodes.isPresent();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

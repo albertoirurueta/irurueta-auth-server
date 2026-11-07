@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LoginErrorMessages.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.login</a> &gt; <span class="el_source">LoginErrorMessages.java</span></div><h1>LoginErrorMessages.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.login;
+
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.stereotype.Component;
+
+/**
+ * Maps the exception of a failed sign-in, which Spring Security keeps in the
+ * {@code SPRING_SECURITY_LAST_EXCEPTION} session attribute, to the key of the message the login page shows.
+ *
+ * &lt;p&gt;An unknown user and a wrong password (a
+ * {@link org.springframework.security.authentication.BadCredentialsException} or a
+ * {@link org.springframework.security.core.userdetails.UsernameNotFoundException}) deliberately share
+ * the generic key, so the two responses are identical and the page never reveals whether an account exists. The
+ * account status messages (locked, disabled, expired) cannot reveal it either: the authentication provider of the
+ * {@code password} feature ({@code PasswordAuthenticationConfiguration}) only checks the status after a correct
+ * password, so a wrong password for a disabled account is reported as bad credentials too.
+ */
+@Component
+<span class="fc" id="L38">public class LoginErrorMessages {</span>
+
+    /** Key of the message shown for bad credentials, an unknown user and any unexpected failure. */
+    public static final String GENERIC = &quot;login.error.generic&quot;;
+
+    /** Key of the message shown for a locked account. */
+    public static final String LOCKED = &quot;login.error.locked&quot;;
+
+    /** Key of the message shown for an expired account. */
+    public static final String ACCOUNT_EXPIRED = &quot;login.error.accountExpired&quot;;
+
+    /** Key of the message shown for expired credentials. */
+    public static final String CREDENTIALS_EXPIRED = &quot;login.error.credentialsExpired&quot;;
+
+    /** Key of the message shown for a disabled account. */
+    public static final String DISABLED = &quot;login.error.disabled&quot;;
+
+    /**
+     * Gets the key of the message that describes a failed sign-in.
+     *
+     * @param exception the exception of the failed sign-in; {@code null} when the session holds none.
+     * @return the message key; the generic one for bad credentials, an unknown user and anything unexpected.
+     */
+    public String keyOf(final AuthenticationException exception) {
+<span class="fc bfc" id="L62" title="All 5 branches covered.">        return switch (exception) {</span>
+<span class="fc" id="L63">            case LockedException locked -&gt; LOCKED;</span>
+<span class="fc" id="L64">            case AccountExpiredException expired -&gt; ACCOUNT_EXPIRED;</span>
+<span class="fc" id="L65">            case CredentialsExpiredException expired -&gt; CREDENTIALS_EXPIRED;</span>
+<span class="fc" id="L66">            case DisabledException disabled -&gt; DISABLED;</span>
+<span class="fc" id="L67">            case null, default -&gt; GENERIC;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

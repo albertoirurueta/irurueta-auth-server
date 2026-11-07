@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SnsSmsSender.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-sms</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.sms</a> &gt; <span class="el_source">SnsSmsSender.java</span></div><h1>SnsSmsSender.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.sms;
+
+import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
+import com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException;
+import com.irurueta.authserver.authorization.domain.sms.SmsSender;
+import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+
+/**
+ * {@link SmsSender} that publishes directly to a phone number through Amazon SNS. Every failure becomes a
+ * {@link SmsDeliveryException} without the recipient or the text.
+ */
+@RequiredArgsConstructor
+public class SnsSmsSender implements SmsSender {
+
+    /** Generic failure description. */
+    static final String FAILURE_MESSAGE = &quot;Amazon SNS could not send the text message&quot;;
+
+    /** SNS client. */
+    private final SnsClient client;
+
+    @Override
+    public void send(final PhoneNumber to, final String text) {
+        try {
+<span class="fc" id="L42">            client.publish(PublishRequest.builder().phoneNumber(to.e164()).message(text).build());</span>
+<span class="fc" id="L43">        } catch (final RuntimeException e) {</span>
+<span class="fc" id="L44">            throw new SmsDeliveryException(FAILURE_MESSAGE, e);</span>
+<span class="fc" id="L45">        }</span>
+<span class="fc" id="L46">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

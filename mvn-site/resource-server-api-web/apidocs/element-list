@@ -1,0 +1,5 @@
+com.irurueta.authserver.resourceserver.api.web
+com.irurueta.authserver.resourceserver.api.web.documents
+com.irurueta.authserver.resourceserver.api.web.security
+com.irurueta.authserver.resourceserver.api.web.v1.generated.api
+com.irurueta.authserver.resourceserver.api.web.v1.generated.model

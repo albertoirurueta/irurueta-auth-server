@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Sha256OneTimeCodeHasher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.ott</a> &gt; <span class="el_source">Sha256OneTimeCodeHasher.java</span></div><h1>Sha256OneTimeCodeHasher.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.ott;
+
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
+/**
+ * Hashes one-time codes with SHA-256 (lower-case hex) and compares them in constant time.
+ *
+ * &lt;p&gt;A plain hash of a six-digit code can be brute-forced in an instant if the table leaks. That is acceptable here
+ * only because a code is single use, lives for minutes and is burnt after a few wrong attempts, so a leaked row is
+ * useless by the time anyone could read it. Never use this hasher for a long-lived secret.
+ */
+<span class="fc" id="L32">public class Sha256OneTimeCodeHasher implements OneTimeCodeHasher {</span>
+
+    /** Name of the digest algorithm. */
+    private static final String ALGORITHM = &quot;SHA-256&quot;;
+
+    /**
+     * Hashes a code.
+     *
+     * @param code the clear-text code.
+     * @return the hash as lower-case hex.
+     */
+    @Override
+    public String hash(final String code) {
+<span class="fc" id="L45">        return HexFormat.of().formatHex(digest(code));</span>
+    }
+
+    /**
+     * Tells whether a code produces a hash, in constant time.
+     *
+     * @param code the clear-text code, possibly {@code null}.
+     * @param hash the stored hash, possibly {@code null}.
+     * @return {@code true} when they correspond.
+     */
+    @Override
+    public boolean matches(final String code, final String hash) {
+<span class="fc bfc" id="L57" title="All 4 branches covered.">        if (code == null || hash == null) {</span>
+<span class="fc" id="L58">            return false;</span>
+        }
+<span class="fc" id="L60">        return MessageDigest.isEqual(hash(code).getBytes(StandardCharsets.UTF_8),</span>
+<span class="fc" id="L61">                hash.getBytes(StandardCharsets.UTF_8));</span>
+    }
+
+    /**
+     * Computes the SHA-256 digest of a text.
+     *
+     * @param text the text.
+     * @return the digest bytes.
+     */
+    private static byte[] digest(final String text) {
+        try {
+<span class="fc" id="L72">            return MessageDigest.getInstance(ALGORITHM).digest(text.getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L73">        } catch (final NoSuchAlgorithmException e) {</span>
+            // every Java platform must provide SHA-256
+<span class="nc" id="L75">            throw new IllegalStateException(ALGORITHM + &quot; is not available&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

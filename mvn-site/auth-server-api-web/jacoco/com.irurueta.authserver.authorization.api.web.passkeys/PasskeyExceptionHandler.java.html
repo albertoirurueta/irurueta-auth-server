@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PasskeyExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.passkeys</a> &gt; <span class="el_source">PasskeyExceptionHandler.java</span></div><h1>PasskeyExceptionHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.passkeys;
+
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException;
+import com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.PasskeysApi;
+import com.irurueta.authserver.authorization.domain.passkeys.InvalidPasskeyLabelException;
+import com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException;
+import jakarta.validation.ConstraintViolationException;
+import java.net.URI;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/**
+ * Answers the failures of the passkeys API as {@code application/problem+json}. The step-up challenge is the one the
+ * rest of the account API gives ({@link MfaExceptionHandler}, whose scope is the TOTP, recovery code and trusted
+ * device interfaces), so a client handles the same {@code 401} everywhere.
+ */
+@RestControllerAdvice(assignableTypes = PasskeysApi.class)
+@RequiredArgsConstructor
+public class PasskeyExceptionHandler extends ProblemJsonExceptionHandler {
+
+    /** Base of the problem type URNs. */
+    private static final String TYPE_BASE = &quot;urn:problem:passkeys:&quot;;
+
+    /** Builds the step-up challenge. */
+    private final MfaExceptionHandler mfaExceptionHandler;
+
+    /**
+     * Answers a passkey the account does not have (another account's passkey is answered the same way).
+     *
+     * @param exception the failure.
+     * @return the {@code 404} problem detail.
+     */
+    @ExceptionHandler(PasskeyNotFoundException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleNotFound(final PasskeyNotFoundException exception) {
+<span class="fc" id="L57">        return respond(HttpStatus.NOT_FOUND, &quot;passkey-not-found&quot;, &quot;Passkey not found&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a label the use case refuses (blank, or too long once trimmed). Only that domain exception is answered
+     * as a {@code 400}: any other {@link IllegalArgumentException} is a programming error and stays a {@code 500}.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(InvalidPasskeyLabelException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInvalidLabel(final InvalidPasskeyLabelException exception) {
+<span class="fc" id="L69">        return respond(HttpStatus.BAD_REQUEST, &quot;invalid-label&quot;, &quot;Invalid label&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a path parameter that breaks the constraints of the contract (an identifier that is not unpadded
+     * base64url): the validation of the generated interface throws it, and without this answer it would be a
+     * {@code 500}.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInvalidParameter(final ConstraintViolationException exception) {
+<span class="fc" id="L82">        return respond(HttpStatus.BAD_REQUEST, &quot;invalid-parameter&quot;, &quot;Invalid parameter&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a token whose sign-in is not recent or strong enough: {@code 401} with the RFC 9470 challenge.
+     *
+     * @param exception the failure.
+     * @return the {@code 401} problem detail with the {@code WWW-Authenticate} challenge.
+     */
+    @ExceptionHandler(InsufficientUserAuthenticationException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInsufficientUserAuthentication(
+            final InsufficientUserAuthenticationException exception) {
+<span class="fc" id="L94">        return mfaExceptionHandler.handleInsufficientUserAuthentication(exception);</span>
+    }
+
+    /**
+     * Builds a problem response.
+     *
+     * @param status HTTP status.
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the response.
+     */
+    private static ResponseEntity&lt;ProblemDetail&gt; respond(
+            final HttpStatus status, final String type, final String title, final String detail) {
+<span class="fc" id="L108">        final var problem = ProblemDetail.forStatusAndDetail(status, detail);</span>
+<span class="fc" id="L109">        problem.setType(URI.create(TYPE_BASE + type));</span>
+<span class="fc" id="L110">        problem.setTitle(title);</span>
+<span class="fc" id="L111">        return problemResponse(problem);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

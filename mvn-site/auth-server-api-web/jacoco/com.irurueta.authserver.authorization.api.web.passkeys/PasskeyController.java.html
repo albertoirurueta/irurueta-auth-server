@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PasskeyController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.passkeys</a> &gt; <span class="el_source">PasskeyController.java</span></div><h1>PasskeyController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.passkeys;
+
+import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.mfa.StepUpGuard;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.PasskeysApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.Passkey;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.RenamePasskeyRequest;
+import com.irurueta.authserver.authorization.application.passkeys.DeletePasskeyUseCase;
+import com.irurueta.authserver.authorization.application.passkeys.ListPasskeysUseCase;
+import com.irurueta.authserver.authorization.application.passkeys.RenamePasskeyUseCase;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Manages the passkeys of the authenticated account (the operations of the contract). Registering one is not here:
+ * it is the WebAuthn ceremony of the security chain, which the account page drives.
+ */
+@RestController
+@RequiredArgsConstructor
+public class PasskeyController implements PasskeysApi {
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the passkeys of an account. */
+    private final ListPasskeysUseCase listPasskeysUseCase;
+
+    /** Renames a passkey. */
+    private final RenamePasskeyUseCase renamePasskeyUseCase;
+
+    /** Deletes a passkey. */
+    private final DeletePasskeyUseCase deletePasskeyUseCase;
+
+    /** Requires a recent multi-factor sign-in before a passkey is deleted. */
+    private final StepUpGuard stepUpGuard;
+
+    /** Maps the passkeys onto the contract's DTOs. */
+    private final PasskeyDtoMapper passkeyDtoMapper;
+
+    /**
+     * Lists the passkeys of the authenticated account.
+     *
+     * @return {@code 200 OK} with the passkeys, possibly none.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;Passkey&gt;&gt; listPasskeys() {
+<span class="fc" id="L65">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(passkeyDtoMapper.toResponses(listPasskeysUseCase.execute(account.username())));</span>
+    }
+
+    /**
+     * Renames a passkey of the authenticated account.
+     *
+     * @param id      credential identifier of the passkey.
+     * @param request the new label.
+     * @return {@code 200 OK} with the renamed passkey.
+     * @throws com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException
+     *         if the account has no such passkey.
+     */
+    @Override
+    public ResponseEntity&lt;Passkey&gt; renamePasskey(final String id, final RenamePasskeyRequest request) {
+<span class="fc" id="L80">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L81">        return ResponseEntity.ok(passkeyDtoMapper.toResponse(</span>
+<span class="fc" id="L82">                renamePasskeyUseCase.execute(account.username(), id, request.label())));</span>
+    }
+
+    /**
+     * Deletes a passkey of the authenticated account.
+     *
+     * @param id credential identifier of the passkey.
+     * @return {@code 204 No Content}.
+     * @throws com.irurueta.authserver.authorization.domain.passkeys.PasskeyNotFoundException
+     *         if the account has no such passkey.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException
+     *         if the account has a confirmed second factor and the token does not show a recent multi-factor
+     *         sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; deletePasskey(final String id) {
+<span class="fc" id="L98">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L99">        stepUpGuard.requireRecentMultiFactor(account.id());</span>
+<span class="fc" id="L100">        deletePasskeyUseCase.execute(account.id(), account.username(), id);</span>
+<span class="fc" id="L101">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

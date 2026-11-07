@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.ott</a> &gt; <span class="el_source">OttProperties.java</span></div><h1>OttProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.ott;
+
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+/**
+ * Settings of the one-time codes, bound from {@code authserver.ott.*} once and validated at startup. A missing (or
+ * zero, for a number) value takes its default, so the application starts without any setting.
+ *
+ * @param codeLength  number of digits of a code (default 6).
+ * @param codeTtl     how long a code is valid (default 10 minutes).
+ * @param linkTtl     how long a magic link is valid (default 15 minutes).
+ * @param maxAttempts verification attempts a code allows before it is burnt (default 5).
+ */
+@ConfigurationProperties(&quot;authserver.ott&quot;)
+public record OttProperties(
+        @DefaultValue(&quot;6&quot;) int codeLength,
+        @DefaultValue(&quot;PT10M&quot;) Duration codeTtl,
+        @DefaultValue(&quot;PT15M&quot;) Duration linkTtl,
+        @DefaultValue(&quot;5&quot;) int maxAttempts) {
+
+    /** Default number of digits of a code. */
+    private static final int DEFAULT_CODE_LENGTH = 6;
+
+    /** Default validity of a code, in minutes. */
+    private static final long DEFAULT_CODE_TTL_MINUTES = 10L;
+
+    /** Default validity of a link, in minutes. */
+    private static final long DEFAULT_LINK_TTL_MINUTES = 15L;
+
+    /** Default number of verification attempts. */
+    private static final int DEFAULT_MAX_ATTEMPTS = 5;
+
+    /**
+     * Applies the defaults and validates the settings.
+     *
+     * @throws IllegalArgumentException if the length or the attempts are negative or a duration is negative.
+     */
+<span class="fc" id="L56">    public OttProperties {</span>
+<span class="fc" id="L57">        codeLength = positiveOrDefault(codeLength, DEFAULT_CODE_LENGTH, &quot;code-length&quot;);</span>
+<span class="fc" id="L58">        maxAttempts = positiveOrDefault(maxAttempts, DEFAULT_MAX_ATTEMPTS, &quot;max-attempts&quot;);</span>
+<span class="fc" id="L59">        codeTtl = positiveOrDefault(codeTtl, Duration.ofMinutes(DEFAULT_CODE_TTL_MINUTES), &quot;code-ttl&quot;);</span>
+<span class="fc" id="L60">        linkTtl = positiveOrDefault(linkTtl, Duration.ofMinutes(DEFAULT_LINK_TTL_MINUTES), &quot;link-ttl&quot;);</span>
+<span class="fc" id="L61">    }</span>
+
+    /**
+     * Keeps a positive number, replaces zero by its default and rejects a negative one.
+     *
+     * @param value        the configured number.
+     * @param defaultValue the default.
+     * @param key          the key of the setting below {@code authserver.ott}.
+     * @return the value to use.
+     */
+    private static int positiveOrDefault(final int value, final int defaultValue, final String key) {
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (value &lt; 0) {</span>
+<span class="fc" id="L73">            throw new IllegalArgumentException(&quot;authserver.ott.&quot; + key + &quot; must be positive&quot;);</span>
+        }
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        return value == 0 ? defaultValue : value;</span>
+    }
+
+    /**
+     * Keeps a positive duration, replaces a missing or zero one by its default and rejects a negative one.
+     *
+     * @param value        the configured duration.
+     * @param defaultValue the default.
+     * @param key          the key of the setting below {@code authserver.ott}.
+     * @return the duration to use.
+     */
+    private static Duration positiveOrDefault(final Duration value, final Duration defaultValue, final String key) {
+<span class="fc bfc" id="L87" title="All 4 branches covered.">        if (value != null &amp;&amp; value.isNegative()) {</span>
+<span class="fc" id="L88">            throw new IllegalArgumentException(&quot;authserver.ott.&quot; + key + &quot; must be positive&quot;);</span>
+        }
+<span class="fc bfc" id="L90" title="All 4 branches covered.">        return value == null || value.isZero() ? defaultValue : value;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

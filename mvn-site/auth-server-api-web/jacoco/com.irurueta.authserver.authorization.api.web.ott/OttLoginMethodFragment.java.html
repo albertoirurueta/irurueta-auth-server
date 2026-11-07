@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttLoginMethodFragment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttLoginMethodFragment.java</span></div><h1>OttLoginMethodFragment.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment;
+import org.springframework.stereotype.Component;
+
+// tag::ott-login-fragment[]
+/**
+ * Contributes the one-time token sign-in to the login page: a form that asks for the identifier and whether to receive
+ * a code or a magic link by e-mail, or a code by SMS, and posts it to {@code POST /ott/generate}. It renders below the
+ * passkey sign-in.
+ */
+@Component
+<span class="fc" id="L28">public class OttLoginMethodFragment implements LoginMethodFragment {</span>
+
+    /** Position of the one-time token sign-in in the login page: after the passkey sign-in. */
+    public static final int ORDER = 300;
+
+    /**
+     * Gets the template that holds the fragment.
+     *
+     * @return {@code login-ott}.
+     */
+    @Override
+    public String templateName() {
+<span class="fc" id="L40">        return &quot;login-ott&quot;;</span>
+    }
+
+    /**
+     * Gets the fragment of the template.
+     *
+     * @return {@code login}.
+     */
+    @Override
+    public String fragmentName() {
+<span class="fc" id="L50">        return &quot;login&quot;;</span>
+    }
+
+    /**
+     * Gets the position of the fragment.
+     *
+     * @return {@link #ORDER}.
+     */
+    @Override
+    public int order() {
+<span class="fc" id="L60">        return ORDER;</span>
+    }
+}
+// end::ott-login-fragment[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

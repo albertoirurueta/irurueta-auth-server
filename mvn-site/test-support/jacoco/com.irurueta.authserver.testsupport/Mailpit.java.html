@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Mailpit.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:test-support</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.testsupport</a> &gt; <span class="el_source">Mailpit.java</span></div><h1>Mailpit.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.testsupport;
+
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.DockerImageName;
+
+/**
+ * Describes the Mailpit container the one-time token tests read the e-mail of: the pinned image, its two ports and a
+ * factory that builds the container and the client of its HTTP API. Mailpit accepts any message over SMTP and exposes
+ * what it received over HTTP, so a test reads the code or the link the application mailed.
+ */
+public final class Mailpit {
+
+    /** Docker image of Mailpit, pinned to a version so a run never depends on a moving tag. */
+    public static final String IMAGE = &quot;axllent/mailpit:v1.29.0&quot;;
+
+    /** Port the SMTP server listens on inside the container. */
+    public static final int SMTP_PORT = 1025;
+
+    /** Port the HTTP API listens on inside the container. */
+    public static final int API_PORT = 8025;
+
+    /** Path that answers once the HTTP API is ready. */
+    private static final String READY_PATH = &quot;/api/v1/info&quot;;
+
+    /** Prevents instantiation of this utility class. */
+    private Mailpit() {
+    }
+
+    /**
+     * Creates a Mailpit container, not yet started.
+     *
+     * @return the container, which waits for the HTTP API to answer before it counts as started.
+     */
+    public static GenericContainer&lt;?&gt; newContainer() {
+<span class="nc" id="L51">        return new GenericContainer&lt;&gt;(DockerImageName.parse(IMAGE))</span>
+<span class="nc" id="L52">                .withExposedPorts(SMTP_PORT, API_PORT)</span>
+<span class="nc" id="L53">                .waitingFor(Wait.forHttp(READY_PATH).forPort(API_PORT));</span>
+    }
+
+    /**
+     * Builds the client of the HTTP API of a started container.
+     *
+     * @param container a started Mailpit container.
+     * @return the client.
+     */
+    public static MailpitClient clientOf(final GenericContainer&lt;?&gt; container) {
+<span class="nc" id="L63">        return new MailpitClient(&quot;http://&quot; + container.getHost() + &quot;:&quot; + container.getMappedPort(API_PORT));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

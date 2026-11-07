@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LoginContentSecurityPolicy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.login</a> &gt; <span class="el_source">LoginContentSecurityPolicy.java</span></div><h1>LoginContentSecurityPolicy.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.login;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
+
+// tag::login-csp[]
+/**
+ * Builds the content security policy of the server-rendered pages from the {@link BrandingProperties}: same-origin
+ * resources only and no framing, except that images may also be {@code data:} URIs (the QR code of an authenticator
+ * app, rendered in memory so its secret never becomes a resource of its own) and, when the branding logo is an
+ * absolute {@code http(s)} URL, come from its origin ({@code img-src 'self' data: &lt;scheme://host[:port]&gt;}). A relative
+ * logo URL is same-origin and needs nothing more.
+ */
+@Component
+@RequiredArgsConstructor
+public class LoginContentSecurityPolicy {
+
+    /**
+     * Policy of the pages when the logo, if any, is served by this application. Its last directive lists the image
+     * sources, so the origin of an absolute logo URL is appended to it.
+     */
+    public static final String DEFAULT_POLICY = &quot;default-src 'self'; frame-ancestors 'none'; img-src 'self' data:&quot;;
+
+    /** Schemes whose origin is added for an absolute logo URL. */
+<span class="fc" id="L47">    private static final Set&lt;String&gt; WEB_SCHEMES = Set.of(&quot;http&quot;, &quot;https&quot;);</span>
+
+    /** Provider of the configured branding; absent in web slices that do not enable the properties. */
+    private final ObjectProvider&lt;BrandingProperties&gt; branding;
+
+    /**
+     * Builds the policy.
+     *
+     * @return {@link #DEFAULT_POLICY}, with the logo's origin added to its {@code img-src} directive when the logo is
+     *         an absolute {@code http(s)} URL.
+     */
+    public String policy() {
+<span class="fc" id="L59">        final var logoUrl = branding.getIfAvailable(() -&gt; new BrandingProperties(null, null, null)).logoUrl();</span>
+<span class="fc" id="L60">        return originOf(logoUrl).map(origin -&gt; DEFAULT_POLICY + &quot; &quot; + origin).orElse(DEFAULT_POLICY);</span>
+    }
+
+    /**
+     * Extracts the origin of an absolute {@code http(s)} URL.
+     *
+     * @param url the URL; may be empty.
+     * @return {@code scheme://host[:port]} in lower case, or empty when the URL is relative, not {@code http(s)},
+     *         has no host or cannot be parsed.
+     */
+    private static Optional&lt;String&gt; originOf(final String url) {
+        try {
+<span class="fc" id="L72">            final var uri = new URI(url);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            final var scheme = uri.getScheme() == null ? &quot;&quot; : uri.getScheme().toLowerCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L74" title="All 4 branches covered.">            if (!WEB_SCHEMES.contains(scheme) || uri.getHost() == null) {</span>
+<span class="fc" id="L75">                return Optional.empty();</span>
+            }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">            final var port = uri.getPort() &lt; 0 ? &quot;&quot; : &quot;:&quot; + uri.getPort();</span>
+<span class="fc" id="L78">            return Optional.of(scheme + &quot;://&quot; + uri.getHost().toLowerCase(Locale.ROOT) + port);</span>
+<span class="fc" id="L79">        } catch (final URISyntaxException invalid) {</span>
+<span class="fc" id="L80">            return Optional.empty();</span>
+        }
+    }
+}
+// end::login-csp[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

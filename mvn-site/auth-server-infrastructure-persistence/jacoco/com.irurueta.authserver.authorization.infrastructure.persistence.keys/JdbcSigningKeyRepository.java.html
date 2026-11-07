@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcSigningKeyRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.keys</a> &gt; <span class="el_source">JdbcSigningKeyRepository.java</span></div><h1>JdbcSigningKeyRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.keys;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.keys.SigningKey;
+import com.irurueta.authserver.authorization.domain.keys.SigningKeyRepository;
+import java.util.List;
+import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/**
+ * {@link SigningKeyRepository} over the {@code signing_keys} table. Rotation is serialised across application
+ * instances with a PostgreSQL transaction-level advisory lock.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcSigningKeyRepository implements SigningKeyRepository {
+
+    /** Key of the advisory lock that serialises rotations. */
+    static final long ROTATION_LOCK_KEY = 5_203_341_870_000_001L;
+
+    /** Query returning every key, oldest first. */
+    private static final String FIND_ALL = &quot;&quot;&quot;
+            SELECT kid, alg, public_jwk, private_jwk_encrypted, status, created_at, activated_at, retired_at
+            FROM signing_keys ORDER BY created_at, kid
+            &quot;&quot;&quot;;
+
+    /** Statement inserting a key, or replacing the state of the key that has the same kid. */
+    private static final String UPSERT = &quot;&quot;&quot;
+            INSERT INTO signing_keys (kid, alg, public_jwk, private_jwk_encrypted, status, created_at, activated_at,
+                                      retired_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (kid) DO UPDATE SET status = EXCLUDED.status, activated_at = EXCLUDED.activated_at,
+                retired_at = EXCLUDED.retired_at
+            &quot;&quot;&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    /** Template that runs the rotation inside a transaction. */
+    private final TransactionTemplate transactionTemplate;
+
+    /** Maps a row to a key. */
+    private final SigningKeyRowMapper signingKeyRowMapper;
+
+    @Override
+    public List&lt;SigningKey&gt; findAll() {
+<span class="fc" id="L67">        return jdbcClient.sql(FIND_ALL).query(signingKeyRowMapper).list();</span>
+    }
+
+    @Override
+    public void save(final SigningKey key) {
+<span class="fc" id="L72">        jdbcClient.sql(UPSERT)</span>
+<span class="fc" id="L73">                .params(key.kid(), key.alg(), key.publicJwk(), key.encryptedPrivateJwk(), key.status().name(),</span>
+<span class="fc" id="L74">                        toTimestamp(key.createdAt()), toTimestamp(key.activatedAt()), toTimestamp(key.retiredAt()))</span>
+<span class="fc" id="L75">                .update();</span>
+<span class="fc" id="L76">    }</span>
+
+    @Override
+    public void deleteByKid(final String kid) {
+<span class="fc" id="L80">        jdbcClient.sql(&quot;DELETE FROM signing_keys WHERE kid = ?&quot;).param(kid).update();</span>
+<span class="fc" id="L81">    }</span>
+
+    // tag::keys-rotation-lock[]
+    @Override
+    public &lt;T&gt; T withRotationLock(final Supplier&lt;T&gt; action) {
+<span class="fc" id="L86">        return transactionTemplate.execute(status -&gt; {</span>
+            // the lock is released when the transaction ends; the row mapper only drains the (void) result
+<span class="fc" id="L88">            jdbcClient.sql(&quot;SELECT pg_advisory_xact_lock(?)&quot;).param(ROTATION_LOCK_KEY)</span>
+<span class="pc" id="L89">                    .query((rs, rowNum) -&gt; Boolean.TRUE).list();</span>
+<span class="fc" id="L90">            return action.get();</span>
+        });
+    }
+    // end::keys-rotation-lock[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

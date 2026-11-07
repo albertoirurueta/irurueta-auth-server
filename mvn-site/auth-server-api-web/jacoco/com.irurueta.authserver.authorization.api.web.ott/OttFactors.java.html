@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttFactors.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttFactors.java</span></div><h1>OttFactors.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
+import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.authority.FactorGrantedAuthority;
+
+// tag::ott-factors[]
+/**
+ * Registers the one-time token methods as authentication factors. One authority cannot carry two strengths and the
+ * registry refuses two factors with the same authority, so each use of each channel is a factor of its own: the
+ * e-mail code or magic link as a sign-in ({@code FACTOR_OTT}, Spring Security's own constant) and the SMS code as a
+ * sign-in are {@link FactorStrength#PRIMARY} (they prove the possession of a mailbox or a phone, which is as strong as
+ * a password and no more), and the same two as the second factor of a user who already signed in with a primary
+ * factor are {@link FactorStrength#SECOND}. The {@code amr} values are those of RFC 8176: {@code otp} for the code or
+ * the link sent by e-mail and {@code sms} for the code sent by SMS.
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L36">public class OttFactors {</span>
+
+    /** RFC 8176 {@code amr} value of a one-time password sent by e-mail. */
+    public static final String EMAIL_AMR_VALUE = &quot;otp&quot;;
+
+    /** RFC 8176 {@code amr} value of a one-time password sent by SMS. */
+    public static final String SMS_AMR_VALUE = &quot;sms&quot;;
+
+    /** Authority of the e-mail code or magic link as a sign-in. */
+    public static final String EMAIL_AUTHORITY = FactorGrantedAuthority.OTT_AUTHORITY;
+
+    /** Authority of the SMS code as a sign-in. */
+    public static final String SMS_AUTHORITY = &quot;FACTOR_OTT_SMS&quot;;
+
+    /** Authority of the e-mail code or magic link as a second factor. */
+    public static final String EMAIL_SECOND_FACTOR_AUTHORITY = &quot;FACTOR_OTT_EMAIL_2FA&quot;;
+
+    /** Authority of the SMS code as a second factor. */
+    public static final String SMS_SECOND_FACTOR_AUTHORITY = &quot;FACTOR_OTT_SMS_2FA&quot;;
+
+    /**
+     * Declares the e-mail code and magic link as a sign-in.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottEmailAuthenticationFactor() {
+<span class="fc" id="L63">        return new AuthenticationFactor(&quot;ott-email&quot;, EMAIL_AMR_VALUE, EMAIL_AUTHORITY, FactorStrength.PRIMARY);</span>
+    }
+
+    /**
+     * Declares the SMS code as a sign-in.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottSmsAuthenticationFactor() {
+<span class="fc" id="L73">        return new AuthenticationFactor(&quot;ott-sms&quot;, SMS_AMR_VALUE, SMS_AUTHORITY, FactorStrength.PRIMARY);</span>
+    }
+
+    /**
+     * Declares the e-mail code and magic link as a second factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottEmailSecondAuthenticationFactor() {
+<span class="fc" id="L83">        return new AuthenticationFactor(&quot;ott-email-2fa&quot;, EMAIL_AMR_VALUE, EMAIL_SECOND_FACTOR_AUTHORITY,</span>
+                FactorStrength.SECOND);
+    }
+
+    /**
+     * Declares the SMS code as a second factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottSmsSecondAuthenticationFactor() {
+<span class="fc" id="L94">        return new AuthenticationFactor(&quot;ott-sms-2fa&quot;, SMS_AMR_VALUE, SMS_SECOND_FACTOR_AUTHORITY,</span>
+                FactorStrength.SECOND);
+    }
+    // end::ott-factors[]
+
+    /**
+     * Gets the authority a channel grants when it signs the user in.
+     *
+     * @param channel the channel the token was delivered through.
+     * @return {@link #EMAIL_AUTHORITY} or {@link #SMS_AUTHORITY}.
+     */
+    public static String signInAuthority(final OttChannel channel) {
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        return switch (channel) {</span>
+<span class="fc" id="L107">            case EMAIL -&gt; EMAIL_AUTHORITY;</span>
+<span class="fc" id="L108">            case SMS -&gt; SMS_AUTHORITY;</span>
+        };
+    }
+
+    /**
+     * Gets the authority a channel grants when it is the second factor.
+     *
+     * @param channel the channel the token was delivered through.
+     * @return {@link #EMAIL_SECOND_FACTOR_AUTHORITY} or {@link #SMS_SECOND_FACTOR_AUTHORITY}.
+     */
+    public static String secondFactorAuthority(final OttChannel channel) {
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        return switch (channel) {</span>
+<span class="fc" id="L120">            case EMAIL -&gt; EMAIL_SECOND_FACTOR_AUTHORITY;</span>
+<span class="fc" id="L121">            case SMS -&gt; SMS_SECOND_FACTOR_AUTHORITY;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

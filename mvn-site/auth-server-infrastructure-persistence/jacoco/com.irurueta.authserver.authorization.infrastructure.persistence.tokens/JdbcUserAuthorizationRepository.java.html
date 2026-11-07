@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcUserAuthorizationRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.tokens</a> &gt; <span class="el_source">JdbcUserAuthorizationRepository.java</span></div><h1>JdbcUserAuthorizationRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.tokens;
+
+import com.irurueta.authserver.authorization.domain.tokens.UserAuthorizationRepository;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link UserAuthorizationRepository} over the {@code oauth2_authorization} table.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcUserAuthorizationRepository implements UserAuthorizationRepository {
+
+    /**
+     * Statement deleting the authorizations whose every token has expired. {@code GREATEST} ignores the tokens an
+     * authorization does not have, and is null for an authorization without any expiry, which is kept here and
+     * removed by {@link #deleteAbandoned(Instant)} once it is old enough.
+     */
+    private static final String DELETE_EXPIRED = &quot;&quot;&quot;
+            DELETE FROM oauth2_authorization
+            WHERE GREATEST(authorization_code_expires_at, access_token_expires_at, oidc_id_token_expires_at,
+                           refresh_token_expires_at, user_code_expires_at, device_code_expires_at) &lt; ?
+            &quot;&quot;&quot;;
+
+    /**
+     * Statement deleting the abandoned authorizations: no token was ever issued for them, so every expiry column is
+     * null, and they were created before the given instant.
+     */
+    private static final String DELETE_ABANDONED = &quot;&quot;&quot;
+            DELETE FROM oauth2_authorization
+            WHERE authorization_code_expires_at IS NULL AND access_token_expires_at IS NULL
+              AND oidc_id_token_expires_at IS NULL AND refresh_token_expires_at IS NULL
+              AND user_code_expires_at IS NULL AND device_code_expires_at IS NULL
+              AND created_at &lt; ?
+            &quot;&quot;&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    @Override
+    public int deleteByPrincipalName(final String principalName) {
+<span class="fc" id="L62">        return jdbcClient.sql(&quot;DELETE FROM oauth2_authorization WHERE principal_name = ?&quot;).param(principalName)</span>
+<span class="fc" id="L63">                .update();</span>
+    }
+
+    @Override
+    public int deleteExpired(final Instant now) {
+        // the SAS columns are &quot;timestamp without time zone&quot;, written by the framework in the JVM's default zone
+<span class="fc" id="L69">        return jdbcClient.sql(DELETE_EXPIRED).param(Timestamp.from(now)).update();</span>
+    }
+
+    @Override
+    public int deleteAbandoned(final Instant createdBefore) {
+        // created_at is &quot;timestamp with time zone&quot; (V240), so the instant is bound with an explicit offset
+<span class="fc" id="L75">        return jdbcClient.sql(DELETE_ABANDONED).param(createdBefore.atOffset(ZoneOffset.UTC)).update();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

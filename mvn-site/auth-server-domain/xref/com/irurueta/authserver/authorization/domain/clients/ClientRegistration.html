@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="" lang="">
+<head><meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>ClientRegistration xref</title>
+<link type="text/css" rel="stylesheet" href="../../../../../../stylesheet.css" />
+</head>
+<body>
+<div id="overview"><a href="../../../../../../../apidocs/com/irurueta/authserver/authorization/domain/clients/ClientRegistration.html">View Javadoc</a></div><pre>
+<a class="jxr_linenumber" name="L1" href="#L1">1</a>   <em class="jxr_comment">/*</em>
+<a class="jxr_linenumber" name="L2" href="#L2">2</a>   <em class="jxr_comment"> * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)</em>
+<a class="jxr_linenumber" name="L3" href="#L3">3</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="L4" href="#L4">4</a>   <em class="jxr_comment"> * Licensed under the Apache License, Version 2.0 (the "License");</em>
+<a class="jxr_linenumber" name="L5" href="#L5">5</a>   <em class="jxr_comment"> * you may not use this file except in compliance with the License.</em>
+<a class="jxr_linenumber" name="L6" href="#L6">6</a>   <em class="jxr_comment"> * You may obtain a copy of the License at</em>
+<a class="jxr_linenumber" name="L7" href="#L7">7</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="L8" href="#L8">8</a>   <em class="jxr_comment"> *         <a href="http://www.apache.org/licenses/LICENSE-2.0" target="alexandria_uri">http://www.apache.org/licenses/LICENSE-2.0</a></em>
+<a class="jxr_linenumber" name="L9" href="#L9">9</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="L10" href="#L10">10</a>  <em class="jxr_comment"> * Unless required by applicable law or agreed to in writing, software</em>
+<a class="jxr_linenumber" name="L11" href="#L11">11</a>  <em class="jxr_comment"> * distributed under the License is distributed on an "AS IS" BASIS,</em>
+<a class="jxr_linenumber" name="L12" href="#L12">12</a>  <em class="jxr_comment"> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</em>
+<a class="jxr_linenumber" name="L13" href="#L13">13</a>  <em class="jxr_comment"> * See the License for the specific language governing permissions and</em>
+<a class="jxr_linenumber" name="L14" href="#L14">14</a>  <em class="jxr_comment"> * limitations under the License.</em>
+<a class="jxr_linenumber" name="L15" href="#L15">15</a>  <em class="jxr_comment"> */</em>
+<a class="jxr_linenumber" name="L16" href="#L16">16</a>  
+<a class="jxr_linenumber" name="L17" href="#L17">17</a>  <strong class="jxr_keyword">package</strong> com.irurueta.authserver.authorization.domain.clients;
+<a class="jxr_linenumber" name="L18" href="#L18">18</a>  
+<a class="jxr_linenumber" name="L19" href="#L19">19</a>  <strong class="jxr_keyword">import</strong> <strong class="jxr_keyword">static</strong> com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+<a class="jxr_linenumber" name="L20" href="#L20">20</a>  
+<a class="jxr_linenumber" name="L21" href="#L21">21</a>  <strong class="jxr_keyword">import</strong> java.time.Duration;
+<a class="jxr_linenumber" name="L22" href="#L22">22</a>  <strong class="jxr_keyword">import</strong> java.util.List;
+<a class="jxr_linenumber" name="L23" href="#L23">23</a>  <strong class="jxr_keyword">import</strong> java.util.Objects;
+<a class="jxr_linenumber" name="L24" href="#L24">24</a>  
+<a class="jxr_linenumber" name="L25" href="#L25">25</a>  <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L26" href="#L26">26</a>  <em class="jxr_javadoccomment"> * An OAuth 2.1 client registered with the authorization server. The client secret is not part of the model: it is</em>
+<a class="jxr_linenumber" name="L27" href="#L27">27</a>  <em class="jxr_javadoccomment"> * only ever handled encoded, through the repository.</em>
+<a class="jxr_linenumber" name="L28" href="#L28">28</a>  <em class="jxr_javadoccomment"> *</em>
+<a class="jxr_linenumber" name="L29" href="#L29">29</a>  <em class="jxr_javadoccomment"> * @param clientId           public identifier of the client.</em>
+<a class="jxr_linenumber" name="L30" href="#L30">30</a>  <em class="jxr_javadoccomment"> * @param name               human readable name.</em>
+<a class="jxr_linenumber" name="L31" href="#L31">31</a>  <em class="jxr_javadoccomment"> * @param confidential       {@code true} for a client able to keep a secret, {@code false} for a public client.</em>
+<a class="jxr_linenumber" name="L32" href="#L32">32</a>  <em class="jxr_javadoccomment"> * @param authMethods        client authentication methods, for example {@code client_secret_basic} or {@code none}.</em>
+<a class="jxr_linenumber" name="L33" href="#L33">33</a>  <em class="jxr_javadoccomment"> * @param grantTypes         grant types the client may use, for example {@code authorization_code}.</em>
+<a class="jxr_linenumber" name="L34" href="#L34">34</a>  <em class="jxr_javadoccomment"> * @param redirectUris       redirect URIs the client may use.</em>
+<a class="jxr_linenumber" name="L35" href="#L35">35</a>  <em class="jxr_javadoccomment"> * @param scopes             scopes the client may request.</em>
+<a class="jxr_linenumber" name="L36" href="#L36">36</a>  <em class="jxr_javadoccomment"> * @param requireProofKey    whether the authorization code flow must use PKCE.</em>
+<a class="jxr_linenumber" name="L37" href="#L37">37</a>  <em class="jxr_javadoccomment"> * @param audiences          logical identifiers of the APIs the access tokens are meant for (the {@code aud} claim);</em>
+<a class="jxr_linenumber" name="L38" href="#L38">38</a>  <em class="jxr_javadoccomment"> *                           the client id when none is given.</em>
+<a class="jxr_linenumber" name="L39" href="#L39">39</a>  <em class="jxr_javadoccomment"> * @param accessTokenTtl     lifetime of access tokens.</em>
+<a class="jxr_linenumber" name="L40" href="#L40">40</a>  <em class="jxr_javadoccomment"> * @param refreshTokenTtl    lifetime of refresh tokens.</em>
+<a class="jxr_linenumber" name="L41" href="#L41">41</a>  <em class="jxr_javadoccomment"> * @param accessTokenFormat  {@code self-contained} or {@code reference}.</em>
+<a class="jxr_linenumber" name="L42" href="#L42">42</a>  <em class="jxr_javadoccomment"> * @param reuseRefreshTokens {@code true} to keep a refresh token after use, {@code false} to rotate it.</em>
+<a class="jxr_linenumber" name="L43" href="#L43">43</a>  <em class="jxr_javadoccomment"> * @param postLogoutRedirectUris URIs an end-user may be redirected to after an OpenID Connect RP-initiated logout;</em>
+<a class="jxr_linenumber" name="L44" href="#L44">44</a>  <em class="jxr_javadoccomment"> *                           a {@code post_logout_redirect_uri} that is not listed is never honoured.</em>
+<a class="jxr_linenumber" name="L45" href="#L45">45</a>  <em class="jxr_javadoccomment"> * @param requireConsent     whether the end-user must explicitly grant the requested scopes on a consent page.</em>
+<a class="jxr_linenumber" name="L46" href="#L46">46</a>  <em class="jxr_javadoccomment"> * @param mfaRequired        whether every user signing in through the client must complete a second factor.</em>
+<a class="jxr_linenumber" name="L47" href="#L47">47</a>  <em class="jxr_javadoccomment"> */</em>
+<a class="jxr_linenumber" name="L48" href="#L48">48</a>  <strong class="jxr_keyword">public</strong> record <a name="ClientRegistration" href="../../../../../../com/irurueta/authserver/authorization/domain/clients/ClientRegistration.html#ClientRegistration">ClientRegistration</a>(
+<a class="jxr_linenumber" name="L49" href="#L49">49</a>          String clientId, String name, <strong class="jxr_keyword">boolean</strong> confidential, List&lt;String&gt; authMethods, List&lt;String&gt; grantTypes,
+<a class="jxr_linenumber" name="L50" href="#L50">50</a>          List&lt;String&gt; redirectUris, List&lt;String&gt; scopes, <strong class="jxr_keyword">boolean</strong> requireProofKey, List&lt;String&gt; audiences,
+<a class="jxr_linenumber" name="L51" href="#L51">51</a>          Duration accessTokenTtl, Duration refreshTokenTtl, String accessTokenFormat, <strong class="jxr_keyword">boolean</strong> reuseRefreshTokens,
+<a class="jxr_linenumber" name="L52" href="#L52">52</a>          List&lt;String&gt; postLogoutRedirectUris, <strong class="jxr_keyword">boolean</strong> requireConsent, <strong class="jxr_keyword">boolean</strong> mfaRequired) {
+<a class="jxr_linenumber" name="L53" href="#L53">53</a>  
+<a class="jxr_linenumber" name="L54" href="#L54">54</a>      <em class="jxr_javadoccomment">/** Access token format of self-contained (JWT) tokens. */</em>
+<a class="jxr_linenumber" name="L55" href="#L55">55</a>      <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String FORMAT_SELF_CONTAINED = <span class="jxr_string">"self-contained"</span>;
+<a class="jxr_linenumber" name="L56" href="#L56">56</a>  
+<a class="jxr_linenumber" name="L57" href="#L57">57</a>      <em class="jxr_javadoccomment">/** Access token format of opaque, reference tokens. */</em>
+<a class="jxr_linenumber" name="L58" href="#L58">58</a>      <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String FORMAT_REFERENCE = <span class="jxr_string">"reference"</span>;
+<a class="jxr_linenumber" name="L59" href="#L59">59</a>  
+<a class="jxr_linenumber" name="L60" href="#L60">60</a>      <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L61" href="#L61">61</a>  <em class="jxr_javadoccomment">     * Validates the registration and defensively copies its collections.</em>
+<a class="jxr_linenumber" name="L62" href="#L62">62</a>  <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L63" href="#L63">63</a>  <em class="jxr_javadoccomment">     * @throws IllegalArgumentException if the id, name or format is blank, a collection is null or has a null</em>
+<a class="jxr_linenumber" name="L64" href="#L64">64</a>  <em class="jxr_javadoccomment">     *                                  element, a lifetime is missing or not positive, or a public client does not</em>
+<a class="jxr_linenumber" name="L65" href="#L65">65</a>  <em class="jxr_javadoccomment">     *                                  require PKCE.</em>
+<a class="jxr_linenumber" name="L66" href="#L66">66</a>  <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L67" href="#L67">67</a>      <strong class="jxr_keyword">public</strong> <a name="ClientRegistration" href="../../../../../../com/irurueta/authserver/authorization/domain/clients/ClientRegistration.html#ClientRegistration">ClientRegistration</a> {
+<a class="jxr_linenumber" name="L68" href="#L68">68</a>          requireText(clientId, <span class="jxr_string">"clientId"</span>);
+<a class="jxr_linenumber" name="L69" href="#L69">69</a>          requireText(name, <span class="jxr_string">"name"</span>);
+<a class="jxr_linenumber" name="L70" href="#L70">70</a>          requireText(accessTokenFormat, <span class="jxr_string">"accessTokenFormat"</span>);
+<a class="jxr_linenumber" name="L71" href="#L71">71</a>          requireNoNulls(authMethods, <span class="jxr_string">"authMethods"</span>);
+<a class="jxr_linenumber" name="L72" href="#L72">72</a>          authMethods = List.copyOf(authMethods);
+<a class="jxr_linenumber" name="L73" href="#L73">73</a>          requireNoNulls(grantTypes, <span class="jxr_string">"grantTypes"</span>);
+<a class="jxr_linenumber" name="L74" href="#L74">74</a>          grantTypes = List.copyOf(grantTypes);
+<a class="jxr_linenumber" name="L75" href="#L75">75</a>          requireNoNulls(redirectUris, <span class="jxr_string">"redirectUris"</span>);
+<a class="jxr_linenumber" name="L76" href="#L76">76</a>          redirectUris = List.copyOf(redirectUris);
+<a class="jxr_linenumber" name="L77" href="#L77">77</a>          requireNoNulls(scopes, <span class="jxr_string">"scopes"</span>);
+<a class="jxr_linenumber" name="L78" href="#L78">78</a>          scopes = List.copyOf(scopes);
+<a class="jxr_linenumber" name="L79" href="#L79">79</a>          requireNoNulls(audiences, <span class="jxr_string">"audiences"</span>);
+<a class="jxr_linenumber" name="L80" href="#L80">80</a>          audiences = List.copyOf(audiences);
+<a class="jxr_linenumber" name="L81" href="#L81">81</a>          <strong class="jxr_keyword">if</strong> (audiences.isEmpty()) {
+<a class="jxr_linenumber" name="L82" href="#L82">82</a>              audiences = List.of(clientId);
+<a class="jxr_linenumber" name="L83" href="#L83">83</a>          }
+<a class="jxr_linenumber" name="L84" href="#L84">84</a>          requireNoNulls(postLogoutRedirectUris, <span class="jxr_string">"postLogoutRedirectUris"</span>);
+<a class="jxr_linenumber" name="L85" href="#L85">85</a>          postLogoutRedirectUris = List.copyOf(postLogoutRedirectUris);
+<a class="jxr_linenumber" name="L86" href="#L86">86</a>          <strong class="jxr_keyword">if</strong> (isNotPositive(accessTokenTtl) || isNotPositive(refreshTokenTtl)) {
+<a class="jxr_linenumber" name="L87" href="#L87">87</a>              <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> IllegalArgumentException(<span class="jxr_string">"token lifetimes must be positive"</span>);
+<a class="jxr_linenumber" name="L88" href="#L88">88</a>          }
+<a class="jxr_linenumber" name="L89" href="#L89">89</a>          <strong class="jxr_keyword">if</strong> (!confidential &amp;&amp; !requireProofKey) {
+<a class="jxr_linenumber" name="L90" href="#L90">90</a>              <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> IllegalArgumentException(<span class="jxr_string">"a public client must require PKCE"</span>);
+<a class="jxr_linenumber" name="L91" href="#L91">91</a>          }
+<a class="jxr_linenumber" name="L92" href="#L92">92</a>      }
+<a class="jxr_linenumber" name="L93" href="#L93">93</a>  
+<a class="jxr_linenumber" name="L94" href="#L94">94</a>      <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L95" href="#L95">95</a>  <em class="jxr_javadoccomment">     * Tells whether a duration is missing, zero or negative.</em>
+<a class="jxr_linenumber" name="L96" href="#L96">96</a>  <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L97" href="#L97">97</a>  <em class="jxr_javadoccomment">     * @param duration the duration.</em>
+<a class="jxr_linenumber" name="L98" href="#L98">98</a>  <em class="jxr_javadoccomment">     * @return {@code true} when it is not a positive duration.</em>
+<a class="jxr_linenumber" name="L99" href="#L99">99</a>  <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L100" href="#L100">100</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">boolean</strong> isNotPositive(<strong class="jxr_keyword">final</strong> Duration duration) {
+<a class="jxr_linenumber" name="L101" href="#L101">101</a>         <strong class="jxr_keyword">return</strong> duration == <strong class="jxr_keyword">null</strong> || duration.isZero() || duration.isNegative();
+<a class="jxr_linenumber" name="L102" href="#L102">102</a>     }
+<a class="jxr_linenumber" name="L103" href="#L103">103</a> 
+<a class="jxr_linenumber" name="L104" href="#L104">104</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L105" href="#L105">105</a> <em class="jxr_javadoccomment">     * Rejects a null list and a list with null elements.</em>
+<a class="jxr_linenumber" name="L106" href="#L106">106</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L107" href="#L107">107</a> <em class="jxr_javadoccomment">     * @param values the list.</em>
+<a class="jxr_linenumber" name="L108" href="#L108">108</a> <em class="jxr_javadoccomment">     * @param name   name of the list, for the message.</em>
+<a class="jxr_linenumber" name="L109" href="#L109">109</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L110" href="#L110">110</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> requireNoNulls(<strong class="jxr_keyword">final</strong> List&lt;String&gt; values, <strong class="jxr_keyword">final</strong> String name) {
+<a class="jxr_linenumber" name="L111" href="#L111">111</a>         <strong class="jxr_keyword">if</strong> (values == <strong class="jxr_keyword">null</strong> || values.stream().anyMatch(Objects::isNull)) {
+<a class="jxr_linenumber" name="L112" href="#L112">112</a>             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> IllegalArgumentException(name + <span class="jxr_string">" must not be null or contain null elements"</span>);
+<a class="jxr_linenumber" name="L113" href="#L113">113</a>         }
+<a class="jxr_linenumber" name="L114" href="#L114">114</a>     }
+<a class="jxr_linenumber" name="L115" href="#L115">115</a> }
+</pre>
+<hr/>
+<div id="footer">© 2026</div>
+</body>
+</html>

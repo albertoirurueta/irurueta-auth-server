@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Registered clients :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="clients.html">Registered clients</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/clients.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Registered clients</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_default_clients_and_seeding"><a class="anchor" href="#_default_clients_and_seeding"></a>Default clients and seeding</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>DefaultClientDefinitions</code> (module <code>application</code>) is the single definition of the confidential <code>bff</code> client and the
+public <code>spa-public</code> client. Both carry the audiences <code>resource-server</code> and the authorization server&#8217;s own API
+(<code>authserver.api.audience</code>, default <code>auth-server</code>, so their users can change their password), the scopes <code>openid</code>,
+<code>profile</code>, <code>documents.read</code> and <code>documents.delete</code>, and never <code>admin</code>. Nothing environment-specific lives in the
+definitions: the redirect URIs come from configuration.</p>
+</div>
+<div class="paragraph">
+<p>The idempotent <code>ClientSeeder</code> seeds, at start, only the clients whose redirect URIs are configured
+(<code>authserver.clients.bff.redirect-uris</code> / <code>AUTHSERVER_BFF_REDIRECT_URIS</code> and
+<code>authserver.clients.spa-public.redirect-uris</code> / <code>AUTHSERVER_SPA_REDIRECT_URIS</code>, comma-separated). Nothing is configured
+by default, so a deployment never gets a client, or a <code>localhost</code> redirect URI, it did not ask for; the <code>dev</code> profile
+(<code>application-dev.yml</code>) sets the local ones. The <code>bff</code> secret comes from the environment variable
+<code>AUTHSERVER_BFF_CLIENT_SECRET</code> (<code>authserver.clients.bff-secret</code>); when it is empty the confidential client is not
+seeded. Secrets are stored encoded and never committed. The <code>dev</code> profile data initializer uses the same definition and
+the configured redirect URIs with a generated secret that it logs.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  clients:
+    # Secret of the confidential bff client, from the environment only; empty means the client is not seeded.
+    bff-secret: ${AUTHSERVER_BFF_CLIENT_SECRET:}
+    # Redirect URIs (comma-separated) of the default clients. A client is seeded only when its redirect URIs are
+    # configured: nothing is seeded by default, and no localhost URI exists outside the dev profile.
+    bff:
+      redirect-uris: ${AUTHSERVER_BFF_REDIRECT_URIS:}
+      # URIs (comma-separated) the user may be sent to after an RP-initiated logout (/connect/logout); none by default
+      post-logout-redirect-uris: ${AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS:}
+    spa-public:
+      redirect-uris: ${AUTHSERVER_SPA_REDIRECT_URIS:}
+      post-logout-redirect-uris: ${AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS:}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Defines the {@code bff} client: confidential, {@code client_secret_basic}, authorization code with PKCE and
+     * refresh tokens, with refresh token rotation on. It requires the end-user's consent to the requested scopes.
+     *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List&lt;String&gt; redirectUris, final String apiAudience) {
+        return bff(redirectUris, apiAudience, List.of());
+    }
+
+    /**
+     * Defines the {@code bff} client with the URIs it may be sent to after an OpenID Connect RP-initiated logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List&lt;String&gt; redirectUris, final String apiAudience,
+                                         final List&lt;String&gt; postLogoutRedirectUris) {
+        return new ClientRegistration(BFF_CLIENT_ID, "Backend for Frontend", true,
+                List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
+                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, true, false);
+    }
+
+    /**
+     * Defines the {@code spa-public} client: public, authorization code with PKCE, no client authentication.
+     *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List&lt;String&gt; redirectUris, final String apiAudience) {
+        return spaPublic(redirectUris, apiAudience, List.of());
+    }
+
+    /**
+     * Defines the {@code spa-public} client with the URIs it may be sent to after an OpenID Connect RP-initiated
+     * logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List&lt;String&gt; redirectUris, final String apiAudience,
+                                               final List&lt;String&gt; postLogoutRedirectUris) {
+        return new ClientRegistration(SPA_PUBLIC_CLIENT_ID, "Single-page application", false,
+                List.of("none"), List.of("authorization_code", "refresh_token"),
+                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, false, false);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each registration also carries <code>postLogoutRedirectUris</code> (where an RP-initiated logout may send the user, configured with
+<code>authserver.clients.&lt;client&gt;.post-logout-redirect-uris</code>) and <code>requireConsent</code> (the user must approve the scopes on the
+consent page; <code>true</code> for <code>bff</code>, <code>false</code> for <code>spa-public</code>). See <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+<div class="paragraph">
+<p>Token settings of each client (lifetimes, rotation, <code>self-contained</code> or <code>reference</code> access token format, audiences) are
+persisted with the registration.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">                .tokenSettings(TokenSettings.builder()
+                        .accessTokenTimeToLive(registration.accessTokenTtl())
+                        .refreshTokenTimeToLive(registration.refreshTokenTtl())
+                        .accessTokenFormat(new OAuth2TokenFormat(registration.accessTokenFormat()))
+                        .reuseRefreshTokens(registration.reuseRefreshTokens())
+                        .build());</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_administration_api"><a class="anchor" href="#_administration_api"></a>Administration API</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>/api/admin/clients</code> manages registered clients and needs a bearer token for the API audience with the scope <code>admin</code>
+(the <code>ADMIN</code> role alone does not suffice; see <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>).</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Endpoint</th>
+<th class="tableblock halign-left valign-top">Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /api/admin/clients</code>, <code>GET /api/admin/clients/{clientId}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lists or reads clients. Secrets are never returned.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /api/admin/clients</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Creates a client. A generated secret of a confidential client is shown once, in the creation response.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PUT /api/admin/clients/{clientId}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Updates a client; its secret is not changed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DELETE /api/admin/clients/{clientId}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Deletes a client, with its authorizations (and so its tokens) and the consents granted to it, in one transaction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /api/admin/clients/{clientId}/secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Rotates the secret of a confidential client.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Registers a client.
+     *
+     * @param registration the client.
+     * @return the stored client and, for a confidential client, its generated secret.
+     * @throws ClientAlreadyExistsException if the client id is taken.
+     */
+    public CreatedClient execute(final ClientRegistration registration) {
+        if (clientRegistrationRepository.findByClientId(registration.clientId()).isPresent()) {
+            throw new ClientAlreadyExistsException(registration.clientId());
+        }
+        if (!registration.confidential()) {
+            clientRegistrationRepository.save(registration, null);
+            return new CreatedClient(registration, null);
+        }
+        final var secret = clientSecretGenerator.generate();
+        clientRegistrationRepository.save(registration, passwordHasher.encode(secret));
+        return new CreatedClient(registration, secret);
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_dynamic_client_registration"><a class="anchor" href="#_dynamic_client_registration"></a>Dynamic client registration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>OpenID Connect dynamic client registration (<code>/connect/register</code>) is supported by Spring Authorization Server and is off
+by default. Set <code>authserver.oidc.client-registration.enabled=true</code> to enable it; callers then need an initial access
+token with scope <code>client.create</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the customizer that turns on the client registration endpoint of the protocol chain.
+     *
+     * @return the customizer.
+     */
+    @Bean
+    public ProtocolChainCustomizer clientRegistrationProtocolChainCustomizer() {
+        return server -&gt; server.oidc(oidc -&gt; oidc.clientRegistrationEndpoint(Customizer.withDefaults()));
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

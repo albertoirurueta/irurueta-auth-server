@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:bff-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.bff.api.web</a> &gt; <span class="el_source">OpenApiConfig.java</span></div><h1>OpenApiConfig.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.bff.api.web;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Runtime OpenAPI document of the JSON API of the BFF, served by springdoc at {@value #API_DOCS_PATH} to a signed-in
+ * user. The contract {@code apis/bff/rest-server/bff-api-v1.yaml} is the source of truth: the operations are
+ * described by the interface generated from it, and this class only adds what springdoc cannot read from it (the
+ * info block and the security scheme). {@code OpenApiDriftIT} fails when the document served differs from the
+ * contract.
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L36">public class OpenApiConfig {</span>
+
+    /** Path of the OpenAPI document. */
+    public static final String API_DOCS_PATH = &quot;/v3/api-docs&quot;;
+
+    /** Name of the session-cookie security scheme the contract's operations refer to. */
+    public static final String SESSION_SCHEME = &quot;session&quot;;
+
+    /** Name of the CSRF security scheme, which protects every state-changing request. */
+    public static final String CSRF_SCHEME = &quot;csrf&quot;;
+
+    /** Name of the session cookie (set by {@code SessionConfiguration} of {@code bff/infrastructure/session}). */
+    static final String SESSION_COOKIE = &quot;__Host-SESSION&quot;;
+
+    /** Name of the header carrying the CSRF token. */
+    static final String CSRF_HEADER = &quot;X-XSRF-TOKEN&quot;;
+
+    /**
+     * Describes the API.
+     *
+     * @return the OpenAPI info block and security scheme.
+     */
+    @Bean
+    public OpenAPI bffOpenApi() {
+<span class="fc" id="L60">        return new OpenAPI()</span>
+<span class="fc" id="L61">                .info(new Info()</span>
+<span class="fc" id="L62">                        .title(&quot;Irurueta BFF API&quot;)</span>
+<span class="fc" id="L63">                        .description(&quot;JSON endpoints of the example backend for frontend.&quot;)</span>
+<span class="fc" id="L64">                        .version(&quot;1.0.0&quot;)</span>
+<span class="fc" id="L65">                        .license(new License().name(&quot;Apache License 2.0&quot;)</span>
+<span class="fc" id="L66">                                .url(&quot;https://www.apache.org/licenses/LICENSE-2.0.txt&quot;)))</span>
+<span class="fc" id="L67">                .components(new Components()</span>
+<span class="fc" id="L68">                        .addSecuritySchemes(SESSION_SCHEME, new SecurityScheme()</span>
+<span class="fc" id="L69">                                .type(SecurityScheme.Type.APIKEY)</span>
+<span class="fc" id="L70">                                .in(SecurityScheme.In.COOKIE)</span>
+<span class="fc" id="L71">                                .name(SESSION_COOKIE))</span>
+<span class="fc" id="L72">                        .addSecuritySchemes(CSRF_SCHEME, new SecurityScheme()</span>
+<span class="fc" id="L73">                                .type(SecurityScheme.Type.APIKEY)</span>
+<span class="fc" id="L74">                                .in(SecurityScheme.In.HEADER)</span>
+<span class="fc" id="L75">                                .name(CSRF_HEADER)));</span>
+    }
+
+    /**
+     * Groups the BFF's own JSON paths ({@code /bff/**}) and the documents API ({@code /api/**}), leaving out the
+     * OAuth 2.0 login endpoints.
+     *
+     * @return the group of API paths.
+     */
+    @Bean
+    public GroupedOpenApi apiGroup() {
+<span class="fc" id="L86">        return GroupedOpenApi.builder()</span>
+<span class="fc" id="L87">                .group(&quot;api&quot;)</span>
+<span class="fc" id="L88">                .pathsToMatch(&quot;/bff/**&quot;, &quot;/api/**&quot;)</span>
+<span class="fc" id="L89">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

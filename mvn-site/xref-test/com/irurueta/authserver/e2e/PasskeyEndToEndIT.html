@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="" lang="">
+<head><meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>PasskeyEndToEndIT xref</title>
+<link type="text/css" rel="stylesheet" href="../../../../stylesheet.css" />
+</head>
+<body>
+<div id="overview"><a href="../../../../../testapidocs/com/irurueta/authserver/e2e/PasskeyEndToEndIT.html">View Javadoc</a></div><pre>
+<a class="jxr_linenumber" name="L1" href="#L1">1</a>   <em class="jxr_comment">/*</em>
+<a class="jxr_linenumber" name="L2" href="#L2">2</a>   <em class="jxr_comment"> * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)</em>
+<a class="jxr_linenumber" name="L3" href="#L3">3</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="L4" href="#L4">4</a>   <em class="jxr_comment"> * Licensed under the Apache License, Version 2.0 (the "License");</em>
+<a class="jxr_linenumber" name="L5" href="#L5">5</a>   <em class="jxr_comment"> * you may not use this file except in compliance with the License.</em>
+<a class="jxr_linenumber" name="L6" href="#L6">6</a>   <em class="jxr_comment"> * You may obtain a copy of the License at</em>
+<a class="jxr_linenumber" name="L7" href="#L7">7</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="L8" href="#L8">8</a>   <em class="jxr_comment"> *         <a href="http://www.apache.org/licenses/LICENSE-2.0" target="alexandria_uri">http://www.apache.org/licenses/LICENSE-2.0</a></em>
+<a class="jxr_linenumber" name="L9" href="#L9">9</a>   <em class="jxr_comment"> *</em>
+<a class="jxr_linenumber" name="L10" href="#L10">10</a>  <em class="jxr_comment"> * Unless required by applicable law or agreed to in writing, software</em>
+<a class="jxr_linenumber" name="L11" href="#L11">11</a>  <em class="jxr_comment"> * distributed under the License is distributed on an "AS IS" BASIS,</em>
+<a class="jxr_linenumber" name="L12" href="#L12">12</a>  <em class="jxr_comment"> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</em>
+<a class="jxr_linenumber" name="L13" href="#L13">13</a>  <em class="jxr_comment"> * See the License for the specific language governing permissions and</em>
+<a class="jxr_linenumber" name="L14" href="#L14">14</a>  <em class="jxr_comment"> * limitations under the License.</em>
+<a class="jxr_linenumber" name="L15" href="#L15">15</a>  <em class="jxr_comment"> */</em>
+<a class="jxr_linenumber" name="L16" href="#L16">16</a>  
+<a class="jxr_linenumber" name="L17" href="#L17">17</a>  <strong class="jxr_keyword">package</strong> com.irurueta.authserver.e2e;
+<a class="jxr_linenumber" name="L18" href="#L18">18</a>  
+<a class="jxr_linenumber" name="L19" href="#L19">19</a>  <strong class="jxr_keyword">import</strong> <strong class="jxr_keyword">static</strong> org.junit.jupiter.api.Assertions.assertEquals;
+<a class="jxr_linenumber" name="L20" href="#L20">20</a>  <strong class="jxr_keyword">import</strong> <strong class="jxr_keyword">static</strong> org.junit.jupiter.api.Assertions.assertFalse;
+<a class="jxr_linenumber" name="L21" href="#L21">21</a>  <strong class="jxr_keyword">import</strong> <strong class="jxr_keyword">static</strong> org.junit.jupiter.api.Assertions.assertTrue;
+<a class="jxr_linenumber" name="L22" href="#L22">22</a>  
+<a class="jxr_linenumber" name="L23" href="#L23">23</a>  <strong class="jxr_keyword">import</strong> com.google.gson.JsonElement;
+<a class="jxr_linenumber" name="L24" href="#L24">24</a>  <strong class="jxr_keyword">import</strong> com.google.gson.JsonObject;
+<a class="jxr_linenumber" name="L25" href="#L25">25</a>  <strong class="jxr_keyword">import</strong> com.google.gson.JsonParser;
+<a class="jxr_linenumber" name="L26" href="#L26">26</a>  <strong class="jxr_keyword">import</strong> com.microsoft.playwright.BrowserContext;
+<a class="jxr_linenumber" name="L27" href="#L27">27</a>  <strong class="jxr_keyword">import</strong> com.microsoft.playwright.Page;
+<a class="jxr_linenumber" name="L28" href="#L28">28</a>  <strong class="jxr_keyword">import</strong> com.microsoft.playwright.Playwright;
+<a class="jxr_linenumber" name="L29" href="#L29">29</a>  <strong class="jxr_keyword">import</strong> java.nio.charset.StandardCharsets;
+<a class="jxr_linenumber" name="L30" href="#L30">30</a>  <strong class="jxr_keyword">import</strong> java.util.ArrayList;
+<a class="jxr_linenumber" name="L31" href="#L31">31</a>  <strong class="jxr_keyword">import</strong> java.util.Base64;
+<a class="jxr_linenumber" name="L32" href="#L32">32</a>  <strong class="jxr_keyword">import</strong> java.util.List;
+<a class="jxr_linenumber" name="L33" href="#L33">33</a>  <strong class="jxr_keyword">import</strong> java.util.regex.Pattern;
+<a class="jxr_linenumber" name="L34" href="#L34">34</a>  <strong class="jxr_keyword">import</strong> org.junit.jupiter.api.AfterAll;
+<a class="jxr_linenumber" name="L35" href="#L35">35</a>  <strong class="jxr_keyword">import</strong> org.junit.jupiter.api.BeforeAll;
+<a class="jxr_linenumber" name="L36" href="#L36">36</a>  <strong class="jxr_keyword">import</strong> org.junit.jupiter.api.Test;
+<a class="jxr_linenumber" name="L37" href="#L37">37</a>  
+<a class="jxr_linenumber" name="L38" href="#L38">38</a>  <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L39" href="#L39">39</a>  <em class="jxr_javadoccomment"> * End-to-end test of the passkeys with a real browser: the packaged {@code auth-server} and {@code bff} run on random</em>
+<a class="jxr_linenumber" name="L40" href="#L40">40</a>  <em class="jxr_javadoccomment"> * ports against a PostgreSQL container, and headless Chromium gets a CDP virtual authenticator (CTAP2, internal,</em>
+<a class="jxr_linenumber" name="L41" href="#L41">41</a>  <em class="jxr_javadoccomment"> * resident key, user verified) so that the script of the pages runs the real WebAuthn ceremonies. The first scenario</em>
+<a class="jxr_linenumber" name="L42" href="#L42">42</a>  <em class="jxr_javadoccomment"> * registers a passkey from the account page and signs in through the BFF with it alone, clicking its button; the</em>
+<a class="jxr_linenumber" name="L43" href="#L43">43</a>  <em class="jxr_javadoccomment"> * second signs in with the password and completes the second-factor page with the passkey; the third lets the browser</em>
+<a class="jxr_linenumber" name="L44" href="#L44">44</a>  <em class="jxr_javadoccomment"> * offer the passkey in the username field. Each scenario has a user of its own, copied from the demo user. The</em>
+<a class="jxr_linenumber" name="L45" href="#L45">45</a>  <em class="jxr_javadoccomment"> * claims are read from the access token the authorization server stored, so the BFF never has to expose it.</em>
+<a class="jxr_linenumber" name="L46" href="#L46">46</a>  <em class="jxr_javadoccomment"> */</em>
+<a class="jxr_linenumber" name="L47" href="#L47">47</a>  <strong class="jxr_keyword">class</strong> <a name="PasskeyEndToEndIT" href="../../../../com/irurueta/authserver/e2e/PasskeyEndToEndIT.html#PasskeyEndToEndIT">PasskeyEndToEndIT</a> {
+<a class="jxr_linenumber" name="L48" href="#L48">48</a>  
+<a class="jxr_linenumber" name="L49" href="#L49">49</a>      <em class="jxr_javadoccomment">/** Matches the log line printed once the BFF is up. */</em>
+<a class="jxr_linenumber" name="L50" href="#L50">50</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> Pattern BFF_STARTED = Pattern.compile(<span class="jxr_string">"Started BffApplication in"</span>);
+<a class="jxr_linenumber" name="L51" href="#L51">51</a>  
+<a class="jxr_linenumber" name="L52" href="#L52">52</a>      <em class="jxr_javadoccomment">/** Query that returns the most recently issued access token. */</em>
+<a class="jxr_linenumber" name="L53" href="#L53">53</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String LATEST_ACCESS_TOKEN = <span class="jxr_string">"SELECT access_token_value FROM oauth2_authorization"</span>
+<a class="jxr_linenumber" name="L54" href="#L54">54</a>              + <span class="jxr_string">" WHERE access_token_value IS NOT NULL ORDER BY access_token_issued_at DESC LIMIT 1"</span>;
+<a class="jxr_linenumber" name="L55" href="#L55">55</a>  
+<a class="jxr_linenumber" name="L56" href="#L56">56</a>      <em class="jxr_javadoccomment">/** Longest wait for a page transition, in milliseconds. */</em>
+<a class="jxr_linenumber" name="L57" href="#L57">57</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">double</strong> PAGE_TIMEOUT_MILLIS = 30_000;
+<a class="jxr_linenumber" name="L58" href="#L58">58</a>  
+<a class="jxr_linenumber" name="L59" href="#L59">59</a>      <em class="jxr_javadoccomment">/** Number of segments of a JSON Web Token. */</em>
+<a class="jxr_linenumber" name="L60" href="#L60">60</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">int</strong> JWT_SEGMENTS = 3;
+<a class="jxr_linenumber" name="L61" href="#L61">61</a>  
+<a class="jxr_linenumber" name="L62" href="#L62">62</a>      <em class="jxr_javadoccomment">/** Index of the payload among the segments of a JSON Web Token. */</em>
+<a class="jxr_linenumber" name="L63" href="#L63">63</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">int</strong> PAYLOAD_INDEX = 1;
+<a class="jxr_linenumber" name="L64" href="#L64">64</a>  
+<a class="jxr_linenumber" name="L65" href="#L65">65</a>      <em class="jxr_javadoccomment">/** Name of the claim with the authentication methods. */</em>
+<a class="jxr_linenumber" name="L66" href="#L66">66</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String AMR = <span class="jxr_string">"amr"</span>;
+<a class="jxr_linenumber" name="L67" href="#L67">67</a>  
+<a class="jxr_linenumber" name="L68" href="#L68">68</a>      <em class="jxr_javadoccomment">/** Path of the passkeys account page. */</em>
+<a class="jxr_linenumber" name="L69" href="#L69">69</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String ACCOUNT_PATH = <span class="jxr_string">"/account/passkeys"</span>;
+<a class="jxr_linenumber" name="L70" href="#L70">70</a>  
+<a class="jxr_linenumber" name="L71" href="#L71">71</a>      <em class="jxr_javadoccomment">/** Path of the second-factor page. */</em>
+<a class="jxr_linenumber" name="L72" href="#L72">72</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String SECOND_FACTOR_PATH = <span class="jxr_string">"/login/second-factor"</span>;
+<a class="jxr_linenumber" name="L73" href="#L73">73</a>  
+<a class="jxr_linenumber" name="L74" href="#L74">74</a>      <em class="jxr_javadoccomment">/** Path of the consent page. */</em>
+<a class="jxr_linenumber" name="L75" href="#L75">75</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String CONSENT_PATH = <span class="jxr_string">"/oauth2/consent"</span>;
+<a class="jxr_linenumber" name="L76" href="#L76">76</a>  
+<a class="jxr_linenumber" name="L77" href="#L77">77</a>      <em class="jxr_javadoccomment">/** Name of the user of the first scenario. */</em>
+<a class="jxr_linenumber" name="L78" href="#L78">78</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String PRIMARY_USER = <span class="jxr_string">"passkey-primary"</span>;
+<a class="jxr_linenumber" name="L79" href="#L79">79</a>  
+<a class="jxr_linenumber" name="L80" href="#L80">80</a>      <em class="jxr_javadoccomment">/** Name of the user of the second scenario. */</em>
+<a class="jxr_linenumber" name="L81" href="#L81">81</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String SECOND_FACTOR_USER = <span class="jxr_string">"passkey-second"</span>;
+<a class="jxr_linenumber" name="L82" href="#L82">82</a>  
+<a class="jxr_linenumber" name="L83" href="#L83">83</a>      <em class="jxr_javadoccomment">/** Name of the user of the autofill scenario. */</em>
+<a class="jxr_linenumber" name="L84" href="#L84">84</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String AUTOFILL_USER = <span class="jxr_string">"passkey-autofill"</span>;
+<a class="jxr_linenumber" name="L85" href="#L85">85</a>  
+<a class="jxr_linenumber" name="L86" href="#L86">86</a>      <em class="jxr_javadoccomment">/** Selector of what the account page shows once it lists a passkey. */</em>
+<a class="jxr_linenumber" name="L87" href="#L87">87</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String LISTED_PASSKEY = <span class="jxr_string">".passkey-list li"</span>;
+<a class="jxr_linenumber" name="L88" href="#L88">88</a>  
+<a class="jxr_linenumber" name="L89" href="#L89">89</a>      <em class="jxr_javadoccomment">/** Selector of the button that signs in with a passkey. */</em>
+<a class="jxr_linenumber" name="L90" href="#L90">90</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String PASSKEY_BUTTON = <span class="jxr_string">"[data-passkey-button]"</span>;
+<a class="jxr_linenumber" name="L91" href="#L91">91</a>  
+<a class="jxr_linenumber" name="L92" href="#L92">92</a>      <em class="jxr_javadoccomment">/** The packaged authorization server and its database. */</em>
+<a class="jxr_linenumber" name="L93" href="#L93">93</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <a name="RunningAuthServer" href="../../../../com/irurueta/authserver/e2e/RunningAuthServer.html#RunningAuthServer">RunningAuthServer</a> authServer;
+<a class="jxr_linenumber" name="L94" href="#L94">94</a>  
+<a class="jxr_linenumber" name="L95" href="#L95">95</a>      <em class="jxr_javadoccomment">/** The packaged backend-for-frontend. */</em>
+<a class="jxr_linenumber" name="L96" href="#L96">96</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <a name="ManagedApp" href="../../../../com/irurueta/authserver/e2e/ManagedApp.html#ManagedApp">ManagedApp</a> bff;
+<a class="jxr_linenumber" name="L97" href="#L97">97</a>  
+<a class="jxr_linenumber" name="L98" href="#L98">98</a>      <em class="jxr_javadoccomment">/** Base URL of the BFF, which also serves the SPA. */</em>
+<a class="jxr_linenumber" name="L99" href="#L99">99</a>      <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> String bffUrl;
+<a class="jxr_linenumber" name="L100" href="#L100">100</a> 
+<a class="jxr_linenumber" name="L101" href="#L101">101</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L102" href="#L102">102</a> <em class="jxr_javadoccomment">     * Starts the database, the authorization server and the BFF, registering the BFF's real address in the</em>
+<a class="jxr_linenumber" name="L103" href="#L103">103</a> <em class="jxr_javadoccomment">     * {@code bff} client.</em>
+<a class="jxr_linenumber" name="L104" href="#L104">104</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L105" href="#L105">105</a> <em class="jxr_javadoccomment">     * @throws Exception if an application or the container cannot be started.</em>
+<a class="jxr_linenumber" name="L106" href="#L106">106</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L107" href="#L107">107</a>     @BeforeAll
+<a class="jxr_linenumber" name="L108" href="#L108">108</a>     <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> startApplications() <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="L109" href="#L109">109</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> bffPort = RunningAuthServer.freePort();
+<a class="jxr_linenumber" name="L110" href="#L110">110</a>         bffUrl = <span class="jxr_string">"http://localhost:"</span> + bffPort;
+<a class="jxr_linenumber" name="L111" href="#L111">111</a>         authServer = RunningAuthServer.start(List.of(
+<a class="jxr_linenumber" name="L112" href="#L112">112</a>                 <span class="jxr_string">"--authserver.clients.bff.redirect-uris="</span> + bffUrl + <span class="jxr_string">"/login/oauth2/code/bff"</span>,
+<a class="jxr_linenumber" name="L113" href="#L113">113</a>                 <span class="jxr_string">"--authserver.clients.bff.post-logout-redirect-uris="</span> + bffUrl + <span class="jxr_string">"/"</span>));
+<a class="jxr_linenumber" name="L114" href="#L114">114</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> bffArguments = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(authServer.bffDatabaseArguments());
+<a class="jxr_linenumber" name="L115" href="#L115">115</a>         bffArguments.add(<span class="jxr_string">"--server.port="</span> + bffPort);
+<a class="jxr_linenumber" name="L116" href="#L116">116</a>         bff = ManagedApp.start(RunningAuthServer.jar(<span class="jxr_string">"bff.jar"</span>), bffArguments,
+<a class="jxr_linenumber" name="L117" href="#L117">117</a>                 List.of(<span class="jxr_string">"AUTH_ISSUER="</span> + authServer.issuer(), <span class="jxr_string">"BFF_CLIENT_SECRET="</span> + authServer.clientSecret()));
+<a class="jxr_linenumber" name="L118" href="#L118">118</a>         bff.await(BFF_STARTED, RunningAuthServer.STARTUP_TIMEOUT);
+<a class="jxr_linenumber" name="L119" href="#L119">119</a>     }
+<a class="jxr_linenumber" name="L120" href="#L120">120</a> 
+<a class="jxr_linenumber" name="L121" href="#L121">121</a>     <em class="jxr_javadoccomment">/** Stops the applications and the database. */</em>
+<a class="jxr_linenumber" name="L122" href="#L122">122</a>     @AfterAll
+<a class="jxr_linenumber" name="L123" href="#L123">123</a>     <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> stopApplications() {
+<a class="jxr_linenumber" name="L124" href="#L124">124</a>         <strong class="jxr_keyword">if</strong> (bff != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L125" href="#L125">125</a>             bff.stop();
+<a class="jxr_linenumber" name="L126" href="#L126">126</a>         }
+<a class="jxr_linenumber" name="L127" href="#L127">127</a>         <strong class="jxr_keyword">if</strong> (authServer != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L128" href="#L128">128</a>             authServer.close();
+<a class="jxr_linenumber" name="L129" href="#L129">129</a>         }
+<a class="jxr_linenumber" name="L130" href="#L130">130</a>     }
+<a class="jxr_linenumber" name="L131" href="#L131">131</a> 
+<a class="jxr_linenumber" name="L132" href="#L132">132</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L133" href="#L133">133</a> <em class="jxr_javadoccomment">     * Registers a passkey from the account page, signs out, and signs in through the BFF with the passkey alone: the</em>
+<a class="jxr_linenumber" name="L134" href="#L134">134</a> <em class="jxr_javadoccomment">     * access token reports the hardware-key method and no password.</em>
+<a class="jxr_linenumber" name="L135" href="#L135">135</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L136" href="#L136">136</a> <em class="jxr_javadoccomment">     * @throws Exception if a step of the flow fails.</em>
+<a class="jxr_linenumber" name="L137" href="#L137">137</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L138" href="#L138">138</a>     @Test
+<a class="jxr_linenumber" name="L139" href="#L139">139</a>     <strong class="jxr_keyword">void</strong> signIn_whenUserRegisteredAPasskey_usesItAsTheOnlyFactor() <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="L140" href="#L140">140</a>         <strong class="jxr_keyword">try</strong> (<strong class="jxr_keyword">var</strong> playwright = Playwright.create(); <strong class="jxr_keyword">var</strong> browser = playwright.chromium().launch();
+<a class="jxr_linenumber" name="L141" href="#L141">141</a>              <strong class="jxr_keyword">var</strong> context = browser.newContext()) {
+<a class="jxr_linenumber" name="L142" href="#L142">142</a>             <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> page = context.newPage();
+<a class="jxr_linenumber" name="L143" href="#L143">143</a>             page.setDefaultTimeout(PAGE_TIMEOUT_MILLIS);
+<a class="jxr_linenumber" name="L144" href="#L144">144</a>             addVirtualAuthenticator(context, page);
+<a class="jxr_linenumber" name="L145" href="#L145">145</a>             withoutPasskeyAutofill(page);
+<a class="jxr_linenumber" name="L146" href="#L146">146</a>             authServer.createUserLikeDemo(PRIMARY_USER);
+<a class="jxr_linenumber" name="L147" href="#L147">147</a> 
+<a class="jxr_linenumber" name="L148" href="#L148">148</a>             registerAPasskey(page, PRIMARY_USER, <span class="jxr_string">"Primary key"</span>);
+<a class="jxr_linenumber" name="L149" href="#L149">149</a>             context.clearCookies();
+<a class="jxr_linenumber" name="L150" href="#L150">150</a>             signInThroughTheBff(page);
+<a class="jxr_linenumber" name="L151" href="#L151">151</a>             page.click(PASSKEY_BUTTON);
+<a class="jxr_linenumber" name="L152" href="#L152">152</a>             completeAuthorization(page, PRIMARY_USER);
+<a class="jxr_linenumber" name="L153" href="#L153">153</a> 
+<a class="jxr_linenumber" name="L154" href="#L154">154</a>             <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> methods = latestAmr();
+<a class="jxr_linenumber" name="L155" href="#L155">155</a>             assertTrue(methods.contains(<span class="jxr_string">"hwk"</span>), methods.toString());
+<a class="jxr_linenumber" name="L156" href="#L156">156</a>             assertFalse(methods.contains(<span class="jxr_string">"pwd"</span>), methods.toString());
+<a class="jxr_linenumber" name="L157" href="#L157">157</a>         }
+<a class="jxr_linenumber" name="L158" href="#L158">158</a>     }
+<a class="jxr_linenumber" name="L159" href="#L159">159</a> 
+<a class="jxr_linenumber" name="L160" href="#L160">160</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L161" href="#L161">161</a> <em class="jxr_javadoccomment">     * Registers a passkey, signs out, signs in with the password, and completes the second-factor page with the</em>
+<a class="jxr_linenumber" name="L162" href="#L162">162</a> <em class="jxr_javadoccomment">     * passkey: the access token reports the password, the hardware key and the multi-factor method.</em>
+<a class="jxr_linenumber" name="L163" href="#L163">163</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L164" href="#L164">164</a> <em class="jxr_javadoccomment">     * @throws Exception if a step of the flow fails.</em>
+<a class="jxr_linenumber" name="L165" href="#L165">165</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L166" href="#L166">166</a>     @Test
+<a class="jxr_linenumber" name="L167" href="#L167">167</a>     <strong class="jxr_keyword">void</strong> signIn_whenUserHasAPasskey_passwordThenPasskeyReportsBothFactors() <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="L168" href="#L168">168</a>         <strong class="jxr_keyword">try</strong> (<strong class="jxr_keyword">var</strong> playwright = Playwright.create(); <strong class="jxr_keyword">var</strong> browser = playwright.chromium().launch();
+<a class="jxr_linenumber" name="L169" href="#L169">169</a>              <strong class="jxr_keyword">var</strong> context = browser.newContext()) {
+<a class="jxr_linenumber" name="L170" href="#L170">170</a>             <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> page = context.newPage();
+<a class="jxr_linenumber" name="L171" href="#L171">171</a>             page.setDefaultTimeout(PAGE_TIMEOUT_MILLIS);
+<a class="jxr_linenumber" name="L172" href="#L172">172</a>             addVirtualAuthenticator(context, page);
+<a class="jxr_linenumber" name="L173" href="#L173">173</a>             withoutPasskeyAutofill(page);
+<a class="jxr_linenumber" name="L174" href="#L174">174</a>             authServer.createUserLikeDemo(SECOND_FACTOR_USER);
+<a class="jxr_linenumber" name="L175" href="#L175">175</a> 
+<a class="jxr_linenumber" name="L176" href="#L176">176</a>             registerAPasskey(page, SECOND_FACTOR_USER, <span class="jxr_string">"Second factor key"</span>);
+<a class="jxr_linenumber" name="L177" href="#L177">177</a>             context.clearCookies();
+<a class="jxr_linenumber" name="L178" href="#L178">178</a>             signInThroughTheBff(page);
+<a class="jxr_linenumber" name="L179" href="#L179">179</a>             page.fill(<span class="jxr_string">"#username"</span>, SECOND_FACTOR_USER);
+<a class="jxr_linenumber" name="L180" href="#L180">180</a>             page.fill(<span class="jxr_string">"#password"</span>, authServer.demoPassword());
+<a class="jxr_linenumber" name="L181" href="#L181">181</a>             page.click(<span class="jxr_string">"button[type=submit]"</span>);
+<a class="jxr_linenumber" name="L182" href="#L182">182</a>             page.waitForURL(url -&gt; url.startsWith(authServer.issuer() + SECOND_FACTOR_PATH));
+<a class="jxr_linenumber" name="L183" href="#L183">183</a>             page.click(PASSKEY_BUTTON);
+<a class="jxr_linenumber" name="L184" href="#L184">184</a>             completeAuthorization(page, SECOND_FACTOR_USER);
+<a class="jxr_linenumber" name="L185" href="#L185">185</a> 
+<a class="jxr_linenumber" name="L186" href="#L186">186</a>             <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> methods = latestAmr();
+<a class="jxr_linenumber" name="L187" href="#L187">187</a>             assertTrue(methods.containsAll(List.of(<span class="jxr_string">"pwd"</span>, <span class="jxr_string">"hwk"</span>, <span class="jxr_string">"mfa"</span>)), methods.toString());
+<a class="jxr_linenumber" name="L188" href="#L188">188</a>         }
+<a class="jxr_linenumber" name="L189" href="#L189">189</a>     }
+<a class="jxr_linenumber" name="L190" href="#L190">190</a> 
+<a class="jxr_linenumber" name="L191" href="#L191">191</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L192" href="#L192">192</a> <em class="jxr_javadoccomment">     * Registers a passkey, signs out, and opens the login page of a browser that offers the passkeys in the username</em>
+<a class="jxr_linenumber" name="L193" href="#L193">193</a> <em class="jxr_javadoccomment">     * field (conditional mediation, which Chromium with a virtual authenticator completes by itself): the sign-in</em>
+<a class="jxr_linenumber" name="L194" href="#L194">194</a> <em class="jxr_javadoccomment">     * finishes without a click on the passkey button.</em>
+<a class="jxr_linenumber" name="L195" href="#L195">195</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L196" href="#L196">196</a> <em class="jxr_javadoccomment">     * @throws Exception if a step of the flow fails.</em>
+<a class="jxr_linenumber" name="L197" href="#L197">197</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L198" href="#L198">198</a>     @Test
+<a class="jxr_linenumber" name="L199" href="#L199">199</a>     <strong class="jxr_keyword">void</strong> signIn_whenBrowserOffersPasskeyAutofill_signsInWithoutClicking() <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="L200" href="#L200">200</a>         <strong class="jxr_keyword">try</strong> (<strong class="jxr_keyword">var</strong> playwright = Playwright.create(); <strong class="jxr_keyword">var</strong> browser = playwright.chromium().launch();
+<a class="jxr_linenumber" name="L201" href="#L201">201</a>              <strong class="jxr_keyword">var</strong> context = browser.newContext()) {
+<a class="jxr_linenumber" name="L202" href="#L202">202</a>             <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> page = context.newPage();
+<a class="jxr_linenumber" name="L203" href="#L203">203</a>             page.setDefaultTimeout(PAGE_TIMEOUT_MILLIS);
+<a class="jxr_linenumber" name="L204" href="#L204">204</a>             addVirtualAuthenticator(context, page);
+<a class="jxr_linenumber" name="L205" href="#L205">205</a>             authServer.createUserLikeDemo(AUTOFILL_USER);
+<a class="jxr_linenumber" name="L206" href="#L206">206</a> 
+<a class="jxr_linenumber" name="L207" href="#L207">207</a>             registerAPasskey(page, AUTOFILL_USER, <span class="jxr_string">"Autofill key"</span>);
+<a class="jxr_linenumber" name="L208" href="#L208">208</a>             context.clearCookies();
+<a class="jxr_linenumber" name="L209" href="#L209">209</a>             signInThroughTheBff(page);
+<a class="jxr_linenumber" name="L210" href="#L210">210</a>             completeAuthorization(page, AUTOFILL_USER);
+<a class="jxr_linenumber" name="L211" href="#L211">211</a> 
+<a class="jxr_linenumber" name="L212" href="#L212">212</a>             <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> methods = latestAmr();
+<a class="jxr_linenumber" name="L213" href="#L213">213</a>             assertTrue(methods.contains(<span class="jxr_string">"hwk"</span>), methods.toString());
+<a class="jxr_linenumber" name="L214" href="#L214">214</a>             assertFalse(methods.contains(<span class="jxr_string">"pwd"</span>), methods.toString());
+<a class="jxr_linenumber" name="L215" href="#L215">215</a>         }
+<a class="jxr_linenumber" name="L216" href="#L216">216</a>     }
+<a class="jxr_linenumber" name="L217" href="#L217">217</a> 
+<a class="jxr_linenumber" name="L218" href="#L218">218</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L219" href="#L219">219</a> <em class="jxr_javadoccomment">     * Makes the page behave like a browser without conditional mediation, so that the login page does not start a</em>
+<a class="jxr_linenumber" name="L220" href="#L220">220</a> <em class="jxr_javadoccomment">     * passkey sign-in by itself and the tests drive the passkey button or the password form.</em>
+<a class="jxr_linenumber" name="L221" href="#L221">221</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L222" href="#L222">222</a> <em class="jxr_javadoccomment">     * @param page the page of the browser.</em>
+<a class="jxr_linenumber" name="L223" href="#L223">223</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L224" href="#L224">224</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> withoutPasskeyAutofill(<strong class="jxr_keyword">final</strong> Page page) {
+<a class="jxr_linenumber" name="L225" href="#L225">225</a>         page.addInitScript(<span class="jxr_string">"window.PublicKeyCredential.isConditionalMediationAvailable = undefined;"</span>);
+<a class="jxr_linenumber" name="L226" href="#L226">226</a>     }
+<a class="jxr_linenumber" name="L227" href="#L227">227</a> 
+<a class="jxr_linenumber" name="L228" href="#L228">228</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L229" href="#L229">229</a> <em class="jxr_javadoccomment">     * Gives the page a virtual authenticator that behaves like a platform passkey: CTAP2, internal transport, able</em>
+<a class="jxr_linenumber" name="L230" href="#L230">230</a> <em class="jxr_javadoccomment">     * to store discoverable credentials, and user verified.</em>
+<a class="jxr_linenumber" name="L231" href="#L231">231</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L232" href="#L232">232</a> <em class="jxr_javadoccomment">     * @param context the browser context.</em>
+<a class="jxr_linenumber" name="L233" href="#L233">233</a> <em class="jxr_javadoccomment">     * @param page    the page that gets the authenticator.</em>
+<a class="jxr_linenumber" name="L234" href="#L234">234</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L235" href="#L235">235</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> addVirtualAuthenticator(<strong class="jxr_keyword">final</strong> BrowserContext context, <strong class="jxr_keyword">final</strong> Page page) {
+<a class="jxr_linenumber" name="L236" href="#L236">236</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> session = context.newCDPSession(page);
+<a class="jxr_linenumber" name="L237" href="#L237">237</a>         session.send(<span class="jxr_string">"WebAuthn.enable"</span>);
+<a class="jxr_linenumber" name="L238" href="#L238">238</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> options = <strong class="jxr_keyword">new</strong> JsonObject();
+<a class="jxr_linenumber" name="L239" href="#L239">239</a>         options.addProperty(<span class="jxr_string">"protocol"</span>, <span class="jxr_string">"ctap2"</span>);
+<a class="jxr_linenumber" name="L240" href="#L240">240</a>         options.addProperty(<span class="jxr_string">"transport"</span>, <span class="jxr_string">"internal"</span>);
+<a class="jxr_linenumber" name="L241" href="#L241">241</a>         options.addProperty(<span class="jxr_string">"hasResidentKey"</span>, <strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="L242" href="#L242">242</a>         options.addProperty(<span class="jxr_string">"hasUserVerification"</span>, <strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="L243" href="#L243">243</a>         options.addProperty(<span class="jxr_string">"isUserVerified"</span>, <strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="L244" href="#L244">244</a>         options.addProperty(<span class="jxr_string">"automaticPresenceSimulation"</span>, <strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="L245" href="#L245">245</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> parameters = <strong class="jxr_keyword">new</strong> JsonObject();
+<a class="jxr_linenumber" name="L246" href="#L246">246</a>         parameters.add(<span class="jxr_string">"options"</span>, options);
+<a class="jxr_linenumber" name="L247" href="#L247">247</a>         session.send(<span class="jxr_string">"WebAuthn.addVirtualAuthenticator"</span>, parameters);
+<a class="jxr_linenumber" name="L248" href="#L248">248</a>     }
+<a class="jxr_linenumber" name="L249" href="#L249">249</a> 
+<a class="jxr_linenumber" name="L250" href="#L250">250</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L251" href="#L251">251</a> <em class="jxr_javadoccomment">     * Signs a user in on the login page of the authorization server and registers a passkey from the account page.</em>
+<a class="jxr_linenumber" name="L252" href="#L252">252</a> <em class="jxr_javadoccomment">     * The page reloads after the registration and, as the account now has a passkey that this session has not</em>
+<a class="jxr_linenumber" name="L253" href="#L253">253</a> <em class="jxr_javadoccomment">     * presented, the server asks for the second factor before showing the list: the passkey just registered</em>
+<a class="jxr_linenumber" name="L254" href="#L254">254</a> <em class="jxr_javadoccomment">     * completes it, and the page then lists the passkey.</em>
+<a class="jxr_linenumber" name="L255" href="#L255">255</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L256" href="#L256">256</a> <em class="jxr_javadoccomment">     * @param page     the page of the browser.</em>
+<a class="jxr_linenumber" name="L257" href="#L257">257</a> <em class="jxr_javadoccomment">     * @param username the user.</em>
+<a class="jxr_linenumber" name="L258" href="#L258">258</a> <em class="jxr_javadoccomment">     * @param label    name given to the passkey.</em>
+<a class="jxr_linenumber" name="L259" href="#L259">259</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L260" href="#L260">260</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> registerAPasskey(<strong class="jxr_keyword">final</strong> Page page, <strong class="jxr_keyword">final</strong> String username, <strong class="jxr_keyword">final</strong> String label) {
+<a class="jxr_linenumber" name="L261" href="#L261">261</a>         page.navigate(authServer.issuer() + <span class="jxr_string">"/login"</span>);
+<a class="jxr_linenumber" name="L262" href="#L262">262</a>         page.fill(<span class="jxr_string">"#username"</span>, username);
+<a class="jxr_linenumber" name="L263" href="#L263">263</a>         page.fill(<span class="jxr_string">"#password"</span>, authServer.demoPassword());
+<a class="jxr_linenumber" name="L264" href="#L264">264</a>         page.click(<span class="jxr_string">"button[type=submit]"</span>);
+<a class="jxr_linenumber" name="L265" href="#L265">265</a>         page.waitForURL(url -&gt; !url.contains(<span class="jxr_string">"/login"</span>));
+<a class="jxr_linenumber" name="L266" href="#L266">266</a>         page.navigate(authServer.issuer() + ACCOUNT_PATH);
+<a class="jxr_linenumber" name="L267" href="#L267">267</a>         page.fill(<span class="jxr_string">"#passkey-label"</span>, label);
+<a class="jxr_linenumber" name="L268" href="#L268">268</a>         page.click(<span class="jxr_string">"[data-passkey-register-button]"</span>);
+<a class="jxr_linenumber" name="L269" href="#L269">269</a>         page.locator(LISTED_PASSKEY + <span class="jxr_string">", "</span> + PASSKEY_BUTTON).first().waitFor();
+<a class="jxr_linenumber" name="L270" href="#L270">270</a>         <strong class="jxr_keyword">if</strong> (page.locator(PASSKEY_BUTTON).count() &gt; 0) {
+<a class="jxr_linenumber" name="L271" href="#L271">271</a>             page.click(PASSKEY_BUTTON);
+<a class="jxr_linenumber" name="L272" href="#L272">272</a>         }
+<a class="jxr_linenumber" name="L273" href="#L273">273</a>         page.waitForURL(url -&gt; url.startsWith(authServer.issuer() + ACCOUNT_PATH));
+<a class="jxr_linenumber" name="L274" href="#L274">274</a>         assertEquals(label, page.locator(LISTED_PASSKEY + <span class="jxr_string">" strong"</span>).first().textContent());
+<a class="jxr_linenumber" name="L275" href="#L275">275</a>     }
+<a class="jxr_linenumber" name="L276" href="#L276">276</a> 
+<a class="jxr_linenumber" name="L277" href="#L277">277</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L278" href="#L278">278</a> <em class="jxr_javadoccomment">     * Opens the SPA, clicks &lt;em&gt;Sign in&lt;/em&gt; and waits for the login page of the authorization server.</em>
+<a class="jxr_linenumber" name="L279" href="#L279">279</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L280" href="#L280">280</a> <em class="jxr_javadoccomment">     * @param page the page of the browser.</em>
+<a class="jxr_linenumber" name="L281" href="#L281">281</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L282" href="#L282">282</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> signInThroughTheBff(<strong class="jxr_keyword">final</strong> Page page) {
+<a class="jxr_linenumber" name="L283" href="#L283">283</a>         page.navigate(bffUrl + <span class="jxr_string">"/"</span>);
+<a class="jxr_linenumber" name="L284" href="#L284">284</a>         page.waitForSelector(<span class="jxr_string">"#signed-out:not([hidden])"</span>);
+<a class="jxr_linenumber" name="L285" href="#L285">285</a>         page.click(<span class="jxr_string">"#sign-in"</span>);
+<a class="jxr_linenumber" name="L286" href="#L286">286</a>         page.waitForURL(url -&gt; url.startsWith(authServer.issuer() + <span class="jxr_string">"/login"</span>));
+<a class="jxr_linenumber" name="L287" href="#L287">287</a>     }
+<a class="jxr_linenumber" name="L288" href="#L288">288</a> 
+<a class="jxr_linenumber" name="L289" href="#L289">289</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L290" href="#L290">290</a> <em class="jxr_javadoccomment">     * Waits until the browser leaves the sign-in pages, answers the consent page when it is shown (it is skipped when</em>
+<a class="jxr_linenumber" name="L291" href="#L291">291</a> <em class="jxr_javadoccomment">     * an earlier sign-in already granted it), and waits for the SPA to show the profile.</em>
+<a class="jxr_linenumber" name="L292" href="#L292">292</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L293" href="#L293">293</a> <em class="jxr_javadoccomment">     * @param page     the page of the browser.</em>
+<a class="jxr_linenumber" name="L294" href="#L294">294</a> <em class="jxr_javadoccomment">     * @param username the user the profile must show.</em>
+<a class="jxr_linenumber" name="L295" href="#L295">295</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L296" href="#L296">296</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> completeAuthorization(<strong class="jxr_keyword">final</strong> Page page, <strong class="jxr_keyword">final</strong> String username) {
+<a class="jxr_linenumber" name="L297" href="#L297">297</a>         page.waitForURL(url -&gt; url.startsWith(authServer.issuer() + CONSENT_PATH) || url.startsWith(bffUrl));
+<a class="jxr_linenumber" name="L298" href="#L298">298</a>         <strong class="jxr_keyword">if</strong> (page.url().startsWith(authServer.issuer() + CONSENT_PATH)) {
+<a class="jxr_linenumber" name="L299" href="#L299">299</a>             page.click(<span class="jxr_string">"#allow"</span>);
+<a class="jxr_linenumber" name="L300" href="#L300">300</a>             page.waitForURL(url -&gt; url.startsWith(bffUrl));
+<a class="jxr_linenumber" name="L301" href="#L301">301</a>         }
+<a class="jxr_linenumber" name="L302" href="#L302">302</a>         page.waitForSelector(<span class="jxr_string">"#profile:not([hidden])"</span>);
+<a class="jxr_linenumber" name="L303" href="#L303">303</a>         assertEquals(username, page.textContent(<span class="jxr_string">"#profile-subject"</span>));
+<a class="jxr_linenumber" name="L304" href="#L304">304</a>     }
+<a class="jxr_linenumber" name="L305" href="#L305">305</a> 
+<a class="jxr_linenumber" name="L306" href="#L306">306</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L307" href="#L307">307</a> <em class="jxr_javadoccomment">     * Reads the {@code amr} claim of the access token issued last.</em>
+<a class="jxr_linenumber" name="L308" href="#L308">308</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L309" href="#L309">309</a> <em class="jxr_javadoccomment">     * @return the authentication methods.</em>
+<a class="jxr_linenumber" name="L310" href="#L310">310</a> <em class="jxr_javadoccomment">     * @throws Exception if the database cannot be queried.</em>
+<a class="jxr_linenumber" name="L311" href="#L311">311</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L312" href="#L312">312</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> List&lt;String&gt; latestAmr() <strong class="jxr_keyword">throws</strong> Exception {
+<a class="jxr_linenumber" name="L313" href="#L313">313</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> token = authServer.query(LATEST_ACCESS_TOKEN).getFirst();
+<a class="jxr_linenumber" name="L314" href="#L314">314</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> segments = token.split(<span class="jxr_string">"&#92;&#92;."</span>);
+<a class="jxr_linenumber" name="L315" href="#L315">315</a>         assertEquals(JWT_SEGMENTS, segments.length, <span class="jxr_string">"the access token is a JWT"</span>);
+<a class="jxr_linenumber" name="L316" href="#L316">316</a>         <strong class="jxr_keyword">final</strong> <strong class="jxr_keyword">var</strong> claims = JsonParser.parseString(
+<a class="jxr_linenumber" name="L317" href="#L317">317</a>                 <strong class="jxr_keyword">new</strong> String(Base64.getUrlDecoder().decode(segments[PAYLOAD_INDEX]), StandardCharsets.UTF_8))
+<a class="jxr_linenumber" name="L318" href="#L318">318</a>                 .getAsJsonObject();
+<a class="jxr_linenumber" name="L319" href="#L319">319</a>         <strong class="jxr_keyword">return</strong> claims.getAsJsonArray(AMR).asList().stream().map(JsonElement::getAsString).toList();
+<a class="jxr_linenumber" name="L320" href="#L320">320</a>     }
+<a class="jxr_linenumber" name="L321" href="#L321">321</a> }
+</pre>
+<hr/>
+<div id="footer">© 2026</div>
+</body>
+</html>

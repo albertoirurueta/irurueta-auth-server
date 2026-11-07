@@ -1,0 +1,1 @@
+memberSearchIndex = [{"p":"com.irurueta.authserver.serviceclient","c":"ServiceClientApplication","l":"main(String[])","u":"main(java.lang.String[])"},{"p":"com.irurueta.authserver.serviceclient","c":"ServiceClientApplication","l":"ServiceClientApplication()","u":"%3Cinit%3E()"}];updateSearchResults();

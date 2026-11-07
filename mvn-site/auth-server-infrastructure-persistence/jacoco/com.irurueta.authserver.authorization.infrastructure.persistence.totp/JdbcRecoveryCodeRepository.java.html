@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcRecoveryCodeRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.totp</a> &gt; <span class="el_source">JdbcRecoveryCodeRepository.java</span></div><h1>JdbcRecoveryCodeRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.totp;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.totp.RecoveryCode;
+import com.irurueta.authserver.authorization.domain.totp.RecoveryCodeRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link RecoveryCodeRepository} over the {@code recovery_codes} table. It opens no transaction: replacing the codes
+ * of a user runs in the caller's.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcRecoveryCodeRepository implements RecoveryCodeRepository {
+
+    /** Statement deleting every code of a user. */
+    private static final String DELETE_BY_USER = &quot;DELETE FROM recovery_codes WHERE user_id = ?&quot;;
+
+    /** Statement storing a code. */
+    private static final String INSERT = &quot;&quot;&quot;
+            INSERT INTO recovery_codes (id, user_id, hashed_code, used_at)
+            VALUES (?, ?, ?, ?)
+            &quot;&quot;&quot;;
+
+    /** Query returning the codes of a user that have not been spent. */
+    private static final String FIND_UNUSED = &quot;&quot;&quot;
+            SELECT id, user_id, hashed_code, used_at FROM recovery_codes
+            WHERE user_id = ? AND used_at IS NULL
+            ORDER BY created_at, id
+            &quot;&quot;&quot;;
+
+    /** Statement that spends a code only when it is unused, atomically. */
+    private static final String MARK_USED = &quot;UPDATE recovery_codes SET used_at = ? WHERE id = ? AND used_at IS NULL&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps a row to a code. */
+    private final RecoveryCodeRowMapper recoveryCodeRowMapper;
+
+    @Override
+    public void replaceAll(final UUID userId, final List&lt;RecoveryCode&gt; codes) {
+<span class="fc" id="L65">        deleteByUser(userId);</span>
+<span class="fc" id="L66">        codes.forEach(code -&gt; jdbcClient.sql(INSERT)</span>
+<span class="fc" id="L67">                .params(code.id(), userId, code.hashedCode(), toTimestamp(code.usedAt()))</span>
+<span class="fc" id="L68">                .update());</span>
+<span class="fc" id="L69">    }</span>
+
+    @Override
+    public List&lt;RecoveryCode&gt; findUnused(final UUID userId) {
+<span class="fc" id="L73">        return jdbcClient.sql(FIND_UNUSED).param(userId).query(recoveryCodeRowMapper).list();</span>
+    }
+
+    @Override
+    public boolean markUsed(final UUID id, final Instant now) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        return jdbcClient.sql(MARK_USED).params(toTimestamp(now), id).update() &gt; 0;</span>
+    }
+
+    @Override
+    public void deleteByUser(final UUID userId) {
+<span class="fc" id="L83">        jdbcClient.sql(DELETE_BY_USER).param(userId).update();</span>
+<span class="fc" id="L84">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

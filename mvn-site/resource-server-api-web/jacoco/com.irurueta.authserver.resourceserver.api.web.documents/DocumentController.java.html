@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:resource-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.resourceserver.api.web.documents</a> &gt; <span class="el_source">DocumentController.java</span></div><h1>DocumentController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.resourceserver.api.web.documents;
+
+import com.irurueta.authserver.resourceserver.api.web.security.BearerAuthorities;
+import com.irurueta.authserver.resourceserver.api.web.v1.generated.api.DocumentsApi;
+import com.irurueta.authserver.resourceserver.api.web.v1.generated.model.DocumentResponse;
+import com.irurueta.authserver.resourceserver.application.documents.DeleteDocumentUseCase;
+import com.irurueta.authserver.resourceserver.application.documents.ListDocumentsUseCase;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Documents API, as the contract {@code apis/resource-server/rest-server/resource-server-api-v1.yaml} describes it
+ * through the generated {@link DocumentsApi}. Reading needs the {@code documents.read} scope (enforced by the filter
+ * chain) and deleting the {@code documents.delete} scope (enforced by method security).
+ */
+@RestController
+@RequiredArgsConstructor
+public class DocumentController implements DocumentsApi {
+
+    /** Base path of the API, as declared by the contract. */
+    public static final String PATH = PATH_LIST_DOCUMENTS;
+
+    /** Use case that lists documents. */
+    private final ListDocumentsUseCase listDocumentsUseCase;
+
+    /** Use case that deletes a document. */
+    private final DeleteDocumentUseCase deleteDocumentUseCase;
+
+    /** Maps the documents onto the generated DTO. */
+    private final DocumentDtoMapper documentDtoMapper;
+
+    // tag::resource-server-documents[]
+    /**
+     * Lists the documents of the caller; an administrator ({@code ROLE_ADMIN}) sees every document.
+     *
+     * @return the documents.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;DocumentResponse&gt;&gt; listDocuments() {
+<span class="fc" id="L62">        final var authentication = caller();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        final var documents = BearerAuthorities.isAdministrator(authentication)</span>
+<span class="fc" id="L64">                ? listDocumentsUseCase.listAll()</span>
+<span class="fc" id="L65">                : listDocumentsUseCase.listOwn(authentication.getName());</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(documentDtoMapper.toResponses(documents));</span>
+    }
+
+    // end::resource-server-documents[]
+
+    // tag::resource-server-method-security[]
+    /**
+     * Deletes a document of the caller; an administrator ({@code ROLE_ADMIN}) may delete any document. Someone
+     * else's document is answered like a missing one, so the answer never reveals that it exists.
+     *
+     * @param id identifier of the document.
+     * @return 204 when the document was deleted, 404 when it does not exist or belongs to someone else.
+     */
+    @Override
+    @PreAuthorize(&quot;hasAuthority('SCOPE_documents.delete')&quot;)
+    public ResponseEntity&lt;Void&gt; deleteDocument(final String id) {
+<span class="fc" id="L82">        final var authentication = caller();</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        return deleteDocumentUseCase.execute(id, authentication.getName(),</span>
+<span class="fc" id="L84">                BearerAuthorities.isAdministrator(authentication))</span>
+<span class="fc" id="L85">                ? ResponseEntity.noContent().build()</span>
+<span class="fc" id="L86">                : ResponseEntity.notFound().build();</span>
+    }
+    // end::resource-server-method-security[]
+
+    /**
+     * Returns the authenticated caller. The generated interface carries only the contract's parameters, so the
+     * bearer token's authentication is taken from the security context, which the filter chain has filled.
+     *
+     * @return the authenticated caller.
+     * @throws AuthenticationCredentialsNotFoundException if nobody is authenticated, answered 401 by the filter chain.
+     */
+    private static Authentication caller() {
+<span class="fc" id="L98">        final var authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (authentication == null) {</span>
+<span class="fc" id="L100">            throw new AuthenticationCredentialsNotFoundException(&quot;No bearer token was authenticated&quot;);</span>
+        }
+<span class="fc" id="L102">        return authentication;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

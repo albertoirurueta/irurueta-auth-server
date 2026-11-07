@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web</a> &gt; <span class="el_source">OpenApiConfig.java</span></div><h1>OpenApiConfig.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.ConsentPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DevSmsInboxPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LoginPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LogoutPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.PasskeysPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.PhonePageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.RecoveryCodesPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.SecondFactorPageApi;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Runtime OpenAPI documents of the authorization server, served by springdoc. The contracts under
+ * {@code apis/auth-server/} are the source of truth: the operations are described by the interfaces generated from
+ * them, and this class only adds what springdoc cannot read from those (the info blocks and the security schemes).
+ * Two groups are published: {@value #API_GROUP} ({@code /api/**}, the REST API of
+ * {@code rest-server/auth-server-api-v1.yaml}) and {@value #PAGES_GROUP} (the HTML pages of
+ * {@code web-pages/auth-server-pages-v1.yaml}, at {@value #PAGES_DOCS_PATH}). {@code OpenApiDriftIT} fails when a
+ * document served differs from its contract. The OAuth 2.1 / OpenID Connect protocol endpoints are defined by the
+ * specifications and documented by the discovery document, so they are not published here.
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L51">public class OpenApiConfig {</span>
+
+    /** Path of the OpenAPI document. */
+    public static final String API_DOCS_PATH = &quot;/v3/api-docs&quot;;
+
+    /** Name of the group of the REST API. */
+    public static final String API_GROUP = &quot;api&quot;;
+
+    /** Name of the group of the HTML pages. */
+    public static final String PAGES_GROUP = &quot;pages&quot;;
+
+    /** Path of the OpenAPI document of the HTML pages. */
+    public static final String PAGES_DOCS_PATH = API_DOCS_PATH + &quot;/&quot; + PAGES_GROUP;
+
+    /** Name of the bearer-token security scheme the REST contract's operations refer to. */
+    public static final String BEARER_SCHEME = &quot;bearer&quot;;
+
+    /** Name of the session-cookie security scheme the pages contract's operations refer to. */
+    public static final String SESSION_SCHEME = &quot;session&quot;;
+
+    /** Name of the session cookie (see {@code LogoutChainCustomizer}, which deletes it). */
+    static final String SESSION_COOKIE = &quot;JSESSIONID&quot;;
+
+    /**
+     * Describes the API.
+     *
+     * @return the OpenAPI info block.
+     */
+    @Bean
+    public OpenAPI authServerOpenApi() {
+<span class="fc" id="L81">        return new OpenAPI()</span>
+<span class="fc" id="L82">                .info(new Info()</span>
+<span class="fc" id="L83">                        .title(&quot;Irurueta Auth Server API&quot;)</span>
+<span class="fc" id="L84">                        .description(&quot;REST endpoints of the example OAuth 2.1 / OpenID Connect authorization server.&quot;)</span>
+<span class="fc" id="L85">                        .version(&quot;1.0.0&quot;)</span>
+<span class="fc" id="L86">                        .license(license()))</span>
+<span class="fc" id="L87">                .components(new Components().addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()</span>
+<span class="fc" id="L88">                        .type(SecurityScheme.Type.HTTP)</span>
+<span class="fc" id="L89">                        .scheme(&quot;bearer&quot;)</span>
+<span class="fc" id="L90">                        .bearerFormat(&quot;JWT&quot;)));</span>
+    }
+
+    /**
+     * Groups the application's own API paths, leaving out the protocol endpoints and the HTML pages.
+     *
+     * @return the group of API paths.
+     */
+    @Bean
+    public GroupedOpenApi apiGroup() {
+<span class="fc" id="L100">        return GroupedOpenApi.builder()</span>
+<span class="fc" id="L101">                .group(API_GROUP)</span>
+<span class="fc" id="L102">                .pathsToMatch(&quot;/api/**&quot;)</span>
+<span class="fc" id="L103">                .build();</span>
+    }
+
+    // tag::pages-openapi-group[]
+    /**
+     * Groups the HTML pages of the contract {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml}, with their
+     * own info block and the session-cookie scheme instead of the REST API's.
+     *
+     * @return the group of the HTML pages.
+     */
+    @Bean
+    public GroupedOpenApi pagesGroup() {
+<span class="fc" id="L115">        return GroupedOpenApi.builder()</span>
+<span class="fc" id="L116">                .group(PAGES_GROUP)</span>
+<span class="fc" id="L117">                .pathsToMatch(LoginPageApi.PATH_LOGIN_PAGE, SecondFactorPageApi.PATH_SECOND_FACTOR_PAGE,</span>
+                        RecoveryCodesPageApi.PATH_RECOVERY_CODES_PAGE, ConsentPageApi.PATH_CONSENT_PAGE,
+                        LogoutPageApi.PATH_LOGOUT_PAGE, PasskeysPageApi.PATH_PASSKEYS_PAGE,
+                        PhonePageApi.PATH_PHONE_PAGE, PhonePageApi.PATH_VERIFY_PHONE_PAGE,
+                        PhonePageApi.PATH_REMOVE_PHONE_PAGE,
+                        OneTimeTokenPageApi.PATH_OTT_CODE_PAGE, OneTimeTokenPageApi.PATH_OTT_CONFIRM_PAGE,
+                        DevSmsInboxPageApi.PATH_DEV_SMS_INBOX_PAGE)
+<span class="fc" id="L124">                .addOpenApiCustomizer(openApi -&gt; {</span>
+<span class="fc" id="L125">                    final var components = Objects.requireNonNullElseGet(openApi.getComponents(), Components::new);</span>
+<span class="fc" id="L126">                    components.setSecuritySchemes(new LinkedHashMap&lt;&gt;(Map.of(SESSION_SCHEME, new SecurityScheme()</span>
+<span class="fc" id="L127">                            .type(SecurityScheme.Type.APIKEY)</span>
+<span class="fc" id="L128">                            .in(SecurityScheme.In.COOKIE)</span>
+<span class="fc" id="L129">                            .name(SESSION_COOKIE))));</span>
+<span class="fc" id="L130">                    openApi.info(new Info()</span>
+<span class="fc" id="L131">                            .title(&quot;Irurueta Auth Server Pages&quot;)</span>
+<span class="fc" id="L132">                            .description(&quot;Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect &quot;</span>
+                                    + &quot;authorization server.&quot;)
+<span class="fc" id="L134">                            .version(&quot;1.0.0&quot;)</span>
+<span class="fc" id="L135">                            .license(license()))</span>
+<span class="fc" id="L136">                            .components(components);</span>
+<span class="fc" id="L137">                })</span>
+<span class="fc" id="L138">                .build();</span>
+    }
+    // end::pages-openapi-group[]
+
+    /**
+     * Describes the license of the documents.
+     *
+     * @return the license.
+     */
+    private static License license() {
+<span class="fc" id="L148">        return new License().name(&quot;Apache License 2.0&quot;).url(&quot;https://www.apache.org/licenses/LICENSE-2.0.txt&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

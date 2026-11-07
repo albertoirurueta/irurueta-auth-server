@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Architecture :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="architecture.html">Architecture</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/architecture.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Architecture</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_hexagonal_layout"><a class="anchor" href="#_hexagonal_layout"></a>Hexagonal layout</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each application is a Maven sub-reactor split into modules by hexagonal layer. The layering is enforced twice: by
+<code>maven-enforcer-plugin</code> <code>bannedDependencies</code> rules in each module&#8217;s <code>pom.xml</code> (jar granularity) and by a
+<code>HexagonalArchitectureTest</code> (ArchUnit) in each application&#8217;s <code>boot</code> module (package granularity).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&lt;app&gt;/                          aggregator pom, artifactId &lt;app&gt;-parent
+  domain/                       &lt;app&gt;-domain
+  application/                  &lt;app&gt;-application
+  infrastructure/&lt;adapter&gt;/     &lt;app&gt;-infrastructure-&lt;adapter&gt;   (driven adapters: persistence, keys, ...)
+  api/&lt;adapter&gt;/                &lt;app&gt;-api-&lt;adapter&gt;              (driving adapters: web, ...)
+  boot/                         &lt;app&gt;-boot                       (composition root, the only runnable artifact)</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Module</th>
+<th class="tableblock halign-left valign-top">May depend on</th>
+<th class="tableblock halign-left valign-top">Must not contain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>domain</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Nothing but the JDK (and Lombok, compile-only)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring, Jackson, JPA/JDBC or Spring Security types</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>application</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>domain</code> and Spring (use cases are <code>@Service</code> beans found by component scanning)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Security types, or any <code>infrastructure/<strong></code> or <code>api/</strong></code> module</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>infrastructure/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>domain</code>, <code>application</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A sibling adapter or any <code>api/*</code> module</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>api/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>domain</code>, <code>application</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Any <code>infrastructure/*</code> module</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>boot</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Everything</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Business logic: it only wires beans, holds <code>application*.yml</code> and the integration tests</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A layer is only created once it has code: <code>bff</code> has <code>domain</code> (the documents and their <code>DocumentGateway</code> port),
+<code>application</code> (the documents use cases), <code>infrastructure/session</code> (the Spring Session JDBC store, its cookie and its
+Flyway migration), <code>infrastructure/resourceserver</code> (the generated client of the resource server behind the port),
+<code>api/web</code> (the security, login, logout, user and documents adapters) and <code>boot</code> (the SPA);
+<code>resource-server</code> has <code>domain</code>, <code>application</code>, <code>infrastructure/memory</code> and <code>api/web</code>, and
+<code>service-client</code> is a single <code>boot</code> module. A port is an interface in <code>domain</code> (for example <code>UserAccountRepository</code>);
+its implementation lives in an <code>infrastructure/<strong></code> adapter. Domain models are never returned from a controller: the
+<code>api/</strong></code> adapter maps them onto its own DTOs. Spring Security and Spring Authorization Server types are framework
+adapters and live in <code>api/<strong></code> or <code>infrastructure/</strong></code>.</p>
+</div>
+<div class="paragraph">
+<p>Every HTTP endpoint the applications handle themselves, JSON or HTML page, is contract first. The OpenAPI contracts
+live under <code>apis/</code> at the repository root: <code>apis/&lt;app&gt;/rest-server/&lt;app&gt;-api-v1.yaml</code> for the JSON APIs and
+<code>apis/auth-server/web-pages/auth-server-pages-v1.yaml</code> for the login, consent and logout pages. <code>openapi-generator</code>
+turns them into Spring interfaces (and DTO records) in the <code>api/web</code> module at build time (<code>target/generated-sources</code>,
+never committed), and the hand-written controllers only implement those interfaces by calling use cases: no
+hand-written class carries a mapping annotation. A <code>@Component</code> mapper per feature (for example <code>ClientDtoMapper</code>)
+converts between the generated DTOs and the domain. A page&#8217;s generated method answers <code>text/html</code>; its controller
+renders the Thymeleaf template with <code>PageRenderer</code>, which resolves the view with the request&#8217;s locale and renders it
+against the current request, so CSRF fields, links and messages keep working.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Renders a page.
+     *
+     * @param viewName name of the view (the Thymeleaf template).
+     * @param model    model attributes of the page; the branding is added to them.
+     * @return a {@code 200} with the page as {@code text/html}.
+     * @throws IllegalStateException if no view resolver knows the view, or the view cannot be rendered.
+     */
+    public ResponseEntity&lt;String&gt; render(final String viewName, final Map&lt;String, ?&gt; model) {
+        final var locale = RequestContextUtils.getLocale(request);
+        final var view = resolve(viewName, locale);
+        final var attributes = new LinkedHashMap&lt;String, Object&gt;(model);
+        attributes.put(BrandingProvider.MODEL_ATTRIBUTE, brandingProvider.branding());
+        final var capture = new ContentCachingResponseWrapper(response);
+        try {
+            view.render(attributes, request, capture);
+        } catch (final Exception e) {
+            throw new IllegalStateException("The page " + viewName + " cannot be rendered", e);
+        }
+        final var html = new String(capture.getContentAsByteArray(), Charset.forName(capture.getCharacterEncoding()));
+        return ResponseEntity.ok().contentType(TEXT_HTML_UTF8).body(html);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Calls to another service are contract first too: the BFF reaches the resource server through a client generated from
+the resource server&#8217;s own contract, behind a domain port (see <a href="login-and-bff.html#_documents_api" class="xref page">Documents API</a>).
+Only endpoints owned by frameworks have no contract here: the Spring Security filters, the Spring Authorization Server
+protocol endpoints, Spring Boot&#8217;s error controller and actuator.</p>
+</div>
+<div class="paragraph">
+<p>Two tests keep it that way. <code>OpenApiDriftIT</code>, in each <code>boot</code> module, fails when the running application serves an
+operation, status code or schema its contract does not declare (the pages of <code>auth-server</code> are compared through their
+own springdoc group, <code>/v3/api-docs/pages</code>). <code>HexagonalArchitectureTest</code> fails when a hand-written class or method
+carries <code>@RequestMapping</code> or one of its variants, or when a <code>@Controller</code> does not implement a generated interface.
+<code>apis/README.md</code> describes the layout, the generator options and how to version a contract.</p>
+</div>
+<div class="paragraph">
+<p><code>test-support</code> (shared Testcontainers base), <code>e2e-tests</code> (Playwright) and <code>coverage</code> (JaCoCo aggregate) are root
+modules outside the applications.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_security_filter_chains"><a class="anchor" href="#_security_filter_chains"></a>Security filter chains</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>auth-server</code> defines three <code>SecurityFilterChain</code> beans (module <code>auth-server/api/web</code>). <code>ApiSecurityConfig</code> (order 0)
+secures <code>/api/<strong></code> statelessly: it validates bearer JWTs issued by this server itself for the API audience, with a
+decoder of its own (see <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>), leaves registration, e-mail verification and password reset
+public (rate limited), and requires the scope <code>admin</code> under <code>/api/admin/</strong></code>. In <code>SecurityConfig</code>, the first chain (order 1) applies only to the
+authorization server protocol endpoints; the second (order 2) secures everything else, including the login page.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the chain of the OAuth 2.1 and OpenID Connect protocol endpoints.
+     *
+     * @param http        security builder.
+     * @param customizers protocol customizers, applied in order.
+     * @return the protocol filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain authorizationServerSecurityFilterChain(
+            final HttpSecurity http, final ObjectProvider&lt;ProtocolChainCustomizer&gt; customizers) throws Exception {
+        http
+                .oauth2AuthorizationServer(server -&gt; {
+                    http.securityMatcher(server.getEndpointsMatcher());
+                    server.oidc(Customizer.withDefaults());
+                    customizers.orderedStream().forEach(customizer -&gt; customizer.customize(server));
+                })
+                .authorizeHttpRequests(authorize -&gt; authorize.anyRequest().authenticated())
+                .exceptionHandling(exceptions -&gt; exceptions
+                        .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(LOGIN_PATH)));
+        return http.build();
+    }
+
+    /**
+     * Creates the chain of the login page and the rest of the user interface.
+     *
+     * @param http        security builder.
+     * @param customizers login method customizers, applied in order.
+     * @return the login/UI filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain loginSecurityFilterChain(
+            final HttpSecurity http, final ObjectProvider&lt;LoginChainCustomizer&gt; customizers) throws Exception {
+        http.formLogin(form -&gt; form.loginPage(LOGIN_PATH).permitAll());
+        // customizers run before the catch-all rule below, so they can still permit their own endpoints
+        for (final var customizer : customizers.orderedStream().toList()) {
+            customizer.customize(http);
+        }
+        http.authorizeHttpRequests(authorize -&gt; authorize
+                .requestMatchers(LOGIN_PATH, "/error", "/actuator/health/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated());
+        return http.build();
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the chain of the REST API.
+     *
+     * @param http      security builder.
+     * @param jwkSource the published keys of this server.
+     * @param issuer    issuer of this server ({@code spring.security.oauth2.authorizationserver.issuer}).
+     * @param audience  audience the API requires ({@code authserver.api.audience}).
+     * @return the API filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain apiSecurityFilterChain(
+            final HttpSecurity http, final JWKSource&lt;SecurityContext&gt; jwkSource,
+            @Value("${spring.security.oauth2.authorizationserver.issuer}") final String issuer,
+            @Value("${" + API_AUDIENCE_PROPERTY + ":" + DefaultClientDefinitions.DEFAULT_API_AUDIENCE + "}")
+            final String audience) throws Exception {
+        http
+                .securityMatcher(API_PATTERN)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -&gt; authorize
+                        .requestMatchers(HttpMethod.POST, "/api/account/register", "/api/account/password/reset",
+                                "/api/account/password/reset-request")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/account/verify").permitAll()
+                        .requestMatchers(ADMIN_PATTERN).hasAuthority(ADMIN_SCOPE_AUTHORITY)
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(resource -&gt; resource
+                        .jwt(jwt -&gt; jwt.decoder(apiJwtDecoder(jwkSource, issuer, audience))
+                                .jwtAuthenticationConverter(apiJwtAuthenticationConverter())));
+        return http.build();
+    }
+
+    /**
+     * Creates the decoder of the API's bearer tokens: signature against the published keys, issuer, timestamps,
+     * audience, and no {@code purpose} claim.
+     *
+     * @param jwkSource the published keys of this server.
+     * @param issuer    issuer every token must have.
+     * @param audience  audience every token must list.
+     * @return the decoder.
+     */
+    static JwtDecoder apiJwtDecoder(final JWKSource&lt;SecurityContext&gt; jwkSource, final String issuer,
+                                    final String audience) {
+        final var decoder = NimbusJwtDecoder.withJwkSource(jwkSource).jwsAlgorithm(SignatureAlgorithm.RS256).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator&lt;&gt;(List.&lt;OAuth2TokenValidator&lt;Jwt&gt;&gt;of(
+                JwtValidators.createDefaultWithIssuer(issuer),
+                new JwtClaimValidator&lt;List&lt;String&gt;&gt;(JwtClaimNames.AUD,
+                        audiences -&gt; audiences != null &amp;&amp; audiences.contains(audience)),
+                ApiSecurityConfig::rejectPurposeBoundToken)));
+        return decoder;
+    }
+
+    /**
+     * Rejects a purpose-bound account token (such as an e-mail verification JWT): it is signed by this server but
+     * never meant as a bearer token.
+     *
+     * @param jwt the token.
+     * @return a failure when the token carries the {@code purpose} claim, a success otherwise.
+     */
+    private static OAuth2TokenValidatorResult rejectPurposeBoundToken(final Jwt jwt) {
+        if (jwt.hasClaim(SignedTokenService.PURPOSE_CLAIM)) {
+            return OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+                    "A purpose-bound account token is not a bearer token", null));
+        }
+        return OAuth2TokenValidatorResult.success();
+    }
+
+    /**
+     * Creates the converter that maps the {@code scope} claim to {@code SCOPE_*} authorities and the {@code roles}
+     * claim to {@code ROLE_*} authorities.
+     *
+     * @return the converter.
+     */
+    JwtAuthenticationConverter apiJwtAuthenticationConverter() {
+        final var scopes = new JwtGrantedAuthoritiesConverter();
+        final var converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -&gt; {
+            final var authorities = new ArrayList&lt;GrantedAuthority&gt;(scopes.convert(jwt));
+            authorities.addAll(roleAuthorities(jwt));
+            return authorities;
+        });
+        return converter;
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_extension_points_for_authentication_methods"><a class="anchor" href="#_extension_points_for_authentication_methods"></a>Extension points for authentication methods</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A feature spans the layers with the same package name in each (<code>&#8230;&#8203;domain.password</code>, <code>&#8230;&#8203;application.password</code>,
+<code>&#8230;&#8203;infrastructure.persistence.password</code>, <code>&#8230;&#8203;api.web.password</code>), so authentication methods can be developed in
+parallel. These extension points avoid editing shared files:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>LoginChainCustomizer</code> (package <code>api.web.login</code>) is a functional interface over <code>HttpSecurity</code> (deliberately not a <code>Customizer&lt;HttpSecurity&gt;</code>, which Spring Security would apply to every chain). Every bean of this type is applied
+to the login chain in <code>@Order</code> order, before its catch-all rule.</p>
+</li>
+<li>
+<p><code>LoginMethodFragment</code> contributes a Thymeleaf fragment to the login page (<code>templates/login.html</code>); the username and
+password form is the fragment in <code>templates/password.html</code>. See <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</li>
+<li>
+<p><code>ProtocolChainCustomizer</code> (package <code>api.web</code>) is the same idea for the protocol endpoints: every bean receives the
+<code>OAuth2AuthorizationServerConfigurer</code> of the protocol chain, in <code>@Order</code> order. It is how the UserInfo mapper and the
+optional dynamic client registration are configured. It is also deliberately not a <code>Customizer</code>, which Spring
+Security would apply to every chain.</p>
+</li>
+<li>
+<p><code>JwtClaimsContributor</code> (package <code>api.web.tokens</code>) adds claims to issued tokens: access tokens of both formats and ID
+tokens; see <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;form th:fragment="form" method="post" th:action="@{${loginPath}}"&gt;
+  &lt;p&gt;
+    &lt;label for="username" th:text="#{login.username}"&gt;Username&lt;/label&gt;
+    &lt;input type="text" id="username" name="username" required autofocus autocomplete="username"&gt;
+  &lt;/p&gt;
+  &lt;p&gt;
+    &lt;label for="password" th:text="#{login.password}"&gt;Password&lt;/label&gt;
+    &lt;input type="password" id="password" name="password" required autocomplete="current-password"&gt;
+  &lt;/p&gt;
+  &lt;button type="submit" th:text="#{login.submit}"&gt;Sign in&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_users_and_clients"><a class="anchor" href="#_users_and_clients"></a>Users and clients</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The use case <code>FindUserAccountUseCase</code> (module <code>application</code>) looks a user up through the <code>UserAccountRepository</code> port.
+The <code>infrastructure/persistence</code> adapter implements it with JDBC, and <code>UserAccountUserDetailsService</code> in <code>api/web</code>
+adapts the result to Spring Security.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /** Columns selected for an account. */
+    private static final String SELECT_USER = """
+            SELECT u.id, u.username, u.enabled, u.email, u.email_verified, u.tenant, p.encoded_password
+            FROM users u JOIN user_passwords p ON p.user_id = u.id
+            """;
+
+    /** Query returning the user and its encoded password by username. */
+    private static final String FIND_USER = SELECT_USER + "WHERE u.username = ?";
+    /** Query returning the authorities of a user by user id. */
+    private static final String FIND_AUTHORITIES = """
+            SELECT authority
+            FROM user_authorities
+            WHERE user_id = ?
+            ORDER BY authority
+            """;
+    @Override
+    public Optional&lt;UserAccount&gt; findByUsername(final String username) {
+        return findOne(FIND_USER, username);
+    }
+    /**
+     * Loads one account, with its authorities.
+     *
+     * @param sql   query selecting the user row by one parameter.
+     * @param value value of the parameter.
+     * @return the account, or an empty optional when no row matches.
+     */
+    private Optional&lt;UserAccount&gt; findOne(final String sql, final Object value) {
+        return jdbcClient.sql(sql).param(value)
+                .query(userAccountRowMapper)
+                .optional()
+                .map(row -&gt; row.toUserAccount(
+                        jdbcClient.sql(FIND_AUTHORITIES).param(row.id()).query(String.class).list()));
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Registered clients, authorizations and consents use the JDBC services of Spring Authorization Server.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the repository of registered clients.
+     *
+     * @param jdbcTemplate JDBC template of the application datasource.
+     * @return the registered client repository.
+     */
+    @Bean
+    public RegisteredClientRepository registeredClientRepository(final JdbcTemplate jdbcTemplate) {
+        return new JdbcRegisteredClientRepository(jdbcTemplate);
+    }
+
+    /**
+     * Creates the service that stores OAuth 2 authorizations, decorated to detect the reuse of rotated refresh
+     * tokens.
+     *
+     * @param jdbcTemplate             JDBC template of the application datasource.
+     * @param registeredClientRepository repository used to resolve the client of each authorization.
+     * @param jsonMapperFactory        creates the mapper that serializes the stored attributes and claims.
+     * @return the authorization service.
+     */
+    @Bean
+    public OAuth2AuthorizationService authorizationService(
+            final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository,
+            final AuthorizationJsonMapperFactory jsonMapperFactory) {
+        final var jsonMapper = jsonMapperFactory.create();
+        final var service = new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository);
+        service.setAuthorizationRowMapper(
+                new JdbcOAuth2AuthorizationService.JsonMapperOAuth2AuthorizationRowMapper(
+                        registeredClientRepository, jsonMapper));
+        service.setAuthorizationParametersMapper(
+                new JdbcOAuth2AuthorizationService.JsonMapperOAuth2AuthorizationParametersMapper(jsonMapper));
+        return new ReuseDetectingAuthorizationService(service, JdbcClient.create(jdbcTemplate));
+    }
+
+    /**
+     * Creates the service that stores the consents granted by users.
+     *
+     * @param jdbcTemplate             JDBC template of the application datasource.
+     * @param registeredClientRepository repository used to resolve the client of each consent.
+     * @return the authorization consent service.
+     */
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService(
+            final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository) {
+        return new JdbcOAuth2AuthorizationConsentService(jdbcTemplate, registeredClientRepository);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Passwords, accounts, signing keys, tokens and registered clients are described in <a href="passwords-and-accounts.html" class="xref page">Passwords and accounts</a>,
+<a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a> and <a href="clients.html" class="xref page">Registered clients</a>. The <code>infrastructure/mail</code> adapter implements the <code>AccountMailer</code>
+port with Spring&#8217;s <code>JavaMailSender</code>; its settings live under <code>authserver.mail</code> (sender, base URL for the links, locale).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ConfigurationProperties(prefix = "authserver.mail")
+public record MailProperties(String from, String baseUrl, Locale locale) {
+
+    /** Sender used when none is configured. */
+    public static final String DEFAULT_FROM = "no-reply@localhost";
+
+    /** Base URL used when none is configured. */
+    public static final String DEFAULT_BASE_URL = "http://localhost:9000";
+
+    /**
+     * Applies the defaults of the missing values and removes a trailing slash of the base URL.
+     *
+     * @param from sender address, or {@code null} for {@link #DEFAULT_FROM}.
+     * @param baseUrl public base URL, or {@code null} for {@link #DEFAULT_BASE_URL}.
+     * @param locale language of the messages, or {@code null} for English.
+     */
+    public MailProperties {
+        from = from == null || from.isBlank() ? DEFAULT_FROM : from;
+        final var url = baseUrl == null || baseUrl.isBlank() ? DEFAULT_BASE_URL : baseUrl;
+        baseUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        locale = locale == null ? Locale.ENGLISH : locale;
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_bff_and_resource_server"><a class="anchor" href="#_bff_and_resource_server"></a>BFF and resource server</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>bff</code> is an <code>oauth2Login()</code> client using the authorization code grant with PKCE. It keeps the user&#8217;s tokens in a
+server-side session (Spring Session JDBC, cookie <code>__Host-SESSION</code>), protects state-changing requests with CSRF
+(<code>XSRF-TOKEN</code> cookie, <code>X-XSRF-TOKEN</code> header or <code>_csrf</code> form parameter), serves the SPA, exposes <code>GET /bff/user</code> and
+<code>GET /bff/login</code>, lets Spring Security&#8217;s logout filter answer <code>POST /bff/logout</code> with a redirect to the RP-initiated
+logout of the authorization server, and serves the documents API (<code>GET /api/documents</code>,
+<code>DELETE /api/documents/{id}</code>), whose use cases call the resource server with the access token of the user through a
+generated client. It is described in <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the BFF filter chain.
+     *
+     * @param http                 the HTTP security builder.
+     * @param clientRepository     the registered OAuth2 clients.
+     * @param loginSuccessHandler  sends the browser back to the {@code returnTo} of the login once signed in.
+     * @param logoutSuccessHandler redirects the browser to the RP-initiated logout of the authorization server.
+     * @return the security filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    SecurityFilterChain bffFilterChain(final HttpSecurity http, final ClientRegistrationRepository clientRepository,
+            final ReturnToAuthenticationSuccessHandler loginSuccessHandler,
+            final OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
+        final var resolver = new DefaultOAuth2AuthorizationRequestResolver(clientRepository, "/oauth2/authorization");
+        // The auth server requires PKCE; Spring only enables it by default for public clients.
+        resolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+
+        http.authorizeHttpRequests(authorize -&gt; authorize
+                        .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/static/**", "/error",
+                                "/bff/login", "/actuator/health/**").permitAll()
+                        .anyRequest().authenticated())
+                // The XSRF-TOKEN cookie is readable by the script (not HttpOnly) and the raw token is accepted from
+                // the X-XSRF-TOKEN header or, for the sign-out form, from the _csrf parameter. The plain handler, not
+                // csrf.spa()'s XOR one: masking against BREACH protects a token rendered in a compressed response body,
+                // and the BFF never renders it in a body, only in the cookie; the XOR handler would also reject the
+                // raw cookie value the sign-out form posts.
+                .csrf(csrf -&gt; csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                // The SPA is made of same-origin files only: no inline script, no third-party content, no framing.
+                .headers(headers -&gt; headers.contentSecurityPolicy(
+                        csp -&gt; csp.policyDirectives(CONTENT_SECURITY_POLICY)))
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
+                .exceptionHandling(ex -&gt; ex.defaultAuthenticationEntryPointFor(
+                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                        new OrRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/bff/**"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/api/**"))))
+                .oauth2Login(login -&gt; login
+                        .authorizationEndpoint(endpoint -&gt; endpoint.authorizationRequestResolver(resolver))
+                        // A refused consent or any other failed sign-in lands on the SPA, which tells the user.
+                        // A handler rather than failureUrl: that would make the generated login page answer it.
+                        .failureHandler(new SimpleUrlAuthenticationFailureHandler(SIGN_IN_FAILURE_URL))
+                        // Back to the returnTo validated by GET /bff/login, never to a request saved elsewhere.
+                        .successHandler(loginSuccessHandler))
+                // POST /bff/logout (CSRF protected) runs the logout handlers (the XSRF-TOKEN cookie is cleared, the
+                // security context too, and the session is invalidated), then the success handler answers 302 to the
+                // end_session_endpoint of the authorization server: the browser follows it as a top-level navigation,
+                // so the id_token_hint it carries never reaches a script.
+                .logout(logout -&gt; logout
+                        .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults()
+                                .matcher(HttpMethod.POST, LOGOUT_PATH))
+                        .logoutSuccessHandler(logoutSuccessHandler));
+        return http.build();
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Returns the subject of the authenticated user. The security chain answers 401 before reaching this method when
+     * nobody is signed in, so the principal of the security context is always the OIDC user of the session.
+     *
+     * @return the signed-in user's subject.
+     * @throws AuthenticationCredentialsNotFoundException if no OIDC user is signed in, answered 401 by the chain.
+     */
+    @Override
+    public ResponseEntity&lt;SessionUserResponse&gt; getSessionUser() {
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof final OidcUser user)) {
+            throw new AuthenticationCredentialsNotFoundException("No OpenID Connect user is signed in");
+        }
+        return ResponseEntity.ok(sessionUserDtoMapper.toResponse(user));
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>resource-server</code> validates JWT access tokens against the issuer and accepts only those whose <code>aud</code> claim lists
+one of the configured audiences (<code>resource-server</code> by default). Its API and security are described in
+<a href="resource-server.html" class="xref page">Resource server</a>.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

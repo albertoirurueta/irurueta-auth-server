@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KeyEncryptionTestConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:test-support</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.testsupport</a> &gt; <span class="el_source">KeyEncryptionTestConfiguration.java</span></div><h1>KeyEncryptionTestConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.testsupport;
+
+import java.security.SecureRandom;
+import java.util.HexFormat;
+import java.util.UUID;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.DynamicPropertyRegistrar;
+
+/**
+ * Supplies the inputs of the encryption of signing keys at rest to a test context. The values are generated at
+ * runtime for each context, so no secret-looking literal exists in the sources and nothing persists between runs.
+ */
+@TestConfiguration(proxyBeanMethods = false)
+<span class="nc" id="L31">public class KeyEncryptionTestConfiguration {</span>
+
+    /** Source of the generated values. */
+<span class="nc" id="L34">    private static final SecureRandom RANDOM = new SecureRandom();</span>
+
+    /** Number of random bytes of the generated salt. */
+    private static final int SALT_BYTES = 16;
+
+    /**
+     * Registers {@code authserver.keys.encryption.password} and {@code .salt} with random values.
+     *
+     * @return the registrar.
+     */
+    @Bean
+    public DynamicPropertyRegistrar keyEncryptionPropertiesRegistrar() {
+<span class="nc" id="L46">        final var salt = new byte[SALT_BYTES];</span>
+<span class="nc" id="L47">        RANDOM.nextBytes(salt);</span>
+<span class="nc" id="L48">        final var encodedSalt = HexFormat.of().formatHex(salt);</span>
+<span class="nc" id="L49">        final var passphrase = UUID.randomUUID().toString();</span>
+<span class="nc" id="L50">        return registry -&gt; {</span>
+<span class="nc" id="L51">            registry.add(&quot;authserver.keys.encryption.password&quot;, () -&gt; passphrase);</span>
+<span class="nc" id="L52">            registry.add(&quot;authserver.keys.encryption.salt&quot;, () -&gt; encodedSalt);</span>
+<span class="nc" id="L53">        };</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

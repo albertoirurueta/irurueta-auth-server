@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityEventAuthenticationEventPublisher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">SecurityEventAuthenticationEventPublisher.java</span></div><h1>SecurityEventAuthenticationEventPublisher.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+/**
+ * Records the authentications of users as security events: a success as {@link SecurityEventType#LOGIN_SUCCESS} and a
+ * failure as {@link SecurityEventType#LOGIN_FAILURE}. Authentications that are not a user signing in (OAuth2 client
+ * authentication and bearer tokens of the API) are not recorded. Only the name presented and the type of the failure
+ * are stored, never credentials nor the message of the exception.
+ */
+@Component
+@RequiredArgsConstructor
+public class SecurityEventAuthenticationEventPublisher implements AuthenticationEventPublisher {
+
+    /** Records the events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    @Override
+    public void publishAuthenticationSuccess(final Authentication authentication) {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (isUserAuthentication(authentication)) {</span>
+<span class="fc" id="L47">            recordSecurityEventUseCase.execute(SecurityEventType.LOGIN_SUCCESS, null, nameOf(authentication), null);</span>
+        }
+<span class="fc" id="L49">    }</span>
+
+    @Override
+    public void publishAuthenticationFailure(final AuthenticationException exception,
+            final Authentication authentication) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (isUserAuthentication(authentication)) {</span>
+<span class="fc" id="L55">            recordSecurityEventUseCase.execute(SecurityEventType.LOGIN_FAILURE, null, nameOf(authentication),</span>
+<span class="fc" id="L56">                    exception.getClass().getSimpleName());</span>
+        }
+<span class="fc" id="L58">    }</span>
+
+    /**
+     * Tells whether an authentication is a user signing in.
+     *
+     * @param authentication the authentication.
+     * @return {@code false} for a client authentication or a bearer token.
+     */
+    private static boolean isUserAuthentication(final Authentication authentication) {
+<span class="pc bpc" id="L67" title="1 of 6 branches missed.">        return !(authentication instanceof OAuth2ClientAuthenticationToken</span>
+                || authentication instanceof BearerTokenAuthenticationToken
+                || authentication instanceof AbstractOAuth2TokenAuthenticationToken&lt;?&gt;);
+    }
+
+    /**
+     * Gets the name the user presented.
+     *
+     * @param authentication the authentication.
+     * @return the name, or {@code null} when blank.
+     */
+    private static String nameOf(final Authentication authentication) {
+<span class="fc" id="L79">        final var name = authentication.getName();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        return StringUtils.hasText(name) ? name : null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

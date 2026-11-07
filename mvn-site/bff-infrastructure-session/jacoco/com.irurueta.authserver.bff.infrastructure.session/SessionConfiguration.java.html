@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:bff-infrastructure-session</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.bff.infrastructure.session</a> &gt; <span class="el_source">SessionConfiguration.java</span></div><h1>SessionConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.bff.infrastructure.session;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.session.web.http.CookieSerializer;
+import org.springframework.session.web.http.DefaultCookieSerializer;
+
+/**
+ * Names the cookie of the HTTP session of the BFF with the {@code __Host-} prefix. The session itself is stored in
+ * PostgreSQL by Spring Session JDBC (table {@code spring_session}, owned by the Flyway migration {@code V300} of this
+ * module), which Spring Boot auto-configures from {@code spring-boot-starter-session-jdbc}.
+ *
+ * &lt;p&gt;There is deliberately no {@code @EnableJdbcHttpSession}: that annotation switches Spring Boot's session
+ * auto-configuration off, and with it every {@code spring.session.*} property (for example
+ * {@code spring.session.jdbc.initialize-schema: never}, which keeps the schema in Flyway's hands, or
+ * {@code spring.session.timeout}). The session holds the OAuth2 tokens of the user (the authorized client), which
+ * therefore never reach the browser; the cookie is only a handle to them.
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L36">public class SessionConfiguration {</span>
+
+    /** Name of the session cookie; the {@code __Host-} prefix makes browsers require Secure, Path=/ and no Domain. */
+    static final String COOKIE_NAME = &quot;__Host-SESSION&quot;;
+
+    // tag::bff-session[]
+    /**
+     * Builds the serializer of the session cookie: Secure, HttpOnly, SameSite=Lax, path {@code /} and no domain, which
+     * is exactly what the {@code __Host-} prefix demands (the browser rejects the cookie otherwise).
+     *
+     * @return the cookie serializer.
+     */
+    @Bean
+    CookieSerializer cookieSerializer() {
+<span class="fc" id="L50">        final var serializer = new DefaultCookieSerializer();</span>
+<span class="fc" id="L51">        serializer.setCookieName(COOKIE_NAME);</span>
+<span class="fc" id="L52">        serializer.setUseSecureCookie(true);</span>
+<span class="fc" id="L53">        serializer.setUseHttpOnlyCookie(true);</span>
+<span class="fc" id="L54">        serializer.setSameSite(&quot;Lax&quot;);</span>
+<span class="fc" id="L55">        serializer.setCookiePath(&quot;/&quot;);</span>
+<span class="fc" id="L56">        return serializer;</span>
+    }
+    // end::bff-session[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

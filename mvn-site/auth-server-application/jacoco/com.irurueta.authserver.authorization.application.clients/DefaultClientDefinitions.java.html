@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultClientDefinitions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.clients</a> &gt; <span class="el_source">DefaultClientDefinitions.java</span></div><h1>DefaultClientDefinitions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.clients;
+
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
+import java.time.Duration;
+import java.util.List;
+
+/**
+ * The single definition of the clients a deployment can start with: the confidential {@code bff} (backend for
+ * frontend) and the public {@code spa-public}. Used by the seeder and by the development data initializer, so they
+ * never drift apart. Nothing environment-specific lives here: the redirect URIs come from configuration (the
+ * {@code dev} profile supplies the local ones) and so does the audience of the authorization server's own API. Both
+ * clients carry the audience of the resource server and of that API (so a user can change their password through
+ * them), may read and delete documents, and never get the {@code admin} scope.
+ */
+public final class DefaultClientDefinitions {
+
+    /** Client id of the backend for frontend. */
+    public static final String BFF_CLIENT_ID = &quot;bff&quot;;
+
+    /** Client id of the public single-page application. */
+    public static final String SPA_PUBLIC_CLIENT_ID = &quot;spa-public&quot;;
+
+    /** Audience of the resource server. */
+    public static final String RESOURCE_SERVER_AUDIENCE = &quot;resource-server&quot;;
+
+    /** Default audience of the authorization server's own REST API ({@code authserver.api.audience}). */
+    public static final String DEFAULT_API_AUDIENCE = &quot;auth-server&quot;;
+
+    /** Scopes of both default clients. */
+<span class="fc" id="L46">    private static final List&lt;String&gt; SCOPES = List.of(&quot;openid&quot;, &quot;profile&quot;, &quot;documents.read&quot;, &quot;documents.delete&quot;);</span>
+
+    /** Lifetime of access tokens. */
+<span class="fc" id="L49">    private static final Duration ACCESS_TOKEN_TTL = Duration.ofMinutes(10);</span>
+
+    /** Lifetime of refresh tokens. */
+<span class="fc" id="L52">    private static final Duration REFRESH_TOKEN_TTL = Duration.ofHours(8);</span>
+
+    /** Not instantiable. */
+    private DefaultClientDefinitions() {
+    }
+
+    // tag::clients-seed[]
+    /**
+     * Defines the {@code bff} client: confidential, {@code client_secret_basic}, authorization code with PKCE and
+     * refresh tokens, with refresh token rotation on. It requires the end-user's consent to the requested scopes.
+     *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List&lt;String&gt; redirectUris, final String apiAudience) {
+<span class="fc" id="L68">        return bff(redirectUris, apiAudience, List.of());</span>
+    }
+
+    /**
+     * Defines the {@code bff} client with the URIs it may be sent to after an OpenID Connect RP-initiated logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List&lt;String&gt; redirectUris, final String apiAudience,
+                                         final List&lt;String&gt; postLogoutRedirectUris) {
+<span class="fc" id="L81">        return new ClientRegistration(BFF_CLIENT_ID, &quot;Backend for Frontend&quot;, true,</span>
+<span class="fc" id="L82">                List.of(&quot;client_secret_basic&quot;), List.of(&quot;authorization_code&quot;, &quot;refresh_token&quot;),</span>
+<span class="fc" id="L83">                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,</span>
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, true, false);
+    }
+
+    /**
+     * Defines the {@code spa-public} client: public, authorization code with PKCE, no client authentication.
+     *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List&lt;String&gt; redirectUris, final String apiAudience) {
+<span class="fc" id="L96">        return spaPublic(redirectUris, apiAudience, List.of());</span>
+    }
+
+    /**
+     * Defines the {@code spa-public} client with the URIs it may be sent to after an OpenID Connect RP-initiated
+     * logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List&lt;String&gt; redirectUris, final String apiAudience,
+                                               final List&lt;String&gt; postLogoutRedirectUris) {
+<span class="fc" id="L110">        return new ClientRegistration(SPA_PUBLIC_CLIENT_ID, &quot;Single-page application&quot;, false,</span>
+<span class="fc" id="L111">                List.of(&quot;none&quot;), List.of(&quot;authorization_code&quot;, &quot;refresh_token&quot;),</span>
+<span class="fc" id="L112">                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,</span>
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, false, false);
+    }
+    // end::clients-seed[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

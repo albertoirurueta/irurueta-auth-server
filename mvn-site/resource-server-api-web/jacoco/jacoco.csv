@@ -1,0 +1,12 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.documents,DocumentController,0,50,0,6,0,14,0,6,0,3
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.documents,DocumentDtoMapper,0,22,0,0,0,3,0,3,0,3
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,SecurityConfig,112,84,0,2,19,22,8,8,8,7
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,StepUpProperties,0,33,0,8,0,6,0,5,0,1
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,StepUpAccessDeniedHandler,0,33,0,4,0,9,0,3,0,1
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,AudienceRolesOpaqueTokenIntrospector,0,52,0,4,0,8,0,3,0,1
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,StepUpRequiredDecision,0,5,0,0,0,2,0,2,0,2
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,BearerAuthorities,0,32,0,4,0,8,0,6,0,4
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.security,StepUpAuthorizationManager,0,127,1,24,0,21,1,17,0,5
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web,OpenApiConfig,0,52,0,0,0,16,0,3,0,3
+com.irurueta.authserver:resource-server-api-web,com.irurueta.authserver.resourceserver.api.web.v1.generated.model,DocumentResponse,15,0,0,0,1,0,1,0,1,0

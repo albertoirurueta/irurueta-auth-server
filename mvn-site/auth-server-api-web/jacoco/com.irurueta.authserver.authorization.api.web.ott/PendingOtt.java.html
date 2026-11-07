@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PendingOtt.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">PendingOtt.java</span></div><h1>PendingOtt.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import com.irurueta.authserver.authorization.domain.ott.OttKind;
+import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import java.io.Serializable;
+import java.util.Optional;
+
+/**
+ * The one-time token a browser has asked for and not used yet, kept in its session: for whom, through which channel,
+ * of which kind and for what purpose, and the binding id the numeric code was stored with. A code only works in the
+ * browser that holds its binding id, which is what makes a code typed in another browser worthless. The session holds
+ * one pending token: asking again replaces it (and so invalidates the previous code).
+ *
+ * @param identifier identifier (the user name) the token was requested for, as the user typed it.
+ * @param bindingId  random identifier that ties the numeric code to this session.
+ * @param kind       whether the token is a numeric code or a magic link.
+ * @param purpose    whether the token signs the user in or is a second factor.
+ * @param channel    channel the token is delivered through.
+ */
+<span class="fc" id="L38">public record PendingOtt(String identifier, String bindingId, OttKind kind, OttPurpose purpose, OttChannel channel)</span>
+        implements Serializable {
+
+    /** Serialization version. */
+    private static final long serialVersionUID = 1L;
+
+    /** Name of the session attribute that holds the pending token. */
+<span class="fc" id="L45">    static final String ATTRIBUTE = PendingOtt.class.getName();</span>
+
+    /**
+     * Keeps this pending token in a session, replacing the previous one.
+     *
+     * @param session the session.
+     */
+    public void saveTo(final HttpSession session) {
+<span class="fc" id="L53">        session.setAttribute(ATTRIBUTE, this);</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * Finds the pending token of the session of a request, without creating a session.
+     *
+     * @param request the request.
+     * @return the pending token, or empty when the request has no session or the session holds none.
+     */
+    public static Optional&lt;PendingOtt&gt; of(final HttpServletRequest request) {
+<span class="fc" id="L63">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        final var value = session == null ? null : session.getAttribute(ATTRIBUTE);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        return value instanceof final PendingOtt pending ? Optional.of(pending) : Optional.empty();</span>
+    }
+
+    /**
+     * Forgets the pending token of the session of a request, once it has been used.
+     *
+     * @param request the request.
+     */
+    public static void clear(final HttpServletRequest request) {
+<span class="fc" id="L74">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (session != null) {</span>
+<span class="fc" id="L76">            session.removeAttribute(ATTRIBUTE);</span>
+        }
+<span class="fc" id="L78">    }</span>
+
+    /**
+     * Describes the pending token without the binding id, which authorizes a code.
+     *
+     * @return the kind, purpose and channel only.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L87">        return &quot;PendingOtt[kind=&quot; + kind + &quot;, purpose=&quot; + purpose + &quot;, channel=&quot; + channel + &quot;]&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

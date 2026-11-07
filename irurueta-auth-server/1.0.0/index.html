@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Irurueta Auth Server :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs" autofocus>
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link is-current"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/index.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Irurueta Auth Server</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Irurueta Auth Server is an <strong>example project</strong>: an OAuth 2.1 / OpenID Connect authorization server built from scratch
+with Spring Boot 4.1 and Spring Security 7.1 (which now contains Spring Authorization Server), together with the
+applications that use it. It exists to back a step-by-step guide in the
+<a href="https://www.irurueta.com">Irurueta Docs</a> site (<strong>Guides &amp; References → Backend Development → SpringBoot Reference</strong>),
+so every code listing in that guide comes from code in this repository that compiles and passes its tests.</p>
+</div>
+<div class="paragraph">
+<p>It is a teaching example, not a product. It is never deployed: CI only builds it and runs its tests, and publishes
+this documentation together with the generated reports (see <a href="reference.html" class="xref page">Reference</a>).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_what_the_example_covers"><a class="anchor" href="#_what_the_example_covers"></a>What the example covers</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>When complete, the example shows how to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>sign a browser single-page application in through a <strong>Backend-for-Frontend (BFF)</strong>, so tokens never reach JavaScript</p>
+</li>
+<li>
+<p>authenticate users with passwords stored securely, <strong>passkeys (WebAuthn)</strong>, <strong>e-mail and SMS one-time codes</strong>,
+<strong>TOTP authenticator apps</strong> with recovery codes, and <strong>social login</strong> (Google, Microsoft Entra ID, Apple, GitHub)</p>
+</li>
+<li>
+<p>combine those methods into <strong>multi-factor authentication</strong> with step-up, and report the result to clients in the
+<code>amr</code>, <code>acr</code> and <code>auth_time</code> claims</p>
+</li>
+<li>
+<p>issue signed JWS / JWT <strong>access, refresh and ID tokens</strong> with persisted, rotated signing keys</p>
+</li>
+<li>
+<p>call APIs from server to server with the <strong>client credentials</strong> grant, <code>private_key_jwt</code> and mTLS client
+authentication, and token exchange</p>
+</li>
+<li>
+<p>explain the legacy <strong>implicit</strong> flow and migrate away from it</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The work is tracked in the repository&#8217;s issues and the <strong>1.0.0</strong> milestone. The current state is the walking skeleton plus
+the credential and token core: users sign in with a username and password (Argon2 storage) through the BFF
+(authorization code with PKCE), tokens are signed with persisted, rotating keys, clients are managed through an
+admin API, and the resource server exposes a documents API protected by scopes and audience. The other authentication methods are added on top of the
+extension points described in <a href="architecture.html" class="xref page">Architecture</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_modules"><a class="anchor" href="#_modules"></a>Modules</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each application below is a Maven sub-reactor split into hexagonal modules (<code>domain</code>, <code>application</code>,
+<code>infrastructure/&lt;adapter&gt;</code>, <code>api/&lt;adapter&gt;</code>, <code>boot</code>); only its <code>boot</code> module is runnable. The layout and the rules
+that enforce it are in <a href="architecture.html" class="xref page">Architecture</a>. The root reactor also holds <code>test-support</code>, <code>e2e-tests</code> and
+<code>coverage</code>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Module</th>
+<th class="tableblock halign-left valign-top">Port</th>
+<th class="tableblock halign-left valign-top">Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9000</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The authorization server: Spring Authorization Server protocol endpoints, plus the login, consent, MFA and account
+pages.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8080</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Backend-for-Frontend: an <code>oauth2Login()</code> client that keeps the user&#8217;s tokens in a server-side session, serves
+the SPA and calls the resource server on the user&#8217;s behalf.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resource-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8081</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A JWT-protected API that validates the tokens issued by <code>auth-server</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">—</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A non-interactive client that obtains tokens with the client credentials grant and calls <code>resource-server</code>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart LR
+  Browser["Browser SPA"] -- "session cookie" --> BFF["bff"]
+  BFF -- "authorization code + PKCE" --> AS["auth-server"]
+  BFF -- "access token" --> RS["resource-server"]
+  SVC["service-client"] -- "client credentials" --> AS
+  SVC -- "access token" --> RS
+  RS -- "JWKS" --> AS</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_next_steps"><a class="anchor" href="#_next_steps"></a>Next steps</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="architecture.html" class="xref page">Architecture</a> describes the security filter chains and how authentication methods plug in.</p>
+</li>
+<li>
+<p><a href="data-model.html" class="xref page">Data model</a> describes the PostgreSQL schema managed by Flyway.</p>
+</li>
+<li>
+<p><a href="passwords-and-accounts.html" class="xref page">Passwords and accounts</a> covers password storage, the compromised-password check and the account API.</p>
+</li>
+<li>
+<p><a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a> covers signing keys, rotation, token claims and refresh token reuse detection.</p>
+</li>
+<li>
+<p><a href="clients.html" class="xref page">Registered clients</a> covers client seeding, the admin API and dynamic registration.</p>
+</li>
+<li>
+<p><a href="resource-server.html" class="xref page">Resource server</a> covers the documents API and token validation.</p>
+</li>
+<li>
+<p><a href="installation.html" class="xref page">Installation</a> explains how to build the example and run each application from source.</p>
+</li>
+<li>
+<p><a href="reference.html" class="xref page">Reference</a> lists the reports the build generates.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

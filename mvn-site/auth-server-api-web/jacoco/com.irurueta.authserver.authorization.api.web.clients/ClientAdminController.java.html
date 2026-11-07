@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientAdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.clients</a> &gt; <span class="el_source">ClientAdminController.java</span></div><h1>ClientAdminController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.clients;
+
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.ClientsApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientRequest;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientResponse;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientSecretResponse;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.CreatedClientResponse;
+import com.irurueta.authserver.authorization.application.clients.CreateClientUseCase;
+import com.irurueta.authserver.authorization.application.clients.DeleteClientUseCase;
+import com.irurueta.authserver.authorization.application.clients.GetClientUseCase;
+import com.irurueta.authserver.authorization.application.clients.ListClientsUseCase;
+import com.irurueta.authserver.authorization.application.clients.RotateClientSecretUseCase;
+import com.irurueta.authserver.authorization.application.clients.UpdateClientUseCase;
+import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Administration of the registered clients, as the contract
+ * {@code apis/auth-server/rest-server/auth-server-api-v1.yaml} describes it through the generated {@link ClientsApi}.
+ * Secrets are never returned, except once when a confidential client is created or its secret is rotated. Failures
+ * are answered as problem details by {@link ClientExceptionHandler}.
+ */
+@RestController
+@RequiredArgsConstructor
+public class ClientAdminController implements ClientsApi {
+
+    /** Lists the clients. */
+    private final ListClientsUseCase listClientsUseCase;
+
+    /** Finds a client. */
+    private final GetClientUseCase getClientUseCase;
+
+    /** Creates clients. */
+    private final CreateClientUseCase createClientUseCase;
+
+    /** Updates clients. */
+    private final UpdateClientUseCase updateClientUseCase;
+
+    /** Deletes clients. */
+    private final DeleteClientUseCase deleteClientUseCase;
+
+    /** Rotates client secrets. */
+    private final RotateClientSecretUseCase rotateClientSecretUseCase;
+
+    /** Maps between the generated DTOs and the domain. */
+    private final ClientDtoMapper clientDtoMapper;
+
+    /**
+     * Lists the clients.
+     *
+     * @return every client, without secrets.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;ClientResponse&gt;&gt; listClients() {
+<span class="fc" id="L75">        return ResponseEntity.ok(clientDtoMapper.toResponses(listClientsUseCase.execute()));</span>
+    }
+
+    /**
+     * Finds a client.
+     *
+     * @param clientId identifier of the client.
+     * @return the client, without secret.
+     * @throws ClientNotFoundException if no such client exists.
+     */
+    @Override
+    public ResponseEntity&lt;ClientResponse&gt; getClient(final String clientId) {
+<span class="fc" id="L87">        return ResponseEntity.ok(getClientUseCase.execute(clientId).map(clientDtoMapper::toResponse)</span>
+<span class="fc" id="L88">                .orElseThrow(() -&gt; new ClientNotFoundException(clientId)));</span>
+    }
+
+    /**
+     * Creates a client.
+     *
+     * @param request definition of the client.
+     * @return {@code 201 Created} with the client and, when confidential, its generated secret (shown only once).
+     */
+    @Override
+    public ResponseEntity&lt;CreatedClientResponse&gt; createClient(final ClientRequest request) {
+<span class="fc" id="L99">        final var created = createClientUseCase.execute(clientDtoMapper.toRegistration(request));</span>
+<span class="fc" id="L100">        return ResponseEntity.status(HttpStatus.CREATED).body(clientDtoMapper.toCreatedResponse(created));</span>
+    }
+
+    /**
+     * Replaces the definition of a client. Its secret is kept.
+     *
+     * @param clientId identifier of the client.
+     * @param request  new definition; its identifier must match the path.
+     * @return the updated client.
+     * @throws IllegalArgumentException if the identifier in the body differs from the path.
+     */
+    @Override
+    public ResponseEntity&lt;ClientResponse&gt; updateClient(final String clientId, final ClientRequest request) {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (!clientId.equals(request.clientId())) {</span>
+<span class="fc" id="L114">            throw new IllegalArgumentException(&quot;The clientId of the body must match the path&quot;);</span>
+        }
+<span class="fc" id="L116">        final var registration = clientDtoMapper.toRegistration(request);</span>
+<span class="fc" id="L117">        updateClientUseCase.execute(registration);</span>
+<span class="fc" id="L118">        return ResponseEntity.ok(clientDtoMapper.toResponse(registration));</span>
+    }
+
+    /**
+     * Deletes a client.
+     *
+     * @param clientId identifier of the client.
+     * @return {@code 204 No Content}.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; deleteClient(final String clientId) {
+<span class="fc" id="L129">        deleteClientUseCase.execute(clientId);</span>
+<span class="fc" id="L130">        return ResponseEntity.noContent().build();</span>
+    }
+
+    /**
+     * Generates a new secret for a confidential client.
+     *
+     * @param clientId identifier of the client.
+     * @return the new secret (shown only once).
+     */
+    @Override
+    public ResponseEntity&lt;ClientSecretResponse&gt; rotateClientSecret(final String clientId) {
+<span class="fc" id="L141">        return ResponseEntity.ok(clientDtoMapper.toSecretResponse(rotateClientSecretUseCase.execute(clientId)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmsProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.sms</a> &gt; <span class="el_source">SmsProperties.java</span></div><h1>SmsProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.sms;
+
+import java.time.Duration;
+import java.util.Map;
+import java.util.Set;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+/**
+ * Settings of the SMS channel, bound from {@code authserver.sms.*} once and validated at startup. A missing (or zero,
+ * for a number) value takes its default, so the application starts without any setting.
+ *
+ * &lt;p&gt;Costs and caps are in micros of the billing currency (one millionth), so they stay integers.
+ *
+ * @param defaultRegion            ISO 3166-1 region assumed for a number typed without a country code (default
+ *                                 {@code US}).
+ * @param allowedCountries         ISO 3166-1 regions an SMS may be sent to (default {@code US}, {@code ES},
+ *                                 {@code GB}).
+ * @param costPerCountryMicros     cost of one SMS by region; a region absent here costs {@code defaultCostMicros}.
+ * @param defaultCostMicros        cost of an SMS to a region without its own cost (default 50000).
+ * @param window                   length of the spending window (default one hour).
+ * @param windowCapMicros          spending allowed in a window (default 5000000).
+ * @param dailyCapMicros           spending allowed in 24 hours (default 20000000).
+ * @param verificationCodeLength   digits of the code that verifies a phone (default 6).
+ * @param verificationCodeTtl      how long that code is valid (default 10 minutes).
+ * @param verificationMaxAttempts  attempts allowed for that code (default 5).
+ * @param ledgerRetention          how long the cost ledger keeps its rows, at least one day (default 2 days).
+ */
+@ConfigurationProperties(&quot;authserver.sms&quot;)
+public record SmsProperties(
+        @DefaultValue(&quot;US&quot;) String defaultRegion,
+        @DefaultValue({&quot;US&quot;, &quot;ES&quot;, &quot;GB&quot;}) Set&lt;String&gt; allowedCountries,
+        Map&lt;String, Long&gt; costPerCountryMicros,
+        @DefaultValue(&quot;50000&quot;) long defaultCostMicros,
+        @DefaultValue(&quot;PT1H&quot;) Duration window,
+        @DefaultValue(&quot;5000000&quot;) long windowCapMicros,
+        @DefaultValue(&quot;20000000&quot;) long dailyCapMicros,
+        @DefaultValue(&quot;6&quot;) int verificationCodeLength,
+        @DefaultValue(&quot;PT10M&quot;) Duration verificationCodeTtl,
+        @DefaultValue(&quot;5&quot;) int verificationMaxAttempts,
+        @DefaultValue(&quot;P2D&quot;) Duration ledgerRetention) {
+
+    /** Default region. */
+    private static final String DEFAULT_REGION = &quot;US&quot;;
+
+    /** Default allowed regions. */
+<span class="fc" id="L63">    private static final Set&lt;String&gt; DEFAULT_COUNTRIES = Set.of(&quot;US&quot;, &quot;ES&quot;, &quot;GB&quot;);</span>
+
+    /** Default spending window, in minutes. */
+    private static final long DEFAULT_WINDOW_MINUTES = 60L;
+
+    /** Default digits of the verification code. */
+    private static final int DEFAULT_CODE_LENGTH = 6;
+
+    /** Default validity of the verification code, in minutes. */
+    private static final long DEFAULT_CODE_TTL_MINUTES = 10L;
+
+    /** Default attempts of the verification code. */
+    private static final int DEFAULT_MAX_ATTEMPTS = 5;
+
+    /** Default retention of the ledger, in days. */
+    private static final long DEFAULT_RETENTION_DAYS = 2L;
+
+    /** Pattern of a region code. */
+    private static final String REGION_PATTERN = &quot;[A-Z]{2}&quot;;
+
+    /**
+     * Applies the defaults and validates the settings.
+     *
+     * @throws IllegalArgumentException if a region is not an upper-case ISO code, a cost or cap is negative, a
+     *                                  number or duration is negative, or the retention is shorter than one day.
+     */
+<span class="fc" id="L89">    public SmsProperties {</span>
+<span class="pc bpc" id="L90" title="1 of 4 branches missed.">        defaultRegion = defaultRegion == null || defaultRegion.isBlank() ? DEFAULT_REGION : defaultRegion;</span>
+<span class="fc" id="L91">        requireRegion(defaultRegion, &quot;default-region&quot;);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        allowedCountries = allowedCountries == null ? DEFAULT_COUNTRIES : Set.copyOf(allowedCountries);</span>
+<span class="fc" id="L93">        allowedCountries.forEach(region -&gt; requireRegion(region, &quot;allowed-countries&quot;));</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        costPerCountryMicros = costPerCountryMicros == null ? Map.of() : Map.copyOf(costPerCountryMicros);</span>
+<span class="fc" id="L95">        costPerCountryMicros.forEach((region, cost) -&gt; {</span>
+<span class="fc" id="L96">            requireRegion(region, &quot;cost-per-country-micros&quot;);</span>
+<span class="fc" id="L97">            requireNotNegative(cost, &quot;cost-per-country-micros.&quot; + region);</span>
+<span class="fc" id="L98">        });</span>
+<span class="fc" id="L99">        requireNotNegative(defaultCostMicros, &quot;default-cost-micros&quot;);</span>
+<span class="fc" id="L100">        requireNotNegative(windowCapMicros, &quot;window-cap-micros&quot;);</span>
+<span class="fc" id="L101">        requireNotNegative(dailyCapMicros, &quot;daily-cap-micros&quot;);</span>
+<span class="fc" id="L102">        window = durationOrDefault(window, Duration.ofMinutes(DEFAULT_WINDOW_MINUTES), &quot;window&quot;);</span>
+<span class="fc" id="L103">        verificationCodeTtl = durationOrDefault(verificationCodeTtl, Duration.ofMinutes(DEFAULT_CODE_TTL_MINUTES),</span>
+                &quot;verification-code-ttl&quot;);
+<span class="fc" id="L105">        ledgerRetention = durationOrDefault(ledgerRetention, Duration.ofDays(DEFAULT_RETENTION_DAYS),</span>
+                &quot;ledger-retention&quot;);
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (ledgerRetention.compareTo(Duration.ofDays(1)) &lt; 0) {</span>
+<span class="fc" id="L108">            throw new IllegalArgumentException(&quot;authserver.sms.ledger-retention must be at least one day&quot;);</span>
+        }
+<span class="fc" id="L110">        verificationCodeLength = numberOrDefault(verificationCodeLength, DEFAULT_CODE_LENGTH,</span>
+                &quot;verification-code-length&quot;);
+<span class="fc" id="L112">        verificationMaxAttempts = numberOrDefault(verificationMaxAttempts, DEFAULT_MAX_ATTEMPTS,</span>
+                &quot;verification-max-attempts&quot;);
+<span class="fc" id="L114">    }</span>
+
+    /**
+     * Rejects a value that is not an upper-case ISO region code.
+     *
+     * @param region the value.
+     * @param key    the key of the setting below {@code authserver.sms}.
+     */
+    private static void requireRegion(final String region, final String key) {
+<span class="pc bpc" id="L123" title="1 of 4 branches missed.">        if (region == null || !region.matches(REGION_PATTERN)) {</span>
+<span class="fc" id="L124">            throw new IllegalArgumentException(&quot;authserver.sms.&quot; + key + &quot; must hold upper-case ISO 3166-1 codes&quot;);</span>
+        }
+<span class="fc" id="L126">    }</span>
+
+    /**
+     * Rejects a negative amount.
+     *
+     * @param value the amount.
+     * @param key   the key of the setting below {@code authserver.sms}.
+     */
+    private static void requireNotNegative(final Long value, final String key) {
+<span class="pc bpc" id="L135" title="1 of 4 branches missed.">        if (value == null || value &lt; 0) {</span>
+<span class="fc" id="L136">            throw new IllegalArgumentException(&quot;authserver.sms.&quot; + key + &quot; must not be negative&quot;);</span>
+        }
+<span class="fc" id="L138">    }</span>
+
+    /**
+     * Keeps a positive number, replaces zero by its default and rejects a negative one.
+     *
+     * @param value        the configured number.
+     * @param defaultValue the default.
+     * @param key          the key of the setting below {@code authserver.sms}.
+     * @return the number to use.
+     */
+    private static int numberOrDefault(final int value, final int defaultValue, final String key) {
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (value &lt; 0) {</span>
+<span class="fc" id="L150">            throw new IllegalArgumentException(&quot;authserver.sms.&quot; + key + &quot; must be positive&quot;);</span>
+        }
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        return value == 0 ? defaultValue : value;</span>
+    }
+
+    /**
+     * Keeps a positive duration, replaces a missing or zero one by its default and rejects a negative one.
+     *
+     * @param value        the configured duration.
+     * @param defaultValue the default.
+     * @param key          the key of the setting below {@code authserver.sms}.
+     * @return the duration to use.
+     */
+    private static Duration durationOrDefault(final Duration value, final Duration defaultValue, final String key) {
+<span class="fc bfc" id="L164" title="All 4 branches covered.">        if (value != null &amp;&amp; value.isNegative()) {</span>
+<span class="fc" id="L165">            throw new IllegalArgumentException(&quot;authserver.sms.&quot; + key + &quot; must be positive&quot;);</span>
+        }
+<span class="pc bpc" id="L167" title="1 of 4 branches missed.">        return value == null || value.isZero() ? defaultValue : value;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

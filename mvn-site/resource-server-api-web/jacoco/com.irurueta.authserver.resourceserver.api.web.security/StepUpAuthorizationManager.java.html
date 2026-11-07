@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StepUpAuthorizationManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:resource-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.resourceserver.api.web.security</a> &gt; <span class="el_source">StepUpAuthorizationManager.java</span></div><h1>StepUpAuthorizationManager.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.resourceserver.api.web.security;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationResult;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+
+/**
+ * Requires that the bearer token proves a recent strong authentication (RFC 9470): its {@code acr} claim must be
+ * one of the configured (space-separated) values and its {@code auth_time} claim no older than the configured maximum
+ * age. The claims are read from the token attributes, so it serves JWTs (their claims) and opaque tokens (the
+ * introspection answer) alike.
+ *
+ * &lt;p&gt;A caller without the {@code requiredAuthority} is denied with an ordinary decision (answered
+ * {@code 403 insufficient_scope}); a caller that has it but fails the step-up check is denied with a
+ * {@link StepUpRequiredDecision}, which {@link StepUpAccessDeniedHandler} answers with the RFC 9470 challenge.
+ */
+// tag::resource-server-step-up[]
+@RequiredArgsConstructor
+public class StepUpAuthorizationManager implements AuthorizationManager&lt;RequestAuthorizationContext&gt; {
+
+    /** Claim carrying the authentication context class reference. */
+    static final String ACR_CLAIM = &quot;acr&quot;;
+
+    /** Claim carrying the time of the user's authentication, in epoch seconds. */
+    static final String AUTH_TIME_CLAIM = &quot;auth_time&quot;;
+
+    /** Separator of the configured {@code acr-values}: any run of whitespace. */
+    private static final String ACR_VALUES_SEPARATOR = &quot;\\s+&quot;;
+
+    /** Authority the caller needs before the step-up requirement is evaluated. */
+    private final String requiredAuthority;
+
+    /** Step-up policy. */
+    private final StepUpProperties properties;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    @Override
+    public AuthorizationResult authorize(final Supplier&lt;? extends Authentication&gt; authentication,
+            final RequestAuthorizationContext context) {
+<span class="fc" id="L66">        final var current = authentication.get();</span>
+<span class="pc bpc" id="L67" title="1 of 4 branches missed.">        if (current == null || !current.isAuthenticated() || current.getAuthorities().stream()</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">                .noneMatch(authority -&gt; requiredAuthority.equals(authority.getAuthority()))) {</span>
+<span class="fc" id="L69">            return new AuthorizationDecision(false);</span>
+        }
+<span class="fc bfc" id="L71" title="All 4 branches covered.">        if (!properties.enabled() || satisfied(current)) {</span>
+<span class="fc" id="L72">            return new AuthorizationDecision(true);</span>
+        }
+<span class="fc" id="L74">        return new StepUpRequiredDecision();</span>
+    }
+
+    /**
+     * Tells whether the token proves the required authentication.
+     *
+     * @param authentication the authenticated bearer token.
+     * @return {@code true} when the {@code acr} matches and {@code auth_time} is recent enough.
+     */
+    private boolean satisfied(final Authentication authentication) {
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (!(authentication instanceof AbstractOAuth2TokenAuthenticationToken&lt;?&gt; token)) {</span>
+<span class="fc" id="L85">            return false;</span>
+        }
+<span class="fc" id="L87">        final var attributes = token.getTokenAttributes();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (!isAccepted(attributes.get(ACR_CLAIM))) {</span>
+<span class="fc" id="L89">            return false;</span>
+        }
+<span class="fc" id="L91">        final var authenticatedAt = toInstant(attributes.get(AUTH_TIME_CLAIM));</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        return authenticatedAt != null</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                &amp;&amp; !authenticatedAt.plus(properties.maxAge()).isBefore(clock.instant());</span>
+    }
+
+    /**
+     * Tells whether an {@code acr} value is one of the configured ones. The configured {@code acr-values} is a
+     * space-separated list, like the {@code acr_values} parameter of OpenID Connect, so the token's single value must
+     * be a member of it, never equal to the whole list.
+     *
+     * @param acr the {@code acr} claim of the token.
+     * @return {@code true} when the claim is a text listed in the configured values.
+     */
+    private boolean isAccepted(final Object acr) {
+<span class="fc" id="L105">        return acr instanceof String value</span>
+<span class="fc bfc" id="L106" title="All 4 branches covered.">                &amp;&amp; Arrays.asList(properties.acrValues().trim().split(ACR_VALUES_SEPARATOR)).contains(value);</span>
+    }
+
+    /**
+     * Converts an {@code auth_time} value, which is epoch seconds in a JWT or an introspection answer.
+     *
+     * @param value the claim value.
+     * @return the instant, or {@code null} when the value is missing or of an unexpected type.
+     */
+    private static Instant toInstant(final Object value) {
+<span class="fc bfc" id="L116" title="All 3 branches covered.">        return switch (value) {</span>
+<span class="fc" id="L117">            case Instant instant -&gt; instant;</span>
+<span class="fc" id="L118">            case Number number -&gt; Instant.ofEpochSecond(number.longValue());</span>
+<span class="fc" id="L119">            case null, default -&gt; null;</span>
+        };
+    }
+}
+// end::resource-server-step-up[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

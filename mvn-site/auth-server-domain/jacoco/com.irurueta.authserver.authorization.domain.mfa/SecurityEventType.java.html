@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityEventType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.mfa</a> &gt; <span class="el_source">SecurityEventType.java</span></div><h1>SecurityEventType.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.mfa;
+
+/**
+ * Kinds of authentication events that are recorded for audit.
+ */
+<span class="fc" id="L21">public enum SecurityEventType {</span>
+
+    /** A user authenticated with the primary factor. */
+<span class="fc" id="L24">    LOGIN_SUCCESS,</span>
+
+    /** An authentication with the primary factor failed. */
+<span class="fc" id="L27">    LOGIN_FAILURE,</span>
+
+    /** A second factor was verified. */
+<span class="fc" id="L30">    SECOND_FACTOR_SUCCESS,</span>
+
+    /** A second factor was rejected. */
+<span class="fc" id="L33">    SECOND_FACTOR_FAILURE,</span>
+
+    /** The second factor of a user was locked after too many failed attempts. */
+<span class="fc" id="L36">    SECOND_FACTOR_LOCKED,</span>
+
+    /** A user trusted a device. */
+<span class="fc" id="L39">    TRUSTED_DEVICE_ADDED,</span>
+
+    /** A trusted device skipped the second factor. */
+<span class="fc" id="L42">    TRUSTED_DEVICE_USED,</span>
+
+    /** A trusted device was revoked. */
+<span class="fc" id="L45">    TRUSTED_DEVICE_REVOKED,</span>
+
+    /** A recovery code was spent in place of a second factor. */
+<span class="fc" id="L48">    RECOVERY_CODE_USED,</span>
+
+    /** A user removed a second factor, which also revokes every trusted device of the user. */
+<span class="fc" id="L51">    SECOND_FACTOR_REMOVED</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

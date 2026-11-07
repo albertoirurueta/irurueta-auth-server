@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReuseDetectingAuthorizationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.tokens</a> &gt; <span class="el_source">ReuseDetectingAuthorizationService.java</span></div><h1>ReuseDetectingAuthorizationService.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.tokens;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.OAuth2Token;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+
+/**
+ * Decorator of an {@link OAuth2AuthorizationService} that detects the reuse of rotated refresh tokens. When saving an
+ * authorization whose refresh token changed, the hash of the old token is recorded; when a token that was already
+ * rotated out is presented, the authorization it belonged to is revoked, because the token was either stolen or
+ * replayed.
+ */
+<span class="fc" id="L38">@Slf4j</span>
+@RequiredArgsConstructor
+public class ReuseDetectingAuthorizationService implements OAuth2AuthorizationService {
+
+    /** Algorithm that hashes the stored tokens. */
+    private static final String HASH_ALGORITHM = &quot;SHA-256&quot;;
+
+    /** Statement recording a rotated-out token. */
+    private static final String INSERT_CONSUMED = &quot;&quot;&quot;
+            INSERT INTO consumed_refresh_tokens (token_hash, authorization_id) VALUES (?, ?)
+            ON CONFLICT (token_hash) DO NOTHING
+            &quot;&quot;&quot;;
+
+    /** Query returning the authorization a rotated-out token belonged to. */
+    private static final String FIND_CONSUMED = &quot;&quot;&quot;
+            SELECT authorization_id FROM consumed_refresh_tokens WHERE token_hash = ?
+            &quot;&quot;&quot;;
+
+    /** Service that stores the authorizations. */
+    private final OAuth2AuthorizationService delegate;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    // tag::tokens-reuse-detection[]
+    @Override
+    public void save(final OAuth2Authorization authorization) {
+<span class="fc" id="L65">        final var previous = delegate.findById(authorization.getId());</span>
+<span class="fc" id="L66">        delegate.save(authorization);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (previous == null) {</span>
+<span class="fc" id="L68">            return;</span>
+        }
+<span class="fc" id="L70">        final var oldToken = refreshTokenValue(previous);</span>
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">        if (oldToken != null &amp;&amp; !oldToken.equals(refreshTokenValue(authorization))) {</span>
+<span class="fc" id="L72">            jdbcClient.sql(INSERT_CONSUMED).params(hash(oldToken), authorization.getId()).update();</span>
+        }
+<span class="fc" id="L74">    }</span>
+
+    @Override
+    public void remove(final OAuth2Authorization authorization) {
+<span class="nc" id="L78">        delegate.remove(authorization);</span>
+<span class="nc" id="L79">    }</span>
+
+    @Override
+    public OAuth2Authorization findById(final String id) {
+<span class="fc" id="L83">        return delegate.findById(id);</span>
+    }
+
+    @Override
+    public OAuth2Authorization findByToken(final String token, final OAuth2TokenType tokenType) {
+<span class="fc" id="L88">        final var authorization = delegate.findByToken(token, tokenType);</span>
+<span class="pc bpc" id="L89" title="2 of 6 branches missed.">        if (authorization != null || (tokenType != null &amp;&amp; !OAuth2TokenType.REFRESH_TOKEN.equals(tokenType))) {</span>
+<span class="fc" id="L90">            return authorization;</span>
+        }
+<span class="fc" id="L92">        jdbcClient.sql(FIND_CONSUMED).param(hash(token)).query(String.class).optional()</span>
+<span class="fc" id="L93">                .map(delegate::findById)</span>
+<span class="fc" id="L94">                .ifPresent(compromised -&gt; {</span>
+<span class="fc" id="L95">                    log.warn(&quot;A rotated refresh token was presented again; revoking the authorization {}&quot;,</span>
+<span class="fc" id="L96">                            compromised.getId());</span>
+<span class="fc" id="L97">                    delegate.remove(compromised);</span>
+<span class="fc" id="L98">                });</span>
+<span class="fc" id="L99">        return null;</span>
+    }
+    // end::tokens-reuse-detection[]
+
+    /**
+     * Reads the value of the refresh token of an authorization.
+     *
+     * @param authorization the authorization.
+     * @return the token value, or {@code null} when the authorization has no refresh token.
+     */
+    private static String refreshTokenValue(final OAuth2Authorization authorization) {
+<span class="fc" id="L110">        final var token = authorization.getRefreshToken();</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        final OAuth2Token value = token == null ? null : token.getToken();</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        return value instanceof OAuth2RefreshToken refreshToken ? refreshToken.getTokenValue() : null;</span>
+    }
+
+    /**
+     * Hashes a token value, so that the stored values cannot be used as tokens.
+     *
+     * @param token token value.
+     * @return the hexadecimal SHA-256 digest.
+     */
+    static String hash(final String token) {
+        try {
+<span class="fc" id="L123">            final var digest = MessageDigest.getInstance(HASH_ALGORITHM);</span>
+<span class="fc" id="L124">            return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));</span>
+<span class="nc" id="L125">        } catch (final NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L126">            throw new IllegalStateException(HASH_ALGORITHM + &quot; is not available&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

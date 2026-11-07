@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseJwkSourceConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-keys</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.keys</a> &gt; <span class="el_source">DatabaseJwkSourceConfiguration.java</span></div><h1>DatabaseJwkSourceConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.keys;
+
+import com.irurueta.authserver.authorization.application.keys.ActiveSigningKeyUseCase;
+import com.irurueta.authserver.authorization.application.keys.PublishedSigningKeysUseCase;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+import java.time.Clock;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+
+// tag::keys-jwk-source[]
+/**
+ * Serves the signing keys kept by the key use cases. Two views of them exist on purpose: the public JWKS lists the
+ * active key, the next key and the still-valid retired keys, whereas the {@link JwtEncoder} only ever sees the single
+ * active key with its private half, so signing never has to choose between several keys. The conversion of the
+ * stored keys into JSON Web Keys belongs to the {@link SigningKeyJwkMapper}.
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L40">public class DatabaseJwkSourceConfiguration {</span>
+
+    /**
+     * Creates the cached set of public keys.
+     *
+     * @param published use case that finds the keys to publish.
+     * @param mapper    maps the keys onto JSON Web Keys.
+     * @param clock     source of the current time.
+     * @param ttl       how long the set is kept ({@code authserver.keys.jwks-cache-ttl}, default 30 seconds).
+     * @return the cache; call {@link CachedJwkSet#refresh()} after a rotation.
+     */
+    @Bean
+    public CachedJwkSet publishedJwkSet(
+            final PublishedSigningKeysUseCase published, final SigningKeyJwkMapper mapper, final Clock clock,
+            @Value(&quot;${authserver.keys.jwks-cache-ttl:PT30S}&quot;) final Duration ttl) {
+<span class="fc" id="L55">        return new CachedJwkSet(() -&gt; mapper.toPublicJwkSet(published.execute()), ttl, clock);</span>
+    }
+
+    /**
+     * Creates the cached set holding only the active key, with its private half.
+     *
+     * @param active use case that finds the active key.
+     * @param mapper maps the key onto a JSON Web Key, decrypting its private half.
+     * @param clock  source of the current time.
+     * @param ttl    how long the set is kept ({@code authserver.keys.jwks-cache-ttl}, default 30 seconds).
+     * @return the cache; call {@link CachedJwkSet#refresh()} after a rotation.
+     */
+    @Bean
+    public CachedJwkSet signingJwkSet(
+            final ActiveSigningKeyUseCase active, final SigningKeyJwkMapper mapper, final Clock clock,
+            @Value(&quot;${authserver.keys.jwks-cache-ttl:PT30S}&quot;) final Duration ttl) {
+<span class="fc" id="L71">        return new CachedJwkSet(() -&gt; mapper.toSigningJwkSet(active.execute()), ttl, clock);</span>
+    }
+
+    /**
+     * Creates the source of the public JWKS. It never holds a private key.
+     *
+     * @param publishedJwkSet the cached public keys.
+     * @return the source.
+     */
+    @Bean
+    public JWKSource&lt;SecurityContext&gt; jwkSource(@Qualifier(&quot;publishedJwkSet&quot;) final CachedJwkSet publishedJwkSet) {
+<span class="fc" id="L82">        return (selector, context) -&gt; selector.select(publishedJwkSet.get());</span>
+    }
+
+    /**
+     * Creates the encoder that signs tokens with the active key.
+     *
+     * @param signingJwkSet the cached active key.
+     * @return the encoder.
+     */
+    @Bean
+    public JwtEncoder jwtEncoder(@Qualifier(&quot;signingJwkSet&quot;) final CachedJwkSet signingJwkSet) {
+<span class="fc" id="L93">        return new NimbusJwtEncoder((selector, context) -&gt; selector.select(signingJwkSet.get()));</span>
+    }
+}
+// end::keys-jwk-source[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

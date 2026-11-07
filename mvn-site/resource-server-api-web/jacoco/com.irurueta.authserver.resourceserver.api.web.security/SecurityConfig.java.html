@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:resource-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.resourceserver.api.web.security</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.resourceserver.api.web.security;
+
+import com.irurueta.authserver.resourceserver.api.web.OpenApiConfig;
+import com.irurueta.authserver.resourceserver.api.web.documents.DocumentController;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.introspection.SpringOpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.util.CollectionUtils;
+
+/**
+ * Secures the API: every request except the health endpoint and the OpenAPI document requires a valid bearer token
+ * issued by the authorization server for this resource server's audience. Failures answer with the RFC 6750
+ * {@code WWW-Authenticate} challenge ({@code invalid_token} / {@code insufficient_scope}). By default the tokens are
+ * JWTs; the {@code opaque} profile introspects them instead.
+ */
+@Configuration(proxyBeanMethods = false)
+@EnableMethodSecurity
+@EnableConfigurationProperties(StepUpProperties.class)
+<span class="fc" id="L51">public class SecurityConfig {</span>
+
+    /** Authority of the scope that allows reading documents. */
+    static final String READ_AUTHORITY = &quot;SCOPE_documents.read&quot;;
+
+    /** Authority of the scope that allows deleting documents. */
+    static final String DELETE_AUTHORITY = &quot;SCOPE_documents.delete&quot;;
+
+    /** Path pattern of a single document. */
+    static final String DOCUMENT_PATH = DocumentController.PATH + &quot;/*&quot;;
+
+    // tag::resource-server-security[]
+    /**
+     * Builds the filter chain validating bearer JWTs (the decoder is built from {@code issuer-uri}, and the
+     * configured audiences are validated by it).
+     *
+     * @param http       the HTTP security builder.
+     * @param properties the resource server properties.
+     * @param stepUp     requires a recent strong authentication to delete.
+     * @param accessDeniedHandler answers the denials, including the step-up challenge.
+     * @return the security filter chain.
+     * @throws Exception if the chain cannot be built.
+     * @throws IllegalStateException if no accepted audience is configured.
+     */
+    @Bean
+    @Profile(&quot;!opaque&quot;)
+    SecurityFilterChain resourceServerFilterChain(final HttpSecurity http,
+            final OAuth2ResourceServerProperties properties, final StepUpAuthorizationManager stepUp,
+            final StepUpAccessDeniedHandler accessDeniedHandler) throws Exception {
+<span class="nc" id="L80">        requireAudiences(properties.getJwt().getAudiences());</span>
+<span class="nc" id="L81">        authorize(http, stepUp);</span>
+<span class="nc" id="L82">        http.oauth2ResourceServer(oauth2 -&gt; oauth2</span>
+<span class="nc" id="L83">                .jwt(jwt -&gt; jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))</span>
+<span class="nc" id="L84">                .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())</span>
+<span class="nc" id="L85">                .accessDeniedHandler(accessDeniedHandler));</span>
+<span class="nc" id="L86">        return http.build();</span>
+    }
+    // end::resource-server-security[]
+
+    /**
+     * Builds the filter chain of the opaque-token variant.
+     *
+     * @param http        the HTTP security builder.
+     * @param introspector introspector that validates the opaque tokens.
+     * @param stepUp       requires a recent strong authentication to delete.
+     * @param accessDeniedHandler answers the denials, including the step-up challenge.
+     * @return the security filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    @Profile(&quot;opaque&quot;)
+    SecurityFilterChain opaqueTokenFilterChain(final HttpSecurity http, final OpaqueTokenIntrospector introspector,
+            final StepUpAuthorizationManager stepUp, final StepUpAccessDeniedHandler accessDeniedHandler)
+            throws Exception {
+<span class="nc" id="L105">        authorize(http, stepUp);</span>
+<span class="nc" id="L106">        http.oauth2ResourceServer(oauth2 -&gt; oauth2</span>
+<span class="nc" id="L107">                .opaqueToken(opaque -&gt; opaque.introspector(introspector))</span>
+<span class="nc" id="L108">                .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())</span>
+<span class="nc" id="L109">                .accessDeniedHandler(accessDeniedHandler));</span>
+<span class="nc" id="L110">        return http.build();</span>
+    }
+
+    // tag::resource-server-step-up-beans[]
+    /**
+     * Builds the manager that requires a recent strong authentication to delete a document.
+     *
+     * @param properties the step-up policy.
+     * @return the manager.
+     */
+    @Bean
+    StepUpAuthorizationManager stepUpAuthorizationManager(final StepUpProperties properties) {
+<span class="fc" id="L122">        return new StepUpAuthorizationManager(DELETE_AUTHORITY, properties, Clock.systemUTC());</span>
+    }
+
+    /**
+     * Builds the handler that answers the step-up requirement with the RFC 9470 challenge and every other denial
+     * with the RFC 6750 one.
+     *
+     * @param properties the step-up policy.
+     * @return the handler.
+     */
+    @Bean
+    StepUpAccessDeniedHandler stepUpAccessDeniedHandler(final StepUpProperties properties) {
+<span class="fc" id="L134">        return new StepUpAccessDeniedHandler(new BearerTokenAccessDeniedHandler(), properties);</span>
+    }
+    // end::resource-server-step-up-beans[]
+
+    /**
+     * Builds the introspector of the opaque-token variant. The introspection URI and the client credentials come
+     * from the environment (see {@code application-opaque.yml}); no value is ever defaulted.
+     *
+     * @param properties the resource server properties.
+     * @return the introspector.
+     * @throws IllegalStateException if no accepted audience is configured.
+     */
+    @Bean
+    @Profile(&quot;opaque&quot;)
+    OpaqueTokenIntrospector opaqueTokenIntrospector(final OAuth2ResourceServerProperties properties) {
+<span class="fc" id="L149">        final var audiences = properties.getJwt().getAudiences();</span>
+<span class="fc" id="L150">        requireAudiences(audiences);</span>
+<span class="fc" id="L151">        final var opaque = properties.getOpaquetoken();</span>
+<span class="fc" id="L152">        final var delegate = SpringOpaqueTokenIntrospector.withIntrospectionUri(opaque.getIntrospectionUri())</span>
+<span class="fc" id="L153">                .clientId(opaque.getClientId())</span>
+<span class="fc" id="L154">                .clientSecret(opaque.getClientSecret())</span>
+<span class="fc" id="L155">                .build();</span>
+<span class="fc" id="L156">        return new AudienceRolesOpaqueTokenIntrospector(delegate, List.copyOf(audiences));</span>
+    }
+
+    // tag::resource-server-converter[]
+    /**
+     * Maps the {@code scope} claim to {@code SCOPE_*} authorities (the default converter) and the {@code roles}
+     * claim to {@code ROLE_*} authorities.
+     *
+     * @return the converter.
+     */
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+<span class="fc" id="L167">        final var scopes = new JwtGrantedAuthoritiesConverter();</span>
+<span class="fc" id="L168">        final var converter = new JwtAuthenticationConverter();</span>
+<span class="fc" id="L169">        converter.setJwtGrantedAuthoritiesConverter(jwt -&gt; {</span>
+<span class="fc" id="L170">            final var authorities = new ArrayList&lt;GrantedAuthority&gt;(scopes.convert(jwt));</span>
+<span class="fc" id="L171">            authorities.addAll(BearerAuthorities.roleAuthorities(</span>
+<span class="fc" id="L172">                    jwt.getClaimAsStringList(BearerAuthorities.ROLES_CLAIM)));</span>
+<span class="fc" id="L173">            return authorities;</span>
+        });
+<span class="fc" id="L175">        return converter;</span>
+    }
+    // end::resource-server-converter[]
+
+    /**
+     * Declares which requests are public and which need a scope. Deleting also needs a recent strong
+     * authentication (RFC 9470) and is protected by method security as well.
+     *
+     * @param http   the HTTP security builder.
+     * @param stepUp requires a recent strong authentication to delete.
+     */
+    private static void authorize(final HttpSecurity http, final StepUpAuthorizationManager stepUp) {
+<span class="nc" id="L187">        http.authorizeHttpRequests(authorize -&gt; authorize</span>
+<span class="nc" id="L188">                .requestMatchers(&quot;/actuator/health/**&quot;, OpenApiConfig.API_DOCS_PATH + &quot;/**&quot;).permitAll()</span>
+<span class="nc" id="L189">                .requestMatchers(HttpMethod.GET, DocumentController.PATH).hasAuthority(READ_AUTHORITY)</span>
+<span class="nc" id="L190">                .requestMatchers(HttpMethod.DELETE, DOCUMENT_PATH).access(stepUp)</span>
+<span class="nc" id="L191">                .anyRequest().authenticated());</span>
+<span class="nc" id="L192">    }</span>
+
+    /**
+     * Fails fast when no accepted audience is configured, instead of accepting every token.
+     *
+     * @param audiences configured audiences.
+     * @throws IllegalStateException if there is none.
+     */
+    private static void requireAudiences(final List&lt;String&gt; audiences) {
+<span class="fc bfc" id="L201" title="All 2 branches covered.">        if (CollectionUtils.isEmpty(audiences)) {</span>
+<span class="fc" id="L202">            throw new IllegalStateException(</span>
+                    &quot;spring.security.oauth2.resourceserver.jwt.audiences must list the accepted audience&quot;);
+        }
+<span class="fc" id="L205">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

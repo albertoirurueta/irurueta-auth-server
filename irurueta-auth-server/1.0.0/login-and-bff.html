@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Login pages and the BFF :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="login-and-bff.html">Login pages and the BFF</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/login-and-bff.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Login pages and the BFF</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>This page describes the server-rendered pages of <code>auth-server</code> (login, consent, logout) and how the <code>bff</code> signs users in
+for a single page application (SPA) without ever exposing a token to the browser.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_login_page"><a class="anchor" href="#_login_page"></a>Login page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The pages are Thymeleaf templates under <code>auth-server/api/web/src/main/resources/templates</code>. They share one layout
+(<code>fragments/layout.html</code>) that renders the branding header and footer, and load a stylesheet from the same origin: there
+is no inline script or style, which is what lets the content security policy be strict. The text comes from
+<code>messages.properties</code> (English; <code>spring.web.locale: en</code> and no fallback to the system locale, so the language never
+depends on the machine).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)" th:lang="${#locale.language}" lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title th:replace="${title}"&gt;Authorization server&lt;/title&gt;
+  &lt;link rel="stylesheet" th:href="@{/css/pages.css}"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;header class="branding"&gt;
+  &lt;img th:if="${branding != null and !#strings.isEmpty(branding.logoUrl)}" th:src="${branding.logoUrl}" alt=""
+       class="branding-logo"&gt;
+  &lt;span class="branding-name" th:text="${branding != null} ? ${branding.applicationName} : 'Irurueta Auth Server'"&gt;
+    Irurueta Auth Server&lt;/span&gt;
+&lt;/header&gt;
+&lt;main th:replace="${content}"&gt;
+  &lt;p&gt;Page content&lt;/p&gt;
+&lt;/main&gt;
+&lt;footer th:if="${branding != null and !#strings.isEmpty(branding.footerText)}" th:text="${branding.footerText}"&gt;&lt;/footer&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each page is an operation of the contract <code>apis/auth-server/web-pages/auth-server-pages-v1.yaml</code>, like every other
+endpoint of the application: openapi-generator turns it into an interface (<code>LoginPageApi</code>, <code>ConsentPageApi</code>,
+<code>LogoutPageApi</code>) whose method answers the page as <code>text/html</code>, and the controller only implements it. No controller
+carries a mapping annotation of its own (<code>HexagonalArchitectureTest</code> fails the build otherwise), and <code>OpenApiDriftIT</code>
+compares the contract with the springdoc group <code>pages</code> (<code>/v3/api-docs/pages</code>). The login page is public; the consent
+and logout pages need the session.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /login:
+    get:
+      tags: [ Login page ]
+      operationId: loginPage
+      summary: Renders the sign-in page
+      description: &gt;-
+        Renders the sign-in page with the form of every sign-in method (each LoginMethodFragment bean contributes
+        one). The forms post to the security chain (POST /login), never to this operation. Public: it is where the
+        browser is sent when it has no session.
+      security: [ ]
+      parameters:
+        - name: error
+          in: query
+          required: false
+          description: &gt;-
+            Present (its value is ignored, usually empty) when the previous sign-in failed; the page then shows the
+            message of that failure, which never reveals whether the account exists.
+          schema:
+            type: string
+        - name: logout
+          in: query
+          required: false
+          description: &gt;-
+            Present (its value is ignored, usually empty) when the user has just signed out; the page then says so.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The sign-in page.
+          content:
+            text/html:
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A controller builds the model and hands the template to <code>PageRenderer</code>, which resolves the view through the
+application&#8217;s view resolvers, with the locale of the request, and renders it against the current request into a
+response wrapper that captures the markup. Rendering against the real request is what keeps the templates working:
+<code>th:action</code> still adds the CSRF hidden field, <code>@{&#8230;&#8203;}</code> links and <code>#{&#8230;&#8203;}</code> messages resolve as before. The markup is then
+answered as the <code>text/html</code> body of the generated method.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Renders the login page.
+     *
+     * @param error  present (even if empty) when the previous attempt failed.
+     * @param logout present (even if empty) when the user has just signed out.
+     * @return the login page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; loginPage(final String error, final String logout) {
+        final var model = new HashMap&lt;String, Object&gt;();
+        model.put(LOGIN_PATH_ATTRIBUTE, LOGIN_PATH);
+        model.put(FRAGMENTS_ATTRIBUTE, fragments);
+        if (error != null) {
+            model.put(ERROR_MESSAGE_ATTRIBUTE, errorMessages.keyOf(lastFailure()));
+        }
+        model.put(LOGGED_OUT_ATTRIBUTE, logout != null);
+        return pageRenderer.render(VIEW_NAME, model);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The login page itself contains no sign-in method. Each <code>LoginMethodFragment</code> bean contributes one, rendered below the
+heading, so adding a method never edits the page. The username and password form is the fragment of
+<code>PasswordLoginFragment</code>, in <code>password.html</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"&gt;
+&lt;head&gt;
+  &lt;title th:text="#{login.title}"&gt;Sign in&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1 th:text="#{login.heading}"&gt;Sign in&lt;/h1&gt;
+  &lt;div th:if="${errorMessageKey != null}" role="alert" th:text="#{${errorMessageKey}}"&gt;Invalid username or password.&lt;/div&gt;
+  &lt;div th:if="${loggedOut}" role="status" th:text="#{login.logout}"&gt;You have been signed out.&lt;/div&gt;
+  &lt;section th:each="fragment : ${fragments}" class="login-method"&gt;
+    &lt;!-- LoginMethodFragment.reference() is the single source of the "template :: fragment" expression --&gt;
+    &lt;div th:replace="~{__${fragment.reference()}__}"&gt;&lt;/div&gt;
+  &lt;/section&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;form th:fragment="form" method="post" th:action="@{${loginPath}}"&gt;
+  &lt;p&gt;
+    &lt;label for="username" th:text="#{login.username}"&gt;Username&lt;/label&gt;
+    &lt;input type="text" id="username" name="username" required autofocus autocomplete="username"&gt;
+  &lt;/p&gt;
+  &lt;p&gt;
+    &lt;label for="password" th:text="#{login.password}"&gt;Password&lt;/label&gt;
+    &lt;input type="password" id="password" name="password" required autocomplete="current-password"&gt;
+  &lt;/p&gt;
+  &lt;button type="submit" th:text="#{login.submit}"&gt;Sign in&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Branding is configured under <code>authserver.ui.branding.*</code> (application name, logo URL, footer text), with defaults, and
+added to the model of every page by <code>PageRenderer</code> (and of the error page by <code>ErrorPageViewResolver</code>), both through
+<code>BrandingProvider</code>. The logo is either a path served by this application or an absolute
+<code>http(s)</code> URL on another origin, which the content security policy then allows for images (see below); a
+protocol-relative URL (<code>//host/&#8230;&#8203;</code>) is not recognised as another origin, so write the scheme.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Branding shown by the login, consent, logout and error pages, bound from {@code authserver.ui.branding.*}.
+ *
+ * @param applicationName name shown in the page header and title; defaults to {@link #DEFAULT_APPLICATION_NAME}.
+ * @param logoUrl         optional URL of a logo image: a path served by this application, or an absolute
+ *                        {@code http(s)} URL whose origin the content security policy then allows for images; empty
+ *                        when there is none.
+ * @param footerText      optional text shown below every page; empty when there is none.
+ */
+@ConfigurationProperties("authserver.ui.branding")
+public record BrandingProperties(String applicationName, String logoUrl, String footerText) {
+
+    /** Application name used when none is configured. */
+    public static final String DEFAULT_APPLICATION_NAME = "Irurueta Auth Server";
+
+    /**
+     * Applies the defaults.
+     *
+     * @param applicationName name shown in the page header, blank for the default.
+     * @param logoUrl         optional logo URL, blank for none.
+     * @param footerText      optional footer text, blank for none.
+     */
+    public BrandingProperties {
+        applicationName = StringUtils.hasText(applicationName) ? applicationName : DEFAULT_APPLICATION_NAME;
+        logoUrl = StringUtils.hasText(logoUrl) ? logoUrl : "";
+        footerText = StringUtils.hasText(footerText) ? footerText : "";
+    }
+}</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_security_headers"><a class="anchor" href="#_security_headers"></a>Security headers</h3>
+<div class="paragraph">
+<p><code>LoginHeadersCustomizer</code> adds a <code>Content-Security-Policy</code>, <code>X-Content-Type-Options: nosniff</code> and
+<code>Referrer-Policy: no-referrer</code> to the pages of the login chain. The policy is built by <code>LoginContentSecurityPolicy</code> from
+the branding: <code>default-src 'self'; frame-ancestors 'none'; img-src 'self' data:</code> (same-origin resources only, no
+framing, and <code>data:</code> images for the QR code of an authenticator app, rendered in memory so its secret never becomes a
+resource of its own) and, when the logo is an absolute <code>http(s)</code> URL, the origin of the logo is added to <code>img-src</code>, so
+the logo loads while scripts, styles and every other resource stay same-origin.</p>
+</div>
+<div class="paragraph">
+<p>The policy has deliberately no <code>form-action</code> directive. Browsers also apply it to the redirects that follow a form
+submission, so <code>form-action 'self'</code> blocked (in Chromium) the redirect from the login or consent form back to the client
+application&#8217;s <code>redirect_uri</code>, which is on another origin.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds the security headers of the server-rendered pages: the content security policy that
+ * {@link LoginContentSecurityPolicy} builds (same-origin resources only, no framing, and the origin of an absolute
+ * branding logo URL for images), {@code X-Content-Type-Options} and {@code Referrer-Policy}.
+ *
+ * &lt;p&gt;The policy deliberately has no {@code form-action} directive: browsers also apply it to the redirects that follow
+ * a form submission, so {@code form-action 'self'} would block the redirect from the login or consent form back to the
+ * client application's {@code redirect_uri}, which is on another origin.
+ */
+@Component
+@Order(0)
+@RequiredArgsConstructor
+public class LoginHeadersCustomizer implements LoginChainCustomizer {
+
+    /** Builds the content security policy from the branding. */
+    private final LoginContentSecurityPolicy contentSecurityPolicy;
+
+    @Override
+    public void customize(final HttpSecurity http) {
+        final var policy = contentSecurityPolicy.policy();
+        http.headers(headers -&gt; {
+            headers.contentSecurityPolicy(csp -&gt; csp.policyDirectives(policy));
+            headers.contentTypeOptions(Customizer.withDefaults());
+            headers.referrerPolicy(referrer -&gt; referrer.policy(ReferrerPolicy.NO_REFERRER));
+        });
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Builds the content security policy of the server-rendered pages from the {@link BrandingProperties}: same-origin
+ * resources only and no framing, except that images may also be {@code data:} URIs (the QR code of an authenticator
+ * app, rendered in memory so its secret never becomes a resource of its own) and, when the branding logo is an
+ * absolute {@code http(s)} URL, come from its origin ({@code img-src 'self' data: &lt;scheme://host[:port]&gt;}). A relative
+ * logo URL is same-origin and needs nothing more.
+ */
+@Component
+@RequiredArgsConstructor
+public class LoginContentSecurityPolicy {
+
+    /**
+     * Policy of the pages when the logo, if any, is served by this application. Its last directive lists the image
+     * sources, so the origin of an absolute logo URL is appended to it.
+     */
+    public static final String DEFAULT_POLICY = "default-src 'self'; frame-ancestors 'none'; img-src 'self' data:";
+
+    /** Schemes whose origin is added for an absolute logo URL. */
+    private static final Set&lt;String&gt; WEB_SCHEMES = Set.of("http", "https");
+
+    /** Provider of the configured branding; absent in web slices that do not enable the properties. */
+    private final ObjectProvider&lt;BrandingProperties&gt; branding;
+
+    /**
+     * Builds the policy.
+     *
+     * @return {@link #DEFAULT_POLICY}, with the logo's origin added to its {@code img-src} directive when the logo is
+     *         an absolute {@code http(s)} URL.
+     */
+    public String policy() {
+        final var logoUrl = branding.getIfAvailable(() -&gt; new BrandingProperties(null, null, null)).logoUrl();
+        return originOf(logoUrl).map(origin -&gt; DEFAULT_POLICY + " " + origin).orElse(DEFAULT_POLICY);
+    }
+
+    /**
+     * Extracts the origin of an absolute {@code http(s)} URL.
+     *
+     * @param url the URL; may be empty.
+     * @return {@code scheme://host[:port]} in lower case, or empty when the URL is relative, not {@code http(s)},
+     *         has no host or cannot be parsed.
+     */
+    private static Optional&lt;String&gt; originOf(final String url) {
+        try {
+            final var uri = new URI(url);
+            final var scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
+            if (!WEB_SCHEMES.contains(scheme) || uri.getHost() == null) {
+                return Optional.empty();
+            }
+            final var port = uri.getPort() &lt; 0 ? "" : ":" + uri.getPort();
+            return Optional.of(scheme + "://" + uri.getHost().toLowerCase(Locale.ROOT) + port);
+        } catch (final URISyntaxException invalid) {
+            return Optional.empty();
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sign_in_errors_and_user_enumeration"><a class="anchor" href="#_sign_in_errors_and_user_enumeration"></a>Sign-in errors and user enumeration</h3>
+<div class="paragraph">
+<p>A failed sign-in shows one message. A wrong password and an unknown user share the generic "Invalid username or
+password.", so the page never tells whether an account exists. The account status messages (locked, disabled,
+expired account, expired password) could tell it, because Spring Security&#8217;s default <code>DaoAuthenticationProvider</code> checks
+the status <strong>before</strong> the password: a wrong password for a disabled account would answer "This account is disabled.". The
+<code>password</code> feature therefore declares its own provider (<code>PasswordAuthenticationConfiguration</code>) that checks nothing
+before the password and the status after it (<code>AccountStatusUserDetailsChecker</code>): a wrong password always gets the
+generic message, and a status message only appears to someone who typed the correct password. Everything else is as
+the provider Spring Security would build: the password encoder, the hash upgrade on sign-in through
+<code>UserAccountUserDetailsService</code>, a <code>CompromisedPasswordChecker</code> when one bean of that type exists, and unknown users
+hidden behind bad credentials.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the authentication provider of the username and password sign-in.
+     *
+     * @param userDetailsService         loads the account by username.
+     * @param userDetailsPasswordService stores the upgraded hash after a sign-in with an outdated encoding.
+     * @param passwordEncoder            verifies the password, and tells when its hash needs upgrading.
+     * @param compromisedPasswordChecker the compromised-password checker of Spring Security, when one is declared.
+     * @return the provider, which checks the account status only after a correct password.
+     */
+    @Bean
+    public DaoAuthenticationProvider passwordAuthenticationProvider(final UserDetailsService userDetailsService,
+            final UserDetailsPasswordService userDetailsPasswordService, final PasswordEncoder passwordEncoder,
+            final ObjectProvider&lt;CompromisedPasswordChecker&gt; compromisedPasswordChecker) {
+        final var provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsPasswordService(userDetailsPasswordService);
+        compromisedPasswordChecker.ifUnique(provider::setCompromisedPasswordChecker);
+        provider.setHideUserNotFoundExceptions(true);
+        provider.setPreAuthenticationChecks(NO_PRE_AUTHENTICATION_CHECKS);
+        provider.setPostAuthenticationChecks(new AccountStatusUserDetailsChecker());
+        return provider;
+    }</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The account model only has an <code>enabled</code> flag, so <code>UserDetailsMapper</code> only produces disabled accounts; the locked,
+expired-account and expired-password messages exist in <code>LoginErrorMessages</code> and <code>messages.properties</code> but are not
+produced yet.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_consent_page"><a class="anchor" href="#_consent_page"></a>Consent page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The authorization endpoint is pointed at the custom consent page (<code>ConsentProtocolCustomizer</code>) instead of the generated
+one. The page lists the requested scopes with a description each, as checkboxes that are checked by default, and the
+scopes already granted. <strong>Allow</strong> posts the approved scopes back to <code>/oauth2/authorize</code>; <strong>Deny</strong> posts none, which the
+authorization endpoint answers with <code>error=access_denied</code>, and the BFF then shows a sign-in failure.</p>
+</div>
+<div class="paragraph">
+<p>Consent is a property of the registered client: <code>requireConsent</code> in the client registration and in the clients API
+(<code>POST</code> and <code>PUT /api/admin/clients</code>; default <code>false</code>). The default <code>bff</code> client requires it, <code>spa-public</code> does not.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"&gt;
+&lt;head&gt;
+  &lt;title th:text="#{consent.title}"&gt;Authorize application&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1 th:text="#{consent.heading(${consent.clientName})}"&gt;Authorize application&lt;/h1&gt;
+  &lt;p th:text="#{consent.intro(${consent.clientName}, ${consent.principalName})}"&gt;The application wants access.&lt;/p&gt;
+  &lt;!-- the decision is posted back to the authorization endpoint, which reads client_id, state and the approved scopes --&gt;
+  &lt;form method="post" th:action="@{/oauth2/authorize}"&gt;
+    &lt;input type="hidden" name="client_id" th:value="${consent.clientId}"&gt;
+    &lt;input type="hidden" name="state" th:value="${consent.state}"&gt;
+    &lt;p th:if="${#lists.isEmpty(consent.scopesToApprove)}" th:text="#{consent.none}"&gt;No additional permission.&lt;/p&gt;
+    &lt;ul class="scopes"&gt;
+      &lt;li th:each="scope, status : ${consent.scopesToApprove}"&gt;
+        &lt;input type="checkbox" name="scope" th:id="${'scope-' + status.index}" th:value="${scope.name}" checked&gt;
+        &lt;label th:for="${'scope-' + status.index}" th:text="${scope.description}"&gt;Scope&lt;/label&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;button type="submit" id="allow" th:text="#{consent.allow}"&gt;Allow&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;!-- denying posts no scope at all, which the authorization endpoint answers with error=access_denied --&gt;
+  &lt;form method="post" th:action="@{/oauth2/authorize}"&gt;
+    &lt;input type="hidden" name="client_id" th:value="${consent.clientId}"&gt;
+    &lt;input type="hidden" name="state" th:value="${consent.state}"&gt;
+    &lt;button type="submit" id="deny" class="secondary" th:text="#{consent.deny}"&gt;Deny&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;section th:if="${!#lists.isEmpty(consent.approvedScopes)}"&gt;
+    &lt;p th:text="#{consent.previous}"&gt;You already granted these permissions:&lt;/p&gt;
+    &lt;ul class="scopes"&gt;
+      &lt;li th:each="scope : ${consent.approvedScopes}" th:text="${scope.description}"&gt;Scope&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/section&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>ConsentController</code> implements the generated <code>ConsentPageApi</code>: it looks the client up (an unknown one is a <code>400</code>,
+rendered as the error page), reads the scopes the user granted earlier and renders the page.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Renders the consent page.
+     *
+     * @param clientId identifier of the client that asks for access.
+     * @param scope    requested scopes, space delimited.
+     * @param state    state of the authorization request.
+     * @return the consent page.
+     * @throws ResponseStatusException with status 400 when the client is unknown.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; consentPage(final String clientId, final String scope, final String state) {
+        final var client = registeredClientRepository.findByClientId(clientId);
+        if (client == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown client");
+        }
+        final var principalName = request.getUserPrincipal().getName();
+        final var consent = authorizationConsentService.findById(client.getId(), principalName);
+        final Set&lt;String&gt; granted = consent == null ? Set.of() : consent.getScopes();
+        return pageRenderer.render(VIEW_NAME, Map.of(CONSENT_ATTRIBUTE, mapper.toModel(client, principalName, state,
+                scope, granted, RequestContextUtils.getLocale(request))));
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /oauth2/consent:
+    get:
+      tags: [ Consent page ]
+      operationId: consentPage
+      summary: Renders the consent page
+      description: &gt;-
+        Renders the page the authorization endpoint redirects to when a client needs the user's approval: the client,
+        the requested scopes (as checkboxes, checked by default) and the scopes granted earlier. The decision is
+        posted to the authorization endpoint (POST /oauth2/authorize), never to this operation.
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          description: Identifier of the registered client that asks for access.
+          schema:
+            type: string
+            minLength: 1
+        - name: scope
+          in: query
+          required: true
+          description: Requested scopes, space delimited as in the authorization request.
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          description: State the authorization endpoint generated for the consent step, posted back with the decision.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: The consent page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: &gt;-
+            The client is unknown or a parameter is missing; the error page is rendered, without any detail of the
+            failure.
+          content:
+            text/html:
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_logout"><a class="anchor" href="#_logout"></a>Logout</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 50.0001%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Mechanism</th>
+<th class="tableblock halign-left valign-top">Support</th>
+<th class="tableblock halign-left valign-top">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RP-initiated logout (<code>/connect/logout</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Supported</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Provided by Spring Authorization Server with OpenID Connect enabled. A client may only send the user to a
+<code>post_logout_redirect_uri</code> listed in its registered <code>postLogoutRedirectUris</code>; any other is never honoured. They are
+seeded from <code>authserver.clients.&lt;client&gt;.post-logout-redirect-uris</code> (<code>AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS</code>,
+<code>AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS</code>) and are part of the clients API.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Back-channel logout</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not implemented</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The server sends no <code>logout_token</code> to the clients, so a client session survives a sign-out of the server until it
+expires or the user signs out of the client too.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Front-channel logout</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not supported</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Authorization Server does not support it.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The server also has its own sign-out for users of its login pages: a confirmation page (<code>logout.html</code>) whose form posts
+to <code>/logout</code>. The POST carries the CSRF token (<code>th:action</code> adds it), so a third-party page cannot sign the user out; it
+invalidates the session, deletes the <code>JSESSIONID</code> cookie and returns to <code>/login?logout</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"&gt;
+&lt;head&gt;
+  &lt;title th:text="#{logout.title}"&gt;Sign out&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1 th:text="#{logout.heading}"&gt;Sign out&lt;/h1&gt;
+  &lt;p th:text="#{logout.question}"&gt;Do you want to sign out?&lt;/p&gt;
+  &lt;!-- th:action adds the CSRF token: the logout endpoint only accepts a POST that carries it --&gt;
+  &lt;form method="post" th:action="@{/logout}"&gt;
+    &lt;button type="submit" id="logout" th:text="#{logout.confirm}"&gt;Sign out&lt;/button&gt;
+  &lt;/form&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public void customize(final HttpSecurity http) {
+        http.logout(logout -&gt; logout
+                .logoutUrl(LOGOUT_PATH)
+                .logoutSuccessUrl(LOGOUT_SUCCESS_URL)
+                .invalidateHttpSession(true)
+                .deleteCookies(SESSION_COOKIE));
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The confirmation page is the <code>GET /logout</code> operation of the pages contract (<code>LogoutController</code>); the <code>POST</code> belongs to
+Spring Security&#8217;s logout filter and is not part of it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /logout:
+    get:
+      tags: [ Logout page ]
+      operationId: logoutPage
+      summary: Renders the sign-out confirmation page
+      description: &gt;-
+        Renders the page that asks the signed-in user to confirm signing out. A GET never signs the user out (any page
+        could trigger it); the confirmation form posts to the security chain (POST /logout), with the CSRF token.
+      responses:
+        '200':
+          description: The sign-out confirmation page.
+          content:
+            text/html:
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_error_page"><a class="anchor" href="#_error_page"></a>Error page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Errors are answered by Spring Boot&#8217;s own <code>BasicErrorController</code> at <code>/error</code>, which belongs to the framework like the
+Spring Security endpoints, so it has no contract here. A browser gets <code>templates/error.html</code> through
+<code>ErrorPageViewResolver</code>, which picks a generic text from the status only (not found, forbidden, anything else) and
+adds the branding; the model the controller offers (timestamp, path, exception) is not passed on, so the page never
+shows a stack trace, an exception message or the requested path. A client that does not accept HTML gets the
+controller&#8217;s JSON body: <code>spring.web.error.include-path: never</code> leaves out the path, and the message, the exception and
+the stack trace are left out by default, so only the timestamp, the status and its reason phrase remain.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_backend_for_frontend"><a class="anchor" href="#_backend_for_frontend"></a>Backend for frontend</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>bff</code> (port 8080) is the only client the browser talks to. It serves the SPA (static files from its <code>boot</code> module),
+runs the authorization code flow with PKCE as a confidential client, keeps the user&#8217;s tokens in its server-side session
+and attaches the access token to the calls the SPA makes to the resource server. The browser holds nothing but a session
+cookie: the end-to-end test scans storage, cookies and response bodies to prove that no token is visible.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the BFF filter chain.
+     *
+     * @param http                 the HTTP security builder.
+     * @param clientRepository     the registered OAuth2 clients.
+     * @param loginSuccessHandler  sends the browser back to the {@code returnTo} of the login once signed in.
+     * @param logoutSuccessHandler redirects the browser to the RP-initiated logout of the authorization server.
+     * @return the security filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    SecurityFilterChain bffFilterChain(final HttpSecurity http, final ClientRegistrationRepository clientRepository,
+            final ReturnToAuthenticationSuccessHandler loginSuccessHandler,
+            final OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
+        final var resolver = new DefaultOAuth2AuthorizationRequestResolver(clientRepository, "/oauth2/authorization");
+        // The auth server requires PKCE; Spring only enables it by default for public clients.
+        resolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+
+        http.authorizeHttpRequests(authorize -&gt; authorize
+                        .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/static/**", "/error",
+                                "/bff/login", "/actuator/health/**").permitAll()
+                        .anyRequest().authenticated())
+                // The XSRF-TOKEN cookie is readable by the script (not HttpOnly) and the raw token is accepted from
+                // the X-XSRF-TOKEN header or, for the sign-out form, from the _csrf parameter. The plain handler, not
+                // csrf.spa()'s XOR one: masking against BREACH protects a token rendered in a compressed response body,
+                // and the BFF never renders it in a body, only in the cookie; the XOR handler would also reject the
+                // raw cookie value the sign-out form posts.
+                .csrf(csrf -&gt; csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                // The SPA is made of same-origin files only: no inline script, no third-party content, no framing.
+                .headers(headers -&gt; headers.contentSecurityPolicy(
+                        csp -&gt; csp.policyDirectives(CONTENT_SECURITY_POLICY)))
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
+                .exceptionHandling(ex -&gt; ex.defaultAuthenticationEntryPointFor(
+                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                        new OrRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/bff/**"),
+                                PathPatternRequestMatcher.withDefaults().matcher("/api/**"))))
+                .oauth2Login(login -&gt; login
+                        .authorizationEndpoint(endpoint -&gt; endpoint.authorizationRequestResolver(resolver))
+                        // A refused consent or any other failed sign-in lands on the SPA, which tells the user.
+                        // A handler rather than failureUrl: that would make the generated login page answer it.
+                        .failureHandler(new SimpleUrlAuthenticationFailureHandler(SIGN_IN_FAILURE_URL))
+                        // Back to the returnTo validated by GET /bff/login, never to a request saved elsewhere.
+                        .successHandler(loginSuccessHandler))
+                // POST /bff/logout (CSRF protected) runs the logout handlers (the XSRF-TOKEN cookie is cleared, the
+                // security context too, and the session is invalidated), then the success handler answers 302 to the
+                // end_session_endpoint of the authorization server: the browser follows it as a top-level navigation,
+                // so the id_token_hint it carries never reaches a script.
+                .logout(logout -&gt; logout
+                        .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults()
+                                .matcher(HttpMethod.POST, LOGOUT_PATH))
+                        .logoutSuccessHandler(logoutSuccessHandler));
+        return http.build();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Requests under <code>/bff/<strong></code> and <code>/api/</strong></code> that are not authenticated get a <code>401</code> instead of a redirect, so the SPA can
+decide what to do. A failed or denied sign-in redirects to <code>/?error=signin</code>; a successful one goes back to the
+<code>returnTo</code> of the login (see below). The BFF chain sets the same content security policy as the login pages (without the
+logo&#8217;s image source: the SPA has no logo).</p>
+</div>
+<div class="sect2">
+<h3 id="_session_and_cookie"><a class="anchor" href="#_session_and_cookie"></a>Session and cookie</h3>
+<div class="paragraph">
+<p>The HTTP session is stored in PostgreSQL by Spring Session JDBC, in the <code>bff</code> database. The schema is owned by Flyway
+(<code>V300__spring_session.sql</code>; Spring Session never creates it). The session holds the authorized client, that is, the
+access and refresh tokens (<code>HttpSessionOAuth2AuthorizedClientRepository</code>), so the sessions survive a restart and the
+tokens never leave the server.</p>
+</div>
+<div class="paragraph">
+<p>Session persistence is a driven adapter: the module <code>bff/infrastructure/session</code> holds the migration, the session
+configuration and the JDBC, Flyway and PostgreSQL dependencies (the enforcer rules ban <code>spring-jdbc</code> from <code>api/web</code>).
+Spring Boot auto-configures Spring Session JDBC from <code>spring-boot-starter-session-jdbc</code>, so every <code>spring.session.*</code>
+property applies (<code>spring.session.jdbc.initialize-schema: never</code>, <code>spring.session.timeout</code>, &#8230;&#8203;). The configuration
+deliberately has no <code>@EnableJdbcHttpSession</code>, which would switch that auto-configuration off and silently ignore those
+properties.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE SPRING_SESSION (
+    PRIMARY_ID            CHAR(36) NOT NULL,
+    SESSION_ID            CHAR(36) NOT NULL,
+    CREATION_TIME         BIGINT   NOT NULL,
+    LAST_ACCESS_TIME      BIGINT   NOT NULL,
+    MAX_INACTIVE_INTERVAL INT      NOT NULL,
+    EXPIRY_TIME           BIGINT   NOT NULL,
+    PRINCIPAL_NAME        VARCHAR(100),
+    CONSTRAINT SPRING_SESSION_PK PRIMARY KEY (PRIMARY_ID)
+);
+
+CREATE UNIQUE INDEX SPRING_SESSION_IX1 ON SPRING_SESSION (SESSION_ID);
+CREATE INDEX SPRING_SESSION_IX2 ON SPRING_SESSION (EXPIRY_TIME);
+CREATE INDEX SPRING_SESSION_IX3 ON SPRING_SESSION (PRINCIPAL_NAME);
+
+CREATE TABLE SPRING_SESSION_ATTRIBUTES (
+    SESSION_PRIMARY_ID CHAR(36)     NOT NULL,
+    ATTRIBUTE_NAME     VARCHAR(200) NOT NULL,
+    ATTRIBUTE_BYTES    BYTEA        NOT NULL,
+    CONSTRAINT SPRING_SESSION_ATTRIBUTES_PK PRIMARY KEY (SESSION_PRIMARY_ID, ATTRIBUTE_NAME),
+    CONSTRAINT SPRING_SESSION_ATTRIBUTES_FK FOREIGN KEY (SESSION_PRIMARY_ID)
+        REFERENCES SPRING_SESSION (PRIMARY_ID) ON DELETE CASCADE
+);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The cookie is <code><em>Host-SESSION</code>: <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Lax</code>, <code>Path=/</code> and no <code>Domain</code>, which is exactly what the
+<code></em>Host-</code> prefix makes browsers require. Chromium accepts <code>Secure</code> cookies on <code><a href="http://localhost" class="bare">http://localhost</a></code>, so local development
+works over plain HTTP through <code>localhost</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the serializer of the session cookie: Secure, HttpOnly, SameSite=Lax, path {@code /} and no domain, which
+     * is exactly what the {@code __Host-} prefix demands (the browser rejects the cookie otherwise).
+     *
+     * @return the cookie serializer.
+     */
+    @Bean
+    CookieSerializer cookieSerializer() {
+        final var serializer = new DefaultCookieSerializer();
+        serializer.setCookieName(COOKIE_NAME);
+        serializer.setUseSecureCookie(true);
+        serializer.setUseHttpOnlyCookie(true);
+        serializer.setSameSite("Lax");
+        serializer.setCookiePath("/");
+        return serializer;
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the <code>dev</code> profile the datasource comes from the root <code>compose.yaml</code>, whose connection details always name the
+<code>authserver</code> database; <code>BffDevDatabase</code> (<code>dev</code> profile only, in the same module) points them at the <code>bff</code> database the
+init script creates.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Keeps the authorized clients (the tokens of the signed-in user) in the HTTP session, which Spring Session JDBC
+     * persists, so no table of its own is needed and the tokens never reach the browser.
+     *
+     * @return the repository of authorized clients.
+     */
+    @Bean
+    OAuth2AuthorizedClientRepository authorizedClientRepository() {
+        return new HttpSessionOAuth2AuthorizedClientRepository();
+    }
+
+    /**
+     * Builds the manager that obtains the access token of the signed-in user and renews it with its refresh token when
+     * it expires.
+     *
+     * @param clientRepository           the registered OAuth2 clients.
+     * @param authorizedClientRepository where the authorized clients are kept.
+     * @return the authorized client manager, with the {@code authorization_code} and {@code refresh_token} providers.
+     */
+    @Bean
+    OAuth2AuthorizedClientManager authorizedClientManager(final ClientRegistrationRepository clientRepository,
+            final OAuth2AuthorizedClientRepository authorizedClientRepository) {
+        final var manager = new DefaultOAuth2AuthorizedClientManager(clientRepository, authorizedClientRepository);
+        manager.setAuthorizedClientProvider(OAuth2AuthorizedClientProviderBuilder.builder()
+                .authorizationCode()
+                .refreshToken()
+                .build());
+        return manager;
+    }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_csrf"><a class="anchor" href="#_csrf"></a>CSRF</h3>
+<div class="paragraph">
+<p><code>CookieCsrfTokenRepository.withHttpOnlyFalse()</code> stores the token in the <code>XSRF-TOKEN</code> cookie, readable by scripts, and a
+plain <code>CsrfTokenRequestAttributeHandler</code> accepts the raw token from the <code>X-XSRF-TOKEN</code> request header or from the
+<code>_csrf</code> form parameter. Spring Security loads the token lazily, so <code>CsrfCookieFilter</code> reads it on every request to make
+sure the cookie is always written. A script copies the cookie into the header of a state-changing <code>fetch</code>; the sign-out
+form, which cannot send a header, copies it into <code>_csrf</code>.</p>
+</div>
+<div class="paragraph">
+<p><code>csrf.spa()</code> is not used: it resolves a form parameter with the XOR handler, which expects a BREACH-masked token and
+would reject the raw cookie value the sign-out form posts. That masking protects a token rendered inside a compressed
+response body, where a BREACH attack can recover it byte by byte. The BFF never renders the token in a body, only in the
+cookie, so the plain handler loses nothing.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript hljs" data-lang="javascript">const XSRF_COOKIE = 'XSRF-TOKEN';
+const XSRF_PARAMETER = '_csrf';
+
+/**
+ * Finds an element of the page by its id.
+ *
+ * @param {string} id the id of the element.
+ * @returns {HTMLElement} the element.
+ */
+const element = (id) =&gt; document.getElementById(id);
+
+/**
+ * Reads a cookie the script is allowed to see (the session cookie is HttpOnly and never visible).
+ *
+ * @param {string} name the name of the cookie.
+ * @returns {string} the decoded value, or an empty string if the cookie is missing.
+ */
+const readCookie = (name) =&gt; {
+    const prefix = `${name}=`;
+    const entry = document.cookie.split('; ').find((cookie) =&gt; cookie.startsWith(prefix));
+    return entry ? decodeURIComponent(entry.substring(prefix.length)) : '';
+};
+
+/**
+ * Shows an error in the live region the screen readers announce, or clears it.
+ *
+ * @param {string} message the message, or an empty string to clear it.
+ */
+const showError = (message) =&gt; {
+    const error = element('error');
+    error.textContent = message;
+    error.hidden = message === '';
+};
+
+/**
+ * Sends the browser to the BFF login, asking to come back to the current page afterwards.
+ */
+const login = () =&gt; {
+    const returnTo = window.location.pathname === '/index.html' ? '/index.html' : '/';
+    window.location.assign(`/bff/login?returnTo=${encodeURIComponent(returnTo)}`);
+};
+
+/**
+ * Shows the signed-out state, with the button that starts the sign-in. Nothing is started automatically: right after a
+ * sign-out the authorization server sends the browser back here, and an automatic redirect would sign it in again.
+ */
+const showSignedOut = () =&gt; {
+    element('status').textContent = 'You are signed out.';
+    element('profile').hidden = true;
+    element('documents').hidden = true;
+    element('signed-out').hidden = false;
+};
+
+/**
+ * Fills the profile card with the signed-in user.
+ *
+ * @param {{subject: string, name: string, email: string, roles: string[]}} user the user of the session.
+ */
+const showProfile = (user) =&gt; {
+    element('profile-name').textContent = user.name ?? '';
+    element('profile-email').textContent = user.email ?? '';
+    element('profile-subject').textContent = user.subject ?? '';
+    element('profile-roles').textContent = (user.roles ?? []).join(', ');
+    element('status').textContent = `Signed in as ${user.name || user.subject}.`;
+    element('profile').hidden = false;
+};
+
+/**
+ * Renders the documents the API returned.
+ *
+ * @param {{id: string, title: string, content: string}[]} documents the documents.
+ */
+const showDocuments = (documents) =&gt; {
+    const list = element('documents-list');
+    list.replaceChildren(...documents.map((doc) =&gt; {
+        const item = window.document.createElement('li');
+        const title = window.document.createElement('strong');
+        title.textContent = doc.title;
+        item.append(title, `: ${doc.content}`);
+        return item;
+    }));
+    element('documents-empty').hidden = documents.length &gt; 0;
+    element('documents').hidden = false;
+};
+
+/**
+ * Asks the BFF for the user of the session, and shows the signed-out state when there is none.
+ */
+const loadUser = async () =&gt; {
+    const response = await fetch('/bff/user', {credentials: 'same-origin', headers: {Accept: 'application/json'}});
+    if (response.status === 401) {
+        showSignedOut();
+        return;
+    }
+    if (!response.ok) {
+        throw new Error(`The session could not be read (${response.status}).`);
+    }
+    showProfile(await response.json());
+};
+
+/**
+ * Loads the documents through the BFF, which asks the resource server with the access token of the user. A 401 here
+ * means the session of a signed-in user has ended (or its token could not be renewed), so the sign-in starts again.
+ */
+const loadDocuments = async () =&gt; {
+    showError('');
+    const response = await fetch('/api/documents', {credentials: 'same-origin', headers: {Accept: 'application/json'}});
+    if (response.status === 401) {
+        login();
+        return;
+    }
+    if (!response.ok) {
+        throw new Error(`The documents could not be loaded (${response.status}).`);
+    }
+    showDocuments(await response.json());
+};
+
+/**
+ * Signs out with a top-level form POST, so that the browser itself follows the redirect of the BFF to the logout of the
+ * authorization server: that URL carries the ID token hint, which a script must never read. A form cannot send a
+ * header, so the CSRF token travels as the _csrf parameter.
+ */
+const signOut = () =&gt; {
+    showError('');
+    const form = window.document.createElement('form');
+    form.method = 'post';
+    form.action = '/bff/logout';
+    form.hidden = true;
+    const token = window.document.createElement('input');
+    token.type = 'hidden';
+    token.name = XSRF_PARAMETER;
+    token.value = readCookie(XSRF_COOKIE);
+    form.append(token);
+    window.document.body.append(form);
+    form.submit();
+};
+
+/**
+ * Runs an action from a button, disabling it meanwhile and reporting a failure in the live region.
+ *
+ * @param {HTMLButtonElement} button the button that triggered the action.
+ * @param {() =&gt; Promise&lt;void&gt;} action the action.
+ */
+const run = async (button, action) =&gt; {
+    button.disabled = true;
+    try {
+        await action();
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        button.disabled = false;
+    }
+};
+
+const loadButton = element('load-documents');
+const signOutButton = element('sign-out');
+const signInButton = element('sign-in');
+loadButton.addEventListener('click', () =&gt; run(loadButton, loadDocuments));
+signOutButton.addEventListener('click', () =&gt; run(signOutButton, async () =&gt; signOut()));
+signInButton.addEventListener('click', login);
+
+// The heading takes the focus so a screen reader starts reading from the top of the page.
+element('main-heading').focus();
+if (new URLSearchParams(window.location.search).has('error')) {
+    // The sign-in failed or was cancelled (for example, the consent was denied): say so instead of looping to the login.
+    element('status').textContent = '';
+    showError('Sign-in failed or was cancelled. No session was created.');
+    element('retry').hidden = false;
+} else {
+    loadUser().catch((error) =&gt; {
+        element('status').textContent = '';
+        showError(error.message);
+    });
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_login_and_logout_api"><a class="anchor" href="#_login_and_logout_api"></a>Login and logout API</h3>
+<div class="paragraph">
+<p><code>GET /bff/login?returnTo=</code> starts the sign-in. <code>returnTo</code> is only accepted when it is an allow-listed relative path
+(<code>bff.login.allowed-return-paths</code>, an entry ending in <code>/</code> also allows what is below it), otherwise the answer is <code>400</code>;
+this prevents an open redirect. The accepted target is kept in a session attribute owned by the BFF, and the browser is
+redirected to the authorization request. Once the OAuth2 login succeeds, <code>ReturnToAuthenticationSuccessHandler</code> reads
+and removes that attribute, validates it again and redirects there, or to <code>/</code> when it is absent or not allowed. A
+request saved by Spring Security for any other reason is never used as a target.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Validates {@code returnTo}, keeps it in the session for {@link ReturnToAuthenticationSuccessHandler}, which sends
+     * the browser there once the OAuth2 login succeeds, and redirects to the authorization request.
+     *
+     * @param returnTo relative path to return to after the login; the root of the application when absent.
+     * @return a redirect to the authorization request.
+     * @throws ResponseStatusException answered 400 when {@code returnTo} is not an allowed relative path.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; login(final String returnTo) {
+        final var target = StringUtils.hasText(returnTo) ? returnTo : DEFAULT_RETURN_TO;
+        if (!returnToValidator.isAllowed(target)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "returnTo is not an allowed relative path");
+        }
+        request.getSession().setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE, target);
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(AUTHORIZATION_PATH)).build();
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Sends the browser, once the OAuth2 login has succeeded, back to the {@code returnTo} that {@link BffLoginController}
+ * validated and kept in the session. The attribute is read once and removed, and validated again by
+ * {@link ReturnToValidator} before it is used, so a value that reached the session any other way can never become an
+ * open redirect; when it is absent or not allowed, the browser goes to the root of the application.
+ */
+@Component
+@RequiredArgsConstructor
+public class ReturnToAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+
+    /** Session attribute, owned by the BFF, holding the validated {@code returnTo} of the login in progress. */
+    public static final String RETURN_TO_ATTRIBUTE = ReturnToAuthenticationSuccessHandler.class.getName()
+            + ".RETURN_TO";
+
+    /** Where the browser goes when there is no allowed {@code returnTo}: the root of the application. */
+    static final String DEFAULT_TARGET = "/";
+
+    /** Decides which {@code returnTo} values are safe. */
+    private final ReturnToValidator returnToValidator;
+
+    /**
+     * Takes the {@code returnTo} out of the session and decides where the browser goes.
+     *
+     * @param request        the request of the login callback.
+     * @param response       the response.
+     * @param authentication the new authentication.
+     * @return the validated {@code returnTo}, or {@link #DEFAULT_TARGET}.
+     */
+    @Override
+    protected String determineTargetUrl(final HttpServletRequest request, final HttpServletResponse response,
+            final Authentication authentication) {
+        final var session = request.getSession(false);
+        if (session == null) {
+            return DEFAULT_TARGET;
+        }
+        final var returnTo = session.getAttribute(RETURN_TO_ATTRIBUTE);
+        session.removeAttribute(RETURN_TO_ATTRIBUTE);
+        return returnTo instanceof String target &amp;&amp; returnToValidator.isAllowed(target) ? target : DEFAULT_TARGET;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>POST /bff/logout</code> (CSRF protected) is answered by Spring Security&#8217;s logout filter, configured in the BFF chain. Its
+handlers clear the <code>XSRF-TOKEN</code> cookie and the security context and invalidate the session (which deletes it from the
+<code>spring_session</code> table); then <code>OidcClientInitiatedLogoutSuccessHandler</code> answers <code>302</code> to the authorization server&#8217;s
+<code>end_session_endpoint</code>, with <code>id_token_hint</code> and <code>post_logout_redirect_uri</code>: this is the RP-initiated logout of the table
+above. The SPA signs out with a top-level form submission, so the browser itself follows that redirect: the ID token in
+the URL is part of a navigation, never of a response a script can read. The authorization server ends its own session
+and sends the browser back to the root of the SPA, which shows its signed-out state.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">                // POST /bff/logout (CSRF protected) runs the logout handlers (the XSRF-TOKEN cookie is cleared, the
+                // security context too, and the session is invalidated), then the success handler answers 302 to the
+                // end_session_endpoint of the authorization server: the browser follows it as a top-level navigation,
+                // so the id_token_hint it carries never reaches a script.
+                .logout(logout -&gt; logout
+                        .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults()
+                                .matcher(HttpMethod.POST, LOGOUT_PATH))
+                        .logoutSuccessHandler(logoutSuccessHandler));</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the handler that redirects the browser to the logout URL of the authorization server (its
+     * {@code end_session_endpoint}, with {@code id_token_hint} and {@code post_logout_redirect_uri}), with the default
+     * redirect strategy: the answer to {@code POST /bff/logout} is a {@code 302} that the browser follows as a
+     * top-level navigation, so no script ever reads the ID token the URL carries.
+     *
+     * @param clientRepository the registered OAuth2 clients.
+     * @return the logout success handler.
+     */
+    @Bean
+    OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(
+            final ClientRegistrationRepository clientRepository) {
+        final var handler = new OidcClientInitiatedLogoutSuccessHandler(clientRepository);
+        handler.setPostLogoutRedirectUri(POST_LOGOUT_REDIRECT_URI);
+        return handler;
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The login, the user endpoint and the documents API are defined by the contract <code>apis/bff/rest-server/bff-api-v1.yaml</code>.
+The logout is not: like the OAuth 2.0 login endpoints, it is answered by Spring Security itself.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /bff/login:
+    get:
+      tags: [ Login ]
+      operationId: login
+      summary: Starts the login
+      description: &gt;-
+        Redirects the browser to the OpenID Connect authorization request of the authorization server. Once the user
+        has signed in, the BFF sends the browser back to returnTo (or to the root of the application when it is
+        absent). The SPA navigates to this endpoint; it is not called through fetch.
+      security: [ ]
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: &gt;-
+            Relative path (with an optional query string) of the SPA page to return to after the login. It must be
+            one of the paths listed in bff.login.allowed-return-paths; anything else (absolute URLs, scheme-relative
+            URLs starting with //, backslashes, control characters) is rejected to prevent open redirects.
+          schema:
+            type: string
+            maxLength: 2048
+            examples:
+              - /orders
+      responses:
+        '302':
+          description: Redirect to the authorization request of the authorization server
+          headers:
+            Location:
+              description: URL of the authorization request, /oauth2/authorization/bff
+              schema:
+                type: string
+        '400':
+          description: returnTo is not an allowed relative path</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_documents_api"><a class="anchor" href="#_documents_api"></a>Documents API</h3>
+<div class="paragraph">
+<p>The SPA reads and deletes the user&#8217;s documents through the BFF: <code>GET /api/documents</code> and
+<code>DELETE /api/documents/{id}</code> are operations of the BFF&#8217;s own contract, with the same schema and status codes as the
+resource server&#8217;s, plus <code>401</code> (no session, or no valid token) and <code>502</code> (the resource server is unreachable or
+failed). There is no pass-through relay: OpenAPI has no wildcard paths, and every operation the browser can call is
+described, generated and checked by <code>OpenApiDriftIT</code> like any other.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /api/documents:
+    get:
+      tags: [ Documents ]
+      operationId: listDocuments
+      summary: Lists documents
+      description: &gt;-
+        Lists the documents of the signed-in user; an administrator sees all. The BFF asks the resource server
+        (GET /api/documents there, which needs the scope documents.read) with the access token of the session,
+        renewing it with the refresh token when it expired.
+      security:
+        - session: [ ]
+      responses:
+        '200':
+          description: The documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The access token of the session lacks the documents.read scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /api/documents/{id}:
+    delete:
+      tags: [ Documents ]
+      operationId: deleteDocument
+      summary: Deletes a document
+      description: &gt;-
+        Deletes one of the signed-in user's documents; an administrator may delete any. The BFF asks the resource
+        server (DELETE /api/documents/{id} there, which needs the scope documents.delete) with the access token of
+        the session. Someone else's document is answered 404, like a missing one. A state-changing request: it needs
+        the CSRF token.
+      security:
+        - session: [ ]
+          csrf: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the document.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The document was deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: &gt;-
+            The request lacks the CSRF token (answered by the security chain, without a body), or the access token
+            of the session lacks the documents.delete scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The document does not exist or belongs to someone else.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          $ref: '#/components/responses/BadGateway'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The BFF is hexagonal like the other applications. <code>DocumentsController</code> implements the generated <code>DocumentsApi</code> and
+calls the use cases (<code>ListDocumentsUseCase</code>, <code>DeleteDocumentUseCase</code> in <code>bff/application</code>), mapping the domain
+<code>Document</code> onto the generated DTO (<code>DocumentDtoMapper</code>); a scoped <code>@RestControllerAdvice</code> answers the domain
+exceptions as problem details.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Lists the documents of the signed-in user.
+     *
+     * @return the documents.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;DocumentResponse&gt;&gt; listDocuments() {
+        return ResponseEntity.ok(listDocumentsUseCase.execute().stream().map(documentDtoMapper::toResponse).toList());
+    }
+
+    /**
+     * Deletes a document of the signed-in user.
+     *
+     * @param id identifier of the document.
+     * @return an empty {@code 204}.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; deleteDocument(final String id) {
+        deleteDocumentUseCase.execute(id);
+        return ResponseEntity.noContent().build();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The use cases only see the domain port <code>DocumentGateway</code> (<code>bff/domain</code>). Its implementation, <code>RestDocumentGateway</code> in
+the driven adapter <code>bff/infrastructure/resourceserver</code>, calls the resource server through a client generated from the
+resource server&#8217;s own contract (<code>apis/resource-server/rest-server/resource-server-api-v1.yaml</code>, <code>java</code> generator with
+the <code>restclient</code> library) and translates every failure into a domain exception: a token that cannot be obtained or
+renewed, or a <code>401</code> of the resource server, is unauthorized (<code>401</code>, so the SPA signs in again); a <code>403</code> is forbidden; a
+<code>404</code> is not found; an unreachable resource server or any other answer is unavailable (<code>502</code>). No HTTP or OAuth2 type
+crosses the port, and nothing the resource server answers (headers, cookies, challenges, error bodies) reaches the
+browser: the BFF builds its own responses.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public List&lt;Document&gt; list() {
+        final var documents = call(documentsApi::listDocuments);
+        return documents == null ? List.of() : documents.stream().map(documentMapper::toDomain).toList();
+    }
+
+    @Override
+    public void deleteById(final String id) {
+        call(() -&gt; documentsApi.deleteDocumentWithHttpInfo(id));
+    }
+
+    /**
+     * Calls the resource server and translates its failures into domain exceptions.
+     *
+     * @param operation the call.
+     * @param &lt;T&gt;       type of the answer.
+     * @return the answer of the resource server.
+     */
+    private &lt;T&gt; T call(final Supplier&lt;T&gt; operation) {
+        try {
+            return operation.get();
+        } catch (final OAuth2AuthorizationException e) {
+            log.warn("No access token for the resource server: {}", e.getError().getErrorCode());
+            throw new DocumentsUnauthorizedException("The session has no valid token", e);
+        } catch (final RestClientResponseException e) {
+            throw translate(e);
+        } catch (final RestClientException e) {
+            log.warn("The resource server cannot be reached: {}", e.getClass().getSimpleName());
+            throw new DocumentsUnavailableException("The resource server is unavailable", e);
+        }
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The generated client runs on a <code>RestClient</code> built from Spring Boot&#8217;s <code>RestClient.Builder</code> with Spring Security&#8217;s
+<code>OAuth2ClientHttpRequestInterceptor</code>: it asks the authorized client manager (declared by the BFF&#8217;s security
+configuration) for the access token of the user of the session, renewing it with the refresh token when it expired,
+and sends it as bearer token; the browser never sends or sees it. The interceptor lets a call through unauthenticated
+when the session has no authorized client, so a second interceptor stops that call: the BFF never sends a request
+without a token. The base URI is <code>bff.resource-server.base-uri</code> (<code>RESOURCE_SERVER_URI</code>).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the REST client of the resource server. Its interceptor asks the authorized client manager for the access
+     * token of the user of the current request (renewing it with the refresh token when it expired) and sets it as the
+     * bearer token of the outgoing request; a call whose session has no token is never sent. When the token cannot be
+     * obtained or renewed it throws an {@link org.springframework.security.oauth2.core.OAuth2AuthorizationException},
+     * which {@link RestDocumentGateway} reports as {@link
+     * com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException}, answered 401 so the SPA signs in
+     * again.
+     *
+     * @param builder the builder of REST clients, the one test slices bind a mock server to.
+     * @param manager the manager of the authorized clients of the session.
+     * @return the REST client of the resource server.
+     */
+    @Bean
+    RestClient resourceServerRestClient(final RestClient.Builder builder, final OAuth2AuthorizedClientManager manager) {
+        final var interceptor = new OAuth2ClientHttpRequestInterceptor(manager);
+        interceptor.setClientRegistrationIdResolver(request -&gt; REGISTRATION_ID);
+        // The OAuth2 interceptor lets the call through unauthenticated when the session has no authorized client;
+        // the BFF must never do that, so the call stops here and the SPA gets a 401.
+        return builder.requestInterceptor(interceptor).requestInterceptor((request, body, execution) -&gt; {
+            if (!request.getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
+                throw new ClientAuthorizationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED,
+                        "The session has no access token", null), REGISTRATION_ID);
+            }
+            return execution.execute(request, body);
+        }).build();
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the documents client generated from the resource server's contract, on top of the REST client that
+     * carries the user's token (so the generated client's own authentication settings stay unused).
+     *
+     * @param resourceServerRestClient the REST client of the resource server.
+     * @param properties               where the resource server is.
+     * @return the generated documents client.
+     */
+    @Bean
+    DocumentsApi resourceServerDocumentsApi(final RestClient resourceServerRestClient,
+            final ResourceServerProperties properties) {
+        final var apiClient = new ApiClient(resourceServerRestClient)
+                .setBasePath(properties.baseUri().toString().replaceFirst("/+$", ""));
+        return new DocumentsApi(apiClient);
+    }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_single_page_application"><a class="anchor" href="#_the_single_page_application"></a>The single page application</h3>
+<div class="paragraph">
+<p>The SPA is <code>index.html</code> plus <code>assets/app.js</code>, served by the BFF itself so that everything is same-origin, which the
+content security policy requires (no inline script). It asks <code>GET /bff/user</code> for the session and shows either the
+profile or, on a <code>401</code>, a signed-out state with a <strong>Sign in</strong> button that goes to <code>/bff/login?returnTo=&#8230;&#8203;</code>. It never
+starts the sign-in by itself when the page loads: the authorization server sends the browser back to the SPA after a
+sign-out, and an automatic redirect would sign the user straight back in. A <code>401</code> from <code>/api/documents</code> during a
+signed-in session (the session ended, or its token could not be renewed) does start the sign-in again. The SPA signs
+out by building a <code>&lt;form method="post" action="/bff/logout"&gt;</code> with a hidden <code>_csrf</code> input set from the <code>XSRF-TOKEN</code>
+cookie and submitting it.</p>
+</div>
+<div class="paragraph">
+<p>The end-to-end test <code>BffEndToEndIT</code> clicks <strong>Sign in</strong>, signs in through the login and consent pages, signs out, checks
+that the browser lands back on the signed-out SPA and that <code>/bff/user</code> and <code>/api/documents</code> answer <code>401</code>, and scans
+every response of the whole flow, the storages and the cookies for tokens. Bodies, storages and cookies must be strictly
+token-free; the only exclusions from the header and URL scan are the <code>Location</code> of the <code>302</code> answering
+<code>POST /bff/logout</code> and the URL of the <code>/connect/logout</code> request, which carry <code>id_token_hint</code> by OpenID Connect design in
+a top-level navigation no script can read.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+    &lt;title&gt;Auth server example&lt;/title&gt;
+    &lt;link rel="stylesheet" href="/assets/styles.css"&gt;
+    &lt;script type="module" src="/assets/app.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+    &lt;h1 id="main-heading" tabindex="-1"&gt;Auth server example&lt;/h1&gt;
+
+    &lt;p id="status" role="status" aria-live="polite"&gt;Checking your session&amp;hellip;&lt;/p&gt;
+    &lt;p id="error" class="error" role="alert" aria-live="assertive" hidden&gt;&lt;/p&gt;
+    &lt;p id="retry" hidden&gt;&lt;a href="/bff/login?returnTo=%2F"&gt;Try signing in again&lt;/a&gt;&lt;/p&gt;
+
+    &lt;section id="signed-out" aria-labelledby="signed-out-heading" hidden&gt;
+        &lt;h2 id="signed-out-heading"&gt;You are signed out&lt;/h2&gt;
+        &lt;p&gt;Sign in to see your profile and your documents.&lt;/p&gt;
+        &lt;div class="actions"&gt;
+            &lt;button type="button" id="sign-in"&gt;Sign in&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section id="profile" aria-labelledby="profile-heading" hidden&gt;
+        &lt;h2 id="profile-heading"&gt;Your profile&lt;/h2&gt;
+        &lt;dl&gt;
+            &lt;dt&gt;Name&lt;/dt&gt;
+            &lt;dd id="profile-name"&gt;&lt;/dd&gt;
+            &lt;dt&gt;Email&lt;/dt&gt;
+            &lt;dd id="profile-email"&gt;&lt;/dd&gt;
+            &lt;dt&gt;Subject&lt;/dt&gt;
+            &lt;dd id="profile-subject"&gt;&lt;/dd&gt;
+            &lt;dt&gt;Roles&lt;/dt&gt;
+            &lt;dd id="profile-roles"&gt;&lt;/dd&gt;
+        &lt;/dl&gt;
+        &lt;div class="actions"&gt;
+            &lt;button type="button" id="load-documents"&gt;Load documents&lt;/button&gt;
+            &lt;button type="button" id="sign-out"&gt;Sign out&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section id="documents" aria-labelledby="documents-heading" hidden&gt;
+        &lt;h2 id="documents-heading"&gt;Documents&lt;/h2&gt;
+        &lt;p id="documents-empty" hidden&gt;You have no documents.&lt;/p&gt;
+        &lt;ul id="documents-list"&gt;&lt;/ul&gt;
+    &lt;/section&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

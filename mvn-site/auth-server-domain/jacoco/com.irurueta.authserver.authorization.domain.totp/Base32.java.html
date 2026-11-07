@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Base32.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.totp</a> &gt; <span class="el_source">Base32.java</span></div><h1>Base32.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.totp;
+
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Base32 encoding (RFC 4648) without padding, the form authenticator applications expect for a shared secret.
+ */
+public final class Base32 {
+
+    /** The Base32 alphabet. */
+    private static final String ALPHABET = &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ234567&quot;;
+
+    /** Bits carried by each byte. */
+    private static final int BITS_PER_BYTE = 8;
+
+    /** Bits carried by each character. */
+    private static final int BITS_PER_CHAR = 5;
+
+    /** Mask selecting the bits of one byte, to read it as unsigned. */
+    private static final int BYTE_MASK = 0xff;
+
+    /** Mask selecting the bits of one character. */
+    private static final int CHAR_MASK = 0x1f;
+
+    /**
+     * Not instantiable: a holder of static helpers.
+     */
+    private Base32() {
+    }
+
+    /**
+     * Encodes bytes.
+     *
+     * @param data the bytes to encode; must not be {@code null}.
+     * @return the encoded text, upper case and without padding.
+     */
+    public static String encode(final byte[] data) {
+<span class="fc" id="L53">        final var result = new StringBuilder((data.length * BITS_PER_BYTE + BITS_PER_CHAR - 1) / BITS_PER_CHAR);</span>
+<span class="fc" id="L54">        var buffer = 0;</span>
+<span class="fc" id="L55">        var bits = 0;</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        for (final var value : data) {</span>
+<span class="fc" id="L57">            buffer = buffer &lt;&lt; BITS_PER_BYTE | value &amp; BYTE_MASK;</span>
+<span class="fc" id="L58">            bits += BITS_PER_BYTE;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            while (bits &gt;= BITS_PER_CHAR) {</span>
+<span class="fc" id="L60">                bits -= BITS_PER_CHAR;</span>
+<span class="fc" id="L61">                result.append(ALPHABET.charAt(buffer &gt;&gt; bits &amp; CHAR_MASK));</span>
+            }
+        }
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (bits &gt; 0) {</span>
+<span class="fc" id="L65">            result.append(ALPHABET.charAt(buffer &lt;&lt; BITS_PER_CHAR - bits &amp; CHAR_MASK));</span>
+        }
+<span class="fc" id="L67">        return new String(result.toString().getBytes(StandardCharsets.US_ASCII), StandardCharsets.US_ASCII);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

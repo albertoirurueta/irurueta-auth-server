@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiSecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web</a> &gt; <span class="el_source">ApiSecurityConfig.java</span></div><h1>ApiSecurityConfig.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web;
+
+import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
+import com.irurueta.authserver.authorization.domain.account.SignedTokenService;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Security filter chain of the REST API under {@code /api/**}: stateless, bearer tokens issued by this server and
+ * validated by a decoder of its own (never the framework-wide one, which also serves the UserInfo endpoint). That
+ * decoder only accepts a token that this server signed, whose issuer is this server, whose timestamps are valid,
+ * whose {@code aud} lists the API audience ({@code authserver.api.audience}, default {@code auth-server}) and that
+ * does not carry the {@code purpose} claim of the account tokens (an e-mail verification JWT is never a bearer
+ * token). Authentication and access failures are answered as described by RFC 6750
+ * ({@code WWW-Authenticate: Bearer ...}).
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L62">public class ApiSecurityConfig {</span>
+
+    /** Path pattern of the REST API. */
+    public static final String API_PATTERN = &quot;/api/**&quot;;
+
+    /** Path pattern of the administration API. */
+    public static final String ADMIN_PATTERN = &quot;/api/admin/**&quot;;
+
+    /** Scope that grants access to the administration API; a role alone never does. */
+    public static final String ADMIN_SCOPE_AUTHORITY = &quot;SCOPE_admin&quot;;
+
+    /** Property that holds the audience a token must carry to call the API. */
+    public static final String API_AUDIENCE_PROPERTY = &quot;authserver.api.audience&quot;;
+
+    /** Prefix of the authorities derived from roles. */
+    private static final String ROLE_PREFIX = &quot;ROLE_&quot;;
+
+    /** Name of the claim that holds the roles. */
+    private static final String ROLES_CLAIM = &quot;roles&quot;;
+
+    // tag::api-security[]
+    /**
+     * Creates the chain of the REST API.
+     *
+     * @param http      security builder.
+     * @param jwkSource the published keys of this server.
+     * @param issuer    issuer of this server ({@code spring.security.oauth2.authorizationserver.issuer}).
+     * @param audience  audience the API requires ({@code authserver.api.audience}).
+     * @return the API filter chain.
+     * @throws Exception if the chain cannot be built.
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain apiSecurityFilterChain(
+            final HttpSecurity http, final JWKSource&lt;SecurityContext&gt; jwkSource,
+            @Value(&quot;${spring.security.oauth2.authorizationserver.issuer}&quot;) final String issuer,
+            @Value(&quot;${&quot; + API_AUDIENCE_PROPERTY + &quot;:&quot; + DefaultClientDefinitions.DEFAULT_API_AUDIENCE + &quot;}&quot;)
+            final String audience) throws Exception {
+<span class="nc" id="L100">        http</span>
+<span class="nc" id="L101">                .securityMatcher(API_PATTERN)</span>
+<span class="nc" id="L102">                .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="nc" id="L103">                .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="nc" id="L104">                .authorizeHttpRequests(authorize -&gt; authorize</span>
+<span class="nc" id="L105">                        .requestMatchers(HttpMethod.POST, &quot;/api/account/register&quot;, &quot;/api/account/password/reset&quot;,</span>
+                                &quot;/api/account/password/reset-request&quot;)
+<span class="nc" id="L107">                        .permitAll()</span>
+<span class="nc" id="L108">                        .requestMatchers(HttpMethod.GET, &quot;/api/account/verify&quot;).permitAll()</span>
+<span class="nc" id="L109">                        .requestMatchers(ADMIN_PATTERN).hasAuthority(ADMIN_SCOPE_AUTHORITY)</span>
+<span class="nc" id="L110">                        .anyRequest().authenticated())</span>
+<span class="nc" id="L111">                .oauth2ResourceServer(resource -&gt; resource</span>
+<span class="nc" id="L112">                        .jwt(jwt -&gt; jwt.decoder(apiJwtDecoder(jwkSource, issuer, audience))</span>
+<span class="nc" id="L113">                                .jwtAuthenticationConverter(apiJwtAuthenticationConverter())));</span>
+<span class="nc" id="L114">        return http.build();</span>
+    }
+
+    /**
+     * Creates the decoder of the API's bearer tokens: signature against the published keys, issuer, timestamps,
+     * audience, and no {@code purpose} claim.
+     *
+     * @param jwkSource the published keys of this server.
+     * @param issuer    issuer every token must have.
+     * @param audience  audience every token must list.
+     * @return the decoder.
+     */
+    static JwtDecoder apiJwtDecoder(final JWKSource&lt;SecurityContext&gt; jwkSource, final String issuer,
+                                    final String audience) {
+<span class="fc" id="L128">        final var decoder = NimbusJwtDecoder.withJwkSource(jwkSource).jwsAlgorithm(SignatureAlgorithm.RS256).build();</span>
+<span class="fc" id="L129">        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator&lt;&gt;(List.&lt;OAuth2TokenValidator&lt;Jwt&gt;&gt;of(</span>
+<span class="fc" id="L130">                JwtValidators.createDefaultWithIssuer(issuer),</span>
+                new JwtClaimValidator&lt;List&lt;String&gt;&gt;(JwtClaimNames.AUD,
+<span class="pc bpc" id="L132" title="1 of 4 branches missed.">                        audiences -&gt; audiences != null &amp;&amp; audiences.contains(audience)),</span>
+                ApiSecurityConfig::rejectPurposeBoundToken)));
+<span class="fc" id="L134">        return decoder;</span>
+    }
+
+    /**
+     * Rejects a purpose-bound account token (such as an e-mail verification JWT): it is signed by this server but
+     * never meant as a bearer token.
+     *
+     * @param jwt the token.
+     * @return a failure when the token carries the {@code purpose} claim, a success otherwise.
+     */
+    private static OAuth2TokenValidatorResult rejectPurposeBoundToken(final Jwt jwt) {
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (jwt.hasClaim(SignedTokenService.PURPOSE_CLAIM)) {</span>
+<span class="fc" id="L146">            return OAuth2TokenValidatorResult.failure(new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,</span>
+                    &quot;A purpose-bound account token is not a bearer token&quot;, null));
+        }
+<span class="fc" id="L149">        return OAuth2TokenValidatorResult.success();</span>
+    }
+
+    /**
+     * Creates the converter that maps the {@code scope} claim to {@code SCOPE_*} authorities and the {@code roles}
+     * claim to {@code ROLE_*} authorities.
+     *
+     * @return the converter.
+     */
+    JwtAuthenticationConverter apiJwtAuthenticationConverter() {
+<span class="fc" id="L159">        final var scopes = new JwtGrantedAuthoritiesConverter();</span>
+<span class="fc" id="L160">        final var converter = new JwtAuthenticationConverter();</span>
+<span class="fc" id="L161">        converter.setJwtGrantedAuthoritiesConverter(jwt -&gt; {</span>
+<span class="fc" id="L162">            final var authorities = new ArrayList&lt;GrantedAuthority&gt;(scopes.convert(jwt));</span>
+<span class="fc" id="L163">            authorities.addAll(roleAuthorities(jwt));</span>
+<span class="fc" id="L164">            return authorities;</span>
+        });
+<span class="fc" id="L166">        return converter;</span>
+    }
+    // end::api-security[]
+
+    /**
+     * Maps the roles of a token to authorities, adding the {@code ROLE_} prefix when it is missing.
+     *
+     * @param jwt token to read.
+     * @return the role authorities, empty when the token has no roles.
+     */
+    private static Collection&lt;GrantedAuthority&gt; roleAuthorities(final Jwt jwt) {
+<span class="fc" id="L177">        final var roles = jwt.getClaimAsStringList(ROLES_CLAIM);</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (roles == null) {</span>
+<span class="fc" id="L179">            return List.of();</span>
+        }
+<span class="fc" id="L181">        return roles.stream()</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">                .map(role -&gt; role.startsWith(ROLE_PREFIX) ? role : ROLE_PREFIX + role)</span>
+<span class="fc" id="L183">                .&lt;GrantedAuthority&gt;map(SimpleGrantedAuthority::new)</span>
+<span class="fc" id="L184">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Installation :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="installation.html">Installation</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/installation.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Installation</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Irurueta Auth Server is an example project, so it is not published as a package. Build and run it from source.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_prerequisites"><a class="anchor" href="#_prerequisites"></a>Prerequisites</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><strong>JDK 21 to 25</strong>. The build enforces <code>[21,26)</code>: SpotBugs cannot parse class files of JDK 26 or newer.</p>
+</li>
+<li>
+<p><strong>Docker</strong>, for the integration tests (Testcontainers) and for the local services the applications will use.</p>
+</li>
+<li>
+<p>Maven is optional: the repository ships the Maven wrapper (<code>./mvnw</code>).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_build_and_test"><a class="anchor" href="#_build_and_test"></a>Build and test</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git clone https://github.com/albertoirurueta/irurueta-auth-server.git
+cd irurueta-auth-server
+./mvnw verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>./mvnw -B clean verify</code> compiles every module, runs the unit tests (<code>*Test</code>, Surefire) and the integration tests
+(<code>*IT</code>, Failsafe), runs every build gate (see <a href="reference.html#_build_gates" class="xref page">Build gates</a>) and writes the reports.
+It must be green before pushing. <code>./mvnw test</code> is the fast loop: unit tests only, no Spring context and no Docker.
+The current version is <code>1.0.0-SNAPSHOT</code>.</p>
+</div>
+<div class="paragraph">
+<p>To run a single test class in a single module:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">./mvnw -pl auth-server/api/web -am test -Dtest=LoginControllerTest</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The root <code>compose.yaml</code> starts PostgreSQL 18 and Mailpit for local development. The integration tests do not use it:
+they start their own PostgreSQL container through the <code>test-support</code> module (<code>@PostgresIT</code>). The <code>e2e-tests</code> module
+is built after the applications and runs a Playwright sign-in smoke test (<code>SignInSmokeIT</code>) against the packaged
+<code>auth-server/boot</code> and <code>bff/boot</code> jars; Playwright downloads its Chromium build on first use.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_run_the_applications"><a class="anchor" href="#_run_the_applications"></a>Run the applications</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Run <code>auth-server</code> with the <code>dev</code> profile: it starts the services of <code>compose.yaml</code> through <code>spring-boot-docker-compose</code>
+(PostgreSQL, and Mailpit on SMTP port 1025 and web UI port 8025), applies the Flyway migrations and seeds a <code>demo</code> user
+and a confidential <code>bff</code> client with generated secrets, which it writes to its log. Export the client secret as
+<code>BFF_CLIENT_SECRET</code> before starting the <code>bff</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>bff</code> keeps its sessions in PostgreSQL. With the <code>dev</code> profile it uses the <code>bff</code> database of the same compose
+PostgreSQL (created by <code>compose/init-databases.sql</code>) and applies its Flyway migration at start; start it with
+<code>-Dspring-boot.run.profiles=dev</code>. Without the <code>dev</code> profile it reads the connection from the environment:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 50%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Variable</th>
+<th class="tableblock halign-left valign-top">Meaning</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_DB_URL</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JDBC URL of the <code>bff</code> database.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>jdbc:postgresql://localhost:5432/bff</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_DB_USER</code>, <code>BFF_DB_PASSWORD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Credentials of that database.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code> / empty</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secret of the <code>bff</code> client, as seeded by <code>auth-server</code>. Required.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTH_ISSUER</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Issuer URI of <code>auth-server</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>RESOURCE_SERVER_URI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Base URI of the <code>resource-server</code> the BFF&#8217;s generated documents client calls (<code>bff.resource-server.base-uri</code>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:8081" class="bare">http://localhost:8081</a></code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>To let the <code>bff</code> and the demo SPA send users back after sign-out, <code>auth-server</code> must know their post-logout URIs: set
+<code>AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS</code> and <code>AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS</code> (comma-separated; the <code>dev</code>
+profile already sets them). See <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a> and <a href="clients.html" class="xref page">Registered clients</a>.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+The <code>dev</code> profile data and the compose credentials are throwaway development values. Signing keys are
+persisted in PostgreSQL, encrypted with a per-machine random secret that the <code>dev</code> profile creates once under
+<code>~/.irurueta-auth-server/</code>. Outside the <code>dev</code> profile, set <code>authserver.keys.encryption.password</code> and
+<code>authserver.keys.encryption.salt</code> (see <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>) and, to seed the <code>bff</code> client,
+<code>AUTHSERVER_BFF_CLIENT_SECRET</code>. The compromised-password check calls the Have I Been Pwned range API; disable it with
+<code>authserver.password.compromised-check.enabled=false</code> when offline.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Start each application in its own terminal, <code>auth-server</code> first. The <code>dev</code> profile finds <code>compose.yaml</code> at
+<code>../../compose.yaml</code>, relative to the working directory, which <code>spring-boot:run</code> sets to the <code>auth-server/boot</code> module directory. When starting
+the jar or an IDE run configuration from elsewhere, point to the file with
+<code>SPRING_DOCKER_COMPOSE_FILE=&lt;repository&gt;/compose.yaml</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">./mvnw -pl auth-server/boot -am spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw -pl resource-server/boot -am spring-boot:run
+./mvnw -pl bff/boot -am spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw -pl service-client/boot -am spring-boot:run</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Application</th>
+<th class="tableblock halign-left valign-top">Address</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="http://localhost:9000" class="bare">http://localhost:9000</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="http://localhost:8080" class="bare">http://localhost:8080</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resource-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="http://localhost:8081" class="bare">http://localhost:8081</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No HTTP port: it runs, calls the API and exits.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_build_the_documentation"><a class="anchor" href="#_build_the_documentation"></a>Build the documentation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Building this documentation site requires Node.js 24 or newer:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">cd docs
+npm ci
+npx antora antora-playbook.yml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The site is written to <code>docs/build/site</code>.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

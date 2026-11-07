@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentsExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:bff-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.bff.api.web.documents</a> &gt; <span class="el_source">DocumentsExceptionHandler.java</span></div><h1>DocumentsExceptionHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.bff.api.web.documents;
+
+import com.irurueta.authserver.bff.domain.documents.DocumentNotFoundException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsForbiddenException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
+import java.net.URI;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/**
+ * Translates the failures of {@link DocumentsController} to RFC 9457 problem details, answered as
+ * {@code application/problem+json}. The detail is a fixed text: the message of the failure, and anything the resource
+ * server said, never reach the browser.
+ */
+@RestControllerAdvice(assignableTypes = DocumentsController.class)
+<span class="fc" id="L37">public class DocumentsExceptionHandler {</span>
+
+    /** Base of the problem type URNs. */
+    static final String TYPE_BASE = &quot;urn:problem:documents:&quot;;
+
+    /**
+     * Answers a session without a valid token with 401, so the SPA signs the user in again.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(DocumentsUnauthorizedException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleUnauthorized(final DocumentsUnauthorizedException exception) {
+<span class="fc" id="L50">        return respond(HttpStatus.UNAUTHORIZED, &quot;unauthorized&quot;, &quot;The session has no valid token&quot;);</span>
+    }
+
+    /**
+     * Answers an operation the user may not perform with 403.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(DocumentsForbiddenException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleForbidden(final DocumentsForbiddenException exception) {
+<span class="fc" id="L61">        return respond(HttpStatus.FORBIDDEN, &quot;forbidden&quot;, &quot;The operation is not allowed&quot;);</span>
+    }
+
+    /**
+     * Answers a missing document, or someone else's, with 404.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(DocumentNotFoundException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleNotFound(final DocumentNotFoundException exception) {
+<span class="fc" id="L72">        return respond(HttpStatus.NOT_FOUND, &quot;not-found&quot;, &quot;The document does not exist&quot;);</span>
+    }
+
+    /**
+     * Answers an unreachable or failing resource server with 502.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(DocumentsUnavailableException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleUnavailable(final DocumentsUnavailableException exception) {
+<span class="fc" id="L83">        return respond(HttpStatus.BAD_GATEWAY, &quot;unavailable&quot;, &quot;The resource server is unavailable&quot;);</span>
+    }
+
+    /**
+     * Builds a problem response.
+     *
+     * @param status HTTP status.
+     * @param type   last segment of the problem type.
+     * @param detail explanation shown to the user.
+     * @return the response.
+     */
+    private static ResponseEntity&lt;ProblemDetail&gt; respond(final HttpStatus status, final String type,
+            final String detail) {
+<span class="fc" id="L96">        final var problem = ProblemDetail.forStatusAndDetail(status, detail);</span>
+<span class="fc" id="L97">        problem.setType(URI.create(TYPE_BASE + type));</span>
+<span class="fc" id="L98">        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,15 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,HmacTrustedDeviceTokenSigner,7,81,0,8,2,18,0,8,0,4
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,AesGcmTotpSecretCipher,0,28,0,0,0,7,0,3,0,3
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,SecureTokenGenerator,0,44,0,0,0,10,0,4,0,4
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,CachedJwkSet,0,43,0,4,0,12,0,5,0,3
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,RsaSigningKeyGenerator,7,56,0,0,2,13,0,2,0,2
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,DatabaseJwkSourceConfiguration,0,50,0,0,0,5,0,9,0,9
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,PurposeKeyDerivation,16,47,0,0,4,7,0,2,0,2
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,NimbusSignedTokenService,0,94,0,4,0,29,0,5,0,3
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,AesGcmKeyCipher,0,37,0,0,0,7,0,3,0,3
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,JwkCacheRefreshListener,0,5,0,0,0,2,0,1,0,1
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,KeyEncryptionConfiguration,0,9,0,0,0,2,0,2,0,2
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,KeyEncryptionProperties,0,26,0,8,0,5,0,6,0,2
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,DevKeyEncryptionSecret,21,113,3,5,4,27,3,6,0,5
+com.irurueta.authserver:auth-server-infrastructure-keys,com.irurueta.authserver.authorization.infrastructure.keys,SigningKeyJwkMapper,0,44,0,0,0,5,0,5,0,5

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegisteredClientMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.clients</a> &gt; <span class="el_source">RegisteredClientMapper.java</span></div><h1>RegisteredClientMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
+
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.stereotype.Component;
+
+/**
+ * Maps the domain {@link ClientRegistration} onto Spring Authorization Server's {@link RegisteredClient} and back.
+ * The audiences, which the framework has no field for, travel as the {@value #AUDIENCES_SETTING} custom client
+ * setting.
+ */
+@Component
+<span class="fc" id="L37">public class RegisteredClientMapper {</span>
+
+    /** Name of the custom client setting that holds the audiences of the access tokens issued to the client. */
+    public static final String AUDIENCES_SETTING = &quot;settings.client.audiences&quot;;
+
+    /**
+     * Name of the custom client setting that makes every user of the client complete a second factor. It is only
+     * written and read here: everybody else asks {@code ClientRegistration.mfaRequired()} through the client port.
+     */
+    public static final String MFA_REQUIRED_SETTING = &quot;settings.client.mfa.required&quot;;
+
+    /** Authentication method that marks a public client. */
+<span class="fc" id="L49">    private static final String AUTH_METHOD_NONE = ClientAuthenticationMethod.NONE.getValue();</span>
+
+    /**
+     * Maps a registration to a registered client.
+     *
+     * @param registration the registration.
+     * @param id           internal identifier of the registered client.
+     * @param issuedAt     instant the client identifier was issued.
+     * @param secret       encoded secret, or {@code null}.
+     * @return the registered client.
+     */
+    public RegisteredClient toRegisteredClient(
+            final ClientRegistration registration, final String id, final Instant issuedAt, final String secret) {
+<span class="fc" id="L62">        final var builder = RegisteredClient.withId(id)</span>
+<span class="fc" id="L63">                .clientId(registration.clientId())</span>
+<span class="fc" id="L64">                .clientIdIssuedAt(issuedAt)</span>
+<span class="fc" id="L65">                .clientSecret(secret)</span>
+<span class="fc" id="L66">                .clientName(registration.name())</span>
+<span class="fc" id="L67">                .clientAuthenticationMethods(methods -&gt; registration.authMethods()</span>
+<span class="fc" id="L68">                        .forEach(method -&gt; methods.add(new ClientAuthenticationMethod(method))))</span>
+<span class="fc" id="L69">                .authorizationGrantTypes(types -&gt; registration.grantTypes()</span>
+<span class="fc" id="L70">                        .forEach(type -&gt; types.add(new AuthorizationGrantType(type))))</span>
+<span class="fc" id="L71">                .redirectUris(uris -&gt; uris.addAll(registration.redirectUris()))</span>
+<span class="fc" id="L72">                .postLogoutRedirectUris(uris -&gt; uris.addAll(registration.postLogoutRedirectUris()))</span>
+<span class="fc" id="L73">                .scopes(scopes -&gt; scopes.addAll(registration.scopes()))</span>
+<span class="fc" id="L74">                .clientSettings(ClientSettings.builder()</span>
+<span class="fc" id="L75">                        .requireProofKey(registration.requireProofKey())</span>
+<span class="fc" id="L76">                        .requireAuthorizationConsent(registration.requireConsent())</span>
+<span class="fc" id="L77">                        .setting(AUDIENCES_SETTING, new ArrayList&lt;&gt;(registration.audiences()))</span>
+<span class="fc" id="L78">                        .setting(MFA_REQUIRED_SETTING, registration.mfaRequired())</span>
+<span class="fc" id="L79">                        .build())</span>
+                // tag::tokens-settings[]
+<span class="fc" id="L81">                .tokenSettings(TokenSettings.builder()</span>
+<span class="fc" id="L82">                        .accessTokenTimeToLive(registration.accessTokenTtl())</span>
+<span class="fc" id="L83">                        .refreshTokenTimeToLive(registration.refreshTokenTtl())</span>
+<span class="fc" id="L84">                        .accessTokenFormat(new OAuth2TokenFormat(registration.accessTokenFormat()))</span>
+<span class="fc" id="L85">                        .reuseRefreshTokens(registration.reuseRefreshTokens())</span>
+<span class="fc" id="L86">                        .build());</span>
+                // end::tokens-settings[]
+<span class="fc" id="L88">        return builder.build();</span>
+    }
+
+    /**
+     * Maps a registered client to a registration. The framework keeps these collections as sets, so they are
+     * returned sorted to make the result deterministic. A client is confidential unless it authenticates with
+     * {@code none}.
+     *
+     * @param client the registered client.
+     * @return the registration.
+     */
+    public ClientRegistration toRegistration(final RegisteredClient client) {
+<span class="fc" id="L100">        final var authMethods = client.getClientAuthenticationMethods().stream()</span>
+<span class="fc" id="L101">                .map(ClientAuthenticationMethod::getValue).sorted().toList();</span>
+<span class="fc" id="L102">        final var settings = client.getClientSettings();</span>
+<span class="fc" id="L103">        final var tokenSettings = client.getTokenSettings();</span>
+<span class="fc" id="L104">        return new ClientRegistration(client.getClientId(), client.getClientName(),</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">                !authMethods.contains(AUTH_METHOD_NONE), authMethods,</span>
+<span class="fc" id="L106">                client.getAuthorizationGrantTypes().stream().map(AuthorizationGrantType::getValue).sorted().toList(),</span>
+<span class="fc" id="L107">                client.getRedirectUris().stream().sorted().toList(), client.getScopes().stream().sorted().toList(),</span>
+<span class="fc" id="L108">                settings.isRequireProofKey(), audiencesOf(settings), tokenSettings.getAccessTokenTimeToLive(),</span>
+<span class="fc" id="L109">                tokenSettings.getRefreshTokenTimeToLive(), tokenSettings.getAccessTokenFormat().getValue(),</span>
+<span class="fc" id="L110">                tokenSettings.isReuseRefreshTokens(),</span>
+<span class="fc" id="L111">                client.getPostLogoutRedirectUris().stream().sorted().toList(),</span>
+<span class="fc" id="L112">                settings.isRequireAuthorizationConsent(), mfaRequiredOf(settings));</span>
+    }
+
+    /**
+     * Reads the audiences custom setting.
+     *
+     * @param settings client settings.
+     * @return the audiences; empty when the setting is absent (the registration then defaults to the client id).
+     */
+    public List&lt;String&gt; audiencesOf(final ClientSettings settings) {
+<span class="fc" id="L122">        final var value = settings.getSetting(AUDIENCES_SETTING);</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if (value instanceof List&lt;?&gt; audiences) {</span>
+<span class="fc" id="L124">            return audiences.stream().map(String::valueOf).toList();</span>
+        }
+<span class="nc" id="L126">        return List.of();</span>
+    }
+
+    /**
+     * Reads the second-factor custom setting.
+     *
+     * @param settings client settings.
+     * @return {@code true} only when the setting is present and true.
+     */
+    public boolean mfaRequiredOf(final ClientSettings settings) {
+<span class="fc" id="L136">        return Boolean.TRUE.equals(settings.getSetting(MFA_REQUIRED_SETTING));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

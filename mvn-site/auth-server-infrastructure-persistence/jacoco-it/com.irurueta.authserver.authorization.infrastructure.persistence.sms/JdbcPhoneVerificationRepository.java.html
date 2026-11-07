@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcPhoneVerificationRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.sms</a> &gt; <span class="el_source">JdbcPhoneVerificationRepository.java</span></div><h1>JdbcPhoneVerificationRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.sms;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.sms.PhoneVerification;
+import com.irurueta.authserver.authorization.domain.sms.PhoneVerificationRepository;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link PhoneVerificationRepository} over the {@code pending_*} columns of the {@code user_phones} table. It opens
+ * no transaction: clearing a verification and then deleting an empty row runs in the caller's.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcPhoneVerificationRepository implements PhoneVerificationRepository {
+
+    /** Statement storing the pending verification of a user, creating the row if needed. */
+    private static final String UPSERT = &quot;&quot;&quot;
+            INSERT INTO user_phones (user_id, pending_phone_e164, pending_code_hash, pending_attempts,
+                                     pending_expires_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (user_id) DO UPDATE
+            SET pending_phone_e164 = EXCLUDED.pending_phone_e164,
+                pending_code_hash = EXCLUDED.pending_code_hash,
+                pending_attempts = EXCLUDED.pending_attempts,
+                pending_expires_at = EXCLUDED.pending_expires_at
+            &quot;&quot;&quot;;
+
+    /** Query returning the pending verification of a user. */
+    private static final String FIND_BY_USER = &quot;&quot;&quot;
+            SELECT user_id, pending_phone_e164, pending_code_hash, pending_attempts, pending_expires_at
+            FROM user_phones
+            WHERE user_id = ? AND pending_phone_e164 IS NOT NULL
+            &quot;&quot;&quot;;
+
+    /** Statement counting a failed attempt atomically and returning the new count. */
+    private static final String INCREMENT_ATTEMPTS = &quot;&quot;&quot;
+            UPDATE user_phones SET pending_attempts = pending_attempts + 1
+            WHERE user_id = ? AND pending_phone_e164 IS NOT NULL
+            RETURNING pending_attempts
+            &quot;&quot;&quot;;
+
+    /** Statement clearing the pending columns of a user. */
+    private static final String CLEAR_PENDING = &quot;&quot;&quot;
+            UPDATE user_phones
+            SET pending_phone_e164 = NULL, pending_code_hash = NULL, pending_attempts = 0, pending_expires_at = NULL
+            WHERE user_id = ?
+            &quot;&quot;&quot;;
+
+    /** Statement deleting the row of a user that holds neither a verified phone nor a pending verification. */
+    private static final String DELETE_IF_EMPTY =
+            &quot;DELETE FROM user_phones WHERE user_id = ? AND phone_e164 IS NULL AND pending_phone_e164 IS NULL&quot;;
+
+    /** Statement clearing every expired pending verification. */
+    private static final String CLEAR_EXPIRED = &quot;&quot;&quot;
+            UPDATE user_phones
+            SET pending_phone_e164 = NULL, pending_code_hash = NULL, pending_attempts = 0, pending_expires_at = NULL
+            WHERE pending_expires_at &lt;= ?
+            &quot;&quot;&quot;;
+
+    /** Statement deleting the rows that hold nothing at all. */
+    private static final String DELETE_EMPTY_ROWS =
+            &quot;DELETE FROM user_phones WHERE phone_e164 IS NULL AND pending_phone_e164 IS NULL&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps a row to a verification. */
+    private final PhoneVerificationRowMapper phoneVerificationRowMapper;
+
+    @Override
+    public void save(final PhoneVerification verification) {
+<span class="fc" id="L94">        jdbcClient.sql(UPSERT)</span>
+<span class="fc" id="L95">                .params(verification.userId(), verification.phone().e164(), verification.codeHash(),</span>
+<span class="fc" id="L96">                        verification.attempts(), toTimestamp(verification.expiresAt()))</span>
+<span class="fc" id="L97">                .update();</span>
+<span class="fc" id="L98">    }</span>
+
+    @Override
+    public Optional&lt;PhoneVerification&gt; findByUserId(final UUID userId) {
+<span class="fc" id="L102">        return jdbcClient.sql(FIND_BY_USER).param(userId).query(phoneVerificationRowMapper).optional();</span>
+    }
+
+    @Override
+    public int incrementAttempts(final UUID userId) {
+<span class="fc" id="L107">        return jdbcClient.sql(INCREMENT_ATTEMPTS).param(userId).query(Integer.class).optional().orElse(0);</span>
+    }
+
+    @Override
+    public void deleteByUserId(final UUID userId) {
+<span class="fc" id="L112">        jdbcClient.sql(CLEAR_PENDING).param(userId).update();</span>
+<span class="fc" id="L113">        jdbcClient.sql(DELETE_IF_EMPTY).param(userId).update();</span>
+<span class="fc" id="L114">    }</span>
+
+    @Override
+    public int deleteExpired(final Instant now) {
+<span class="fc" id="L118">        final var cleared = jdbcClient.sql(CLEAR_EXPIRED).param(toTimestamp(now)).update();</span>
+<span class="fc" id="L119">        jdbcClient.sql(DELETE_EMPTY_ROWS).update();</span>
+<span class="fc" id="L120">        return cleared;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

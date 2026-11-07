@@ -1,0 +1,11 @@
+com.irurueta.authserver.authorization.domain
+com.irurueta.authserver.authorization.domain.account
+com.irurueta.authserver.authorization.domain.clients
+com.irurueta.authserver.authorization.domain.keys
+com.irurueta.authserver.authorization.domain.mfa
+com.irurueta.authserver.authorization.domain.ott
+com.irurueta.authserver.authorization.domain.passkeys
+com.irurueta.authserver.authorization.domain.password
+com.irurueta.authserver.authorization.domain.sms
+com.irurueta.authserver.authorization.domain.tokens
+com.irurueta.authserver.authorization.domain.totp

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PendingRecoveryCodes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.totp</a> &gt; <span class="el_source">PendingRecoveryCodes.java</span></div><h1>PendingRecoveryCodes.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.totp;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.stereotype.Component;
+
+/**
+ * Keeps, in the session, the recovery codes generated when an authenticator app is enrolled during the sign-in, from
+ * the post that confirms it until the page that shows them once ({@link RecoveryCodesPageController}), which takes
+ * them out of the session.
+ */
+@Component
+<span class="fc" id="L29">public class PendingRecoveryCodes {</span>
+
+    /** Name of the session attribute that holds the codes. */
+<span class="fc" id="L32">    static final String ATTRIBUTE = PendingRecoveryCodes.class.getName() + &quot;.CODES&quot;;</span>
+
+    /**
+     * Stores the codes in the session of a request.
+     *
+     * @param request the request.
+     * @param codes   the codes in clear text.
+     */
+    public void save(final HttpServletRequest request, final List&lt;String&gt; codes) {
+<span class="fc" id="L41">        request.getSession().setAttribute(ATTRIBUTE, new ArrayList&lt;&gt;(codes));</span>
+<span class="fc" id="L42">    }</span>
+
+    /**
+     * Tells whether the session of a request holds codes not shown yet.
+     *
+     * @param request the request.
+     * @return {@code true} when there are codes waiting to be shown.
+     */
+    public boolean isPending(final HttpServletRequest request) {
+<span class="fc" id="L51">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L52" title="All 4 branches covered.">        return session != null &amp;&amp; session.getAttribute(ATTRIBUTE) != null;</span>
+    }
+
+    /**
+     * Takes the codes out of the session of a request, so they are shown only once.
+     *
+     * @param request the request.
+     * @return the codes; empty when there are none.
+     */
+    public List&lt;String&gt; take(final HttpServletRequest request) {
+<span class="fc" id="L62">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (session == null) {</span>
+<span class="fc" id="L64">            return List.of();</span>
+        }
+<span class="fc" id="L66">        final var stored = session.getAttribute(ATTRIBUTE);</span>
+<span class="fc" id="L67">        session.removeAttribute(ATTRIBUTE);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (!(stored instanceof List&lt;?&gt; codes)) {</span>
+<span class="fc" id="L69">            return List.of();</span>
+        }
+<span class="fc" id="L71">        return codes.stream().map(String::valueOf).toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,4 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:bff-infrastructure-session,com.irurueta.authserver.bff.infrastructure.session.dev,BffDevDatabase,0,20,0,2,0,5,0,4,0,3
+com.irurueta.authserver:bff-infrastructure-session,com.irurueta.authserver.bff.infrastructure.session.dev,BffDevDatabase.BffJdbcConnectionDetails,0,26,0,0,0,5,0,5,0,5
+com.irurueta.authserver:bff-infrastructure-session,com.irurueta.authserver.bff.infrastructure.session,SessionConfiguration,0,24,0,0,0,8,0,2,0,2

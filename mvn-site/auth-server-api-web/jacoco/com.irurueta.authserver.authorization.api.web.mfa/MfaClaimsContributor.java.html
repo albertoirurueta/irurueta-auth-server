@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MfaClaimsContributor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">MfaClaimsContributor.java</span></div><h1>MfaClaimsContributor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import com.irurueta.authserver.authorization.api.web.tokens.JwtClaimsContributor;
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
+import java.util.ArrayList;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenContext;
+import org.springframework.stereotype.Component;
+
+// tag::mfa-claims[]
+/**
+ * Adds to the access and ID tokens how the user authenticated: {@code amr} (the RFC 8176 values of the factors really
+ * presented, plus {@code mfa} when there are at least two), {@code acr} (the class of the authentication, see
+ * {@link AuthenticationContextClass}) and {@code auth_time} (the epoch second the primary factor was presented, a
+ * number per OIDC; access tokens only, because the framework sets it on ID tokens). Every value comes from the
+ * {@link FactorTimeline}, which reads the {@link org.springframework.security.core.authority.FactorGrantedAuthority}
+ * instances of the principal: authorities of an unknown factor and of a remembered (trusted) device are ignored, so a
+ * browser that skipped the second factor gets {@code amr [pwd]} and the password class. A token with no counted factor
+ * (for example of the client credentials grant) gets none of the claims.
+ */
+@Component
+@Order(MfaClaimsContributor.ORDER)
+@RequiredArgsConstructor
+public class MfaClaimsContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the built-in claims and the default contributors. */
+    public static final int ORDER = 100;
+
+    /** RFC 8176 {@code amr} value that tells that more than one factor was used. */
+    public static final String MULTI_FACTOR_AMR_VALUE = &quot;mfa&quot;;
+
+    /** Reads the counted factors of the principal and their instants. */
+    private final FactorTimeline factorTimeline;
+
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+<span class="fc" id="L57">        final var principal = context.getPrincipal();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (principal == null) {</span>
+<span class="fc" id="L59">            return;</span>
+        }
+<span class="fc" id="L61">        final var authTime = factorTimeline.authTime(principal);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (authTime.isEmpty()) {</span>
+<span class="fc" id="L63">            return;</span>
+        }
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+<span class="fc" id="L66">        final var amr = new ArrayList&lt;String&gt;(factorTimeline.amrValues(principal));</span>
+<span class="fc" id="L67">        final var multiFactor = factorTimeline.isMultiFactor(principal);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (multiFactor) {</span>
+<span class="fc" id="L69">            amr.add(MULTI_FACTOR_AMR_VALUE);</span>
+        }
+<span class="fc" id="L71">        claims.put(IdTokenClaimNames.AMR, amr);</span>
+<span class="fc" id="L72">        claims.put(IdTokenClaimNames.ACR,</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">                multiFactor ? AuthenticationContextClass.MULTI_FACTOR : AuthenticationContextClass.PASSWORD);</span>
+        // the framework sets auth_time itself on ID tokens (as a date it expects to read back on refresh)
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {</span>
+<span class="fc" id="L76">            claims.put(IdTokenClaimNames.AUTH_TIME, authTime.get().getEpochSecond());</span>
+        }
+<span class="fc" id="L78">    }</span>
+}
+// end::mfa-claims[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

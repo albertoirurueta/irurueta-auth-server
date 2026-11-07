@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FixedWindowBuckets.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ratelimit</a> &gt; <span class="el_source">FixedWindowBuckets.java</span></div><h1>FixedWindowBuckets.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ratelimit;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.TimeMeter;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+
+/**
+ * The token buckets of one kind of key (a client address, an e-mail address, an identifier), built on
+ * &lt;a href=&quot;https://bucket4j.com&quot;&gt;Bucket4j&lt;/a&gt; and kept in a Caffeine cache. Each bucket holds the limit of its key and
+ * is refilled all at once at the end of every window. The cache is bounded to a number of keys and drops a bucket idle
+ * for a whole window (it would be full again anyway). Maintenance runs on the calling thread, so eviction is
+ * deterministic and needs no extra thread, and the time of both libraries is read from the injected {@link Clock}, so
+ * tests can move it. The buckets live in this instance only: several instances each apply the limits on their own.
+ */
+public final class FixedWindowBuckets {
+
+    /** Length of the window a limit is counted in. */
+    private final Duration window;
+
+    /** Time source of the buckets and of the cache. */
+    private final ClockTimeMeter timeMeter;
+
+    /** Buckets per key. */
+    private final Cache&lt;String, Bucket&gt; buckets;
+
+    /**
+     * Creates the buckets of one kind of key.
+     *
+     * @param clock          source of the current time.
+     * @param window         length of the window a limit is counted in.
+     * @param maxTrackedKeys keys tracked at most; the oldest is forgotten first.
+     */
+<span class="fc" id="L54">    public FixedWindowBuckets(final Clock clock, final Duration window, final int maxTrackedKeys) {</span>
+<span class="fc" id="L55">        this.window = window;</span>
+<span class="fc" id="L56">        timeMeter = new ClockTimeMeter(clock);</span>
+<span class="fc" id="L57">        buckets = Caffeine.newBuilder()</span>
+<span class="fc" id="L58">                .maximumSize(maxTrackedKeys)</span>
+<span class="fc" id="L59">                .expireAfterAccess(window)</span>
+<span class="fc" id="L60">                .ticker(timeMeter::currentTimeNanos)</span>
+<span class="fc" id="L61">                .executor(Runnable::run)</span>
+<span class="fc" id="L62">                .build();</span>
+<span class="fc" id="L63">    }</span>
+
+    /**
+     * Takes one token from the bucket of a key, creating the bucket on first use.
+     *
+     * @param key   the key.
+     * @param limit requests the key may make per window.
+     * @return empty when the request is within the limit, else how long until the window ends and the key is
+     *         accepted again.
+     */
+    public Optional&lt;Duration&gt; tryConsume(final String key, final int limit) {
+<span class="fc" id="L74">        final var probe = buckets.get(key, ignored -&gt; bucket(limit)).tryConsumeAndReturnRemaining(1);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        return probe.isConsumed() ? Optional.empty() : Optional.of(Duration.ofNanos(probe.getNanosToWaitForRefill()));</span>
+    }
+
+    /**
+     * Tells how many keys are tracked, after any pending eviction.
+     *
+     * @return the number of keys.
+     */
+    public long trackedKeys() {
+<span class="fc" id="L84">        buckets.cleanUp();</span>
+<span class="fc" id="L85">        return buckets.estimatedSize();</span>
+    }
+
+    /**
+     * Builds the bucket of a key: the whole limit, refilled at once at the end of every window.
+     *
+     * @param limit requests per window.
+     * @return the bucket.
+     */
+    private Bucket bucket(final int limit) {
+<span class="fc" id="L95">        return Bucket.builder()</span>
+<span class="fc" id="L96">                .addLimit(bandwidth -&gt; bandwidth.capacity(limit).refillIntervally(limit, window))</span>
+<span class="fc" id="L97">                .withCustomTimePrecision(timeMeter)</span>
+<span class="fc" id="L98">                .build();</span>
+    }
+
+    /**
+     * Bucket4j and Caffeine time source backed by a {@link Clock}.
+     *
+     * @param clock source of the current time.
+     */
+<span class="fc" id="L106">    private record ClockTimeMeter(Clock clock) implements TimeMeter {</span>
+
+        @Override
+        public long currentTimeNanos() {
+<span class="fc" id="L110">            return ChronoUnit.NANOS.between(Instant.EPOCH, clock.instant());</span>
+        }
+
+        @Override
+        public boolean isWallClockBased() {
+<span class="nc" id="L115">            return true;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

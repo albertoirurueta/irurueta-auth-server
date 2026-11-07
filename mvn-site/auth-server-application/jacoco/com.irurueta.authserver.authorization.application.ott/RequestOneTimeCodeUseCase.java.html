@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestOneTimeCodeUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.ott</a> &gt; <span class="el_source">RequestOneTimeCodeUseCase.java</span></div><h1>RequestOneTimeCodeUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.ott;
+
+import com.irurueta.authserver.authorization.application.sms.SendSmsOneTimeCodeUseCase;
+import com.irurueta.authserver.authorization.application.sms.SmsMessages;
+import com.irurueta.authserver.authorization.application.sms.SmsRefusedException;
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCode;
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeGenerator;
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeRepository;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import com.irurueta.authserver.authorization.domain.ott.OttKind;
+import com.irurueta.authserver.authorization.domain.ott.OttPolicy;
+import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
+import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Sends a one-time code to a user, by e-mail or SMS.
+ *
+ * &lt;p&gt;The request is enumeration-safe: for an unknown identifier, a disabled account or an account without a verified
+ * address for the channel nothing is stored or sent, yet the same result is returned and a code is still generated
+ * and hashed, so the work done is alike. The code is never delivered inside this transaction: an e-mail is requested
+ * through an {@link EmailCodeRequested} event and an SMS through {@link SendSmsOneTimeCodeUseCase}, which records its
+ * cost and publishes an {@code SmsRequested} event; both are handled after the transaction commits and off the request
+ * thread, so no remote call holds a database connection and the latency of the mail server or the SMS gateway cannot
+ * tell an existing account from an unknown one. A refused SMS (country, budget) is not reported to the caller.
+ *
+ * &lt;p&gt;A new code replaces the previous one of the same binding and user (the repository saves one active code per
+ * binding and username). Magic links are not handled here: they use the framework's token service.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class RequestOneTimeCodeUseCase {
+
+    /** Use case that finds where the code is delivered. */
+    private final ResolveOttDestinationUseCase resolveOttDestinationUseCase;
+
+    /** Generator of codes. */
+    private final OneTimeCodeGenerator oneTimeCodeGenerator;
+
+    /** Hasher of codes. */
+    private final OneTimeCodeHasher oneTimeCodeHasher;
+
+    /** Port that stores the codes. */
+    private final OneTimeCodeRepository oneTimeCodeRepository;
+
+    /** Publishes the request of an e-mail delivery. */
+    private final ApplicationEventPublisher eventPublisher;
+
+    /** Use case that records the cost of an SMS and requests its delivery. */
+    private final SendSmsOneTimeCodeUseCase sendSmsOneTimeCodeUseCase;
+
+    /** Policy of the codes. */
+    private final OttPolicy ottPolicy;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Requests a code.
+     *
+     * @param identifier the name the user signs in with, as typed.
+     * @param channel    the channel to deliver the code through.
+     * @param purpose    what the code is for.
+     * @param bindingId  identifier of the sign-in attempt the code is bound to (for example the session id).
+     * @return the same result for every identifier.
+     */
+    public OneTimeCodeRequestResult execute(
+            final String identifier, final OttChannel channel, final OttPurpose purpose, final String bindingId) {
+<span class="fc" id="L93">        final var ttl = ottPolicy.ttl(OttKind.CODE);</span>
+<span class="fc" id="L94">        final var result = new OneTimeCodeRequestResult(true, ttl);</span>
+<span class="fc" id="L95">        final var code = oneTimeCodeGenerator.generate(ottPolicy.codeLength());</span>
+<span class="fc" id="L96">        final var hash = oneTimeCodeHasher.hash(code);</span>
+<span class="fc" id="L97">        final var destination = resolveOttDestinationUseCase.execute(identifier, channel).orElse(null);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (destination == null) {</span>
+<span class="fc" id="L99">            return result;</span>
+        }
+<span class="fc" id="L101">        final var now = clock.instant();</span>
+<span class="fc" id="L102">        oneTimeCodeRepository.save(new OneTimeCode(UUID.randomUUID(), identifier, channel, purpose, hash, bindingId,</span>
+<span class="fc" id="L103">                0, now.plus(ttl), now));</span>
+<span class="fc" id="L104">        requestDelivery(destination, code, ttl);</span>
+<span class="fc" id="L105">        return result;</span>
+    }
+
+    /**
+     * Requests the delivery of a code, swallowing an SMS refusal so that it cannot be told apart from success.
+     *
+     * @param destination where to deliver it.
+     * @param code        the clear-text code.
+     * @param ttl         how long it is valid.
+     */
+    private void requestDelivery(final OttDestination destination, final String code, final Duration ttl) {
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (destination.channel() == OttChannel.EMAIL) {</span>
+<span class="fc" id="L117">            eventPublisher.publishEvent(new EmailCodeRequested(destination.address(), code, ttl));</span>
+<span class="fc" id="L118">            return;</span>
+        }
+        try {
+<span class="fc" id="L121">            sendSmsOneTimeCodeUseCase.execute(new PhoneNumber(destination.address()),</span>
+<span class="fc" id="L122">                    SmsMessages.verificationCode(code, ttl));</span>
+<span class="fc" id="L123">        } catch (final SmsRefusedException ignored) {</span>
+            // refused by the country or budget policy: answered like a sent code, so nothing is revealed
+<span class="fc" id="L125">        }</span>
+<span class="fc" id="L126">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

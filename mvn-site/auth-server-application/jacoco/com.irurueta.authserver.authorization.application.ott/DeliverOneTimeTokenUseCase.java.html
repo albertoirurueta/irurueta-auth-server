@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeliverOneTimeTokenUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.ott</a> &gt; <span class="el_source">DeliverOneTimeTokenUseCase.java</span></div><h1>DeliverOneTimeTokenUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.application.ott;
+
+import com.irurueta.authserver.authorization.application.sms.SmsRequested;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
+import com.irurueta.authserver.authorization.domain.sms.SmsSender;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Delivers what the one-time token use cases asked for: an e-mailed code or link, or a text message whose cost was
+ * already recorded. It is called once the transaction that stored the token has committed, off the request thread,
+ * and it runs outside any transaction ({@link Propagation#NOT_SUPPORTED}) because it only calls remote services: a
+ * transaction would hold a database connection for as long as the mail server or the SMS gateway takes. A failure is
+ * thrown to the caller, which records it; it never reaches the response of the request that asked for the token.
+ */
+@Service
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@RequiredArgsConstructor
+public class DeliverOneTimeTokenUseCase {
+
+    /** Port that delivers e-mail. */
+    private final OttDelivery ottDelivery;
+
+    /** Port that sends text messages. */
+    private final SmsSender smsSender;
+
+    /**
+     * E-mails a code.
+     *
+     * @param request what to deliver.
+     * @throws com.irurueta.authserver.authorization.domain.ott.OttDeliveryException if the mail could not be delivered.
+     */
+    public void deliverEmailCode(final EmailCodeRequested request) {
+<span class="fc" id="L52">        ottDelivery.deliverCode(OttChannel.EMAIL, request.address(), request.code(), request.validFor());</span>
+<span class="fc" id="L53">    }</span>
+
+    /**
+     * E-mails a magic link.
+     *
+     * @param request what to deliver.
+     * @throws com.irurueta.authserver.authorization.domain.ott.OttDeliveryException if the mail could not be delivered.
+     */
+    public void deliverEmailLink(final EmailLinkRequested request) {
+<span class="fc" id="L62">        ottDelivery.deliverLink(OttChannel.EMAIL, request.address(), request.link(), request.validFor());</span>
+<span class="fc" id="L63">    }</span>
+
+    /**
+     * Sends a text message.
+     *
+     * @param request what to send.
+     * @throws com.irurueta.authserver.authorization.domain.sms.SmsDeliveryException if the gateway failed or refused
+     *         the message.
+     */
+    public void deliverSms(final SmsRequested request) {
+<span class="fc" id="L73">        smsSender.send(request.to(), request.text());</span>
+<span class="fc" id="L74">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

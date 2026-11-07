@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TrustedDeviceController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">TrustedDeviceController.java</span></div><h1>TrustedDeviceController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.TrustedDevicesApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.TrustedDeviceResponse;
+import com.irurueta.authserver.authorization.application.mfa.ListTrustedDevicesUseCase;
+import com.irurueta.authserver.authorization.application.mfa.RevokeTrustedDeviceUseCase;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Lists and revokes the trusted devices of the authenticated account. The paths, status codes and bodies are those
+ * of the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml}, through the generated
+ * {@link TrustedDevicesApi}; failures are answered by {@link MfaExceptionHandler}. Revoking a device needs a recent
+ * multi-factor sign-in ({@link StepUpGuard}).
+ */
+@RestController
+@RequiredArgsConstructor
+public class TrustedDeviceController implements TrustedDevicesApi {
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the devices of an account. */
+    private final ListTrustedDevicesUseCase listTrustedDevicesUseCase;
+
+    /** Revokes a device. */
+    private final RevokeTrustedDeviceUseCase revokeTrustedDeviceUseCase;
+
+    /** Requires a recent multi-factor sign-in before a device is revoked. */
+    private final StepUpGuard stepUpGuard;
+
+    /** Maps the devices onto the contract's DTOs. */
+    private final TrustedDeviceDtoMapper trustedDeviceDtoMapper;
+
+    /**
+     * Lists the devices that are still trusted.
+     *
+     * @return {@code 200 OK} with the devices of the authenticated account.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;TrustedDeviceResponse&gt;&gt; listTrustedDevices() {
+<span class="fc" id="L61">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L62">        return ResponseEntity.ok(trustedDeviceDtoMapper.toResponses(listTrustedDevicesUseCase.execute(account.id())));</span>
+    }
+
+    /**
+     * Revokes a device of the authenticated account.
+     *
+     * @param id identifier of the device.
+     * @return {@code 204 No Content}.
+     * @throws TrustedDeviceNotFoundException          if the account has no such device.
+     * @throws InsufficientUserAuthenticationException if the token does not show a recent multi-factor sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; revokeTrustedDevice(final UUID id) {
+<span class="fc" id="L75">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L76">        stepUpGuard.requireRecentMultiFactor(account.id());</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (!revokeTrustedDeviceUseCase.execute(account.id(), account.username(), id)) {</span>
+<span class="fc" id="L78">            throw new TrustedDeviceNotFoundException(id);</span>
+        }
+<span class="fc" id="L80">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

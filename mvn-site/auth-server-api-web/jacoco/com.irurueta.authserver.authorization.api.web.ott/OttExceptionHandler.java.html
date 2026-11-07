@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttExceptionHandler.java</span></div><h1>OttExceptionHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException;
+import com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.PhoneApi;
+import com.irurueta.authserver.authorization.application.sms.InvalidPhoneNumberException;
+import com.irurueta.authserver.authorization.application.sms.SmsCountryNotAllowedException;
+import java.net.URI;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/**
+ * Translates the failures of the phone endpoints to RFC 9457 problem details, answered as
+ * {@code application/problem+json}. It is scoped to the generated {@link PhoneApi}, so it covers its controller
+ * without depending on the package it lives in. Request validation failures are handled by the parent class. A
+ * missing step-up is answered as the multi-factor handler does. The messages never say which numbers are registered.
+ */
+@RestControllerAdvice(assignableTypes = PhoneApi.class)
+@RequiredArgsConstructor
+public class OttExceptionHandler extends ProblemJsonExceptionHandler {
+
+    /** Base of the problem type URNs. */
+    private static final String TYPE_BASE = &quot;urn:problem:phone:&quot;;
+
+    /** Answers a missing step-up. */
+    private final MfaExceptionHandler mfaExceptionHandler;
+
+    /**
+     * Answers an account without a verified phone.
+     *
+     * @param exception the failure.
+     * @return the {@code 404} problem detail.
+     */
+    @ExceptionHandler(PhoneNotFoundException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleNotFound(final PhoneNotFoundException exception) {
+<span class="fc" id="L57">        return respond(HttpStatus.NOT_FOUND, &quot;phone-not-found&quot;, &quot;Phone not found&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a number that is not a valid phone number.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(InvalidPhoneNumberException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInvalidPhone(final InvalidPhoneNumberException exception) {
+<span class="fc" id="L68">        return respond(HttpStatus.BAD_REQUEST, &quot;invalid-phone&quot;, &quot;Invalid phone number&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a number of a country SMS messages are not sent to.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(SmsCountryNotAllowedException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleCountryNotAllowed(final SmsCountryNotAllowedException exception) {
+<span class="fc" id="L79">        return respond(HttpStatus.BAD_REQUEST, &quot;country-not-allowed&quot;, &quot;Country not allowed&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a wrong, expired or missing verification code.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(InvalidPhoneCodeException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInvalidCode(final InvalidPhoneCodeException exception) {
+<span class="fc" id="L90">        return respond(HttpStatus.BAD_REQUEST, &quot;invalid-code&quot;, &quot;Invalid code&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a client or an account that asked or tried too many times, telling when to retry.
+     *
+     * @param exception the failure.
+     * @return the {@code 429} problem detail, with a {@code Retry-After} header in seconds.
+     */
+    @ExceptionHandler(OttRateLimitExceededException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleRateLimited(final OttRateLimitExceededException exception) {
+<span class="fc" id="L101">        final var problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());</span>
+<span class="fc" id="L102">        problem.setType(URI.create(TYPE_BASE + &quot;rate-limited&quot;));</span>
+<span class="fc" id="L103">        problem.setTitle(&quot;Too many requests&quot;);</span>
+<span class="fc" id="L104">        final var headers = new HttpHeaders();</span>
+<span class="fc" id="L105">        headers.set(HttpHeaders.RETRY_AFTER, Long.toString(Math.max(1, exception.getRetryAfter().toSeconds())));</span>
+<span class="fc" id="L106">        return problemResponse(problem, headers);</span>
+    }
+
+    /**
+     * Answers a token whose sign-in is not recent or strong enough to remove the phone.
+     *
+     * @param exception the failure.
+     * @return the {@code 401} problem detail with the {@code WWW-Authenticate} challenge.
+     */
+    @ExceptionHandler(InsufficientUserAuthenticationException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInsufficientUserAuthentication(
+            final InsufficientUserAuthenticationException exception) {
+<span class="fc" id="L118">        return mfaExceptionHandler.handleInsufficientUserAuthentication(exception);</span>
+    }
+
+    /**
+     * Builds a problem response.
+     *
+     * @param status HTTP status.
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the response.
+     */
+    private static ResponseEntity&lt;ProblemDetail&gt; respond(
+            final HttpStatus status, final String type, final String title, final String detail) {
+<span class="fc" id="L132">        final var problem = ProblemDetail.forStatusAndDetail(status, detail);</span>
+<span class="fc" id="L133">        problem.setType(URI.create(TYPE_BASE + type));</span>
+<span class="fc" id="L134">        problem.setTitle(title);</span>
+<span class="fc" id="L135">        return problemResponse(problem);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>
