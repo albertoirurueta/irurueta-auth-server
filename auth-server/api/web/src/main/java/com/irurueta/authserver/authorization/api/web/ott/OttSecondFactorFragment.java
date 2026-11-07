@@ -1,0 +1,105 @@
+/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorFragment;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.sms.HasVerifiedPhoneUseCase;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
+
+// tag::ott-second-factor-fragment[]
+/**
+ * Contributes the one-time token second factor to the second-factor page: the buttons that send a code or a magic link
+ * by e-mail and a code by SMS to the signed-in user, each posting to {@code POST /ott/generate} with the second-factor
+ * purpose. A channel is not offered when it is the one that signed the user in (the same mailbox or phone would be
+ * proved twice), and SMS only to a user with a verified phone.
+ */
+@Component
+@RequiredArgsConstructor
+public class OttSecondFactorFragment implements SecondFactorFragment {
+
+    /** Position of the one-time token action in the second-factor page: after the passkey one. */
+    public static final int ORDER = 300;
+
+    /** Model attribute telling the fragment whether to offer the e-mail code and link. */
+    public static final String EMAIL_AVAILABLE_ATTRIBUTE = "ottEmailAvailable";
+
+    /** Model attribute telling the fragment whether to offer the SMS code. */
+    public static final String SMS_AVAILABLE_ATTRIBUTE = "ottSmsAvailable";
+
+    /** Rules about the session a one-time token is used as a second factor in. */
+    private final PrimaryFactorSession primaryFactorSession;
+
+    /** Resolves the identifier of the account of the signed-in user. */
+    private final SecondFactorUserResolver userResolver;
+
+    /** Tells whether the user has a verified phone. */
+    private final HasVerifiedPhoneUseCase hasVerifiedPhoneUseCase;
+
+    /**
+     * Gets the template that holds the fragment.
+     *
+     * @return {@code ott-second-factor}.
+     */
+    @Override
+    public String templateName() {
+        return "ott-second-factor";
+    }
+
+    /**
+     * Gets the fragment of the template.
+     *
+     * @return {@code form}.
+     */
+    @Override
+    public String fragmentName() {
+        return "form";
+    }
+
+    /**
+     * Gets the position of the fragment.
+     *
+     * @return {@link #ORDER}.
+     */
+    @Override
+    public int order() {
+        return ORDER;
+    }
+
+    /**
+     * Tells the template which channels to offer.
+     *
+     * @param authentication the authentication of the user the page is rendered for.
+     * @return the model attributes; none when nobody is signed in.
+     */
+    @Override
+    public Map<String, Object> modelAttributes(final Authentication authentication) {
+        if (!MfaAuthorizationManager.isUser(authentication)) {
+            return Map.of();
+        }
+        final var sms = !primaryFactorSession.signedInThrough(authentication, OttChannel.SMS)
+                && hasVerifiedPhoneUseCase.execute(userResolver.userIdOf(authentication.getName()));
+        return Map.of(
+                EMAIL_AVAILABLE_ATTRIBUTE, !primaryFactorSession.signedInThrough(authentication, OttChannel.EMAIL),
+                SMS_AVAILABLE_ATTRIBUTE, sms);
+    }
+}
+// end::ott-second-factor-fragment[]

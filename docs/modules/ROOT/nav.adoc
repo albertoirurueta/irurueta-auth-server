@@ -7,6 +7,7 @@
 * xref:login-and-bff.adoc[]
 * xref:mfa-and-step-up.adoc[]
 * xref:passkeys.adoc[]
+* xref:one-time-tokens.adoc[]
 * xref:resource-server.adoc[]
 * xref:installation.adoc[]
 * xref:reference.adoc[]

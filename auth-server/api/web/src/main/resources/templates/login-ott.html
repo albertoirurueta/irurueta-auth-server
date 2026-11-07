@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  One-time token sign-in method (OttLoginMethodFragment): the identifier (the user name) and how to receive the token,
+  a numeric code or a magic link by e-mail, or a code by SMS (a link is only ever sent by e-mail, so choosing SMS
+  always sends a code). The form posts to Spring Security's token endpoint (POST /ott/generate), which answers the
+  same page whether or not the account exists; th:action adds the CSRF field. The purpose is the sign-in: the
+  second-factor variant is the one of ott-second-factor.html.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!-- tag::ott-login-fragment[] -->
+<form th:fragment="login" class="ott-login" method="post" th:action="@{/ott/generate}">
+  <h2 th:text="#{ott.login.heading}">Sign in with a code or a link</h2>
+  <input type="hidden" name="purpose" value="login">
+  <p>
+    <label for="ott-username" th:text="#{ott.login.username}">Username</label>
+    <input type="text" id="ott-username" name="username" required autocomplete="username" aria-describedby="ott-hint">
+  </p>
+  <p id="ott-hint" th:text="#{ott.login.hint}">We will send you a code or a link if the account exists.</p>
+  <fieldset>
+    <legend th:text="#{ott.login.channel}">Receive it by</legend>
+    <label><input type="radio" name="channel" value="email" checked>
+      <span th:text="#{ott.login.channel.email}">E-mail</span></label>
+    <label><input type="radio" name="channel" value="sms">
+      <span th:text="#{ott.login.channel.sms}">SMS (only if you have a verified phone)</span></label>
+  </fieldset>
+  <fieldset>
+    <legend th:text="#{ott.login.kind}">Use</legend>
+    <label><input type="radio" name="kind" value="code" checked>
+      <span th:text="#{ott.login.kind.code}">A code</span></label>
+    <label><input type="radio" name="kind" value="link">
+      <span th:text="#{ott.login.kind.link}">A link (e-mail only)</span></label>
+  </fieldset>
+  <button type="submit" th:text="#{ott.login.submit}">Send</button>
+</form>
+<!-- end::ott-login-fragment[] -->
+</body>
+</html>

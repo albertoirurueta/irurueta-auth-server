@@ -15,6 +15,8 @@
  */
 
 /**
- * One-time token (magic link) login. Filled by the one-time token issue.
+ * One-time token authentication: e-mail and SMS codes and magic links as a primary sign-in method and as a second
+ * factor, the per-channel factors, the rate limits, the providers and filters, and the phone management API and
+ * account page. The development-only SMS inbox lives here too.
  */
 package com.irurueta.authserver.authorization.api.web.ott;

@@ -101,6 +101,51 @@ authserver:
       per-client: 20
       per-email: 5
       max-tracked-keys: 10000
+  ott:
+    # tag::ott-config[]
+    # Digits of the e-mail / SMS code, how long a code and a magic link stay valid, and how many wrong codes are
+    # accepted before the code is spent. The values shown are the defaults of OttProperties.
+    code-length: 6
+    code-ttl: PT10M
+    link-ttl: PT15M
+    max-attempts: 5
+    # end::ott-config[]
+    # Limits of the one-time token endpoints (POST /ott/generate, POST /login/ott, POST /login/second-factor/ott and
+    # the phone enrolment), per client address and per identifier.
+    # tag::ott-rate-limit-config[]
+    rate-limit:
+      enabled: true
+      window: PT15M
+      generation-per-client: 20
+      generation-per-identifier: 5
+      verification-per-client: 30
+      verification-per-identifier: 10
+      max-tracked-keys: 10000
+    # end::ott-rate-limit-config[]
+    cleanup:
+      # when the expired codes, phone verifications, SMS ledger entries and link tokens are deleted (every hour)
+      cron: "0 15 * * * *"
+  # tag::sms-config[]
+  sms:
+    # Region numbers typed without a country prefix are read in, and the regions SMS may be sent to (ISO 3166-1
+    # alpha-2, upper case). The values shown are the defaults of SmsProperties.
+    default-region: US
+    allowed-countries: US,ES,GB
+    # Cost caps in millionths of the billing currency, so a bug or an attack cannot run up the bill: the price assumed
+    # for a country without an entry in cost-per-country-micros, and the most that may be spent per window and per day.
+    default-cost-micros: 50000
+    window: PT1H
+    window-cap-micros: 5000000
+    daily-cap-micros: 20000000
+    # Verification code of a phone being enrolled, and how long the spend ledger is kept.
+    verification-code-length: 6
+    verification-code-ttl: PT10M
+    verification-max-attempts: 5
+    ledger-retention: P2D
+    # Which gateway sends the messages is chosen with a Spring profile, never with a property: no profile logs the
+    # message to a bounded in-memory outbox (the dev profile shows it at /dev/sms-inbox), "twilio" sends through Twilio
+    # (application-twilio.yml) and "sns" through Amazon SNS (application-sns.yml, default AWS credential chain).
+  # end::sms-config[]
   oidc:
     client-registration:
       # Dynamic client registration (/connect/register) is off unless explicitly enabled.

@@ -65,6 +65,15 @@ class MfaClaimsContributorTest {
     /** Authority of the trusted-device factor. */
     private static final String TRUSTED_DEVICE_AUTHORITY = "FACTOR_TRUSTED_DEVICE";
 
+    /** Authority of the e-mail one-time token as a sign-in. */
+    private static final String OTT_EMAIL_AUTHORITY = "FACTOR_OTT";
+
+    /** Authority of the e-mail one-time token as a second factor. */
+    private static final String OTT_EMAIL_SECOND_AUTHORITY = "FACTOR_OTT_EMAIL_2FA";
+
+    /** Authority of the SMS one-time token as a second factor. */
+    private static final String OTT_SMS_SECOND_AUTHORITY = "FACTOR_OTT_SMS_2FA";
+
     /** Authority of a factor nobody registered. */
     private static final String UNKNOWN_AUTHORITY = "FACTOR_UNKNOWN";
 
@@ -222,11 +231,67 @@ class MfaClaimsContributorTest {
     }
 
     /**
+     * A password followed by an e-mail code and a TOTP code presents {@code otp} twice (two different factors with the
+     * same RFC 8176 value): it is listed once, and {@code mfa} is still added.
+     */
+    @Test
+    void contribute_whenTwoSecondFactorsShareTheOtpValue_listsItOnceAndAddsMfa() {
+        final var claims = new HashMap<String, Object>();
+        final var contributorWithOtt = contributorWithOneTimeTokenFactors();
+        final var principal = authentication(factor(OTT_EMAIL_SECOND_AUTHORITY, TOTP_TIME),
+                factor(TOTP_AUTHORITY, TOTP_TIME), factor(PASSWORD_AUTHORITY, PASSWORD_TIME));
+
+        contributorWithOtt.contribute(contextOf(principal), claims);
+
+        assertEquals(List.of("pwd", "otp", "mfa"), claims.get(IdTokenClaimNames.AMR));
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR, claims.get(IdTokenClaimNames.ACR));
+    }
+
+    /**
+     * A password followed by an e-mail code (second factor) is multi-factor and reports {@code otp}; with an SMS code
+     * it reports {@code sms}; and a sign-in by e-mail code alone is a single factor.
+     */
+    @Test
+    void contribute_whenOneTimeTokenFactorsArePresented_reportsTheirAmrValues() {
+        final var contributorWithOtt = contributorWithOneTimeTokenFactors();
+        final var email = new HashMap<String, Object>();
+        final var sms = new HashMap<String, Object>();
+        final var alone = new HashMap<String, Object>();
+
+        contributorWithOtt.contribute(contextOf(authentication(factor(OTT_EMAIL_SECOND_AUTHORITY, TOTP_TIME),
+                factor(PASSWORD_AUTHORITY, PASSWORD_TIME))), email);
+        contributorWithOtt.contribute(contextOf(authentication(factor(OTT_SMS_SECOND_AUTHORITY, TOTP_TIME),
+                factor(PASSWORD_AUTHORITY, PASSWORD_TIME))), sms);
+        contributorWithOtt.contribute(contextOf(authentication(factor(OTT_EMAIL_AUTHORITY, PASSWORD_TIME))), alone);
+
+        assertEquals(List.of("pwd", "otp", "mfa"), email.get(IdTokenClaimNames.AMR));
+        assertEquals(List.of("pwd", "sms", "mfa"), sms.get(IdTokenClaimNames.AMR));
+        assertEquals(List.of("otp"), alone.get(IdTokenClaimNames.AMR));
+        assertEquals(AuthenticationContextClass.PASSWORD, alone.get(IdTokenClaimNames.ACR));
+    }
+
+    /**
      * The contributor is ordered after the built-in claims.
      */
     @Test
     void order_whenReadFromAnnotation_isTheDeclaredOrder() {
         assertEquals(MfaClaimsContributor.ORDER, MfaClaimsContributor.class.getAnnotation(Order.class).value());
+    }
+
+    /**
+     * Builds a contributor over a registry that also holds the four one-time token factors, as the application's
+     * registry does.
+     *
+     * @return the contributor.
+     */
+    private static MfaClaimsContributor contributorWithOneTimeTokenFactors() {
+        final var registry = new AuthenticationFactorRegistry(List.of(
+                new AuthenticationFactor("password", "pwd", PASSWORD_AUTHORITY, FactorStrength.PRIMARY),
+                new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND),
+                new AuthenticationFactor("ott-email", "otp", OTT_EMAIL_AUTHORITY, FactorStrength.PRIMARY),
+                new AuthenticationFactor("ott-email-2fa", "otp", OTT_EMAIL_SECOND_AUTHORITY, FactorStrength.SECOND),
+                new AuthenticationFactor("ott-sms-2fa", "sms", OTT_SMS_SECOND_AUTHORITY, FactorStrength.SECOND)));
+        return new MfaClaimsContributor(new FactorTimeline(registry, new MfaPolicy()));
     }
 
     /**

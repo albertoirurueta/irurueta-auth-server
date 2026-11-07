@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  Development SMS inbox (DevSmsInboxController, dev profile only): the messages
+  the logging sender recorded instead of sending them, newest last.
+-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
+<head>
+  <title th:text="#{devSmsInbox.title}">SMS inbox</title>
+</head>
+<body>
+<main>
+  <h1 th:text="#{devSmsInbox.heading}">Development SMS inbox</h1>
+  <p th:text="#{devSmsInbox.note}">Messages are recorded here instead of being sent; this page only exists in the dev
+    profile.</p>
+  <p th:if="${#lists.isEmpty(messages)}" role="status" th:text="#{devSmsInbox.empty}">No messages yet.</p>
+  <table th:unless="${#lists.isEmpty(messages)}" class="sms-inbox">
+    <caption th:text="#{devSmsInbox.caption}">Recorded messages, newest last</caption>
+    <thead>
+    <tr>
+      <th scope="col" th:text="#{devSmsInbox.sentAt}">Sent</th>
+      <th scope="col" th:text="#{devSmsInbox.to}">To</th>
+      <th scope="col" th:text="#{devSmsInbox.text}">Message</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="message : ${messages}" class="sms">
+      <td class="sms-sent-at"><time th:datetime="${message.sentAt}" th:text="${message.sentAt}">2026-01-01T00:00:00Z</time></td>
+      <td class="sms-to" th:text="${message.to.e164}">+34600111222</td>
+      <td class="sms-text" th:text="${message.text}">Your code is 123456</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

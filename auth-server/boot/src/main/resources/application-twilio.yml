@@ -1,0 +1,24 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Sends the one-time codes by SMS through Twilio (profile "twilio"). Everything comes from the environment; no value
+# is ever written here. Set AUTHSERVER_SMS_TWILIO_FROM (a sender number in E.164) or
+# AUTHSERVER_SMS_TWILIO_MESSAGING_SERVICE_SID, not both.
+authserver:
+  sms:
+    twilio:
+      account-sid: ${AUTHSERVER_SMS_TWILIO_ACCOUNT_SID:}
+      auth-token: ${AUTHSERVER_SMS_TWILIO_AUTH_TOKEN:}
+      from: ${AUTHSERVER_SMS_TWILIO_FROM:}
+      messaging-service-sid: ${AUTHSERVER_SMS_TWILIO_MESSAGING_SERVICE_SID:}

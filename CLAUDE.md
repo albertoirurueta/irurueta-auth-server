@@ -67,13 +67,14 @@ module (package granularity). Never weaken either to make code fit; move the cod
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet has no
   `infrastructure` or `application` module, so `service-client` stays a single `boot` module until #8 gives it a
-  domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys` and `infrastructure/mail`;
+  domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail` and `infrastructure/sms`;
   `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`; `bff` has `domain`,
   `application`, `infrastructure/session`, `infrastructure/resourceserver`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
   or adapter that exists only so a test has something to call lives in `src/test`. The only exceptions are
-  `DevDataInitializer` in `infrastructure/persistence` and `DevKeyEncryptionSecret` in `infrastructure/keys` of
-  `auth-server`, and `BffDevDatabase` in `bff/infrastructure/session` (all `dev`-profile only, inert elsewhere, and
+  `DevDataInitializer` in `infrastructure/persistence`, `DevKeyEncryptionSecret` in `infrastructure/keys` and
+  `DevSmsInboxController` with its `DevSmsInboxConfiguration` in `api/web` (`ott` package, the `/dev/sms-inbox` page that
+  shows the messages the logging SMS sender kept) of `auth-server`, and `BffDevDatabase` in `bff/infrastructure/session` (all `dev`-profile only, inert elsewhere, and
   their Javadoc says why they cannot live in `src/test`: the end-to-end tests run the packaged jar).
 - `test-support` (shared Testcontainers base), `e2e-tests` and `coverage` (JaCoCo aggregate) are root modules
   outside the applications.
@@ -83,10 +84,11 @@ module (package granularity). Never weaken either to make code fit; move the cod
 A feature (an authentication method or capability) spans the layers with **the same package name in each**, so it
 can be developed in parallel without editing shared files: `…domain.<feature>`, `…application.<feature>`,
 `…infrastructure.persistence.<feature>`, `…api.web.<feature>`. Feature names: `password`, `keys`, `tokens`,
-`clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `social`, `x509`, `implicit`, `account`, `admin`. Each
+`clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `sms`, `social`, `x509`, `implicit`, `account`, `admin`. Each
 placeholder package holds a `package-info.java` saying which issue fills it. `mfa` (factor model, policy, lockout,
 trusted devices, security events, step-up) and `totp` (authenticator-app second factor and recovery codes) are filled
-in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509` and `implicit` are still placeholders.
+in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e-mail / SMS codes and magic links, plus `sms` in the layers that need it); `social`, `x509` and
+`implicit` are still placeholders.
 
 ### Extension points: adding a login method without editing shared files
 
@@ -262,6 +264,65 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); `ott`, `social`, `x509
     (`MfaClaimsContributor` reports `mfa` only for two distinct factors), so it cannot satisfy `StepUpGuard` and must
     re-authenticate with a second factor; `Webauthn4JRelyingPartyOperations` hardcodes user verification to `PREFERRED`;
     `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.
+- **One-time tokens (`ott` and `sms`, #6)**: e-mail codes, magic links and SMS codes, as a primary sign-in and as a second
+  factor, built on Spring Security's `http.oneTimeTokenLogin(...)` (`POST /ott/generate`, `POST /login/ott`, framework
+  endpoints) and registered through the extension points above. Four `AuthenticationFactor` beans (`OttFactors`):
+  `FACTOR_OTT` (Spring's constant, `amr` `otp`, `PRIMARY`: e-mail code or link as the sign-in), `FACTOR_OTT_SMS` (`amr`
+  `sms`, `PRIMARY`), `FACTOR_OTT_EMAIL_2FA` (`otp`, `SECOND`) and `FACTOR_OTT_SMS_2FA` (`sms`, `SECOND`). The second-factor
+  variants are separate authorities so a code used to sign in is never also counted as the second factor.
+  - **Flows**: sign-in asks `POST /ott/generate` (identifier and channel; the answer is always the same redirect to
+    `/login/ott`, whether the account exists, is enabled or has a verified phone, so nothing reveals accounts); the code
+    is bound to the session (`PendingOtt`) and submitted to `POST /login/ott` (`OttCodeAuthenticationProvider`); a magic
+    link opens `GET /login/ott/confirm`, whose button POSTs the token (a link is never consumed by a GET, so mail
+    scanners cannot spend it; `OttLinkAuthenticationProvider`). As a second factor the code is posted to
+    `POST /login/second-factor/ott` (`OttSecondFactorFilter`, which changes the session id and renews CSRF as the TOTP
+    one does), offered by `OttSecondFactorFragment`: e-mail unless e-mail signed the user in, SMS only with a verified
+    phone and not signed in by SMS. Failures are counted by the shared second-factor lockout; a magic link cannot confirm
+    a second factor outside the primary-factor session (`PrimaryFactorSession`).
+  - **Phone**: `user_phones` holds one verified E.164 number per user (unique); enrolment sends a verification code
+    (`StartPhoneEnrolmentUseCase`, same answer for a number that belongs to someone else). It is managed with
+    `GET/PUT/DELETE /api/account/phone` and `POST /api/account/phone/verify` (removal calls `StepUpGuard`) and with the
+    session page `GET /account/phone` (`PhonePageController`, guarded by `PhonePageChainCustomizer` `@Order(4)` behind the
+    MFA policy, form posts under `/account/phone/**`, `PhoneSessionStepUp` for the removal). A verified phone is a
+    confirmed second factor (`HasVerifiedPhoneUseCase` as a `SecondFactorEnrolmentQuery`), so a user with a phone requires MFA.
+  - **SMS gateways** (module `infrastructure/sms`): the domain port `SmsSender` has three implementations selected by a
+    Spring profile, never by a property: none (default `LoggingSmsSender`, a bounded in-memory `SmsOutbox`, nothing leaves
+    the process), `twilio` (`TwilioSmsSender`, `TwilioProperties` bound from `AUTHSERVER_SMS_TWILIO_*` through
+    `application-twilio.yml`) and `sns` (`SnsSmsSender`, AWS SDK v2 default credential chain, `application-sns.yml`). The
+    profile expressions (`twilio & !sns`, `sns`, `!twilio & !sns`) guarantee a single `SmsSender`. Every gateway failure is an
+    `SmsDeliveryException` carrying neither the number nor the code. `LibPhoneNumberNormalizer` (libphonenumber) implements
+    `PhoneNormalizer`, and `PhoneCountryResolver` the country lookup of the allow-list.
+  - **Cost control**: `SmsCostPolicy` (domain, a bean) checks `authserver.sms.allowed-countries` and the caps of
+    `authserver.sms.*` (per window and per day, in micros) against `SmsCostLedgerRepository` before each message, and the
+    ledger is purged by `OttCleanupJob` (with expired codes, verifications and Spring's `one_time_tokens`, through
+    `CleanupOttUseCase` and the `ExpiredLinkTokenPurger` port; cron `authserver.ott.cleanup.cron`).
+  - **Rate limits**: `OttRateLimitFilter` / `OttRateLimiter` (Bucket4j + Caffeine, per client address and per identifier,
+    `authserver.ott.rate-limit.*`) answer `429`; the filter is added before Spring's `GenerateOneTimeTokenFilter` (which
+    answers `POST /ott/generate` itself, so a filter placed before `UsernamePasswordAuthenticationFilter` would never see it,
+    which `OttRateLimitIT` checks); the window logic is the shared `api.web.ratelimit.FixedWindowBuckets`, also
+    used by `AccountRateLimiter` so the two do not duplicate it.
+  - **Extension points used**: `OttChainCustomizer` (`LoginChainCustomizer`, `@Order(3)`, built in `OttConfiguration`),
+    `OttLoginMethodFragment` (`LoginMethodFragment`, `login-ott.html`, order 300), `OttSecondFactorFragment`,
+    `SecondFactorEnrolmentQuery`, `FactorGrantor`, the lockout and security-event use cases; `OttGenerateRequestResolver`
+    sets the link lifetime from `OttPolicy`. Settings: `authserver.ott.*` (`OttProperties`) and `authserver.sms.*`
+    (`SmsProperties`), tagged `ott-config` / `sms-config` in `application.yml`.
+  - **Shared files it still touches, and why**: the `pages` group of `OpenApiConfig`, the two contracts and `apis/README.md`,
+    `application.yml` (settings) and the two profile files, `messages.properties`, `PasswordAuthenticationIT` (the login page
+    carries the OTT fragment), `AccountRateLimiter` (now uses `FixedWindowBuckets`), `MfaClaimsContributorTest`,
+    `spotbugs-exclude.xml` (an `OttSecondFactorToken` entry as for `TotpAuthenticationToken`, and two narrow
+    `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT` entries for untouched customizers that the detector flags once
+    `OneTimeTokenLoginConfigurer` is referenced), the poms (module registration, libphonenumber, Twilio, AWS SDK BOM, Thymeleaf
+    in `infrastructure/mail`), `docs/antora.yml`, `coverage/pom.xml`, `MailConfiguration` (the `ThymeleafOttMailer` bean).
+  - **Design decisions and limits a reviewer should see**: Spring's `JdbcOneTimeTokenService` always issues a UUID, so the
+    link token is Spring's and the numeric code is ours (`ott_codes`, only the hash stored, constant-time compare); its link
+    token carries neither channel nor purpose, so `OttLinkAuthenticationProvider` consumes the token itself and reads the
+    purpose from the stored user name (`LinkTokenUsername`, a control-character marker for a second-factor link), and links
+    are sent by e-mail only (no SMS link). `HexagonalArchitectureTest` now lets `application` use `org.slf4j..` (for
+    `@Slf4j`); `OpenApiDriftIT` leaves the `/dev/` pages out of the comparison because `/dev/sms-inbox` exists only under the
+    `dev` profile and is not part of the published contract. The dev inbox reads the outbox through the domain port `SmsInbox`
+    (an `api/*` module cannot see `infrastructure/sms`). Failed code attempts are counted and lock the second factor, and each
+    code is spent after `authserver.ott.max-attempts`. Mail is plain Thymeleaf text/HTML from `mail/ott-*.html|txt`, locale from
+    `MailProperties`.
 - `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
   own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
   and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
@@ -281,7 +342,8 @@ Migrations live in `auth-server/infrastructure/persistence/src/main/resources/db
 users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refresh tokens, `V240` authorization creation time,
 `V400` MFA security events, per-user MFA flag and second-factor attempts, `V410` TOTP credentials and recovery codes, `V420`
 trusted devices, `V500` WebAuthn schema (Spring's `user_entities` and `user_credentials`, which already hold `label`,
-`created` and `last_used`). Each issue states its own
+`created` and `last_used`), `V600`–`V699` one-time tokens: `V600` Spring's `one_time_tokens`, `V610` `ott_codes`, `V620`
+`user_phones`, `V630` `sms_cost_ledger`. Each issue states its own
 range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
 history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 
@@ -308,7 +370,7 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
   `ClientDtoMapper`) in the api adapter converts between generated DTOs and the domain; problem details go through
   `ProblemJsonExceptionHandler` or the feature's scoped `@RestControllerAdvice`.
 - **HTML pages**: `apis/<app>/web-pages/<app>-pages-v1.yaml` (today `auth-server-pages-v1.yaml`: `/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
   `text/html`; its controller renders the Thymeleaf template with `PageRenderer` (`api.web.pages`), which resolves the
   view with the request's locale, renders it against the current request (CSRF fields, `@{}` links and messages keep
   working) and adds the branding. The pages are published by the springdoc group `pages` (`/v3/api-docs/pages`) and
@@ -438,7 +500,11 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
 
 - `test-support` holds `OpenApiContract`, `PostgresTestConfiguration` (a `postgres:18` Testcontainers container exposed through
   `@ServiceConnection`) and the `@PostgresIT` meta-annotation: `@SpringBootTest` wired to that container, with a
-  `webEnvironment()` attribute for `RANDOM_PORT` tests. Consumers depend on it with `<scope>test</scope>`.
+  `webEnvironment()` attribute for `RANDOM_PORT` tests. Consumers depend on it with `<scope>test</scope>`. It also holds the
+  Mailpit support of the one-time token tests: `Mailpit` (the image, pinned to a version tag, never `latest`, and a factory
+  for the container and for its client), `MailpitClient` (reads the received e-mail through the Mailpit HTTP API: the code
+  or the magic link of a message) and `MailpitTestConfiguration` (a Spring test configuration that starts the container and
+  points `spring.mail.*` at it; import it next to `@PostgresIT`, as `AbstractOttFlow` does).
 - `e2e-tests` drives the packaged `auth-server` and `bff` boot jars through headless Chromium with Playwright for
   Java (chosen over Selenium because it manages its own browser binaries, auto-waits for elements and needs no
   driver setup). It must stay last in the reactor, before `coverage`.
@@ -448,7 +514,7 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameters, bodies, security, schemas). To change an API or a page, edit the contract; there is nothing else to
   regenerate or commit. springdoc only documents its groups (see each `OpenApiConfig`): `api` (`/api/**` in
   `auth-server` and `resource-server`, `/bff/**` and `/api/**` in `bff`) and, in `auth-server`, `pages` (`/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 

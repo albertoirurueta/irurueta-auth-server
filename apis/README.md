@@ -18,7 +18,7 @@ apis/
     rest-server/
       auth-server-api-v1.yaml       account, client and signing-key administration (/api/**)
     web-pages/
-      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout, /account/passkeys)
+      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout, /account/passkeys, /account/phone, /login/ott, /login/ott/confirm, /dev/sms-inbox)
   resource-server/
     rest-server/
       resource-server-api-v1.yaml   documents API (/api/**)
@@ -29,9 +29,9 @@ apis/
 
 | Contract | Generated into | Packages | Implemented by |
 |---|---|---|---|
-| `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController`, `PasskeyController` |
+| `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController`, `PasskeyController`, `PhoneController` |
 | `resource-server/rest-server/resource-server-api-v1.yaml` | `resource-server/api/web` | `com.irurueta.authserver.resourceserver.api.web.v1.generated.{api,model}` | `DocumentController` |
-| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController` |
+| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController`, `PhonePageController`, `OttPagesController`, `DevSmsInboxController` (dev profile only) |
 | `bff/rest-server/bff-api-v1.yaml` | `bff/api/web` | `com.irurueta.authserver.bff.api.web.v1.generated.{api,model}` | `UserController`, `BffLoginController`, `DocumentsController` |
 
 ### HTML pages
@@ -43,6 +43,10 @@ resolves the view through the application's view resolvers with the request's lo
 current request into a capturing response wrapper, so the CSRF hidden fields, `@{...}` links and messages keep
 working, and adds the branding. The pages contract has its own springdoc group, `pages`, served at
 `/v3/api-docs/pages`.
+
+A page that exists only in the `dev` profile (`/dev/sms-inbox`, the SMS the logging sender recorded) is in the pages
+contract like any other, marked in its description; `OpenApiDriftIT` runs without that profile and leaves the `/dev/`
+paths out of the comparison.
 
 ### Clients of another service
 
@@ -61,7 +65,7 @@ the client needs (`ApiClient`, the authentication classes and their helpers).
 Only endpoints owned by frameworks: the OAuth 2.1 / OpenID Connect protocol endpoints of the authorization server
 (`/oauth2/**`, `/.well-known/**`, `/connect/**`, `/userinfo`, ...), which are defined by their specifications, the
 Spring Security filters (`POST /login`, `POST /logout`, the BFF's `POST /bff/logout`, `/oauth2/authorization/**` and
-`/login/oauth2/**`), Spring Boot's error controller (`/error`, rendered through `ErrorPageViewResolver` in the
+`/login/oauth2/**`, and the one-time token endpoints `POST /ott/generate`, `POST /login/ott` and `POST /login/second-factor/ott`), Spring Boot's error controller (`/error`, rendered through `ErrorPageViewResolver` in the
 authorization server) and actuator.
 
 ## Code generation

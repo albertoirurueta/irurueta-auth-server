@@ -52,6 +52,10 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>auth-server-infrastructure-sms</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>auth-server-api-web</artifactId>
     </dependency>
     <dependency>

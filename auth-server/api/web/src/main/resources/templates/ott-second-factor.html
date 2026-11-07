@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  One-time token as a second factor (OttSecondFactorFragment): buttons that send a code or a magic link by e-mail and a
+  code by SMS to the signed-in user, each posting to POST /ott/generate with the second-factor purpose (the identifier
+  is the signed-in user, never typed). A channel that signed the user in is not offered, and SMS only to a user with a
+  verified phone (ottEmailAvailable / ottSmsAvailable). The code is then typed on /login/ott.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!-- tag::ott-second-factor-fragment[] -->
+<div th:fragment="form" th:if="${ottEmailAvailable == true or ottSmsAvailable == true}" class="ott-second-factor">
+  <h2 th:text="#{ott.second.heading}">Receive a code</h2>
+  <p th:text="#{ott.second.instructions}">We can send you a one-time code to confirm it is you.</p>
+  <form th:if="${ottEmailAvailable == true}" method="post" th:action="@{/ott/generate}">
+    <input type="hidden" name="purpose" value="second-factor">
+    <input type="hidden" name="channel" value="email">
+    <input type="hidden" name="kind" value="code">
+    <button type="submit" th:text="#{ott.second.email.code}">E-mail me a code</button>
+  </form>
+  <form th:if="${ottEmailAvailable == true}" method="post" th:action="@{/ott/generate}">
+    <input type="hidden" name="purpose" value="second-factor">
+    <input type="hidden" name="channel" value="email">
+    <input type="hidden" name="kind" value="link">
+    <button type="submit" th:text="#{ott.second.email.link}">E-mail me a link</button>
+  </form>
+  <form th:if="${ottSmsAvailable == true}" method="post" th:action="@{/ott/generate}">
+    <input type="hidden" name="purpose" value="second-factor">
+    <input type="hidden" name="channel" value="sms">
+    <input type="hidden" name="kind" value="code">
+    <button type="submit" th:text="#{ott.second.sms.code}">Send me a code by SMS</button>
+  </form>
+</div>
+<!-- end::ott-second-factor-fragment[] -->
+</body>
+</html>

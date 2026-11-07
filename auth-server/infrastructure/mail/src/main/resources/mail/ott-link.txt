@@ -1,0 +1,6 @@
+[[#{ott.link.intro}]]
+[(${link})]
+
+[[#{ott.link.validity(${validMinutes})}]]
+
+[[#{ott.ignore}]]

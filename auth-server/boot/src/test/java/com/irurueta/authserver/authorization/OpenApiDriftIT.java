@@ -58,6 +58,13 @@ class OpenApiDriftIT {
     /** Prefix of the paths of the pages group: all of them, since the group only holds the pages. */
     private static final String PAGES_PREFIX = "/";
 
+    /**
+     * Marker of the summary keys of the pages that only exist in the {@code dev} profile ({@code /dev/sms-inbox}):
+     * this test does not run that profile (it would start Docker Compose next to the Testcontainers database), so
+     * those pages are in the contract and not in the served document.
+     */
+    private static final String DEV_ONLY_PAGES = " /dev/";
+
     /** MockMvc bound to the application context. */
     @Autowired
     private MockMvc mockMvc;
@@ -93,6 +100,7 @@ class OpenApiDriftIT {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
         final var expected = OpenApiContract.summarize(OpenApiContract.read(PAGES_CONTRACT), PAGES_PREFIX);
+        expected.keySet().removeIf(key -> key.contains(DEV_ONLY_PAGES));
         final var actual = OpenApiContract.summarize(OpenApiContract.parse(body), PAGES_PREFIX);
 
         assertEquals(expected, OpenApiContract.restrictTo(actual, expected),

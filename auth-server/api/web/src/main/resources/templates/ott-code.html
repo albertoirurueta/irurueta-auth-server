@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  One-time token page (OttPagesController.ottCodePage): tells the user to check the inbox (the message says the channel
+  only when this browser asked for a token, so it never reveals whether the account exists) and, for a numeric code,
+  shows the form that posts it (to /login/ott as the "token" field for a sign-in, to /login/second-factor/ott as the
+  "code" field for a second factor; th:action adds the CSRF field). A failed attempt is announced in an assertive live
+  region. A second factor can ask for the token again with a form that posts the same fields as ott-second-factor.html
+  to /ott/generate; a sign-in starts again from the login page, because the identifier is not kept in the page.
+-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
+<head>
+  <title th:text="#{ott.title}">Check your inbox</title>
+</head>
+<body>
+<main>
+  <h1 th:text="#{ott.heading}">Check your inbox</h1>
+  <p th:if="${pending == false}" th:text="#{ott.sent}">If the account exists, we have sent you a code or a link.</p>
+  <p th:if="${pending == true and channel == 'sms'}" th:text="#{ott.sent.sms}">We have sent you a code by SMS.</p>
+  <p th:if="${pending == true and channel != 'sms'}" th:text="#{ott.sent.email}">We have sent you a code or a link.</p>
+  <div aria-live="assertive" role="alert">
+    <p th:if="${errorMessageKey}" class="error" th:text="#{${errorMessageKey}}">The code is not valid.</p>
+  </div>
+  <form th:if="${kind == 'code'}" method="post" th:action="@{${postPath}}">
+    <p>
+      <label for="ott-code" th:text="#{ott.code}">Code</label>
+      <input type="text" id="ott-code" th:name="${codeField}" required autofocus inputmode="numeric"
+             pattern="[0-9 ]*" autocomplete="one-time-code" aria-describedby="ott-code-hint">
+    </p>
+    <p id="ott-code-hint" th:text="#{ott.code.hint}">Type the digits of the message; spaces are ignored.</p>
+    <button type="submit" th:text="#{ott.submit}">Verify</button>
+  </form>
+  <p th:if="${kind == 'link'}" th:text="#{ott.link}">Open the link in the message to continue.</p>
+  <form th:if="${purpose == 'second-factor'}" method="post" th:action="@{${generatePath}}">
+    <input type="hidden" name="purpose" th:value="${purpose}">
+    <input type="hidden" name="channel" th:value="${channel}">
+    <input type="hidden" name="kind" th:value="${kind}">
+    <button type="submit" th:text="#{ott.resend}">Send it again</button>
+  </form>
+  <p th:if="${purpose != 'second-factor'}"><a th:href="@{/login}" th:text="#{ott.restart}">Start again</a></p>
+</main>
+</body>
+</html>

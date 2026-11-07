@@ -21,9 +21,12 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.ConsentPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DevSmsInboxPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LoginPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LogoutPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.PasskeysPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.PhonePageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.RecoveryCodesPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.SecondFactorPageApi;
 import io.swagger.v3.oas.models.security.SecurityScheme;
@@ -113,7 +116,11 @@ public class OpenApiConfig {
                 .group(PAGES_GROUP)
                 .pathsToMatch(LoginPageApi.PATH_LOGIN_PAGE, SecondFactorPageApi.PATH_SECOND_FACTOR_PAGE,
                         RecoveryCodesPageApi.PATH_RECOVERY_CODES_PAGE, ConsentPageApi.PATH_CONSENT_PAGE,
-                        LogoutPageApi.PATH_LOGOUT_PAGE, PasskeysPageApi.PATH_PASSKEYS_PAGE)
+                        LogoutPageApi.PATH_LOGOUT_PAGE, PasskeysPageApi.PATH_PASSKEYS_PAGE,
+                        PhonePageApi.PATH_PHONE_PAGE, PhonePageApi.PATH_VERIFY_PHONE_PAGE,
+                        PhonePageApi.PATH_REMOVE_PHONE_PAGE,
+                        OneTimeTokenPageApi.PATH_OTT_CODE_PAGE, OneTimeTokenPageApi.PATH_OTT_CONFIRM_PAGE,
+                        DevSmsInboxPageApi.PATH_DEV_SMS_INBOX_PAGE)
                 .addOpenApiCustomizer(openApi -> {
                     final var components = Objects.requireNonNullElseGet(openApi.getComponents(), Components::new);
                     components.setSecuritySchemes(new LinkedHashMap<>(Map.of(SESSION_SCHEME, new SecurityScheme()
