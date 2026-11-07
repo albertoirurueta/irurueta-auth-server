@@ -78,7 +78,8 @@ class OpenApiConfigTest {
         assertEquals(OpenApiConfig.PAGES_GROUP, group.getGroup());
         assertEquals(List.of("/login", "/login/second-factor", "/login/second-factor/recovery-codes", "/oauth2/consent",
                 "/logout", "/account/passkeys", "/account/phone",
-                "/account/phone/verify", "/account/phone/remove", "/login/ott", "/login/ott/confirm", "/dev/sms-inbox"),
+                "/account/phone/verify", "/account/phone/remove", "/login/ott", "/login/ott/confirm",
+                "/oauth2/device_verification", "/dev/sms-inbox"),
                 group.getPathsToMatch());
         assertEquals("/v3/api-docs/pages", OpenApiConfig.PAGES_DOCS_PATH);
     }

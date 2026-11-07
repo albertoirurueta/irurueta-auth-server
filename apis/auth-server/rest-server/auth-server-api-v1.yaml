@@ -41,6 +41,8 @@ tags:
     description: WebAuthn credentials of the authenticated account
   - name: Phone
     description: The phone number of the authenticated account, used to receive one-time codes by SMS
+  - name: Identities
+    description: Identities of external providers (Google, Microsoft, Apple, GitHub) linked to the authenticated account
   - name: Signing keys
     description: Administration of the signing keys
   - name: Clients
@@ -526,6 +528,64 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
   # end::phone-api-contract[]
   # tag::clients-api[]
+  # tag::identities-api-contract[]
+  /api/account/identities:
+    get:
+      tags: [ Identities ]
+      operationId: listIdentities
+      summary: Lists the linked identities
+      description: >-
+        Lists the identities of external providers linked to the authenticated account, never anything of another
+        account. The subject the provider assigned to the user is not disclosed.
+      responses:
+        '200':
+          description: The linked identities
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The linked identities, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Identity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/identities/{id}:
+    delete:
+      tags: [ Identities ]
+      operationId: unlinkIdentity
+      summary: Unlinks an identity
+      description: >-
+        The identity can no longer be used to sign in. An identity of another account is never touched and is answered
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470). The last way to sign in to the account is never removed: an identity
+        is refused while the account has neither a password nor another linked identity or credential.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of the linked identity.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Identity unlinked
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: No such linked identity for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: >-
+            The identity is the last way to sign in to the account (problem type urn:problem:identity:last-sign-in-method)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  # end::identities-api-contract[]
   /api/admin/clients:
     get:
       tags: [ Clients ]
@@ -1042,6 +1102,32 @@ components:
           description: The numeric verification code.
           pattern: '^[0-9]{4,10}$'
     # end::phone-schemas[]
+    # tag::identities-schemas[]
+    Identity:
+      type: object
+      description: An identity of an external provider linked to the account
+      required: [ id, provider, linkedAt ]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the link.
+        provider:
+          type: string
+          enum: [ google, microsoft, apple, github ]
+          description: The provider that holds the identity.
+        email:
+          type: [ string, 'null' ]
+          description: E-mail address the provider reported when the identity was last used, if any.
+        linkedAt:
+          type: string
+          format: date-time
+          description: When the identity was linked to the account.
+        lastLoginAt:
+          type: [ string, 'null' ]
+          format: date-time
+          description: When the identity was last used to sign in, or null when it has not been used since it was linked.
+    # end::identities-schemas[]
     # tag::clients-schemas[]
     ClientRequest:
       type: object

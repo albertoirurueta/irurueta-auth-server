@@ -15,6 +15,8 @@
  */
 
 /**
- * X.509 client certificate authentication. Filled by the X.509 issue.
+ * X.509 client certificate authentication: a certificate presented on a dedicated TLS port, or forwarded by a trusted
+ * reverse proxy in a header, signs in the user it is bound to (by the SHA-256 fingerprint of the certificate) at
+ * {@code /login/x509}. Everything is off unless {@code authserver.x509.enabled} is {@code true}.
  */
 package com.irurueta.authserver.authorization.api.web.x509;

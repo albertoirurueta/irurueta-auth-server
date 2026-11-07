@@ -67,12 +67,16 @@ module (package granularity). Never weaken either to make code fit; move the cod
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet has no
   `infrastructure` or `application` module, so `service-client` stays a single `boot` module until #8 gives it a
-  domain. `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail` and `infrastructure/sms`;
+  domain (it already holds `serviceclient.device`, the `device-flow` profile polling CLI `DeviceFlowCli` of the device grant, a
+  hand-written main class in `src/main` because the end-to-end test runs the packaged jar; its calls use `RestClient` against the
+  framework endpoints, so no contract is generated). `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail` and `infrastructure/sms`;
   `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`; `bff` has `domain`,
   `application`, `infrastructure/session`, `infrastructure/resourceserver`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
   or adapter that exists only so a test has something to call lives in `src/test`. The only exceptions are
-  `DevDataInitializer` in `infrastructure/persistence`, `DevKeyEncryptionSecret` in `infrastructure/keys` and
+  `DevDataInitializer` in `infrastructure/persistence`, `DevKeyEncryptionSecret` in `infrastructure/keys` (and its `device-client` seeding in `DevDataInitializer`, the public client of the
+  device grant) and `DevX509KeyStore` in `api/web` (`x509` package, the self-signed server certificate of the dedicated TLS port,
+  generated under `~/.irurueta-auth-server/` by `keytool`, `dev` profile only), and
   `DevSmsInboxController` with its `DevSmsInboxConfiguration` in `api/web` (`ott` package, the `/dev/sms-inbox` page that
   shows the messages the logging SMS sender kept) of `auth-server`, and `BffDevDatabase` in `bff/infrastructure/session` (all `dev`-profile only, inert elsewhere, and
   their Javadoc says why they cannot live in `src/test`: the end-to-end tests run the packaged jar). The logging
@@ -91,8 +95,7 @@ can be developed in parallel without editing shared files: `…domain.<feature>`
 `clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `sms`, `social`, `x509`, `implicit`, `account`, `admin`. Each
 placeholder package holds a `package-info.java` saying which issue fills it. `mfa` (factor model, policy, lockout,
 trusted devices, security events, step-up) and `totp` (authenticator-app second factor and recovery codes) are filled
-in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e-mail / SMS codes and magic links, plus `sms` in the layers that need it); `social`, `x509` and
-`implicit` are still placeholders.
+in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e-mail / SMS codes and magic links, plus `sms` in the layers that need it); and so are `social` (#7, identity brokering), `x509` (#7, client certificates) and `implicit` (#7, the device grant lives here).
 
 ### Extension points: adding a login method without editing shared files
 
@@ -361,6 +364,109 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     (an `api/*` module cannot see `infrastructure/sms`). Failed code attempts are counted and lock the second factor, and each
     code is spent after `authserver.ott.max-attempts`. Mail is plain Thymeleaf text/HTML from `mail/ott-*.html|txt`, locale from
     `MailProperties`.
+- **Social login, X.509 and the device grant (`social`, `x509`, `implicit`, #7)**: three more ways in, each registered through the
+  extension points above with no edit of `SecurityConfig`, `MfaPolicy`, `ApiSecurityConfig` or `AuthorizationJsonMapperFactory`.
+  - **Social login / identity brokering (`social`)**: `oauth2Login(...)` for Google, Microsoft Entra ID, Apple (all OIDC) and
+    GitHub (plain OAuth2). Everything hangs from `SocialProvidersCondition`: a provider is enabled only when its
+    `authserver.social.providers.<id>.client-id` has text, and with none configured there is no social bean and the chain is
+    exactly as before (`InMemoryClientRegistrationRepository` rejects an empty list). `SocialProperties` (validated record,
+    secrets from environment variables only, tagged `social-config`) is mapped by `ClientRegistrationMapper`; the login chain
+    uses the server's own `/login` page, so one provider never auto-redirects. `SocialChainCustomizer` (`LoginChainCustomizer`,
+    `@Order(5)`), `SocialLoginMethodFragment` (`LoginMethodFragment`, order 250, `login-social.html`, tag
+    `social-login-fragment`; Thymeleaf refuses a bean reference nested in a `@{}` link, so the link is built from the provider
+    id) and `FederatedAuthenticationSuccessHandler` are the pieces.
+    - **Linking and provisioning** (`application.social`): `ResolveFederatedLoginUseCase` finds the identity by `(provider,
+      subject)` in `federated_identities` (`V700`), else links by e-mail **only when the provider and the existing account both
+      verified the address** (a pre-registered unverified account is refused), else provisions a password-less account (JIT);
+      an unverified e-mail never links and never provisions over an existing account. `FederatedAccountResolver` then loads the
+      account through `AccountStatusUserDetailsService`, so a linked disabled/locked/expired account and every refusal is the
+      same `access_denied`. `FederatedOidcUserService` / `FederatedOAuth2UserService` (GitHub: the verified primary e-mail from
+      `/user/emails` through `GitHubEmailClient`, its numeric id is the subject) delegate to it and `FederatedUserMapper` builds
+      the principal. Entra's e-mail counts as verified only with `email_verified` or `xms_edov` (the nOAuth defence).
+    - **Generated-password flag**: a JIT account holds a random unknown password, flagged in `user_passwords.generated`
+      (`V701`, port `GeneratedPasswordRepository`) so it does not count as a password sign-in method; every password write
+      (`JdbcUserAccountRepository`) clears the flag. `SignInMethods` (domain) counts password (not generated), other identities,
+      passkey (`PasskeyRepository.existsForAccount`) and bound certificates: `UnlinkIdentityUseCase` and the certificate
+      unbinding refuse to remove the last one.
+    - **Entra multi-tenant**: the `common`/`organizations` discovery issuer carries a `{tenantid}` placeholder, so the Microsoft
+      registration is built by hand **without** `issuerUri` and `IdTokenValidatorFactory` (installed through
+      `OidcIdTokenDecoderFactory.setJwtValidatorFactory`, which keeps the framework's `OidcIdTokenValidator`) uses
+      `EntraIssuerValidator`: `iss` must be `https://login.microsoftonline.com/{tid}/v2.0` for the token's own `tid`, limited
+      to `allowed-tenants` (or the tenant id) when given.
+    - **Apple**: the `client_secret` is an ES256 JWT that Apple only accepts when signed by the key registered in its
+      developer account, so it is **not** signed with the server's `JwtEncoder` (whose own published keys Apple cannot verify):
+      `AppleClientSecretGenerator` signs with a Nimbus `ECDSASigner` over the PKCS#8 key from the environment
+      (`ApplePrivateKeyParser`, validated at startup), cached with Caffeine for half of `client-secret-ttl` (default `PT5M`,
+      at most 180 days); `AppleTokenRequestCustomizer` swaps it into the token request. `AppleAuthorizationRequestCustomizer`
+      sets `response_mode=form_post`; the Apple callback POST is the only CSRF exemption, and a deployment needs
+      `SameSite=None; Secure` session cookies for Apple's cross-site post.
+    - **Two federated factors**: `FederatedFactor` registers `FACTOR_FEDERATED` (`PRIMARY`) and `FACTOR_FEDERATED_MFA`
+      (`PRIMARY_STRONG`), both `amr` `fed`, never held together. `FederatedFactorSelector` picks the strong one only when the
+      provider has `trust-mfa: true` **and** its upstream `amr` contains `mfa` (an upstream claim of an untrusted provider is
+      never believed); otherwise the normal second-factor and step-up flow applies. The success handler grants the factor
+      through `FactorGrantor`, makes it the current authentication and saves the context again before the saved request resumes.
+    - **Claims**: `sub` is the principal's name, which is the local username (the project's `sub` for every sign-in method; there
+      is no separate user-id `sub`), through the `local_username` attribute. `IdpClaimsContributor` (`JwtClaimsContributor`,
+      `@Order(110)`, after `MfaClaimsContributor`) writes `idp` and, for the strong factor only, merges the upstream `amr` values
+      (each once) into `amr` and sets `acr` to the multi-factor class.
+    - **Stored principal**: `FederatedJacksonModuleContributor` (`AuthorizationJacksonModuleContributor`) allows the
+      `OAuth2AuthenticationToken` / `OidcUser` types; claim values must be mutable lists (`ArrayList`) or the validator denies
+      `List.of` when the principal is stored, which `FederatedUserMapper` guarantees.
+    - **Account API**: `GET /api/account/identities` and `DELETE /api/account/identities/{id}` (`IdentityController`,
+      `IdentityDtoMapper`, `IdentityExceptionHandler`; unlink calls `StepUpGuard` first, `404 identity-not-found`, `409
+      last-sign-in-method`). Link and unlink are audited (`IDENTITY_LINKED`, `IDENTITY_UNLINKED`).
+  - **X.509 client certificates (`x509`)**: `CertificatePrincipalExtractor` (an `X509PrincipalExtractor`) yields the SHA-256
+    fingerprint as the principal, or an unreadable one for an expired / not yet valid certificate; `X509UserDetailsService`
+    maps it to an account through `ResolveCertificateLoginUseCase` (`x509_certificates`, `V710`, tag `x509-schema`) and
+    `AccountStatusUserDetailsService`. `X509Factor` is `FACTOR_X509` (`PRIMARY_STRONG`, `amr` from `authserver.x509.amr`, `sc`
+    or `hwk`). `X509ChainCustomizer` (`LoginChainCustomizer`, `@Order(6)`) opens only `GET /login/x509`; `X509LoginFilter` and
+    `X509AuthenticationSuccessHandler` replace the pre-authenticated token, grant the stamped factor and change the session id.
+    `authserver.x509.*` (`X509Properties`, validated, off by default, tag `x509-config`).
+    - **Two transports, one extractor**: a certificate forwarded by a reverse proxy in `authserver.x509.forwarded-header`
+      (`ForwardedCertificateFilter` reads it only for a request from `trusted-proxies`, parses it and sets the
+      `jakarta.servlet.request.X509Certificate` attribute, so a spoofed header from anyone else is ignored), and a dedicated
+      TLS connector (`authserver.x509.port`, `X509TlsConnectorCustomizer`, client auth optional, server certificate from
+      `key-store`, password only from `AUTHSERVER_X509_KEY_STORE_PASSWORD`; `X509TlsKeyStoreResolver`).
+    - **TLS port trust manager**: `AnyClientCertificateTrustManager` advertises no certificate authority and accepts any chain,
+      because the JVM's default trust manager advertises only its own CAs, so a client holding a certificate from a private CA
+      would never offer it. The certificate is **not** trusted by its chain: the identity is the bound fingerprint plus its
+      validity period, checked by the extractor and the mapping.
+    - `DevX509KeyStore` (`dev` profile only, see the exceptions above) generates a self-signed server certificate with
+      `keytool` under `~/.irurueta-auth-server/` at the first start; nothing is committed, and tests generate their
+      certificates at run time (`test-support`: `TestPki`, `TestCertificates`, `Keytool`).
+    - `CertificateBinding` management (bind / unbind, audited as `CERTIFICATE_BOUND` / `CERTIFICATE_UNBOUND`) is in the
+      use cases `BindCertificateUseCase` / `UnbindCertificateUseCase`; there is no HTTP endpoint for it yet.
+  - **Device authorization grant (`implicit`)**: RFC 8628. `DeviceProtocolChainCustomizer` (`ProtocolChainCustomizer`,
+    `@Order(2)`) enables the device authorization and verification endpoints of Spring Authorization Server (default paths
+    `/oauth2/device_authorization`, framework-owned and exempt from the contracts, and `/oauth2/device_verification`) with the
+    custom page. `DeviceVerificationController` implements the generated pages interface (`GET /oauth2/device_verification`,
+    optional `user_code`, `error` / `success`; the form POST is the framework's; `templates/device-verification.html`, tag
+    `device-verification-page`); the consent page hands the device decision to `POST /oauth2/device_verification`.
+    `DeviceVerificationRequestGuard` runs before the framework converters: the rate limit
+    (`DeviceVerificationRateLimiter` over `FixedWindowBuckets`, `authserver.device.rate-limit.*`, per client address and per
+    user, tagged `device-config`; answers `429`) and the MFA policy (device verification needs its own check, the MFA customizer
+    applies only to the authorize endpoint validator); `DeviceVerificationErrorHandler` maps them to 429, the second-factor page
+    or `?error`. No migration: `V100` already has the `device_code_*` / `user_code_*` columns, and
+    `ReuseDetectingAuthorizationService` forwards those token types unchanged.
+    - **Device client authentication**: a public client (`none`) needs its own authentication at the device endpoints because
+      Spring's PKCE-based one cannot serve the device flow: `DeviceClientAuthenticationConverter` / `Provider` / `Token` accept a
+      `client_id` alone for a client registered without a secret and with the device grant.
+    - **No `openid` scope in device requests**: Spring Authorization Server refuses it there, so the seeded `device-client` has
+      none (and gets no ID token).
+    - `device-client` (public, grant `urn:ietf:params:oauth:grant-type:device_code`) is seeded by `DevDataInitializer` only (the
+      dev exception, see above). The polling CLI is `service-client/boot` `serviceclient.device.DeviceFlowCli`, active only under the
+      `device-flow` profile (see the `service-client` bullet above); the end-to-end test runs the packaged jar.
+  - **Push approval (not built)**: only design notes, kept in the PR description of #7; no code. It would be a `SECOND` factor
+    approved on an enrolled device, declared like any other (an `AuthenticationFactor`, a `SecondFactorFragment`, a
+    `SecondFactorEnrolmentQuery`).
+  - **Shared files it still touches, and why**: the two contracts and `apis/README.md`, the `pages` group of `OpenApiConfig`,
+    `application.yml` (`social-config`, `x509-config`, `device-config`), `messages.properties`, `ConsentController` and
+    `consent.html` (the device decision), `SecurityEventType`, `DevDataInitializer`, `JdbcUserAccountRepository` (clears the
+    generated flag), the poms (`spring-boot-starter-security-oauth2-client` in `api/web`, WireMock standalone in the root pom and
+    `test-support`, `spring-boot-starter-jackson` in `service-client/boot`, `e2e-tests` depends on `service-client-boot`).
+  - **Known limits**: Apple needs `SameSite=None; Secure` cookies (above); an expired or revoked certificate is refused by
+    the extractor and the mapping, not by revocation lists (there is no CRL/OCSP check); a provider's `trust-mfa` is honoured
+    only per sign-in from its `amr` claim; a JIT account has no usable password until the user sets one.
 - `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
   own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
   and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
@@ -383,7 +489,8 @@ users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refres
 `V400` MFA security events, per-user MFA flag and second-factor attempts, `V410` TOTP credentials and recovery codes, `V420`
 trusted devices, `V500` WebAuthn schema (Spring's `user_entities` and `user_credentials`, which already hold `label`,
 `created` and `last_used`), `V600`–`V699` one-time tokens: `V600` Spring's `one_time_tokens`, `V610` `ott_codes`, `V620`
-`user_phones`, `V630` `sms_cost_ledger`. Each issue states its own
+`user_phones`, `V630` `sms_cost_ledger`, `V700`–`V799` social login and X.509: `V700` `federated_identities`, `V701`
+`user_passwords.generated`, `V710` `x509_certificates` (the device grant needs none). Each issue states its own
 range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
 history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 
@@ -410,7 +517,7 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
   `ClientDtoMapper`) in the api adapter converts between generated DTOs and the domain; problem details go through
   `ProblemJsonExceptionHandler` or the feature's scoped `@RestControllerAdvice`.
 - **HTML pages**: `apis/<app>/web-pages/<app>-pages-v1.yaml` (today `auth-server-pages-v1.yaml`: `/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/oauth2/device_verification`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
   `text/html`; its controller renders the Thymeleaf template with `PageRenderer` (`api.web.pages`), which resolves the
   view with the request's locale, renders it against the current request (CSRF fields, `@{}` links and messages keep
   working) and adds the branding. The pages are published by the springdoc group `pages` (`/v3/api-docs/pages`) and
@@ -555,7 +662,7 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameters, bodies, security, schemas). To change an API or a page, edit the contract; there is nothing else to
   regenerate or commit. springdoc only documents its groups (see each `OpenApiConfig`): `api` (`/api/**` in
   `auth-server` and `resource-server`, `/bff/**` and `/api/**` in `bff`) and, in `auth-server`, `pages` (`/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/logout`). Put every new endpoint under one of them, or widen the group.
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/oauth2/device_verification`, `/logout`). Put every new endpoint under one of them, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 

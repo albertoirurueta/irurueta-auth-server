@@ -22,6 +22,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.ConsentPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DevSmsInboxPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DeviceVerificationPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LoginPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LogoutPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
@@ -120,6 +121,7 @@ public class OpenApiConfig {
                         PhonePageApi.PATH_PHONE_PAGE, PhonePageApi.PATH_VERIFY_PHONE_PAGE,
                         PhonePageApi.PATH_REMOVE_PHONE_PAGE,
                         OneTimeTokenPageApi.PATH_OTT_CODE_PAGE, OneTimeTokenPageApi.PATH_OTT_CONFIRM_PAGE,
+                        DeviceVerificationPageApi.PATH_DEVICE_VERIFICATION_PAGE,
                         DevSmsInboxPageApi.PATH_DEV_SMS_INBOX_PAGE)
                 .addOpenApiCustomizer(openApi -> {
                     final var components = Objects.requireNonNullElseGet(openApi.getComponents(), Components::new);

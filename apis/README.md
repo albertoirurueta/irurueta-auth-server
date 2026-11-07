@@ -18,7 +18,7 @@ apis/
     rest-server/
       auth-server-api-v1.yaml       account, client and signing-key administration (/api/**)
     web-pages/
-      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout, /account/passkeys, /account/phone, /login/ott, /login/ott/confirm, /dev/sms-inbox)
+      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout, /account/passkeys, /account/phone, /login/ott, /login/ott/confirm, /oauth2/device_verification, /dev/sms-inbox)
   resource-server/
     rest-server/
       resource-server-api-v1.yaml   documents API (/api/**)
@@ -29,9 +29,9 @@ apis/
 
 | Contract | Generated into | Packages | Implemented by |
 |---|---|---|---|
-| `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController`, `PasskeyController`, `PhoneController` |
+| `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController`, `PasskeyController`, `PhoneController`, `IdentityController` |
 | `resource-server/rest-server/resource-server-api-v1.yaml` | `resource-server/api/web` | `com.irurueta.authserver.resourceserver.api.web.v1.generated.{api,model}` | `DocumentController` |
-| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController`, `PhonePageController`, `OttPagesController`, `DevSmsInboxController` (dev profile only) |
+| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController`, `PhonePageController`, `OttPagesController`, `DeviceVerificationController`, `DevSmsInboxController` (dev profile only) |
 | `bff/rest-server/bff-api-v1.yaml` | `bff/api/web` | `com.irurueta.authserver.bff.api.web.v1.generated.{api,model}` | `UserController`, `BffLoginController`, `DocumentsController` |
 
 ### HTML pages

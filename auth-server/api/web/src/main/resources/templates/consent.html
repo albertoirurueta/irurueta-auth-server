@@ -23,10 +23,12 @@
 <main>
   <h1 th:text="#{consent.heading(${consent.clientName})}">Authorize application</h1>
   <p th:text="#{consent.intro(${consent.clientName}, ${consent.principalName})}">The application wants access.</p>
-  <!-- the decision is posted back to the authorization endpoint, which reads client_id, state and the approved scopes -->
-  <form method="post" th:action="@{/oauth2/authorize}">
+  <!-- the decision is posted back to the authorization endpoint, which reads client_id, state and the approved scopes, or
+       to the device verification endpoint, which also reads the user code, when the consent is asked for a device -->
+  <form method="post" th:action="@{${decisionPath}}">
     <input type="hidden" name="client_id" th:value="${consent.clientId}">
     <input type="hidden" name="state" th:value="${consent.state}">
+    <input type="hidden" name="user_code" th:if="${userCode}" th:value="${userCode}">
     <p th:if="${#lists.isEmpty(consent.scopesToApprove)}" th:text="#{consent.none}">No additional permission.</p>
     <ul class="scopes">
       <li th:each="scope, status : ${consent.scopesToApprove}">
@@ -37,9 +39,10 @@
     <button type="submit" id="allow" th:text="#{consent.allow}">Allow</button>
   </form>
   <!-- denying posts no scope at all, which the authorization endpoint answers with error=access_denied -->
-  <form method="post" th:action="@{/oauth2/authorize}">
+  <form method="post" th:action="@{${decisionPath}}">
     <input type="hidden" name="client_id" th:value="${consent.clientId}">
     <input type="hidden" name="state" th:value="${consent.state}">
+    <input type="hidden" name="user_code" th:if="${userCode}" th:value="${userCode}">
     <button type="submit" id="deny" class="secondary" th:text="#{consent.deny}">Deny</button>
   </form>
   <section th:if="${!#lists.isEmpty(consent.approvedScopes)}">

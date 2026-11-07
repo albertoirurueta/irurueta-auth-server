@@ -1,0 +1,82 @@
+= Device authorization grant
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The device authorization grant (RFC 8628) lets an input-constrained program obtain tokens while the user approves on
+another device. The endpoints are Spring Authorization Server's: `POST /oauth2/device_authorization` (framework owned) and
+`/oauth2/device_verification`, whose page is custom and defined in the pages contract.
+
+== Enabling the endpoints
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceProtocolChainCustomizer.java[tag=device-protocol-chain]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceConfiguration.java[tag=device-protocol-customizer]
+----
+
+== Verification page
+
+The user opens the verification URI, signs in (with the second factor the policy requires), types the user code and
+approves on the consent page, which hands the decision to `POST /oauth2/device_verification`.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=device-verification-page-api]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/device-verification.html[tag=device-verification-page]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceVerificationController.java[tag=device-verification-controller]
+----
+
+A user code is short, so attempts are limited per client address and per user, and the MFA policy is checked before the
+framework converters run.
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=device-config]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceVerificationRateLimiter.java[tag=device-rate-limit]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceVerificationRequestGuard.java[tag=device-guard]
+----
+
+== Public clients
+
+The device client is public (no secret). Spring's PKCE-based authentication cannot serve the device flow, so a
+dedicated converter and provider authenticate a client that is registered with the device grant and no secret by its
+identifier alone. The request must not ask for `openid`: Spring Authorization Server refuses it in device requests, so
+the seeded `device-client` (dev profile only) has no ID token.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceClientAuthenticationConverter.java[tag=device-client-authentication]
+----
+
+No migration is needed: the schema of the authorization service already has the `device_code_*` and `user_code_*` columns.
+
+== Polling CLI
+
+`service-client` has a command-line client, active only under the `device-flow` profile. It prints the user code and
+the verification URI, then polls `/oauth2/token`, honouring `interval`, `slow_down`, `authorization_pending` and
+`expired_token`.
+
+[source,shell]
+----
+java -jar service-client-boot.jar --spring.profiles.active=device-flow --device-flow.issuer=http://localhost:9000
+----

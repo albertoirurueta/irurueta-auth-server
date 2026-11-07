@@ -59,6 +59,9 @@ class ConsentControllerTest {
     /** State of the authorization request. */
     private static final String STATE = "xyz";
 
+    /** User code of the device the consent is asked for. */
+    private static final String USER_CODE = "BCDF-GHJK";
+
     /** Scopes of the authorization request. */
     private static final String SCOPE = "openid profile";
 
@@ -104,10 +107,11 @@ class ConsentControllerTest {
         when(clients.findByClientId(CLIENT_ID)).thenReturn(client);
         when(consents.findById(client.getId(), PRINCIPAL)).thenReturn(consent);
         when(mapper.toModel(client, PRINCIPAL, STATE, SCOPE, Set.of("profile"), Locale.ENGLISH)).thenReturn(model);
-        when(pageRenderer.render(ConsentController.VIEW_NAME, Map.of(ConsentController.CONSENT_ATTRIBUTE, model)))
+        when(pageRenderer.render(ConsentController.VIEW_NAME, Map.of(ConsentController.CONSENT_ATTRIBUTE, model,
+                ConsentController.DECISION_PATH_ATTRIBUTE, ConsentController.AUTHORIZE_PATH)))
                 .thenReturn(page);
 
-        assertSame(page, controller.consentPage(CLIENT_ID, SCOPE, STATE));
+        assertSame(page, controller.consentPage(CLIENT_ID, SCOPE, STATE, null));
     }
 
     /**
@@ -121,9 +125,27 @@ class ConsentControllerTest {
         when(mapper.toModel(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new ConsentPageModel(CLIENT_ID, "App", PRINCIPAL, STATE, List.of(), List.of()));
 
-        controller.consentPage(CLIENT_ID, SCOPE, STATE);
+        controller.consentPage(CLIENT_ID, SCOPE, STATE, null);
 
         verify(mapper).toModel(client, PRINCIPAL, STATE, SCOPE, Set.of(), Locale.ENGLISH);
+    }
+
+    /**
+     * Verifies that the consent of a device is posted to the device verification endpoint, with its user code.
+     */
+    @Test
+    void consentPage_whenConsentIsAskedForADevice_postsTheDecisionToTheVerificationEndpoint() {
+        final var client = client();
+        final var model = new ConsentPageModel(CLIENT_ID, "App", PRINCIPAL, STATE, List.of(), List.of());
+        final var page = ResponseEntity.ok("<html></html>");
+        signIn();
+        when(clients.findByClientId(CLIENT_ID)).thenReturn(client);
+        when(mapper.toModel(client, PRINCIPAL, STATE, SCOPE, Set.of(), Locale.ENGLISH)).thenReturn(model);
+        when(pageRenderer.render(ConsentController.VIEW_NAME, Map.of(ConsentController.CONSENT_ATTRIBUTE, model,
+                ConsentController.DECISION_PATH_ATTRIBUTE, "/oauth2/device_verification",
+                ConsentController.USER_CODE_ATTRIBUTE, USER_CODE))).thenReturn(page);
+
+        assertSame(page, controller.consentPage(CLIENT_ID, SCOPE, STATE, USER_CODE));
     }
 
     /**
@@ -132,7 +154,7 @@ class ConsentControllerTest {
     @Test
     void consentPage_whenClientIsUnknown_throwsBadRequest() {
         final var error = assertThrows(ResponseStatusException.class,
-                () -> controller.consentPage(CLIENT_ID, SCOPE, STATE));
+                () -> controller.consentPage(CLIENT_ID, SCOPE, STATE, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
     }

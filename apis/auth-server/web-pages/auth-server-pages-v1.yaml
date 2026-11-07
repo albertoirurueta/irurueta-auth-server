@@ -28,7 +28,7 @@ info:
   description: >-
     Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, second
     factor, recovery codes, consent, sign-out confirmation, the passkeys of the account and the one-time token
-    pages (enter a code, confirm a magic link, the development SMS inbox) and the phone of the account. They are meant for a browser, never for a
+    pages (enter a code, confirm a magic link, the development SMS inbox) the phone of the account and the device verification. They are meant for a browser, never for a
     script.
   version: 1.0.0
   license:
@@ -55,6 +55,10 @@ tags:
     description: >-
       The account page where a signed-in user enrols, verifies and removes the phone number that receives one-time
       codes by SMS, with the session-protected form posts it uses
+  - name: Device verification page
+    description: >-
+      The page where a user enters the code a device shows to approve it (OAuth 2.0 Device Authorization Grant,
+      RFC 8628)
   - name: One-time token page
     description: >-
       The pages of the one-time token sign-in: the one where the code received by e-mail or SMS is entered and the
@@ -162,7 +166,8 @@ paths:
       description: >-
         Renders the page the authorization endpoint redirects to when a client needs the user's approval: the client,
         the requested scopes (as checkboxes, checked by default) and the scopes granted earlier. The decision is
-        posted to the authorization endpoint (POST /oauth2/authorize), never to this operation.
+        posted to the authorization endpoint (POST /oauth2/authorize), or to the device verification endpoint for a device,
+        never to this operation.
       parameters:
         - name: client_id
           in: query
@@ -184,6 +189,16 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: user_code
+          in: query
+          required: false
+          description: >-
+            Present when the consent is asked for a device (OAuth 2.0 Device Authorization Grant): the user code of the
+            request. The decision is then posted to the device verification endpoint (POST /oauth2/device_verification)
+            instead, with this code.
+          schema:
+            type: string
+            maxLength: 32
       responses:
         '200':
           description: The consent page.
@@ -353,6 +368,52 @@ paths:
               schema:
                 type: string
   # end::phone-page-api[]
+  # tag::device-verification-page-api[]
+  /oauth2/device_verification:
+    get:
+      tags: [ Device verification page ]
+      operationId: deviceVerificationPage
+      summary: Renders the device verification page
+      description: >-
+        Renders the page the verification URI of the device authorization response points to: the form where the user
+        types the code the device displays (RFC 8628). The form posts the code to the authorization server's own device
+        verification endpoint (POST /oauth2/device_verification, owned by the framework, with the CSRF token), never to
+        this operation. A request that already carries the code (verification_uri_complete) is answered by that
+        endpoint directly, which also applies the multi-factor policy of the account and the limit on the attempts, and
+        sends the browser on to the consent page (GET /oauth2/consent) or back here with a confirmation or an error. A
+        request without a signed-in session is redirected to the sign-in page and resumed afterwards.
+      parameters:
+        - name: user_code
+          in: query
+          required: false
+          description: A user code to prefill in the form. Any value that is not a plausible code is ignored.
+          schema:
+            type: string
+            maxLength: 32
+        - name: error
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the previous attempt failed; the page then shows a
+            message that never says why (an unknown, expired or already used code look the same).
+          schema:
+            type: string
+        - name: success
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the user has just approved the device; the page then
+            says that the device may continue.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The device verification page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::device-verification-page-api[]
   # tag::ott-pages-api[]
   /login/ott:
     get:

@@ -33,6 +33,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -88,5 +90,11 @@ class DevDataInitializerIT {
                 "the dev profile supplies the local redirect URI");
         assertNotNull(clients.findByClientId("spa-public"), "the dev profile configures the public client too");
         assertFalse(passwordEncoder.upgradeEncoding(client.getClientSecret()));
+
+        final var device = clients.findByClientId("device-client");
+        assertNotNull(device, "the dev profile seeds the public client of the device flow");
+        assertTrue(device.getAuthorizationGrantTypes().contains(AuthorizationGrantType.DEVICE_CODE));
+        assertTrue(device.getClientAuthenticationMethods().contains(ClientAuthenticationMethod.NONE));
+        assertTrue(device.getRedirectUris().isEmpty());
     }
 }

@@ -17,8 +17,10 @@
 package com.irurueta.authserver.authorization.infrastructure.persistence.dev;
 
 import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -34,8 +36,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Seeds a demo user and a confidential BFF client when the {@code dev} profile is active, so a freshly started
- * authorization server has someone to sign in and a client to sign in through.
+ * Seeds a demo user, a confidential BFF client and a public device-flow client when the {@code dev} profile is active,
+ * so a freshly started authorization server has someone to sign in, a client to sign in through and a client for the
+ * OAuth 2.0 Device Authorization Grant ({@code device-client}, which the polling command line tool of the
+ * {@code service-client} uses).
+ *
+ * <p>The {@code device-client} is dev-only on purpose: it is a public client that anybody who can reach the server can
+ * use to start a device flow, and its user-facing name and scopes are those of a demo. A deployment registers its own
+ * device clients through the admin API with the {@code urn:ietf:params:oauth:grant-type:device_code} grant type.
  *
  * <p>Purpose: local development and the end-to-end tests. Started with
  * {@code spring-boot:run -Dspring-boot.run.profiles=dev}, it lets a developer sign in through the BFF by hand. The
@@ -60,6 +68,24 @@ public class DevDataInitializer implements ApplicationRunner {
 
     /** Username of the demo user. */
     static final String DEMO_USERNAME = "demo";
+
+    /** Client id of the public client of the device authorization grant. */
+    static final String DEVICE_CLIENT_ID = "device-client";
+
+    /** Grant type of the device authorization grant. */
+    static final String DEVICE_CODE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
+
+    /**
+     * Scopes of the device client. {@code openid} is left out on purpose: Spring Authorization Server refuses it in a
+     * device authorization request, because the device flow issues no ID token.
+     */
+    private static final List<String> DEVICE_SCOPES = List.of("profile", "documents.read");
+
+    /** Lifetime of the access tokens of the device client. */
+    private static final Duration DEVICE_ACCESS_TOKEN_TTL = Duration.ofMinutes(10);
+
+    /** Lifetime of the refresh tokens of the device client. */
+    private static final Duration DEVICE_REFRESH_TOKEN_TTL = Duration.ofHours(8);
 
     /** Number of random bytes of generated secrets. */
     private static final int SECRET_BYTES = 24;
@@ -95,7 +121,7 @@ public class DevDataInitializer implements ApplicationRunner {
     private final String apiAudience;
 
     /**
-     * Creates the demo user and the BFF client when they do not exist yet.
+     * Creates the demo user, the BFF client and the device client when they do not exist yet.
      *
      * @param args application arguments (unused).
      */
@@ -104,6 +130,7 @@ public class DevDataInitializer implements ApplicationRunner {
     public void run(final ApplicationArguments args) {
         createDemoUser();
         createBffClient();
+        createDeviceClient();
     }
 
     /**
@@ -144,6 +171,23 @@ public class DevDataInitializer implements ApplicationRunner {
                 encoder.encode(secret));
         log.warn("DEV ONLY, never use outside local development: created client '{}' with generated secret: {}",
                 DefaultClientDefinitions.BFF_CLIENT_ID, secret);
+    }
+
+    /**
+     * Creates the public device client, which has no secret and needs no redirect URI, unless it already exists. It
+     * requires the user's consent to the requested scopes, as the verification page asks for it.
+     */
+    private void createDeviceClient() {
+        if (clients.findByClientId(DEVICE_CLIENT_ID).isPresent()) {
+            return;
+        }
+        clients.save(new ClientRegistration(DEVICE_CLIENT_ID, "Device flow demo", false, List.of("none"),
+                List.of(DEVICE_CODE_GRANT, "refresh_token"), List.of(), DEVICE_SCOPES, true,
+                List.of(DefaultClientDefinitions.RESOURCE_SERVER_AUDIENCE, apiAudience), DEVICE_ACCESS_TOKEN_TTL,
+                DEVICE_REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), true, false),
+                null);
+        log.warn("DEV ONLY, never use outside local development: created public client '{}' for the device flow",
+                DEVICE_CLIENT_ID);
     }
 
     /**

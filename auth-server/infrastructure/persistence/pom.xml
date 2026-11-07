@@ -71,6 +71,11 @@
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-webauthn</artifactId>
     </dependency>
+    <!-- the Jackson module of the federated principals (OAuth2AuthenticationToken, OidcUser) of stored authorizations -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-client</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

@@ -148,6 +148,64 @@ authserver:
     # /dev/sms-inbox). With none of these profiles the application refuses to start, so a deployment never silently
     # keeps its messages in memory.
   # end::sms-config[]
+  # tag::social-config[]
+  social:
+    # Sign in with external providers (Google, Microsoft Entra ID, Apple, GitHub). A provider is enabled only when its
+    # client-id has text, so nothing is configured until a deployment supplies the values. Every secret comes from the
+    # environment and none is ever kept in a file. trust-mfa (default false) makes the provider's own multi-factor
+    # authentication count: the sign-in is then accepted without a second factor only when the provider reports mfa in
+    # its amr claim. Without it a federated sign-in is a primary factor and the second-factor flow applies.
+    providers:
+      google:
+        client-id: ${AUTHSERVER_SOCIAL_GOOGLE_CLIENT_ID:}
+        client-secret: ${AUTHSERVER_SOCIAL_GOOGLE_CLIENT_SECRET:}
+        trust-mfa: ${AUTHSERVER_SOCIAL_GOOGLE_TRUST_MFA:false}
+      microsoft:
+        client-id: ${AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_ID:}
+        client-secret: ${AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_SECRET:}
+        # common, organizations, consumers, a tenant id or a domain; allowed-tenants limits a multi-tenant sign-in
+        tenant: ${AUTHSERVER_SOCIAL_MICROSOFT_TENANT:common}
+        allowed-tenants: ${AUTHSERVER_SOCIAL_MICROSOFT_ALLOWED_TENANTS:}
+        trust-mfa: ${AUTHSERVER_SOCIAL_MICROSOFT_TRUST_MFA:false}
+      apple:
+        client-id: ${AUTHSERVER_SOCIAL_APPLE_CLIENT_ID:}
+        team-id: ${AUTHSERVER_SOCIAL_APPLE_TEAM_ID:}
+        key-id: ${AUTHSERVER_SOCIAL_APPLE_KEY_ID:}
+        # the PKCS#8 PEM text of the .p8 key Apple issued
+        private-key: ${AUTHSERVER_SOCIAL_APPLE_PRIVATE_KEY:}
+        client-secret-ttl: PT5M
+        trust-mfa: ${AUTHSERVER_SOCIAL_APPLE_TRUST_MFA:false}
+      github:
+        client-id: ${AUTHSERVER_SOCIAL_GITHUB_CLIENT_ID:}
+        client-secret: ${AUTHSERVER_SOCIAL_GITHUB_CLIENT_SECRET:}
+        trust-mfa: ${AUTHSERVER_SOCIAL_GITHUB_TRUST_MFA:false}
+  # end::social-config[]
+  # tag::x509-config[]
+  x509:
+    # Sign in with a client certificate at /login/x509, off unless enabled is true. A certificate is bound to an account
+    # by its SHA-256 fingerprint. Two transports, both off by default: a certificate a trusted reverse proxy forwards in
+    # a header (forwarded-header, honoured only for a request that comes from one of trusted-proxies, addresses or CIDR
+    # ranges), and a dedicated TLS port that requests a client certificate (port, with the server certificate in
+    # key-store; the password comes from the environment, AUTHSERVER_X509_KEY_STORE_PASSWORD). Under the dev profile a
+    # self-signed server certificate is generated at the first start under ~/.irurueta-auth-server/. amr is the value
+    # the tokens report: sc (smart card) or hwk (a key held in hardware).
+    enabled: ${AUTHSERVER_X509_ENABLED:false}
+    forwarded-header: ${AUTHSERVER_X509_FORWARDED_HEADER:}
+    trusted-proxies: ${AUTHSERVER_X509_TRUSTED_PROXIES:}
+    port: ${AUTHSERVER_X509_PORT:0}
+    key-store: ${AUTHSERVER_X509_KEY_STORE:}
+    amr: ${AUTHSERVER_X509_AMR:sc}
+  # end::x509-config[]
+  # tag::device-config[]
+  device:
+    # Device authorization grant (RFC 8628): the attempts to verify a user code, which is short, are limited per client
+    # address and per signed-in user, counted in a fixed window.
+    rate-limit:
+      enabled: true
+      window: PT15M
+      per-client: 30
+      per-user: 10
+  # end::device-config[]
   oidc:
     client-registration:
       # Dynamic client registration (/connect/register) is off unless explicitly enabled.

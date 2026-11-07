@@ -126,6 +126,8 @@
     <!-- SMS gateways (profile-gated adapters of infrastructure/sms): Twilio and AWS SDK v2 (SNS, through its BOM) -->
     <twilio.version>13.2.0</twilio.version>
     <aws-sdk.version>2.57.11</aws-sdk.version>
+    <!-- fake identity providers of the social login tests: runs in-process, no Docker (shaded, so it never clashes with Jetty/Jackson of the application) -->
+    <wiremock.version>3.13.2</wiremock.version>
   </properties>
 
   <dependencyManagement>
@@ -270,6 +272,11 @@
         <groupId>com.twilio.sdk</groupId>
         <artifactId>twilio</artifactId>
         <version>${twilio.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.wiremock</groupId>
+        <artifactId>wiremock-standalone</artifactId>
+        <version>${wiremock.version}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>

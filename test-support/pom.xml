@@ -26,7 +26,7 @@
 
   <artifactId>test-support</artifactId>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Shared test harness for the other modules: Testcontainers PostgreSQL and Mailpit support and the OpenAPI contract comparison of the drift tests.</description>
+  <description>Shared test harness for the other modules: Testcontainers PostgreSQL and Mailpit support, WireMock and the OpenAPI contract comparison of the drift tests.</description>
 
   <dependencies>
     <dependency>
@@ -49,6 +49,12 @@
       <!-- MailpitClient reads the JSON of the Mailpit HTTP API -->
       <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <!-- fake OpenID Connect providers of the social login tests; in-process, so it needs no Docker. Consumers bring
+           it in with test scope, like the rest of this module -->
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
     </dependency>
     <dependency>
       <!-- OpenApiContract reads the contracts under apis/ and the served OpenAPI documents -->

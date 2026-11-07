@@ -18,8 +18,9 @@ package com.irurueta.authserver.authorization.api.web.consent;
 
 import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.ConsentPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DeviceVerificationPageApi;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -49,6 +50,15 @@ public class ConsentController implements ConsentPageApi {
     /** Name of the model attribute that holds the {@link ConsentPageModel}. */
     static final String CONSENT_ATTRIBUTE = "consent";
 
+    /** Name of the model attribute that holds the path the decision is posted to. */
+    static final String DECISION_PATH_ATTRIBUTE = "decisionPath";
+
+    /** Name of the model attribute that holds the user code of a device. */
+    static final String USER_CODE_ATTRIBUTE = "userCode";
+
+    /** Path of the authorization endpoint, where the decision of an authorization request is posted. */
+    static final String AUTHORIZE_PATH = "/oauth2/authorize";
+
     /** Finds the client that asks for access. */
     private final RegisteredClientRepository registeredClientRepository;
 
@@ -71,11 +81,14 @@ public class ConsentController implements ConsentPageApi {
      * @param clientId identifier of the client that asks for access.
      * @param scope    requested scopes, space delimited.
      * @param state    state of the authorization request.
+     * @param userCode user code of the device the consent is asked for, {@code null} for an authorization request;
+     *                 the decision of a device is posted to the device verification endpoint, with the code.
      * @return the consent page.
      * @throws ResponseStatusException with status 400 when the client is unknown.
      */
     @Override
-    public ResponseEntity<String> consentPage(final String clientId, final String scope, final String state) {
+    public ResponseEntity<String> consentPage(final String clientId, final String scope, final String state,
+            final String userCode) {
         final var client = registeredClientRepository.findByClientId(clientId);
         if (client == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown client");
@@ -83,8 +96,16 @@ public class ConsentController implements ConsentPageApi {
         final var principalName = request.getUserPrincipal().getName();
         final var consent = authorizationConsentService.findById(client.getId(), principalName);
         final Set<String> granted = consent == null ? Set.of() : consent.getScopes();
-        return pageRenderer.render(VIEW_NAME, Map.of(CONSENT_ATTRIBUTE, mapper.toModel(client, principalName, state,
-                scope, granted, RequestContextUtils.getLocale(request))));
+        final var model = new HashMap<String, Object>();
+        model.put(CONSENT_ATTRIBUTE, mapper.toModel(client, principalName, state, scope, granted,
+                RequestContextUtils.getLocale(request)));
+        if (userCode == null) {
+            model.put(DECISION_PATH_ATTRIBUTE, AUTHORIZE_PATH);
+        } else {
+            model.put(DECISION_PATH_ATTRIBUTE, DeviceVerificationPageApi.PATH_DEVICE_VERIFICATION_PAGE);
+            model.put(USER_CODE_ATTRIBUTE, userCode);
+        }
+        return pageRenderer.render(VIEW_NAME, model);
     }
     // end::consent-controller[]
 }
