@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import com.irurueta.authserver.authorization.domain.social.VerifiedEmailLookup;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +77,7 @@ class FederatedOAuth2UserServiceTest {
 
     /** Reads the verified address. */
     @Mock
-    private GitHubEmailClient emailClient;
+    private VerifiedEmailLookup verifiedEmailLookup;
 
     /** Resolves the local account. */
     @Mock
@@ -98,7 +99,7 @@ class FederatedOAuth2UserServiceTest {
     void loadUser_whenGitHubHasAVerifiedPrimaryEmail_returnsTheLocalPrincipal() {
         final var request = request("github");
         when(delegate.loadUser(request)).thenReturn(upstream());
-        when(emailClient.verifiedPrimaryEmail(USER_URI, "access")).thenReturn(Optional.of(EMAIL));
+        when(verifiedEmailLookup.verifiedPrimaryEmail(USER_URI, "access")).thenReturn(Optional.of(EMAIL));
         when(accountResolver.resolve(IdentityProvider.GITHUB, "42", EMAIL, true))
                 .thenReturn(User.withUsername(USERNAME).password("hash").authorities("ROLE_USER").build());
 
@@ -118,7 +119,7 @@ class FederatedOAuth2UserServiceTest {
     void loadUser_whenGitHubHasNoVerifiedEmail_resolvesWithAnUnverifiedAddress() {
         final var request = request("github");
         when(delegate.loadUser(request)).thenReturn(upstream());
-        when(emailClient.verifiedPrimaryEmail(USER_URI, "access")).thenReturn(Optional.empty());
+        when(verifiedEmailLookup.verifiedPrimaryEmail(USER_URI, "access")).thenReturn(Optional.empty());
         when(accountResolver.resolve(IdentityProvider.GITHUB, "42", null, false))
                 .thenReturn(User.withUsername(USERNAME).password("hash").authorities("ROLE_USER").build());
 
@@ -137,7 +138,7 @@ class FederatedOAuth2UserServiceTest {
         final var error = assertThrows(OAuth2AuthenticationException.class, () -> service.loadUser(request));
 
         assertEquals(OAuth2ErrorCodes.INVALID_REQUEST, error.getError().getErrorCode());
-        verifyNoInteractions(delegate, emailClient, accountResolver);
+        verifyNoInteractions(delegate, verifiedEmailLookup, accountResolver);
     }
 
     /**

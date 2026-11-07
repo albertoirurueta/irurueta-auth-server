@@ -146,6 +146,17 @@ class JdbcFederatedIdentityRepositoryTest {
     }
 
     /**
+     * Verifies that the identity is locked with the advisory lock of its namespace, keyed by provider and subject.
+     */
+    @Test
+    void lockSubject_whenCalled_takesTheAdvisoryLockOfTheIdentity() {
+        repository.lockSubject(IdentityProvider.GOOGLE, SUBJECT);
+
+        verify(client.sql(any(String.class))).params(JdbcFederatedIdentityRepository.SUBJECT_LOCK_NAMESPACE,
+                "google:" + SUBJECT);
+    }
+
+    /**
      * Builds the identity used by the tests.
      *
      * @return the identity.

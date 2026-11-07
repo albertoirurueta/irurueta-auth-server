@@ -32,12 +32,15 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 // tag::x509-chain[]
 /**
  * Adds the sign-in with a client certificate to the login/UI chain through {@code http.x509(...)}. The filter only
- * looks at {@code GET /login/x509}, a path the browser is sent to on the TLS port that requests a certificate (or
- * behind the proxy that forwards one), so every other request of the chain is untouched; a certificate that is bound
- * to an account signs it in and resumes the interrupted request, anything else goes back to the login page. The path
- * is open to everybody, because it is where the certificate is checked, and the rest of the chain is not touched.
- * When a proxy may forward the certificate, {@link ForwardedCertificateFilter} runs first. Once the chain is
- * configured, the success handler gets the chain's session authentication strategy, the one the form login uses.
+ * looks at {@code POST /login/x509}, the form of {@link X509LoginMethodFragment} on the login page, which carries the
+ * CSRF token like every other form of the chain; the CSRF filter runs before the X.509 one, so a cross-site page can
+ * never make a browser sign in with its certificate. The form posts to the TLS port that requests a certificate (or
+ * to the proxy that forwards one); every other request of the chain is untouched, and {@code GET /login/x509} is not
+ * a sign-in at all (it is not opened, so it ends with the chain's catch-all rule). A certificate that is bound to an
+ * account signs it in and resumes the interrupted request, anything else goes back to the login page. The path is
+ * open to everybody, because it is where the certificate is checked. When a proxy may forward the certificate,
+ * {@link ForwardedCertificateFilter} runs first. Once the chain is configured, the success handler gets the chain's
+ * session authentication strategy, the one the form login uses.
  */
 @RequiredArgsConstructor
 public class X509ChainCustomizer implements LoginChainCustomizer {
@@ -73,7 +76,7 @@ public class X509ChainCustomizer implements LoginChainCustomizer {
      */
     @Override
     public void customize(final HttpSecurity http) {
-        final var loginRequest = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, LOGIN_PATH);
+        final var loginRequest = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, LOGIN_PATH);
         http.authorizeHttpRequests(authorize -> authorize.requestMatchers(loginRequest).permitAll());
         prepare(filter, loginRequest, http);
         if (forwardedFilter != null) {

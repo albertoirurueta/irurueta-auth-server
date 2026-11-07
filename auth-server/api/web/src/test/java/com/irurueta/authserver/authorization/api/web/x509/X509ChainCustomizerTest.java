@@ -17,6 +17,7 @@ package com.irurueta.authserver.authorization.api.web.x509;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_SELF;
@@ -100,7 +101,7 @@ class X509ChainCustomizerTest {
     }
 
     /**
-     * Verifies that only {@code GET /login/x509} is public.
+     * Verifies that only {@code POST /login/x509} is public: a {@code GET} of the path is not a sign-in.
      */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -119,9 +120,9 @@ class X509ChainCustomizerTest {
 
         verify(open).permitAll();
         final var matcher = matcherCaptor.getValue();
-        assertTrue(matcher.matches(new MockHttpServletRequest("GET", "/login/x509")));
-        assertFalse(matcher.matches(new MockHttpServletRequest("POST", "/login/x509")));
-        assertFalse(matcher.matches(new MockHttpServletRequest("GET", "/login")));
+        assertTrue(matcher.matches(new MockHttpServletRequest("POST", "/login/x509")));
+        assertFalse(matcher.matches(new MockHttpServletRequest("GET", "/login/x509")));
+        assertFalse(matcher.matches(new MockHttpServletRequest("POST", "/login")));
     }
 
     /**
@@ -215,6 +216,27 @@ class X509ChainCustomizerTest {
     }
 
     /**
+     * Verifies that a {@code GET} of the sign-in path, even with a certificate, neither authenticates nor is answered
+     * by the filter: it goes on along the chain, whose catch-all rule handles it.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void customize_whenTheSignInPathIsReadWithGet_doesNotAuthenticate() throws Exception {
+        final var http = mock(HttpSecurity.class, RETURNS_SELF);
+        final var filter = new X509LoginFilter();
+        customizer(null, filter).customize(http);
+        final var request = signInRequest();
+        request.setMethod("GET");
+        final var chain = new MockFilterChain();
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        verify(authenticationManager, never()).authenticate(any());
+        assertSame(request, chain.getRequest());
+    }
+
+    /**
      * Verifies that a certificate nobody owns is sent back to the login page.
      *
      * @throws Exception if the filter fails.
@@ -279,7 +301,7 @@ class X509ChainCustomizerTest {
      * @return the request.
      */
     private static MockHttpServletRequest signInRequest() {
-        final var request = new MockHttpServletRequest("GET", "/login/x509");
+        final var request = new MockHttpServletRequest("POST", "/login/x509");
         request.setAttribute(ForwardedCertificateFilter.CERTIFICATE_ATTRIBUTE,
                 new X509Certificate[] {mock(X509Certificate.class)});
         return request;

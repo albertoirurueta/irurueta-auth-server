@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  Linked identities account page (IdentitiesPageController): the identities of external providers linked to the
+  account and one button per configured provider, each a form that posts to POST /account/identities/link
+  (th:action adds the CSRF field). The controller records the link marker and sends the browser to the provider; the
+  provider's answer links the identity and returns here with the outcome in the status parameter, shown in a live
+  region so assistive technology announces it.
+-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}">
+<head>
+  <title th:text="#{social.identities.title}">Linked accounts</title>
+</head>
+<body>
+<main>
+  <h1 th:text="#{social.identities.heading}">Your linked accounts</h1>
+  <div aria-live="polite" role="status">
+    <p th:if="${status == 'linked'}" th:text="#{social.identities.status.linked}">The account is now linked.</p>
+  </div>
+  <div aria-live="assertive" role="alert">
+    <p th:if="${status == 'already-linked'}" class="error" th:text="#{social.identities.error.alreadyLinked}">Already
+      linked to another user.</p>
+    <p th:if="${status == 'unknown-provider'}" class="error" th:text="#{social.identities.error.unknownProvider}">Not
+      available.</p>
+  </div>
+  <p th:if="${#lists.isEmpty(identities)}" th:text="#{social.identities.none}">No account is linked yet.</p>
+  <ul th:unless="${#lists.isEmpty(identities)}" class="identities">
+    <li th:each="identity : ${identities}" th:attr="data-identity-provider=${identity.provider}">
+      <strong th:text="#{${'social.identities.provider.' + identity.provider}}">Google</strong>
+      <span th:if="${identity.email != null}" th:text="${identity.email}">alice@example.com</span>
+      <span th:text="#{social.identities.linked(${identity.linkedAt})}">Linked 2026-01-01T00:00:00Z</span>
+    </li>
+  </ul>
+  <!-- tag::social-identities-link-form[] -->
+  <section th:unless="${#lists.isEmpty(providers)}" class="identities-link">
+    <h2 th:text="#{social.identities.add}">Link another account</h2>
+    <form th:each="provider : ${providers}" method="post" th:action="@{/account/identities/link}">
+      <input type="hidden" name="provider" th:value="${provider}">
+      <button type="submit" th:attr="data-link-provider=${provider}"
+              th:text="#{${'social.identities.link.' + provider}}">Link an account</button>
+    </form>
+  </section>
+  <!-- end::social-identities-link-form[] -->
+</main>
+</body>
+</html>

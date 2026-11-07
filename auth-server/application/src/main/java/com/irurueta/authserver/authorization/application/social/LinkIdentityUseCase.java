@@ -30,7 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Use case that links an identity of an external provider to the account of a signed-in user. Unlike the sign-in, it
  * does not depend on the e-mail address: the user proved to own the account by being signed in, and the provider by
- * having just authenticated.
+ * having just authenticated. The identity is locked first, as the sign-in does, so a concurrent sign-in or link of the
+ * same identity is serialized with it.
  */
 @Service
 @Transactional
@@ -59,6 +60,7 @@ public class LinkIdentityUseCase {
      */
     public FederatedIdentity execute(final UUID userId, final String username, final IdentityProvider provider,
                                      final String subject, final String email) {
+        federatedIdentityRepository.lockSubject(provider, subject);
         final var existing = federatedIdentityRepository.findByProviderAndSubject(provider, subject);
         if (existing.isPresent()) {
             if (existing.get().userId().equals(userId)) {

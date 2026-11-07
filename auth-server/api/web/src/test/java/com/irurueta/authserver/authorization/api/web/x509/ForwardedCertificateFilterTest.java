@@ -159,6 +159,21 @@ class ForwardedCertificateFilterTest {
     }
 
     /**
+     * Verifies that the header is not read on a {@code GET} of the sign-in path, which never signs anybody in.
+     *
+     * @throws Exception if the filter fails.
+     */
+    @Test
+    void doFilter_whenTheSignInPathIsReadWithGet_ignoresTheHeader() throws Exception {
+        final var request = request(TRUSTED, UriUtils.encode(certificate.pem(), StandardCharsets.UTF_8));
+        request.setMethod("GET");
+
+        filter(request);
+
+        assertNull(request.getAttribute(ATTRIBUTE));
+    }
+
+    /**
      * Verifies that a request without the header goes on untouched.
      *
      * @throws Exception if the filter fails.
@@ -238,7 +253,7 @@ class ForwardedCertificateFilterTest {
      * @return the request.
      */
     private static MockHttpServletRequest request(final String address, final String header) {
-        final var request = new MockHttpServletRequest("GET", "/login/x509");
+        final var request = new MockHttpServletRequest("POST", "/login/x509");
         request.setRemoteAddr(address);
         if (header != null) {
             request.addHeader(HEADER, header);

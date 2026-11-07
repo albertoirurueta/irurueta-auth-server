@@ -69,7 +69,8 @@ module (package granularity). Never weaken either to make code fit; move the cod
   `infrastructure` or `application` module, so `service-client` stays a single `boot` module until #8 gives it a
   domain (it already holds `serviceclient.device`, the `device-flow` profile polling CLI `DeviceFlowCli` of the device grant, a
   hand-written main class in `src/main` because the end-to-end test runs the packaged jar; its calls use `RestClient` against the
-  framework endpoints, so no contract is generated). `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail` and `infrastructure/sms`;
+  framework endpoints, so no contract is generated). `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail`,
+  `infrastructure/sms` and `infrastructure/github` (the generated GitHub client behind the `VerifiedEmailLookup` port);
   `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`; `bff` has `domain`,
   `application`, `infrastructure/session`, `infrastructure/resourceserver`, `api/web` and `boot`.
 - **No demo-only code in `src/main`.** The applications are meant to be reusable and deployable: an endpoint, entity
@@ -378,16 +379,44 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     - **Linking and provisioning** (`application.social`): `ResolveFederatedLoginUseCase` finds the identity by `(provider,
       subject)` in `federated_identities` (`V700`), else links by e-mail **only when the provider and the existing account both
       verified the address** (a pre-registered unverified account is refused), else provisions a password-less account (JIT);
-      an unverified e-mail never links and never provisions over an existing account. `FederatedAccountResolver` then loads the
-      account through `AccountStatusUserDetailsService`, so a linked disabled/locked/expired account and every refusal is the
+      an unverified e-mail never links and never provisions over an existing account. It first takes
+      `FederatedIdentityRepository.lockSubject(provider, subject)` (a PostgreSQL transaction-level advisory lock, namespace
+      `700`, as `JdbcUserPhoneRepository.save` does), so two concurrent first sign-ins of one person are serialized and the
+      second finds the first's row instead of a `500` on the unique constraint; `LinkIdentityUseCase` takes the same lock. A
+      disabled account is refused **inside the use case** (`FederatedLinkingPolicy.maySignIn`, the `enabled` flag, which is all
+      `AccountStatusUserDetailsService` checks for this server's accounts) before anything is linked, updated or audited.
+      `FederatedAccountResolver` then also loads the account through `AccountStatusUserDetailsService`, so every refusal is the
       same `access_denied`. `FederatedOidcUserService` / `FederatedOAuth2UserService` (GitHub: the verified primary e-mail from
-      `/user/emails` through `GitHubEmailClient`, its numeric id is the subject) delegate to it and `FederatedUserMapper` builds
+      `/user/emails` through the domain port `VerifiedEmailLookup`, implemented by `GitHubVerifiedEmailLookup` in the
+      `infrastructure/github` module with a client generated from `apis/github/rest-server/github-api-v1.yaml`; every
+      failure is "no verified address"; its numeric id is the subject) delegate to it and `FederatedUserMapper` builds
       the principal. Entra's e-mail counts as verified only with `email_verified` or `xms_edov` (the nOAuth defence).
+    - **Explicit link flow** (the issue's "link after the user signs in to the existing account"): the session page
+      `GET /account/identities` (`IdentitiesPageController`, pages contract tag `identities-page-api`,
+      `templates/account-identities.html`, `IdentityView` / `IdentityViewMapper`) lists the linked identities and one button
+      per configured provider; `POST /account/identities/link` (form `provider`) records a `PendingIdentityLink` (provider,
+      account, expiry) in the session through `PendingIdentityLinks` (lifetime `PendingIdentityLinks.LIFETIME`, five
+      minutes, used once) and answers `303` to `/oauth2/authorization/{provider}`. Both are guarded by
+      `IdentitiesPageChainCustomizer` (`LoginChainCustomizer`, `@Order(7)`, declared by the unconditional
+      `IdentitiesPageConfiguration`, so the page and its contract exist with no provider configured) behind the MFA policy.
+      When the provider answers, `FederatedAccountResolver` consumes the marker (only for the same provider, before it expires
+      and while the session is still that account; `PendingIdentityLinks` reads the request through `RequestContextHolder`) and
+      calls `LinkIdentityUseCase` for that account instead of resolving or provisioning by e-mail; an identity of another
+      account is `FederatedIdentityAlreadyLinkedException` → error `identity_link_refused`, which
+      `FederatedAuthenticationFailureHandler` sends to `/account/identities?status=already-linked` (a failed sign-in never
+      saves a context, so the session keeps its user). On success `FederatedAuthenticationSuccessHandler` sees the request
+      attribute the marker left (`PendingIdentityLinks.linkedBy`), puts the session's previous authentication back, grants no
+      factor and redirects to `/account/identities?status=linked`: linking never switches the principal. Unlinking stays
+      on the bearer API.
     - **Generated-password flag**: a JIT account holds a random unknown password, flagged in `user_passwords.generated`
       (`V701`, port `GeneratedPasswordRepository`) so it does not count as a password sign-in method; every password write
-      (`JdbcUserAccountRepository`) clears the flag. `SignInMethods` (domain) counts password (not generated), other identities,
-      passkey (`PasskeyRepository.existsForAccount`) and bound certificates: `UnlinkIdentityUseCase` and the certificate
-      unbinding refuse to remove the last one.
+      (`JdbcUserAccountRepository`) clears the flag. `SignInMethods` (domain) counts password (not generated), identities,
+      passkey (`PasskeyRepository.existsForAccount`) and bound certificates; `LockSignInMethodsUseCase`
+      (`@Transactional(propagation = MANDATORY)`) first takes the per-account lock of the domain port `SignInMethodsLock`
+      (`JdbcSignInMethodsLock`, advisory lock namespace `701` on the user id) and then counts them, so `UnlinkIdentityUseCase`
+      and `UnbindCertificateUseCase` (both start with it, then use `withoutFederatedIdentity()` / `withoutCertificate()` and
+      `FederatedLinkingPolicy.mayUnlink`) are serialized per account and never both remove "the other" last method; each refuses
+      the last one with `LastSignInMethodException`.
     - **Entra multi-tenant**: the `common`/`organizations` discovery issuer carries a `{tenantid}` placeholder, so the Microsoft
       registration is built by hand **without** `issuerUri` and `IdTokenValidatorFactory` (installed through
       `OidcIdTokenDecoderFactory.setJwtValidatorFactory`, which keeps the framework's `OidcIdTokenValidator`) uses
@@ -414,17 +443,30 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
       `List.of` when the principal is stored, which `FederatedUserMapper` guarantees.
     - **Account API**: `GET /api/account/identities` and `DELETE /api/account/identities/{id}` (`IdentityController`,
       `IdentityDtoMapper`, `IdentityExceptionHandler`; unlink calls `StepUpGuard` first, `404 identity-not-found`, `409
-      last-sign-in-method`). Link and unlink are audited (`IDENTITY_LINKED`, `IDENTITY_UNLINKED`).
+      last-sign-in-method`). Link and unlink are audited (`IDENTITY_LINKED`, `IDENTITY_UNLINKED`). `IdentityExceptionHandler`
+      and the certificates' `CertificateExceptionHandler` share `SignInMethodExceptionHandler` (the `409 last-sign-in-method`
+      and the step-up `401`).
   - **X.509 client certificates (`x509`)**: `CertificatePrincipalExtractor` (an `X509PrincipalExtractor`) yields the SHA-256
     fingerprint as the principal, or an unreadable one for an expired / not yet valid certificate; `X509UserDetailsService`
     maps it to an account through `ResolveCertificateLoginUseCase` (`x509_certificates`, `V710`, tag `x509-schema`) and
     `AccountStatusUserDetailsService`. `X509Factor` is `FACTOR_X509` (`PRIMARY_STRONG`, `amr` from `authserver.x509.amr`, `sc`
-    or `hwk`). `X509ChainCustomizer` (`LoginChainCustomizer`, `@Order(6)`) opens only `GET /login/x509`; `X509LoginFilter` and
+    or `hwk`). `X509ChainCustomizer` (`LoginChainCustomizer`, `@Order(6)`) opens only `POST /login/x509` (a Spring Security
+    filter endpoint, exempt from the contracts), which the CSRF filter checks before the X.509 filter runs, so a cross-site
+    page cannot sign a browser in with its certificate; `GET /login/x509` is not a sign-in (not opened, it ends with the
+    catch-all rule). `X509LoginMethodFragment` (`LoginMethodFragment`, order 260, `login-x509.html`, tags
+    `x509-login-method-fragment` / `x509-login-fragment`) renders the button: its form posts to the relative path with a
+    forwarding proxy, and with only the TLS port to `https://<same host>:<port>/login/x509` from a page of another port
+    (cookies are per host, so the session and CSRF token still apply, but a `SameSite` cookie is not sent from an `http` page
+    to an `https` one: the main port must be `https` too, or the login page opened on the TLS port). `X509LoginFilter` and
     `X509AuthenticationSuccessHandler` replace the pre-authenticated token, grant the stamped factor and change the session id.
     `authserver.x509.*` (`X509Properties`, validated, off by default, tag `x509-config`).
     - **Two transports, one extractor**: a certificate forwarded by a reverse proxy in `authserver.x509.forwarded-header`
       (`ForwardedCertificateFilter` reads it only for a request from `trusted-proxies`, parses it and sets the
-      `jakarta.servlet.request.X509Certificate` attribute, so a spoofed header from anyone else is ignored), and a dedicated
+      `jakarta.servlet.request.X509Certificate` attribute, so a spoofed header from anyone else is ignored; the address
+      compared is `getRemoteAddr()` after Spring Boot's forwarded-header handling, the direct peer only with
+      `server.forward-headers-strategy=none`, so `X509ForwardedHeadersGuard` refuses to start with a `forwarded-header` and
+      `native`/`framework`, or an unset strategy on a detected cloud platform, where `X-Forwarded-For`, which a client can
+      forge, would become the address; tag `x509-forwarded-headers-guard`), and a dedicated
       TLS connector (`authserver.x509.port`, `X509TlsConnectorCustomizer`, client auth optional, server certificate from
       `key-store`, password only from `AUTHSERVER_X509_KEY_STORE_PASSWORD`; `X509TlsKeyStoreResolver`).
     - **TLS port trust manager**: `AnyClientCertificateTrustManager` advertises no certificate authority and accepts any chain,
@@ -434,8 +476,15 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     - `DevX509KeyStore` (`dev` profile only, see the exceptions above) generates a self-signed server certificate with
       `keytool` under `~/.irurueta-auth-server/` at the first start; nothing is committed, and tests generate their
       certificates at run time (`test-support`: `TestPki`, `TestCertificates`, `Keytool`).
-    - `CertificateBinding` management (bind / unbind, audited as `CERTIFICATE_BOUND` / `CERTIFICATE_UNBOUND`) is in the
-      use cases `BindCertificateUseCase` / `UnbindCertificateUseCase`; there is no HTTP endpoint for it yet.
+    - **Certificate API**: `GET /api/account/certificates`, `POST /api/account/certificates` (JSON `{"certificate": "<PEM>"}`,
+      `201`) and `DELETE /api/account/certificates/{id}` (contract tags `certificates-api-contract` /
+      `certificates-schemas`; `CertificateController`, `CertificateDtoMapper`, `CertificateExceptionHandler`; bind and unbind
+      call `StepUpGuard` first, as unlinking an identity does). `PemCertificateReader` accepts exactly one PEM certificate
+      within its validity period (a value carrying `PRIVATE KEY` is refused unparsed) and computes the fingerprint with
+      `CertificatePrincipalExtractor.fingerprintOf`, so the binding matches the sign-in; problems `400 invalid-certificate`,
+      `409 certificate-already-bound`, `404 certificate-not-found`, `409 last-sign-in-method`. The controller exists whether or
+      not `authserver.x509.enabled` is set. Bind / unbind are audited as `CERTIFICATE_BOUND` / `CERTIFICATE_UNBOUND`
+      (`BindCertificateUseCase`, `UnbindCertificateUseCase`, `ListCertificatesUseCase`).
   - **Device authorization grant (`implicit`)**: RFC 8628. `DeviceProtocolChainCustomizer` (`ProtocolChainCustomizer`,
     `@Order(2)`) enables the device authorization and verification endpoints of Spring Authorization Server (default paths
     `/oauth2/device_authorization`, framework-owned and exempt from the contracts, and `/oauth2/device_verification`) with the
@@ -445,7 +494,10 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     `DeviceVerificationRequestGuard` runs before the framework converters: the rate limit
     (`DeviceVerificationRateLimiter` over `FixedWindowBuckets`, `authserver.device.rate-limit.*`, per client address and per
     user, tagged `device-config`; answers `429`) and the MFA policy (device verification needs its own check, the MFA customizer
-    applies only to the authorize endpoint validator); `DeviceVerificationErrorHandler` maps them to 429, the second-factor page
+    applies only to the authorize endpoint validator). The client whose `mfaRequired` applies is the one of the authorization
+    stored for the `user_code` (`OAuth2AuthorizationService.findByToken(code, user_code)`, the code normalised as the framework
+    stores it, `XXXX-XXXX`), because the user-code post names no client and a client without consent approves on it; only
+    when no authorization holds the code is the consent post's `client_id` used; `DeviceVerificationErrorHandler` maps them to 429, the second-factor page
     or `?error`. No migration: `V100` already has the `device_code_*` / `user_code_*` columns, and
     `ReuseDetectingAuthorizationService` forwards those token types unchanged.
     - **Device client authentication**: a public client (`none`) needs its own authentication at the device endpoints because
@@ -459,11 +511,14 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
   - **Push approval (not built)**: only design notes, kept in the PR description of #7; no code. It would be a `SECOND` factor
     approved on an enrolled device, declared like any other (an `AuthenticationFactor`, a `SecondFactorFragment`, a
     `SecondFactorEnrolmentQuery`).
-  - **Shared files it still touches, and why**: the two contracts and `apis/README.md`, the `pages` group of `OpenApiConfig`,
+  - **Shared files it still touches, and why**: the two contracts and `apis/README.md`, the `pages` group of `OpenApiConfig`
+    and its `OpenApiConfigTest` (`/account/identities` and its link post),
     `application.yml` (`social-config`, `x509-config`, `device-config`), `messages.properties`, `ConsentController` and
     `consent.html` (the device decision), `SecurityEventType`, `DevDataInitializer`, `JdbcUserAccountRepository` (clears the
     generated flag), the poms (`spring-boot-starter-security-oauth2-client` in `api/web`, WireMock standalone in the root pom and
-    `test-support`, `spring-boot-starter-jackson` in `service-client/boot`, `e2e-tests` depends on `service-client-boot`).
+    `test-support`, `spring-boot-starter-jackson` in `service-client/boot`, `e2e-tests` depends on `service-client-boot`; the new
+    `infrastructure/github` module is registered in the root, `infrastructure`, `boot` and `coverage` poms), `docs/antora.yml`
+    (its scan) and `apis/github/rest-server/github-api-v1.yaml` (the contract its GitHub client is generated from).
   - **Known limits**: Apple needs `SameSite=None; Secure` cookies (above); an expired or revoked certificate is refused by
     the extractor and the mapping, not by revocation lists (there is no CRL/OCSP check); a provider's `trust-mfa` is honoured
     only per sign-in from its `amr` claim; a JIT account has no usable password until the user sets one.
@@ -517,7 +572,7 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
   `ClientDtoMapper`) in the api adapter converts between generated DTOs and the domain; problem details go through
   `ProblemJsonExceptionHandler` or the feature's scoped `@RestControllerAdvice`.
 - **HTML pages**: `apis/<app>/web-pages/<app>-pages-v1.yaml` (today `auth-server-pages-v1.yaml`: `/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/oauth2/device_verification`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/account/identities`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/oauth2/device_verification`, `/logout`), generated into `…api.web.pages.v1.generated.api`. Each operation answers
   `text/html`; its controller renders the Thymeleaf template with `PageRenderer` (`api.web.pages`), which resolves the
   view with the request's locale, renders it against the current request (CSRF fields, `@{}` links and messages keep
   working) and adds the branding. The pages are published by the springdoc group `pages` (`/v3/api-docs/pages`) and
@@ -525,10 +580,13 @@ hand-written code.** The contracts are the source of truth (see `apis/README.md`
 - **Calls to another service** go through a client generated from that service's contract (`java` generator,
   `library=restclient`, into `…infrastructure.<adapter>.v1.generated`), behind a domain port implemented in an
   `infrastructure/*` adapter that translates every failure into a domain exception (for example
-  `RestDocumentGateway` in `bff/infrastructure/resourceserver`). There is no generic pass-through relay: every
-  operation an application exposes is in its own contract.
+  `RestDocumentGateway` in `bff/infrastructure/resourceserver`, or `GitHubVerifiedEmailLookup` in
+  `auth-server/infrastructure/github`, generated from `apis/github/rest-server/github-api-v1.yaml`, the one GitHub
+  operation the server calls). There is no generic pass-through relay: every operation an application exposes is in
+  its own contract.
 - **Exempt** are only the endpoints owned by frameworks: the Spring Security filters (`POST /login`, `POST /logout`,
-  `POST /bff/logout`, `/oauth2/**`, `/login/oauth2/**`, and the `webAuthn` ones: `/webauthn/**`, `POST /login/webauthn`), the Spring Authorization Server protocol endpoints
+  `POST /bff/logout`, `/oauth2/**`, `/login/oauth2/**`, the `webAuthn` ones: `/webauthn/**`, `POST /login/webauthn`, and the
+  X.509 sign-in `POST /login/x509`), the Spring Authorization Server protocol endpoints
   (`/oauth2/**`, `/.well-known/**`, `/connect/**`, `/userinfo`), Spring Boot's `BasicErrorController` (`/error`,
   customised only through an `ErrorViewResolver` bean) and actuator.
 - Generated code is never committed or edited, and is excluded from Checkstyle, PMD/CPD, SpotBugs, JaCoCo and Sonar.
@@ -662,7 +720,7 @@ unit-test run; `mvn verify` runs both. JaCoCo's `prepare-agent-integration` writ
   parameters, bodies, security, schemas). To change an API or a page, edit the contract; there is nothing else to
   regenerate or commit. springdoc only documents its groups (see each `OpenApiConfig`): `api` (`/api/**` in
   `auth-server` and `resource-server`, `/bff/**` and `/api/**` in `bff`) and, in `auth-server`, `pages` (`/login`,
-  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/oauth2/device_verification`, `/logout`). Put every new endpoint under one of them, or widen the group.
+  `/login/second-factor`, `/login/second-factor/recovery-codes`, `/account/passkeys`, `/account/phone`, `/account/identities`, `/login/ott`, `/login/ott/confirm`, `/dev/sms-inbox` (dev only), `/oauth2/consent`, `/oauth2/device_verification`, `/logout`). Put every new endpoint under one of them, or widen the group.
 - The `dev` profile of `auth-server` resolves `../../compose.yaml` against the working directory (`spring-boot:run`
   uses the `boot` module directory); elsewhere, set `SPRING_DOCKER_COMPOSE_FILE` to the root `compose.yaml`.
 

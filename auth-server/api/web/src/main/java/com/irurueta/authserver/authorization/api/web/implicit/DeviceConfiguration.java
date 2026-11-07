@@ -25,6 +25,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -56,6 +57,7 @@ public class DeviceConfiguration {
      * ones.
      *
      * @param registeredClients          finds the clients of the devices.
+     * @param authorizationService       finds the device authorization of a user code.
      * @param serverSettings             settings of the protocol endpoints, for the device authorization one.
      * @param rateLimiter                limits the attempts.
      * @param authorizationManager       applies the multi-factor policy.
@@ -66,8 +68,8 @@ public class DeviceConfiguration {
     @Bean
     @Order(DeviceProtocolChainCustomizer.ORDER)
     public ProtocolChainCustomizer deviceProtocolChainCustomizer(final RegisteredClientRepository registeredClients,
-            final AuthorizationServerSettings serverSettings, final DeviceVerificationRateLimiter rateLimiter,
-            final MfaAuthorizationManager authorizationManager,
+            final OAuth2AuthorizationService authorizationService, final AuthorizationServerSettings serverSettings,
+            final DeviceVerificationRateLimiter rateLimiter, final MfaAuthorizationManager authorizationManager,
             final SecondFactorRequiredEntryPoint secondFactorEntryPoint,
             final ReauthenticationEntryPoint reauthenticationEntryPoint) {
         final var errorHandler = new DeviceVerificationErrorHandler(
@@ -79,7 +81,8 @@ public class DeviceConfiguration {
         return new DeviceProtocolChainCustomizer(
                 new DeviceClientAuthenticationConverter(serverSettings.getDeviceAuthorizationEndpoint()),
                 new DeviceClientAuthenticationProvider(registeredClients),
-                new DeviceVerificationRequestGuard(rateLimiter, authorizationManager), errorHandler, successHandler);
+                new DeviceVerificationRequestGuard(rateLimiter, authorizationManager, authorizationService,
+                        registeredClients), errorHandler, successHandler);
     }
     // end::device-protocol-customizer[]
 }

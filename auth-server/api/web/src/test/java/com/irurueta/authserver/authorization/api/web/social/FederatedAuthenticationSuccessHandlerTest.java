@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +69,10 @@ class FederatedAuthenticationSuccessHandlerTest {
     /** The handler that resumes the saved request. */
     @Mock
     private AuthenticationSuccessHandler delegate;
+
+    /** The link markers. */
+    @Mock
+    private PendingIdentityLinks pendingIdentityLinks;
 
     /** Real grantor over a fixed clock. */
     private final FactorGrantor factorGrantor = new FactorGrantor(Clock.fixed(NOW, ZoneOffset.UTC));
@@ -109,6 +114,29 @@ class FederatedAuthenticationSuccessHandlerTest {
     }
 
     /**
+     * Verifies that a completed link puts back the authentication the session had, grants nothing, never resumes a
+     * saved request and returns to the identities page.
+     *
+     * @throws Exception if the handler fails.
+     */
+    @Test
+    void onAuthenticationSuccess_whenTheAnswerCompletedALink_keepsThePreviousAuthentication() throws Exception {
+        final var request = new MockHttpServletRequest();
+        final var response = new MockHttpServletResponse();
+        final var previous = new TestingAuthenticationToken("alice", null, "ROLE_USER");
+        when(pendingIdentityLinks.linkedBy(request)).thenReturn(Optional.of(previous));
+
+        handler().onAuthenticationSuccess(request, response, token());
+
+        final var contextCaptor = ArgumentCaptor.<SecurityContext>captor();
+        verify(securityContextRepository).saveContext(contextCaptor.capture(), eq(request), eq(response));
+        assertSame(previous, contextCaptor.getValue().getAuthentication());
+        assertSame(previous, SecurityContextHolder.getContext().getAuthentication());
+        assertEquals("/account/identities?status=linked", response.getRedirectedUrl());
+        verifyNoInteractions(delegate, factorSelector);
+    }
+
+    /**
      * Verifies that an authentication of another kind is passed on untouched.
      *
      * @throws Exception if the handler fails.
@@ -132,7 +160,7 @@ class FederatedAuthenticationSuccessHandlerTest {
      */
     private FederatedAuthenticationSuccessHandler handler() {
         return new FederatedAuthenticationSuccessHandler(factorGrantor, factorSelector, securityContextRepository,
-                delegate);
+                delegate, pendingIdentityLinks);
     }
 
     /**

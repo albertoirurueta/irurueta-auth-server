@@ -93,6 +93,20 @@ class FederatedLinkingPolicyTest {
     }
 
     /**
+     * Verifies that only an enabled account may be reached by a federated sign-in.
+     */
+    @Test
+    void maySignIn_whenTheAccountIsEnabled_returnsTrue() {
+        final var enabled = account(true);
+        final var disabled = new UserAccount(enabled.id(), enabled.username(), enabled.encodedPassword(), false,
+                enabled.authorities(), enabled.email(), enabled.emailVerified(), enabled.tenant());
+
+        assertTrue(policy.maySignIn(enabled));
+        assertFalse(policy.maySignIn(disabled));
+        assertFalse(policy.maySignIn(null));
+    }
+
+    /**
      * Builds an account.
      *
      * @param emailVerified whether the account verified its address.

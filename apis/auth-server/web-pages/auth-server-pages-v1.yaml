@@ -28,7 +28,8 @@ info:
   description: >-
     Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, second
     factor, recovery codes, consent, sign-out confirmation, the passkeys of the account and the one-time token
-    pages (enter a code, confirm a magic link, the development SMS inbox) the phone of the account and the device verification. They are meant for a browser, never for a
+    pages (enter a code, confirm a magic link, the development SMS inbox) the phone of the account, the identities of
+    external providers linked to the account and the device verification. They are meant for a browser, never for a
     script.
   version: 1.0.0
   license:
@@ -55,6 +56,10 @@ tags:
     description: >-
       The account page where a signed-in user enrols, verifies and removes the phone number that receives one-time
       codes by SMS, with the session-protected form posts it uses
+  - name: Identities page
+    description: >-
+      The account page where a signed-in user sees the identities of external providers linked to the account and
+      links another one
   - name: Device verification page
     description: >-
       The page where a user enters the code a device shows to approve it (OAuth 2.0 Device Authorization Grant,
@@ -368,6 +373,70 @@ paths:
               schema:
                 type: string
   # end::phone-page-api[]
+  # tag::identities-page-api[]
+  /account/identities:
+    get:
+      tags: [ Identities page ]
+      operationId: identitiesPage
+      summary: Renders the linked identities account page
+      description: >-
+        Renders the page where the signed-in user sees the identities of external providers (Google, Microsoft, Apple,
+        GitHub) linked to the account and links another one: one button per configured provider, each a form that
+        posts to POST /account/identities/link with the CSRF token. Unlinking is done through the bearer-protected
+        REST API (DELETE /api/account/identities/{id}), which requires a recent multi-factor sign-in. Like the
+        passkeys page it needs a session that satisfies the multi-factor policy of the account. A request without a
+        signed-in session is redirected to the sign-in page.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: >-
+            Outcome of the previous link attempt, so the page can tell it: linked (the identity is now linked),
+            already-linked (the identity belongs to another account, nothing changed) or unknown-provider (the
+            provider is not configured). Any other value is ignored.
+          schema:
+            type: string
+            maxLength: 40
+      responses:
+        '200':
+          description: The linked identities page.
+          content:
+            text/html:
+              schema:
+                type: string
+  /account/identities/link:
+    post:
+      tags: [ Identities page ]
+      operationId: linkIdentityPage
+      summary: Starts linking an identity of an external provider
+      description: >-
+        Records, in the session, that the next sign-in with the provider is a link to the signed-in account (the
+        marker is short-lived and used once) and redirects to the provider's sign-in (/oauth2/authorization/{provider},
+        answered by Spring Security). When the provider sends the user back, the identity is linked to the signed-in
+        account instead of signing anybody in: the session keeps its user, and the browser returns to this page with
+        status linked, or already-linked when the identity belongs to another account. A provider that is not
+        configured redirects to the page with status unknown-provider.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ provider ]
+              properties:
+                provider:
+                  type: string
+                  maxLength: 20
+                  description: Registration id of the provider (google, microsoft, apple or github).
+      responses:
+        '303':
+          description: >-
+            Redirects to the provider's sign-in, or to the identities page with status unknown-provider.
+          headers:
+            Location:
+              description: The provider's sign-in, or the identities page.
+              schema:
+                type: string
+  # end::identities-page-api[]
   # tag::device-verification-page-api[]
   /oauth2/device_verification:
     get:

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -97,6 +98,9 @@ class LinkIdentityUseCaseTest {
         assertEquals(EMAIL, result.email());
         assertEquals(NOW, result.linkedAt());
         verify(recordSecurityEventUseCase).execute(SecurityEventType.IDENTITY_LINKED, userId, "alice", "google");
+        final var order = inOrder(federatedIdentityRepository);
+        order.verify(federatedIdentityRepository).lockSubject(IdentityProvider.GOOGLE, SUBJECT);
+        order.verify(federatedIdentityRepository).findByProviderAndSubject(IdentityProvider.GOOGLE, SUBJECT);
     }
 
     /**

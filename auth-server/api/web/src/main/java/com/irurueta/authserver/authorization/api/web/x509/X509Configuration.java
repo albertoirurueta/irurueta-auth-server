@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.context.DelegatingSecurityContextRepository;
@@ -98,6 +99,30 @@ public class X509Configuration {
     public X509TlsConnectorCustomizer x509TlsConnectorCustomizer(
             final X509Properties properties, final X509TlsKeyStoreResolver keyStoreResolver) {
         return new X509TlsConnectorCustomizer(properties, keyStoreResolver);
+    }
+
+    /**
+     * Declares the check that refuses a forwarded certificate while the server rewrites the address of its clients.
+     *
+     * @param properties  settings of the sign-in with a certificate.
+     * @param environment environment of the application, with the forwarded-header strategy.
+     * @return the check, which has already passed.
+     */
+    @Bean
+    public X509ForwardedHeadersGuard x509ForwardedHeadersGuard(
+            final X509Properties properties, final Environment environment) {
+        return new X509ForwardedHeadersGuard(properties, environment);
+    }
+
+    /**
+     * Declares the button of the sign-in with a certificate on the login page.
+     *
+     * @param properties settings of the sign-in with a certificate, which tell where the form posts.
+     * @return the fragment.
+     */
+    @Bean
+    public X509LoginMethodFragment x509LoginMethodFragment(final X509Properties properties) {
+        return new X509LoginMethodFragment(properties);
     }
 
     // tag::x509-chain-customizer[]

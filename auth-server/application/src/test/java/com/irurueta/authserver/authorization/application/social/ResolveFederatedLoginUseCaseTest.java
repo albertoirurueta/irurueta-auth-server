@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -143,6 +144,43 @@ class ResolveFederatedLoginUseCaseTest {
         assertEquals(EMAIL, result.identity().email());
         assertEquals(NOW, result.identity().lastLoginAt());
         assertEquals(LINKED_AT, result.identity().linkedAt());
+        verifyNoInteractions(recordSecurityEventUseCase);
+        final var order = inOrder(federatedIdentityRepository);
+        order.verify(federatedIdentityRepository).lockSubject(IdentityProvider.GOOGLE, SUBJECT);
+        order.verify(federatedIdentityRepository).findByProviderAndSubject(IdentityProvider.GOOGLE, SUBJECT);
+    }
+
+    /**
+     * Verifies that a linked identity of a disabled account is refused before the sign-in is recorded.
+     */
+    @Test
+    void execute_whenLinkedAccountIsDisabled_throwsFederatedLoginRefusedExceptionWithoutRecording() {
+        final var link = new FederatedIdentity(UUID.randomUUID(), userId, IdentityProvider.GOOGLE, SUBJECT, EMAIL,
+                LINKED_AT, null);
+        when(federatedIdentityRepository.findByProviderAndSubject(IdentityProvider.GOOGLE, SUBJECT))
+                .thenReturn(Optional.of(link));
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(disabledAccount()));
+
+        assertThrows(FederatedLoginRefusedException.class,
+                () -> useCase.execute(IdentityProvider.GOOGLE, SUBJECT, EMAIL, true));
+
+        verify(federatedIdentityRepository, never()).save(any());
+    }
+
+    /**
+     * Verifies that a disabled account with the same verified address is refused before anything is linked or
+     * audited.
+     */
+    @Test
+    void execute_whenTheMatchingAccountIsDisabled_throwsFederatedLoginRefusedExceptionWithoutLinking() {
+        when(federatedIdentityRepository.findByProviderAndSubject(IdentityProvider.GOOGLE, SUBJECT))
+                .thenReturn(Optional.empty());
+        when(userAccountRepository.findByEmail(EMAIL)).thenReturn(Optional.of(disabledAccount()));
+
+        assertThrows(FederatedLoginRefusedException.class,
+                () -> useCase.execute(IdentityProvider.GOOGLE, SUBJECT, EMAIL, true));
+
+        verify(federatedIdentityRepository, never()).save(any());
         verifyNoInteractions(recordSecurityEventUseCase);
     }
 
@@ -315,6 +353,16 @@ class ResolveFederatedLoginUseCaseTest {
         final var result = useCase.execute(IdentityProvider.GOOGLE, SUBJECT, longEmail, true);
 
         assertEquals("google-" + result.account().id(), result.account().username());
+    }
+
+    /**
+     * Builds the existing account, verified but disabled.
+     *
+     * @return the account.
+     */
+    private UserAccount disabledAccount() {
+        return new UserAccount(userId, "alice", "{noop}x", false, List.of("ROLE_USER"), EMAIL, true,
+                UserAccount.DEFAULT_TENANT);
     }
 
     /**

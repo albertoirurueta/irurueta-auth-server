@@ -26,7 +26,9 @@ import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
+import com.irurueta.authserver.authorization.application.social.LinkIdentityUseCase;
 import com.irurueta.authserver.authorization.application.social.ResolveFederatedLoginUseCase;
+import com.irurueta.authserver.authorization.domain.social.VerifiedEmailLookup;
 import java.security.GeneralSecurityException;
 import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
@@ -97,20 +99,19 @@ class SocialConfigurationTest {
     }
 
     /**
-     * Verifies that the collaborators are built: the resolver, the GitHub client, both user services, the selector and
-     * the login fragment, which lists the enabled providers in order.
+     * Verifies that the collaborators are built: the resolver, both user services, the selector and the login
+     * fragment, which lists the enabled providers in order.
      */
     @Test
     void beans_whenCalled_buildTheCollaborators() {
         final var resolver = configuration.federatedAccountResolver(mock(ResolveFederatedLoginUseCase.class),
-                mock(UserDetailsService.class));
+                mock(UserDetailsService.class), mock(LinkIdentityUseCase.class), mock(PendingIdentityLinks.class));
         final var mapper = new FederatedUserMapper();
-        final var emailClient = configuration.gitHubEmailClient();
+        final var emailLookup = mock(VerifiedEmailLookup.class);
 
         assertNotNull(resolver);
-        assertNotNull(emailClient);
         assertNotNull(configuration.federatedOidcUserService(resolver, mapper));
-        assertNotNull(configuration.federatedOAuth2UserService(emailClient, resolver, mapper));
+        assertNotNull(configuration.federatedOAuth2UserService(emailLookup, resolver, mapper));
         assertNotNull(configuration.federatedFactorSelector(properties, mapper));
         assertEquals(List.of("google", "github"), configuration.socialLoginMethodFragment(properties).providers());
     }
@@ -133,7 +134,7 @@ class SocialConfigurationTest {
         final var order = SocialConfiguration.class.getMethod("socialChainCustomizer",
                 ClientRegistrationRepository.class,
                 FederatedOidcUserService.class, FederatedOAuth2UserService.class, FactorGrantor.class,
-                FederatedFactorSelector.class, ObjectProvider.class, SocialProperties.class)
+                FederatedFactorSelector.class, ObjectProvider.class, PendingIdentityLinks.class)
                 .getAnnotation(Order.class);
         assertEquals(SocialChainCustomizer.ORDER, order.value());
     }
@@ -155,14 +156,14 @@ class SocialConfigurationTest {
         final var repository = configuration.socialClientRegistrationRepository(withApple,
                 new ClientRegistrationMapper());
         final var resolver = configuration.federatedAccountResolver(mock(ResolveFederatedLoginUseCase.class),
-                mock(UserDetailsService.class));
+                mock(UserDetailsService.class), mock(LinkIdentityUseCase.class), mock(PendingIdentityLinks.class));
 
         final var customizer = configuration.socialChainCustomizer(repository,
                 configuration.federatedOidcUserService(resolver, mapper),
-                configuration.federatedOAuth2UserService(configuration.gitHubEmailClient(),
+                configuration.federatedOAuth2UserService(mock(VerifiedEmailLookup.class),
                         resolver, mapper),
                 new FactorGrantor(Clock.systemUTC()), configuration.federatedFactorSelector(withApple, mapper), apple,
-                withApple);
+                mock(PendingIdentityLinks.class));
 
         assertInstanceOf(LoginChainCustomizer.class, customizer);
         assertNotSame(generator, customizer);
@@ -192,14 +193,14 @@ class SocialConfigurationTest {
     private LoginChainCustomizer chainCustomizer(final ObjectProvider<AppleClientSecretGenerator> apple) {
         final var mapper = new FederatedUserMapper();
         final var resolver = configuration.federatedAccountResolver(mock(ResolveFederatedLoginUseCase.class),
-                mock(UserDetailsService.class));
+                mock(UserDetailsService.class), mock(LinkIdentityUseCase.class), mock(PendingIdentityLinks.class));
         return configuration.socialChainCustomizer(
                 configuration.socialClientRegistrationRepository(properties, new ClientRegistrationMapper()),
                 configuration.federatedOidcUserService(resolver, mapper),
-                configuration.federatedOAuth2UserService(configuration.gitHubEmailClient(),
+                configuration.federatedOAuth2UserService(mock(VerifiedEmailLookup.class),
                         resolver, mapper),
                 new FactorGrantor(Clock.systemUTC()), configuration.federatedFactorSelector(properties, mapper), apple,
-                properties);
+                mock(PendingIdentityLinks.class));
     }
 
     /**

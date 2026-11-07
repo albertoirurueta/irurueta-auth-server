@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.irurueta.authserver</groupId>
+    <artifactId>irurueta-auth-server-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>auth-server-infrastructure-github</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>GitHub adapter of the authorization server: implements the verified e-mail port of the social login with a REST client generated from the contract of the GitHub operation it calls (apis/github).</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>auth-server-domain</artifactId>
+    </dependency>
+    <dependency>
+      <!-- RestClient.Builder auto-configuration and spring-web -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <dependency>
+      <!-- the JSON mapper of the generated client and its model -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <!-- Bean Validation annotations of the generated model -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- REST client of GitHub, generated from the contract of the operation the server calls (see apis/README.md).
+           The shared options of the root pom's pluginManagement describe the server interfaces, so this execution
+           replaces them with the client's own (combine.self="override") instead of merging the two. -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-github-client-v1</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/apis/github/rest-server/github-api-v1.yaml</inputSpec>
+              <generatorName>java</generatorName>
+              <library>restclient</library>
+              <apiPackage>com.irurueta.authserver.authorization.infrastructure.github.v1.generated.api</apiPackage>
+              <modelPackage>com.irurueta.authserver.authorization.infrastructure.github.v1.generated.model</modelPackage>
+              <invokerPackage>com.irurueta.authserver.authorization.infrastructure.github.v1.generated</invokerPackage>
+              <!-- the client needs its ApiClient and the classes it uses, which are supporting files; the build
+                   files of a standalone client project (pom, Gradle wrapper, README, CI workflow) are not wanted -->
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiClient.java,ExceptionProvider.java,JavaTimeFormatter.java,RFC3339DateFormat.java,ServerConfiguration.java,ServerVariable.java,StringUtil.java,Authentication.java,ApiKeyAuth.java,HttpBasicAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
+              <configOptions combine.self="override">
+                <useJakartaEe>true</useJakartaEe>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJackson3>true</useJackson3>
+                <useBeanValidation>true</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <annotationLibrary>none</annotationLibrary>
+                <documentationProvider>none</documentationProvider>
+                <dateLibrary>java8</dateLibrary>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                <useTags>true</useTags>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-infrastructure-boundary</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>false</searchTransitive>
+                  <excludes>
+                    <exclude>com.irurueta.authserver:auth-server-api-*</exclude>
+                    <exclude>com.irurueta.authserver:auth-server-infrastructure-*</exclude>
+                  </excludes>
+                  <message>An infrastructure module must not depend on an api module or on a sibling
+                    infrastructure module.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

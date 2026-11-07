@@ -20,17 +20,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.social.FederatedLogin;
 import com.irurueta.authserver.authorization.application.social.FederatedLoginOutcome;
+import com.irurueta.authserver.authorization.application.social.LinkIdentityUseCase;
 import com.irurueta.authserver.authorization.application.social.ResolveFederatedLoginUseCase;
 import com.irurueta.authserver.authorization.domain.password.UserAccount;
 import com.irurueta.authserver.authorization.domain.social.FederatedIdentity;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityAlreadyLinkedException;
 import com.irurueta.authserver.authorization.domain.social.FederatedLoginRefusedException;
 import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,6 +70,14 @@ class FederatedAccountResolverTest {
     /** Loads the account, refusing one that may not sign in. */
     @Mock
     private UserDetailsService accountStatusUserDetailsService;
+
+    /** Links an identity to the signed-in account. */
+    @Mock
+    private LinkIdentityUseCase linkIdentityUseCase;
+
+    /** The link markers. */
+    @Mock
+    private PendingIdentityLinks pendingIdentityLinks;
 
     /** Resolver under test. */
     @InjectMocks
@@ -114,6 +127,51 @@ class FederatedAccountResolverTest {
                 () -> resolver.resolve(IdentityProvider.GITHUB, SUBJECT, null, false));
 
         assertEquals(OAuth2ErrorCodes.ACCESS_DENIED, error.getError().getErrorCode());
+    }
+
+    /**
+     * Verifies that a pending link links the identity to the signed-in account and loads that account, without
+     * resolving or provisioning anything by e-mail address.
+     */
+    @Test
+    void resolve_whenALinkIsPending_linksTheIdentityToTheSignedInAccount() {
+        final var link = pendingLink();
+        final var details = User.withUsername(USERNAME).password("hash").authorities("ROLE_USER").build();
+        when(pendingIdentityLinks.consume(IdentityProvider.GOOGLE)).thenReturn(Optional.of(link));
+        when(accountStatusUserDetailsService.loadUserByUsername(USERNAME)).thenReturn(details);
+
+        assertSame(details, resolver.resolve(IdentityProvider.GOOGLE, SUBJECT, EMAIL, false));
+
+        verify(linkIdentityUseCase).execute(link.userId(), USERNAME, IdentityProvider.GOOGLE,
+                SUBJECT, EMAIL);
+        verifyNoInteractions(resolveFederatedLoginUseCase);
+    }
+
+    /**
+     * Verifies that a pending link of an identity that belongs to another account is refused with the link error,
+     * which the failure handler sends back to the identities page.
+     */
+    @Test
+    void resolve_whenTheLinkedIdentityBelongsToAnotherAccount_throwsLinkRefused() {
+        final var link = pendingLink();
+        when(pendingIdentityLinks.consume(IdentityProvider.GOOGLE)).thenReturn(Optional.of(link));
+        when(linkIdentityUseCase.execute(link.userId(), USERNAME, IdentityProvider.GOOGLE, SUBJECT, EMAIL))
+                .thenThrow(new FederatedIdentityAlreadyLinkedException("taken"));
+
+        final var error = assertThrows(OAuth2AuthenticationException.class,
+                () -> resolver.resolve(IdentityProvider.GOOGLE, SUBJECT, EMAIL, true));
+
+        assertEquals(FederatedAccountResolver.LINK_REFUSED, error.getError().getErrorCode());
+        verifyNoInteractions(resolveFederatedLoginUseCase, accountStatusUserDetailsService);
+    }
+
+    /**
+     * Builds a pending link of the account.
+     *
+     * @return the link marker.
+     */
+    private static PendingIdentityLink pendingLink() {
+        return new PendingIdentityLink("google", UUID.randomUUID(), USERNAME, Instant.EPOCH);
     }
 
     /**

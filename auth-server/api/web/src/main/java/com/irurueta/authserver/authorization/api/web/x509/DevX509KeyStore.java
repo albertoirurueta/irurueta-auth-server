@@ -17,6 +17,7 @@ package com.irurueta.authserver.authorization.api.web.x509;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -144,7 +145,7 @@ public class DevX509KeyStore {
                 "-storepass:file", passwordFile.toString());
         final var process = new ProcessBuilder(command).redirectErrorStream(true).start();
         try {
-            final var output = new String(process.getInputStream().readAllBytes());
+            final var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             if (!process.waitFor(GENERATION_TIMEOUT.toSeconds(), TimeUnit.SECONDS) || process.exitValue() != 0) {
                 process.destroyForcibly();
                 throw new IllegalStateException("keytool could not generate the X.509 key store: " + output);

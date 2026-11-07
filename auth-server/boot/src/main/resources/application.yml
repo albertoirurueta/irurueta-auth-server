@@ -182,13 +182,21 @@ authserver:
   # end::social-config[]
   # tag::x509-config[]
   x509:
-    # Sign in with a client certificate at /login/x509, off unless enabled is true. A certificate is bound to an account
-    # by its SHA-256 fingerprint. Two transports, both off by default: a certificate a trusted reverse proxy forwards in
-    # a header (forwarded-header, honoured only for a request that comes from one of trusted-proxies, addresses or CIDR
+    # Sign in with a client certificate, off unless enabled is true: the login page shows a button that posts to
+    # POST /login/x509 with the CSRF token (a GET of that path never signs in). A certificate is bound to an account by
+    # its SHA-256 fingerprint. Two transports, both off by default: a certificate a trusted reverse proxy forwards in a
+    # header (forwarded-header, honoured only for a request that comes from one of trusted-proxies, addresses or CIDR
     # ranges), and a dedicated TLS port that requests a client certificate (port, with the server certificate in
-    # key-store; the password comes from the environment, AUTHSERVER_X509_KEY_STORE_PASSWORD). Under the dev profile a
-    # self-signed server certificate is generated at the first start under ~/.irurueta-auth-server/. amr is the value
-    # the tokens report: sc (smart card) or hwk (a key held in hardware).
+    # key-store; the password comes from the environment, AUTHSERVER_X509_KEY_STORE_PASSWORD). With only the TLS port the
+    # button posts to that port of the same host, so the main port must be https too (SameSite cookies are not sent
+    # from an http page to an https one) or the login page must be opened on the TLS port.
+    # trusted-proxies is compared with the client address the server sees after Spring Boot's handling of the forwarded
+    # headers, which is the direct network peer only with server.forward-headers-strategy: none; native and framework
+    # replace it with a value from X-Forwarded-For, which a client can forge, so the server refuses to start with a
+    # forwarded-header and any strategy but none (also when the strategy is unset on a detected cloud platform, where
+    # it defaults to native). Under the dev profile a self-signed server certificate is generated at the first start
+    # under ~/.irurueta-auth-server/. amr is the value the tokens report: sc (smart card) or hwk (a key held in
+    # hardware).
     enabled: ${AUTHSERVER_X509_ENABLED:false}
     forwarded-header: ${AUTHSERVER_X509_FORWARDED_HEADER:}
     trusted-proxies: ${AUTHSERVER_X509_TRUSTED_PROXIES:}

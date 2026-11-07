@@ -16,7 +16,8 @@
 package com.irurueta.authserver.authorization.domain.social;
 
 /**
- * The ways an account can still sign in with, counted without the one being removed.
+ * The ways an account can sign in with. A use case that removes one asks for the methods without it
+ * ({@link #withoutFederatedIdentity()}, {@link #withoutCertificate()}) and refuses the removal when none is left.
  *
  * @param password                whether the account has a password its owner knows.
  * @param federatedIdentities     number of linked external identities.
@@ -32,5 +33,23 @@ public record SignInMethods(boolean password, long federatedIdentities, boolean 
      */
     public boolean any() {
         return password || federatedIdentities > 0 || passkey || certificates > 0;
+    }
+
+    /**
+     * Counts the methods without one linked external identity.
+     *
+     * @return the methods once one identity is removed; the count never goes below zero.
+     */
+    public SignInMethods withoutFederatedIdentity() {
+        return new SignInMethods(password, Math.max(0, federatedIdentities - 1), passkey, certificates);
+    }
+
+    /**
+     * Counts the methods without one bound client certificate.
+     *
+     * @return the methods once one certificate is unbound; the count never goes below zero.
+     */
+    public SignInMethods withoutCertificate() {
+        return new SignInMethods(password, federatedIdentities, passkey, Math.max(0, certificates - 1));
     }
 }

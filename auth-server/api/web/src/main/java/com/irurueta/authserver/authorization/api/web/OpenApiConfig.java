@@ -23,6 +23,7 @@ import io.swagger.v3.oas.models.info.License;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.ConsentPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DevSmsInboxPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.DeviceVerificationPageApi;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.IdentitiesPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LoginPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LogoutPageApi;
 import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
@@ -120,6 +121,7 @@ public class OpenApiConfig {
                         LogoutPageApi.PATH_LOGOUT_PAGE, PasskeysPageApi.PATH_PASSKEYS_PAGE,
                         PhonePageApi.PATH_PHONE_PAGE, PhonePageApi.PATH_VERIFY_PHONE_PAGE,
                         PhonePageApi.PATH_REMOVE_PHONE_PAGE,
+                        IdentitiesPageApi.PATH_IDENTITIES_PAGE, IdentitiesPageApi.PATH_LINK_IDENTITY_PAGE,
                         OneTimeTokenPageApi.PATH_OTT_CODE_PAGE, OneTimeTokenPageApi.PATH_OTT_CONFIRM_PAGE,
                         DeviceVerificationPageApi.PATH_DEVICE_VERIFICATION_PAGE,
                         DevSmsInboxPageApi.PATH_DEV_SMS_INBOX_PAGE)

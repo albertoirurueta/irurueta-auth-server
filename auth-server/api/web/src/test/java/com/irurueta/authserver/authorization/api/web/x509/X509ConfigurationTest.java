@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.Order;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 /**
@@ -69,6 +70,8 @@ class X509ConfigurationTest {
         assertNotNull(configuration.x509TlsKeyStoreResolver(properties, developmentKeyStore));
         assertNotNull(configuration.x509TlsConnectorCustomizer(properties,
                 configuration.x509TlsKeyStoreResolver(properties, developmentKeyStore)));
+        assertNotNull(configuration.x509ForwardedHeadersGuard(properties, new MockEnvironment()));
+        assertEquals(X509LoginMethodFragment.ORDER, configuration.x509LoginMethodFragment(properties).order());
     }
 
     /**

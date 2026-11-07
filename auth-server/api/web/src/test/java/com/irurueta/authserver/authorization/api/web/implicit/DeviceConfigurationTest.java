@@ -29,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 
@@ -41,6 +42,10 @@ class DeviceConfigurationTest {
     /** Finds the clients of the devices. */
     @Mock
     private RegisteredClientRepository registeredClients;
+
+    /** Finds the device authorization of a user code. */
+    @Mock
+    private OAuth2AuthorizationService authorizationService;
 
     /** Applies the multi-factor policy. */
     @Mock
@@ -78,12 +83,12 @@ class DeviceConfigurationTest {
                 new DeviceRateLimitProperties(true, Duration.ofMinutes(1), 1, 1, 1), Clock.systemUTC());
 
         final var customizer = configuration.deviceProtocolChainCustomizer(registeredClients,
-                AuthorizationServerSettings.builder().build(), limiter, authorizationManager,
+                authorizationService, AuthorizationServerSettings.builder().build(), limiter, authorizationManager,
                 secondFactorEntryPoint, reauthenticationEntryPoint);
 
         assertInstanceOf(DeviceProtocolChainCustomizer.class, customizer);
         final var method = DeviceConfiguration.class.getMethod("deviceProtocolChainCustomizer",
-                RegisteredClientRepository.class, AuthorizationServerSettings.class,
+                RegisteredClientRepository.class, OAuth2AuthorizationService.class, AuthorizationServerSettings.class,
                 DeviceVerificationRateLimiter.class, MfaAuthorizationManager.class,
                 SecondFactorRequiredEntryPoint.class, ReauthenticationEntryPoint.class);
         assertEquals(DeviceProtocolChainCustomizer.ORDER, method.getAnnotation(Order.class).value());

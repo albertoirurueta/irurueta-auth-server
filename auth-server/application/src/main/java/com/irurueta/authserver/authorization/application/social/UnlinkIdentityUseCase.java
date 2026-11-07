@@ -17,14 +17,10 @@ package com.irurueta.authserver.authorization.application.social;
 
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
-import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
 import com.irurueta.authserver.authorization.domain.social.FederatedIdentityNotFoundException;
 import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
 import com.irurueta.authserver.authorization.domain.social.FederatedLinkingPolicy;
-import com.irurueta.authserver.authorization.domain.social.GeneratedPasswordRepository;
 import com.irurueta.authserver.authorization.domain.social.LastSignInMethodException;
-import com.irurueta.authserver.authorization.domain.social.SignInMethods;
-import com.irurueta.authserver.authorization.domain.x509.CertificateBindingRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Use case that unlinks an identity of an external provider from an account and audits it. It refuses to remove the
  * last way to sign in: the account must keep a password its owner knows, another linked identity, a passkey or a bound
- * certificate.
+ * certificate. The methods are counted under the lock of {@link LockSignInMethodsUseCase}, so a concurrent removal
+ * (another identity, a certificate) of the same account waits and then counts what this one left.
  */
 @Service
 @Transactional
@@ -43,14 +40,8 @@ public class UnlinkIdentityUseCase {
     /** Port that stores the links. */
     private final FederatedIdentityRepository federatedIdentityRepository;
 
-    /** Port that remembers the accounts that only hold a generated password. */
-    private final GeneratedPasswordRepository generatedPasswordRepository;
-
-    /** Port that reads the passkeys. */
-    private final PasskeyRepository passkeyRepository;
-
-    /** Port that reads the bound certificates. */
-    private final CertificateBindingRepository certificateBindingRepository;
+    /** Locks and counts the sign-in methods of the account. */
+    private final LockSignInMethodsUseCase lockSignInMethodsUseCase;
 
     /** Rules of linking and unlinking. */
     private final FederatedLinkingPolicy federatedLinkingPolicy;
@@ -68,13 +59,10 @@ public class UnlinkIdentityUseCase {
      * @throws LastSignInMethodException          if the link is the last way the account can sign in.
      */
     public void execute(final UUID userId, final String username, final UUID id) {
+        final var methods = lockSignInMethodsUseCase.execute(userId);
         final var identity = federatedIdentityRepository.findByIdAndUser(id, userId)
                 .orElseThrow(() -> new FederatedIdentityNotFoundException("The account has no identity " + id));
-        final var remaining = new SignInMethods(
-                !generatedPasswordRepository.isGenerated(userId),
-                federatedIdentityRepository.countByUser(userId) - 1,
-                passkeyRepository.existsForAccount(userId),
-                certificateBindingRepository.findByUser(userId).size());
+        final var remaining = methods.withoutFederatedIdentity();
         if (!federatedLinkingPolicy.mayUnlink(remaining)) {
             throw new LastSignInMethodException("The identity is the last way to sign in to the account");
         }

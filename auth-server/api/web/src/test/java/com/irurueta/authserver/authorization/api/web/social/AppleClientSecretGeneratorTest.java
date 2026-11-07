@@ -89,6 +89,7 @@ class AppleClientSecretGeneratorTest {
         assertEquals(NOW.plus(Duration.ofMinutes(TTL_MINUTES)).getEpochSecond(),
                 jwt.getJWTClaimsSet().getExpirationTime().toInstant().getEpochSecond());
         assertTrue(jwt.verify(new ECDSAVerifier((ECPublicKey) pair.getPublic())));
+        assertEquals(CLIENT_ID, secrets.clientId());
     }
 
     /**

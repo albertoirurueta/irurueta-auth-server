@@ -16,7 +16,10 @@
 package com.irurueta.authserver.authorization.application.x509;
 
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.application.social.LockSignInMethodsUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.social.FederatedLinkingPolicy;
+import com.irurueta.authserver.authorization.domain.social.LastSignInMethodException;
 import com.irurueta.authserver.authorization.domain.x509.CertificateBindingRepository;
 import com.irurueta.authserver.authorization.domain.x509.CertificateNotFoundException;
 import java.util.UUID;
@@ -24,8 +27,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::x509-unbind-use-case[]
 /**
- * Use case that unbinds a client certificate from an account and audits it.
+ * Use case that unbinds a client certificate from an account and audits it. Like unlinking an identity, it refuses to
+ * remove the last way to sign in, counted under the lock of {@link LockSignInMethodsUseCase} so that concurrent
+ * removals of the same account are serialized.
  */
 @Service
 @Transactional
@@ -34,6 +40,12 @@ public class UnbindCertificateUseCase {
 
     /** Port that stores the bindings. */
     private final CertificateBindingRepository certificateBindingRepository;
+
+    /** Locks and counts the sign-in methods of the account. */
+    private final LockSignInMethodsUseCase lockSignInMethodsUseCase;
+
+    /** Rules of removing a sign-in method. */
+    private final FederatedLinkingPolicy federatedLinkingPolicy;
 
     /** Use case that records the audit events. */
     private final RecordSecurityEventUseCase recordSecurityEventUseCase;
@@ -45,11 +57,20 @@ public class UnbindCertificateUseCase {
      * @param username name of the account, for the audit log.
      * @param id       identifier of the binding.
      * @throws CertificateNotFoundException if the account has no such binding.
+     * @throws LastSignInMethodException    if the certificate is the last way the account can sign in.
      */
     public void execute(final UUID userId, final String username, final UUID id) {
+        final var methods = lockSignInMethodsUseCase.execute(userId);
+        if (certificateBindingRepository.findByUser(userId).stream().noneMatch(binding -> binding.id().equals(id))) {
+            throw new CertificateNotFoundException("The account has no certificate " + id);
+        }
+        if (!federatedLinkingPolicy.mayUnlink(methods.withoutCertificate())) {
+            throw new LastSignInMethodException("The certificate is the last way to sign in to the account");
+        }
         if (!certificateBindingRepository.delete(id, userId)) {
             throw new CertificateNotFoundException("The account has no certificate " + id);
         }
         recordSecurityEventUseCase.execute(SecurityEventType.CERTIFICATE_UNBOUND, userId, username, id.toString());
     }
 }
+// end::x509-unbind-use-case[]

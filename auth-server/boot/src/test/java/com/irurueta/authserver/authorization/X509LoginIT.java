@@ -20,7 +20,10 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,14 +53,17 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.util.UriUtils;
 
 /**
  * Checks the sign-in with a client certificate as the whole application wires it, with the forwarded-certificate
- * transport enabled for a proxy at the loopback address (the address MockMvc requests come from): a bound certificate
- * signs its account in, resumes the interrupted authorization request and shows in the tokens as {@code sc}; a
+ * transport enabled for a proxy at the loopback address (the address MockMvc requests come from): the login page offers
+ * the button that posts to {@code POST /login/x509}, a bound certificate posted with the CSRF token signs its account
+ * in, resumes the interrupted authorization request and shows in the tokens as {@code sc}; a
  * certificate bound to nobody, a request without a certificate, a header from an address nobody trusts and a disabled
- * account are all sent back to the login page, signed in as nobody. Every certificate is generated at run time.
+ * account are all sent back to the login page, signed in as nobody, and neither a {@code GET} of the path nor a post
+ * without the CSRF token ever signs anybody in. Every certificate is generated at run time.
  */
 @PostgresIT
 @AutoConfigureMockMvc
@@ -79,6 +86,13 @@ class X509LoginIT {
 
     /** A page that needs a signed-in user. */
     private static final String PROTECTED_PAGE = "/account/passkeys";
+
+    /** Status of a refused request. */
+    private static final int FORBIDDEN = 403;
+
+    /** The form of the certificate sign-in on the login page: its opening tag and its content. */
+    private static final Pattern X509_FORM = Pattern.compile("<form([^>]*class=\"x509-login\"[^>]*)>(.*?)</form>",
+            Pattern.DOTALL);
 
     /** MockMvc bound to the application context. */
     @Autowired
@@ -147,7 +161,7 @@ class X509LoginIT {
         final var session = new MockHttpSession();
         mockMvc.perform(get(authorizeUri).session(session)).andExpect(status().is3xxRedirection());
 
-        final var resumed = mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+        final var resumed = mockMvc.perform(signIn().session(session).header(HEADER, encoded()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, containsString("/oauth2/authorize?"))).andReturn()
                 .getResponse().getRedirectedUrl();
@@ -170,7 +184,7 @@ class X509LoginIT {
     void x509Login_whenTheCertificateIsNotBound_redirectsToTheLoginPage() throws Exception {
         final var session = new MockHttpSession();
 
-        mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+        mockMvc.perform(signIn().session(session).header(HEADER, encoded()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, endsWith(FAILED)));
 
@@ -184,7 +198,7 @@ class X509LoginIT {
      */
     @Test
     void x509Login_whenNoCertificateIsPresented_redirectsToTheLoginPage() throws Exception {
-        mockMvc.perform(get(X509_LOGIN))
+        mockMvc.perform(signIn())
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, endsWith(FAILED)));
     }
@@ -201,7 +215,7 @@ class X509LoginIT {
         bind(user.username());
         final var session = new MockHttpSession();
 
-        mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded())
+        mockMvc.perform(signIn().session(session).header(HEADER, encoded())
                         .with(request -> {
                             request.setRemoteAddr(UNTRUSTED);
                             return request;
@@ -225,7 +239,7 @@ class X509LoginIT {
         bind(user.username());
         final var session = new MockHttpSession();
 
-        mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+        mockMvc.perform(signIn().session(session).header(HEADER, encoded()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, endsWith(FAILED)));
 
@@ -242,13 +256,13 @@ class X509LoginIT {
     void x509Login_whenTheBindingWasRemoved_isRefused() throws Exception {
         final var user = fixtures.createUser();
         final var binding = bind(user.username());
-        mockMvc.perform(get(X509_LOGIN).header(HEADER, encoded()))
+        mockMvc.perform(signIn().header(HEADER, encoded()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, not(endsWith(FAILED))));
         unbindCertificateUseCase.execute(binding.userId(), user.username(), binding.id());
         final var session = new MockHttpSession();
 
-        mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+        mockMvc.perform(signIn().session(session).header(HEADER, encoded()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, endsWith(FAILED)));
 
@@ -269,7 +283,7 @@ class X509LoginIT {
             bind(user.username());
             final var session = new MockHttpSession();
 
-            mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+            mockMvc.perform(signIn().session(session).header(HEADER, encoded()))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(header().string(LOCATION, not(endsWith(FAILED))));
 
@@ -292,11 +306,67 @@ class X509LoginIT {
         bindCertificateUseCase.execute(account.id(), username, certificate.fingerprintSha256(), "CN=disabled");
         final var session = new MockHttpSession();
 
-        mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+        mockMvc.perform(signIn().session(session).header(HEADER, encoded()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, endsWith(FAILED)));
 
         assertNotSignedIn(session);
+    }
+
+    /**
+     * Verifies that a {@code GET} of the sign-in path, even with a bound certificate, signs nobody in: it is not a
+     * sign-in request, so it ends with the chain's catch-all rule and goes to the login page.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void x509Login_whenRequestedWithGet_signsNobodyIn() throws Exception {
+        final var user = fixtures.createUser();
+        bind(user.username());
+        final var session = new MockHttpSession();
+
+        mockMvc.perform(get(X509_LOGIN).session(session).header(HEADER, encoded()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string(LOCATION, endsWith("/login")));
+
+        assertNotSignedIn(session);
+    }
+
+    /**
+     * Verifies that a post without the CSRF token, even with a bound certificate, is refused before the certificate is
+     * looked at, so a cross-site page cannot make a browser sign in with its certificate.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void x509Login_whenTheCsrfTokenIsMissing_isRefused() throws Exception {
+        final var user = fixtures.createUser();
+        bind(user.username());
+        final var session = new MockHttpSession();
+
+        final var status = mockMvc.perform(post(X509_LOGIN).session(session).header(HEADER, encoded()))
+                .andReturn().getResponse().getStatus();
+
+        assertEquals(FORBIDDEN, status);
+        assertNotSignedIn(session);
+    }
+
+    /**
+     * Verifies that the login page offers the certificate sign-in as a form that posts to the relative path (a proxy
+     * forwards the certificate) with the CSRF token.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void loginPage_whenTheSignInWithACertificateIsOn_offersAFormThatPostsWithTheCsrfToken() throws Exception {
+        final var page = mockMvc.perform(get("/login")).andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString();
+
+        final var form = X509_FORM.matcher(page);
+        assertTrue(form.find(), "The login page must offer the certificate sign-in");
+        assertTrue(form.group(1).contains("action=\"" + X509_LOGIN + "\""), form.group(1));
+        assertTrue(form.group(1).contains("method=\"post\""), form.group(1));
+        assertTrue(form.group(2).contains("name=\"_csrf\""), form.group(2));
     }
 
     /**
@@ -321,6 +391,15 @@ class X509LoginIT {
     private CertificateBinding bind(final String username) {
         final var account = userAccounts.findByUsername(username).orElseThrow();
         return bindCertificateUseCase.execute(account.id(), username, certificate.fingerprintSha256(), "CN=test");
+    }
+
+    /**
+     * Builds the sign-in request the form of the login page sends: a post with the CSRF token.
+     *
+     * @return the request.
+     */
+    private static MockHttpServletRequestBuilder signIn() {
+        return post(X509_LOGIN).with(csrf());
     }
 
     /**

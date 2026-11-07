@@ -29,11 +29,19 @@ import org.springframework.stereotype.Repository;
 
 /**
  * {@link FederatedIdentityRepository} over the {@code federated_identities} table. It joins the transaction of its
- * caller.
+ * caller, in which {@link #lockSubject} takes a PostgreSQL transaction-level advisory lock on the provider's identity,
+ * so two first sign-ins of the same person are serialized and the unique constraint on (provider, subject) is never
+ * hit (a violation would abort the caller's transaction).
  */
 @Repository
 @RequiredArgsConstructor
 public class JdbcFederatedIdentityRepository implements FederatedIdentityRepository {
+
+    /** First key of the advisory locks of the identities, which keeps them apart from every other advisory lock. */
+    static final int SUBJECT_LOCK_NAMESPACE = 700;
+
+    /** Statement taking the advisory lock of an identity, released when the caller's transaction ends. */
+    private static final String LOCK_SUBJECT = "SELECT pg_advisory_xact_lock(?, hashtext(?))";
 
     /** Columns selected for every query. */
     private static final String COLUMNS = "id, user_id, provider, subject, email, linked_at, last_login_at";
@@ -62,6 +70,14 @@ public class JdbcFederatedIdentityRepository implements FederatedIdentityReposit
 
     /** Maps a row to an identity. */
     private final FederatedIdentityRowMapper federatedIdentityRowMapper;
+
+    // tag::social-lock-subject[]
+    @Override
+    public void lockSubject(final IdentityProvider provider, final String subject) {
+        jdbcClient.sql(LOCK_SUBJECT).params(SUBJECT_LOCK_NAMESPACE, provider.id() + ":" + subject)
+                .query((rs, rowNum) -> Boolean.TRUE).list();
+    }
+    // end::social-lock-subject[]
 
     @Override
     public Optional<FederatedIdentity> findByProviderAndSubject(final IdentityProvider provider,

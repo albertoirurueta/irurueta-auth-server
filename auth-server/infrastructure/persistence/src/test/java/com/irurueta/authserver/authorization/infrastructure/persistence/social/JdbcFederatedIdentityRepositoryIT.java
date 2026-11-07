@@ -27,11 +27,17 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Integration tests of {@link JdbcFederatedIdentityRepository} against PostgreSQL. No Spring context is needed.
@@ -44,8 +50,14 @@ class JdbcFederatedIdentityRepositoryIT {
     /** E-mail address used by the tests. */
     private static final String EMAIL = "alice@example.com";
 
+    /** Longest wait for the other connection, in seconds. */
+    private static final long WAIT_SECONDS = 10;
+
     /** JDBC client connected to the database. */
     private static JdbcClient jdbcClient;
+
+    /** Runs a block in a transaction of the database. */
+    private static TransactionTemplate transactions;
 
     /** Repository under test. */
     private static JdbcFederatedIdentityRepository repository;
@@ -60,6 +72,7 @@ class JdbcFederatedIdentityRepositoryIT {
     static void connect() {
         jdbcClient = JdbcClient.create(MigratedPostgres.dataSource());
         repository = new JdbcFederatedIdentityRepository(jdbcClient, new FederatedIdentityRowMapper());
+        transactions = new TransactionTemplate(new DataSourceTransactionManager(MigratedPostgres.dataSource()));
     }
 
     /**
@@ -186,6 +199,46 @@ class JdbcFederatedIdentityRepositoryIT {
         jdbcClient.sql("DELETE FROM users WHERE id = ?").param(userId).update();
 
         assertEquals(0, repository.countByUser(userId));
+    }
+
+    /**
+     * Verifies that the lock of an identity is held until the transaction ends: another connection cannot take it
+     * meanwhile, and can once the transaction is over.
+     *
+     * @throws Exception if the other connection fails or the wait is interrupted.
+     */
+    @Test
+    void lockSubject_whenInsideATransaction_holdsTheLockUntilItEnds() throws Exception {
+        final var executor = Executors.newSingleThreadExecutor();
+        try {
+            final var takenMeanwhile = transactions.execute(status -> {
+                repository.lockSubject(IdentityProvider.GOOGLE, SUBJECT);
+                try {
+                    return executor.submit(() -> tryLock("google:" + SUBJECT)).get(WAIT_SECONDS, TimeUnit.SECONDS);
+                } catch (final ExecutionException | TimeoutException e) {
+                    throw new IllegalStateException(e);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(e);
+                }
+            });
+
+            assertEquals(Boolean.FALSE, takenMeanwhile);
+            assertTrue(executor.submit(() -> tryLock("google:" + SUBJECT)).get(WAIT_SECONDS, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Tries to take the lock of an identity from a connection outside any transaction of the test.
+     *
+     * @param key key of the identity.
+     * @return whether the lock was free.
+     */
+    private static Boolean tryLock(final String key) {
+        return jdbcClient.sql("SELECT pg_try_advisory_xact_lock(?, hashtext(?))")
+                .params(JdbcFederatedIdentityRepository.SUBJECT_LOCK_NAMESPACE, key).query(Boolean.class).single();
     }
 
     /**

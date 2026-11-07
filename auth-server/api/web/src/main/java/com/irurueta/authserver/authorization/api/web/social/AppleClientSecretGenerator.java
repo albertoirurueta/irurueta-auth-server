@@ -99,6 +99,16 @@ public final class AppleClientSecretGenerator {
     }
 
     /**
+     * Gets the client id (the Services ID) the secrets are signed for, which is also the {@code client_id} of the
+     * token requests and of the authorization requests.
+     *
+     * @return the client id.
+     */
+    public String clientId() {
+        return clientId;
+    }
+
+    /**
      * Returns a client secret that is valid now.
      *
      * @return the signed JWT.

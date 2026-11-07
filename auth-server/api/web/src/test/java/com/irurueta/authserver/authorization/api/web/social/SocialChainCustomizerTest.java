@@ -40,6 +40,7 @@ import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResp
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -65,6 +66,10 @@ class SocialChainCustomizerTest {
     /** Grants the federated factor. */
     @Mock
     private AuthenticationSuccessHandler successHandler;
+
+    /** Handles the failures and the refused links. */
+    @Mock
+    private AuthenticationFailureHandler failureHandler;
 
     /** Saves the security context. */
     @Mock
@@ -157,6 +162,7 @@ class SocialChainCustomizerTest {
         verify(login).loginPage("/login");
         verify(login).securityContextRepository(securityContextRepository);
         verify(login).successHandler(successHandler);
+        verify(login).failureHandler(failureHandler);
         final var authorizationConfig = mock(OAuth2LoginConfigurer.AuthorizationEndpointConfig.class, RETURNS_SELF);
         authorization.getValue().customize(authorizationConfig);
         verify(authorizationConfig).authorizationRequestResolver(authorizationRequestResolver);
@@ -177,6 +183,7 @@ class SocialChainCustomizerTest {
      */
     private SocialChainCustomizer customizer(final boolean apple) {
         return new SocialChainCustomizer(clientRegistrationRepository, oidcUserService, oauth2UserService,
-                successHandler, securityContextRepository, tokenResponseClient, authorizationRequestResolver, apple);
+                successHandler, failureHandler, securityContextRepository, tokenResponseClient,
+                authorizationRequestResolver, apple);
     }
 }

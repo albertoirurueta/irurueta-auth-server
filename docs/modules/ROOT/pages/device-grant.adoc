@@ -39,7 +39,10 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 ----
 
 A user code is short, so attempts are limited per client address and per user, and the MFA policy is checked before the
-framework converters run.
+framework converters run. The policy includes the client's `mfaRequired` setting: the post of the user code names no
+client (and a client without consent approves the device on that post), so the guard finds the client of the device
+authorization stored for the code, normalised as the framework stores it; the `client_id` of the consent decision is
+only the fallback when no authorization holds the code.
 
 [source,yaml]
 ----

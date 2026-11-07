@@ -54,9 +54,21 @@ public class FederatedLinkingPolicy {
     }
 
     /**
-     * Tells whether an identity may be unlinked: the account must keep at least one other way to sign in.
+     * Tells whether a sign-in with an external provider may reach an account at all: a disabled account is never
+     * linked to an identity and never signed in through one, the rule every other sign-in method applies.
      *
-     * @param remaining ways to sign in left once the identity is removed.
+     * @param account the account the sign-in resolved to.
+     * @return {@code true} when the account may sign in.
+     */
+    public boolean maySignIn(final UserAccount account) {
+        return account != null && account.enabled();
+    }
+
+    /**
+     * Tells whether a sign-in method (a linked identity, a bound certificate) may be removed: the account must keep at
+     * least one other way to sign in.
+     *
+     * @param remaining ways to sign in left once the method is removed.
      * @return {@code true} when removing it is allowed.
      */
     public boolean mayUnlink(final SignInMethods remaining) {

@@ -16,6 +16,7 @@
 package com.irurueta.authserver.authorization.application.social;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -23,18 +24,14 @@ import static org.mockito.Mockito.when;
 
 import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
 import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
-import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
 import com.irurueta.authserver.authorization.domain.social.FederatedIdentity;
 import com.irurueta.authserver.authorization.domain.social.FederatedIdentityNotFoundException;
 import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
 import com.irurueta.authserver.authorization.domain.social.FederatedLinkingPolicy;
-import com.irurueta.authserver.authorization.domain.social.GeneratedPasswordRepository;
 import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
 import com.irurueta.authserver.authorization.domain.social.LastSignInMethodException;
-import com.irurueta.authserver.authorization.domain.x509.CertificateBinding;
-import com.irurueta.authserver.authorization.domain.x509.CertificateBindingRepository;
+import com.irurueta.authserver.authorization.domain.social.SignInMethods;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -50,9 +47,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class UnlinkIdentityUseCaseTest {
 
-    /** Fingerprint used by the tests. */
-    private static final String FINGERPRINT = "a".repeat(CertificateBinding.FINGERPRINT_LENGTH);
-
     /** Instant used by the tests. */
     private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
 
@@ -66,17 +60,9 @@ class UnlinkIdentityUseCaseTest {
     @Mock
     private FederatedIdentityRepository federatedIdentityRepository;
 
-    /** Port that remembers the accounts that only hold a generated password. */
+    /** Locks and counts the sign-in methods of the account. */
     @Mock
-    private GeneratedPasswordRepository generatedPasswordRepository;
-
-    /** Port that reads the passkeys. */
-    @Mock
-    private PasskeyRepository passkeyRepository;
-
-    /** Port that reads the bound certificates. */
-    @Mock
-    private CertificateBindingRepository certificateBindingRepository;
+    private LockSignInMethodsUseCase lockSignInMethodsUseCase;
 
     /** Rules of linking and unlinking; the real behaviour is wanted. */
     @Spy
@@ -95,11 +81,14 @@ class UnlinkIdentityUseCaseTest {
      */
     @Test
     void execute_whenAccountKeepsAPassword_deletesAndAudits() {
-        givenIdentity(1, false, false, List.of());
+        givenIdentity(new SignInMethods(true, 1, false, 0));
         when(federatedIdentityRepository.delete(id, userId)).thenReturn(true);
 
         useCase.execute(userId, "alice", id);
 
+        final var order = inOrder(lockSignInMethodsUseCase, federatedIdentityRepository);
+        order.verify(lockSignInMethodsUseCase).execute(userId);
+        order.verify(federatedIdentityRepository).delete(id, userId);
         verify(recordSecurityEventUseCase).execute(SecurityEventType.IDENTITY_UNLINKED, userId, "alice", "google");
     }
 
@@ -108,7 +97,7 @@ class UnlinkIdentityUseCaseTest {
      */
     @Test
     void execute_whenAnotherIdentityRemains_deletesTheIdentity() {
-        givenIdentity(2, true, false, List.of());
+        givenIdentity(new SignInMethods(false, 2, false, 0));
         when(federatedIdentityRepository.delete(id, userId)).thenReturn(true);
 
         useCase.execute(userId, "alice", id);
@@ -121,7 +110,7 @@ class UnlinkIdentityUseCaseTest {
      */
     @Test
     void execute_whenAPasskeyRemains_deletesTheIdentity() {
-        givenIdentity(1, true, true, List.of());
+        givenIdentity(new SignInMethods(false, 1, true, 0));
         when(federatedIdentityRepository.delete(id, userId)).thenReturn(true);
 
         useCase.execute(userId, "alice", id);
@@ -134,8 +123,7 @@ class UnlinkIdentityUseCaseTest {
      */
     @Test
     void execute_whenACertificateRemains_deletesTheIdentity() {
-        givenIdentity(1, true, false, List.of(new CertificateBinding(UUID.randomUUID(), userId, FINGERPRINT, "CN=a",
-                NOW)));
+        givenIdentity(new SignInMethods(false, 1, false, 1));
         when(federatedIdentityRepository.delete(id, userId)).thenReturn(true);
 
         useCase.execute(userId, "alice", id);
@@ -148,7 +136,7 @@ class UnlinkIdentityUseCaseTest {
      */
     @Test
     void execute_whenIdentityIsTheLastMethod_throwsLastSignInMethodException() {
-        givenIdentity(1, true, false, List.of());
+        givenIdentity(new SignInMethods(false, 1, false, 0));
 
         assertThrows(LastSignInMethodException.class, () -> useCase.execute(userId, "alice", id));
 
@@ -173,7 +161,7 @@ class UnlinkIdentityUseCaseTest {
      */
     @Test
     void execute_whenDeleteFindsNothing_throwsFederatedIdentityNotFoundException() {
-        givenIdentity(1, false, false, List.of());
+        givenIdentity(new SignInMethods(true, 1, false, 0));
         when(federatedIdentityRepository.delete(id, userId)).thenReturn(false);
 
         assertThrows(FederatedIdentityNotFoundException.class, () -> useCase.execute(userId, "alice", id));
@@ -184,18 +172,11 @@ class UnlinkIdentityUseCaseTest {
     /**
      * Arranges the account whose identity is being unlinked.
      *
-     * @param identities   number of identities linked now, the one being removed included.
-     * @param generated    whether the password is a generated one.
-     * @param passkey      whether the account has a passkey.
-     * @param certificates the bound certificates.
+     * @param methods the sign-in methods of the account now, the identity being removed included.
      */
-    private void givenIdentity(final long identities, final boolean generated, final boolean passkey,
-                               final List<CertificateBinding> certificates) {
+    private void givenIdentity(final SignInMethods methods) {
+        when(lockSignInMethodsUseCase.execute(userId)).thenReturn(methods);
         when(federatedIdentityRepository.findByIdAndUser(id, userId)).thenReturn(Optional.of(
                 new FederatedIdentity(id, userId, IdentityProvider.GOOGLE, "subject", null, NOW, null)));
-        when(generatedPasswordRepository.isGenerated(userId)).thenReturn(generated);
-        when(federatedIdentityRepository.countByUser(userId)).thenReturn(identities);
-        when(passkeyRepository.existsForAccount(userId)).thenReturn(passkey);
-        when(certificateBindingRepository.findByUser(userId)).thenReturn(certificates);
     }
 }

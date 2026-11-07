@@ -46,6 +46,26 @@ class SignInMethodsTest {
     }
 
     /**
+     * Verifies that removing an identity lowers its count only, never below zero.
+     */
+    @Test
+    void withoutFederatedIdentity_whenCalled_lowersTheIdentityCount() {
+        assertEquals(new SignInMethods(true, 1, true, 2),
+                new SignInMethods(true, 2, true, 2).withoutFederatedIdentity());
+        assertEquals(new SignInMethods(false, 0, false, 1),
+                new SignInMethods(false, 0, false, 1).withoutFederatedIdentity());
+    }
+
+    /**
+     * Verifies that removing a certificate lowers its count only, never below zero.
+     */
+    @Test
+    void withoutCertificate_whenCalled_lowersTheCertificateCount() {
+        assertEquals(new SignInMethods(true, 2, true, 1), new SignInMethods(true, 2, true, 2).withoutCertificate());
+        assertEquals(new SignInMethods(false, 1, false, 0), new SignInMethods(false, 1, false, 0).withoutCertificate());
+    }
+
+    /**
      * Verifies the value semantics of the record.
      */
     @Test

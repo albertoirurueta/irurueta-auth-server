@@ -18,6 +18,8 @@ package com.irurueta.authserver.authorization.api.web.implicit;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -41,6 +43,12 @@ import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 
 /**
  * Unit tests of {@link DeviceVerificationRequestGuard}.
@@ -57,6 +65,15 @@ class DeviceVerificationRequestGuardTest {
     /** Address of the caller. */
     private static final String ADDRESS = "192.0.2.7";
 
+    /** Identifier of the client the device authorization of the user code was issued to. */
+    private static final String DEVICE_CLIENT_ID = "stored-device-client";
+
+    /** Internal identifier of that client. */
+    private static final String REGISTERED_ID = "registered-1";
+
+    /** User code as the framework stores it. */
+    private static final String USER_CODE = "BCDF-GHJK";
+
     /** Limits the attempts. */
     @Mock
     private DeviceVerificationRateLimiter rateLimiter;
@@ -64,6 +81,14 @@ class DeviceVerificationRequestGuardTest {
     /** Applies the multi-factor policy. */
     @Mock
     private MfaAuthorizationManager authorizationManager;
+
+    /** Finds the device authorization of a user code. */
+    @Mock
+    private OAuth2AuthorizationService authorizationService;
+
+    /** Finds the client of a device authorization. */
+    @Mock
+    private RegisteredClientRepository registeredClientRepository;
 
     /** Guard under test. */
     @InjectMocks
@@ -152,8 +177,97 @@ class DeviceVerificationRequestGuardTest {
                 () -> guard.convert(request()));
 
         assertSame(limited, thrown);
-        verify(authorizationManager, never()).evaluate(org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.anyBoolean());
+        verify(authorizationManager, never()).evaluate(any(), anyBoolean());
+    }
+
+    /**
+     * Verifies that the client of the device authorization stored for the user code is the one whose policy applies,
+     * whatever the code looks like as typed (lower case, spaces), even when the request names no client.
+     */
+    @Test
+    void convert_whenTheUserCodeHasADeviceAuthorization_appliesThePolicyOfItsClient() {
+        final var user = signIn();
+        final var request = new MockHttpServletRequest("POST", "/oauth2/device_verification");
+        request.setRemoteAddr(ADDRESS);
+        request.setParameter("user_code", "bcdf ghjk");
+        final var client = deviceClient();
+        when(authorizationService.findByToken(USER_CODE, DeviceVerificationRequestGuard.USER_CODE_TOKEN_TYPE))
+                .thenReturn(OAuth2Authorization.withRegisteredClient(client).principalName(USER)
+                        .authorizationGrantType(AuthorizationGrantType.DEVICE_CODE).build());
+        when(registeredClientRepository.findById(REGISTERED_ID)).thenReturn(client);
+        when(authorizationManager.clientRequiresMfa(DEVICE_CLIENT_ID)).thenReturn(true);
+        when(authorizationManager.evaluate(user, true)).thenReturn(new AuthorizationDecision(false));
+
+        assertThrows(SecondFactorRequiredException.class, () -> guard.convert(request));
+    }
+
+    /**
+     * Verifies that the stored client wins over the {@code client_id} a consent decision names.
+     */
+    @Test
+    void convert_whenTheConsentNamesAnotherClient_appliesThePolicyOfTheStoredClient() {
+        final var user = signIn();
+        final var request = request();
+        request.setParameter("user_code", USER_CODE);
+        final var client = deviceClient();
+        when(authorizationService.findByToken(USER_CODE, DeviceVerificationRequestGuard.USER_CODE_TOKEN_TYPE))
+                .thenReturn(OAuth2Authorization.withRegisteredClient(client).principalName(USER)
+                        .authorizationGrantType(AuthorizationGrantType.DEVICE_CODE).build());
+        when(registeredClientRepository.findById(REGISTERED_ID)).thenReturn(client);
+        when(authorizationManager.clientRequiresMfa(DEVICE_CLIENT_ID)).thenReturn(false);
+        when(authorizationManager.evaluate(user, false)).thenReturn(new AuthorizationDecision(true));
+
+        assertNull(guard.convert(request));
+    }
+
+    /**
+     * Verifies that an unknown user code falls back to the {@code client_id} of the request.
+     */
+    @Test
+    void convert_whenNoAuthorizationHoldsTheUserCode_usesTheClientIdParameter() {
+        final var user = signIn();
+        final var request = request();
+        request.setParameter("user_code", USER_CODE);
+        when(authorizationService.findByToken(USER_CODE, DeviceVerificationRequestGuard.USER_CODE_TOKEN_TYPE))
+                .thenReturn(null);
+        when(authorizationManager.clientRequiresMfa(CLIENT_ID)).thenReturn(true);
+        when(authorizationManager.evaluate(user, true)).thenReturn(new AuthorizationDecision(true));
+
+        assertNull(guard.convert(request));
+    }
+
+    /**
+     * Verifies that a value that cannot be a user code is never looked up.
+     */
+    @Test
+    void convert_whenTheUserCodeIsMalformed_doesNotLookItUp() {
+        final var user = signIn();
+        final var request = request();
+        request.setParameter("user_code", "ABC");
+        when(authorizationManager.clientRequiresMfa(CLIENT_ID)).thenReturn(false);
+        when(authorizationManager.evaluate(user, false)).thenReturn(new AuthorizationDecision(true));
+
+        assertNull(guard.convert(request));
+
+        verify(authorizationService, never()).findByToken(any(), any());
+    }
+
+    /**
+     * Verifies that a stored authorization whose client was removed falls back to the {@code client_id} parameter.
+     */
+    @Test
+    void convert_whenTheStoredClientNoLongerExists_usesTheClientIdParameter() {
+        final var user = signIn();
+        final var request = request();
+        request.setParameter("user_code", USER_CODE);
+        when(authorizationService.findByToken(USER_CODE, DeviceVerificationRequestGuard.USER_CODE_TOKEN_TYPE))
+                .thenReturn(OAuth2Authorization.withRegisteredClient(deviceClient()).principalName(USER)
+                        .authorizationGrantType(AuthorizationGrantType.DEVICE_CODE).build());
+        when(registeredClientRepository.findById(REGISTERED_ID)).thenReturn(null);
+        when(authorizationManager.clientRequiresMfa(CLIENT_ID)).thenReturn(false);
+        when(authorizationManager.evaluate(user, false)).thenReturn(new AuthorizationDecision(true));
+
+        assertNull(guard.convert(request));
     }
 
     /**
@@ -166,6 +280,17 @@ class DeviceVerificationRequestGuardTest {
         request.setRemoteAddr(ADDRESS);
         request.setParameter("client_id", CLIENT_ID);
         return request;
+    }
+
+    /**
+     * Builds the client of the device authorizations.
+     *
+     * @return the client.
+     */
+    private static RegisteredClient deviceClient() {
+        return RegisteredClient.withId(REGISTERED_ID).clientId(DEVICE_CLIENT_ID)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                .authorizationGrantType(AuthorizationGrantType.DEVICE_CODE).build();
     }
 
     /**

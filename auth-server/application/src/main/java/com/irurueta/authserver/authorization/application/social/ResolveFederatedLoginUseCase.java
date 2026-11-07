@@ -38,12 +38,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case that resolves a sign-in with an external provider to a local account. The provider's stable subject, never
- * its e-mail address, finds the account. In order:
+ * its e-mail address, finds the account. The identity is locked first
+ * ({@link FederatedIdentityRepository#lockSubject}), so two concurrent first sign-ins of the same person are
+ * serialized and the second one finds the link of the first instead of failing on the unique constraint. In order:
  * <ol>
- *     <li>an identity that is already linked signs in its account;</li>
+ *     <li>an identity that is already linked signs in its account, unless the account is disabled;</li>
  *     <li>otherwise the provider must vouch for the e-mail address: an unverified address never links and never
  *     provisions;</li>
- *     <li>an account that has that address and has verified it too is linked to the identity;</li>
+ *     <li>an account that has that address and has verified it too is linked to the identity, unless it is disabled:
+ *     a disabled account is refused before anything is linked or audited;</li>
  *     <li>an address that belongs to an account that never verified it is refused, so a pre-registered account cannot
  *     capture the victim's sign-in;</li>
  *     <li>otherwise a new, enabled account is provisioned, whose password is a random one nobody knows.</li>
@@ -90,11 +93,13 @@ public class ResolveFederatedLoginUseCase {
      * @param emailVerified whether the provider says it verified the address.
      * @return the account the sign-in resolved to and how it was found.
      * @throws FederatedLoginRefusedException if the identity is not linked and the provider does not vouch for a usable
-     *                                        e-mail address, or the address belongs to an unverified account.
+     *                                        e-mail address, the address belongs to an unverified account, or the
+     *                                        account is disabled.
      */
     public FederatedLogin execute(
             final IdentityProvider provider, final String subject, final String email, final boolean emailVerified) {
         final var now = clock.instant();
+        federatedIdentityRepository.lockSubject(provider, subject);
         final var existing = federatedIdentityRepository.findByProviderAndSubject(provider, subject);
         if (existing.isPresent()) {
             return signIn(existing.get(), email, now);
@@ -108,6 +113,7 @@ public class ResolveFederatedLoginUseCase {
             if (!federatedLinkingPolicy.mayLinkByEmail(account, email, emailVerified)) {
                 throw new FederatedLoginRefusedException("The e-mail address belongs to an unverified account");
             }
+            requireMaySignIn(account);
             return new FederatedLogin(account, link(account, provider, subject, email, now),
                     FederatedLoginOutcome.LINKED);
         }
@@ -127,10 +133,23 @@ public class ResolveFederatedLoginUseCase {
     private FederatedLogin signIn(final FederatedIdentity identity, final String email, final Instant now) {
         final var account = userAccountRepository.findById(identity.userId())
                 .orElseThrow(() -> new FederatedLoginRefusedException("The linked account no longer exists"));
+        requireMaySignIn(account);
         final var updated = federatedIdentityRepository.save(new FederatedIdentity(identity.id(), identity.userId(),
                 identity.provider(), identity.subject(), email == null ? identity.email() : email,
                 identity.linkedAt(), now));
         return new FederatedLogin(account, updated, FederatedLoginOutcome.EXISTING);
+    }
+
+    /**
+     * Refuses an account that may not sign in, before anything is linked, updated or audited.
+     *
+     * @param account the account the sign-in resolved to.
+     * @throws FederatedLoginRefusedException if the account is disabled.
+     */
+    private void requireMaySignIn(final UserAccount account) {
+        if (!federatedLinkingPolicy.maySignIn(account)) {
+            throw new FederatedLoginRefusedException("The account may not sign in");
+        }
     }
 
     /**

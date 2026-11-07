@@ -31,12 +31,15 @@ import java.io.IOException;
 import java.net.CookieManager;
 import java.net.ServerSocket;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,13 +49,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Checks the sign-in with a client certificate over TLS client authentication on the dedicated port, with a real
  * handshake: the server presents a certificate issued by an in-test certificate authority and asks the client for one;
- * a certificate bound to an account signs it in (the tokens report {@code sc}), and a certificate bound to nobody, one
- * whose binding was removed, one that expired and a client with no certificate at all are sent back to the login page.
+ * the browser opens the login page on that port and presses the certificate button, which posts to
+ * {@code POST /login/x509} with the CSRF token; a certificate bound to an account signs it in (the tokens report
+ * {@code sc}), and a certificate bound to nobody, one whose binding was removed, one that expired and a client with no
+ * certificate at all are sent back to the login page.
+ * A {@code GET} of the path never signs anybody in, and the login page served on the main port posts to the TLS port.
  * The authority, the server and the client certificates are generated at run time and live in a temporary directory
  * that is removed afterwards; nothing is kept in the repository.
  */
@@ -68,6 +76,19 @@ class X509TlsLoginIT {
 
     /** A page that needs a signed-in user. */
     private static final String PROTECTED_PAGE = "/account/passkeys";
+
+    /** Path of the login page. */
+    private static final String LOGIN_PAGE = "/login";
+
+    /** The form of the certificate sign-in on the login page: its opening tag and its content. */
+    private static final Pattern X509_FORM = Pattern.compile("<form([^>]*class=\"x509-login\"[^>]*)>(.*?)</form>",
+            Pattern.DOTALL);
+
+    /** The address the form posts to. */
+    private static final Pattern ACTION = Pattern.compile("action=\"([^\"]*)\"");
+
+    /** The CSRF field of the form. */
+    private static final Pattern CSRF_FIELD = Pattern.compile("name=\"_csrf\"\\s+value=\"([^\"]*)\"");
 
     /** Status of a redirect. */
     private static final int FOUND = 302;
@@ -152,7 +173,7 @@ class X509TlsLoginIT {
                 .fromUriString(base() + AuthServerFixtures.authorizeUri(client, verifier, Map.of())).build().encode()
                 .toUri());
         assertEquals(FOUND, asked.statusCode());
-        final var resumed = send(browser, URI.create(base() + X509_LOGIN));
+        final var resumed = signIn(browser);
         assertEquals(FOUND, resumed.statusCode());
         final var authorizeUri = asked.uri().resolve(location(resumed));
         assertTrue(authorizeUri.getPath().endsWith("/oauth2/authorize"),
@@ -179,7 +200,7 @@ class X509TlsLoginIT {
     void x509Login_whenTheCertificateIsNotBound_redirectsToTheLoginPage() throws Exception {
         final var identity = PKI.issueClient("stranger-" + UUID.randomUUID());
 
-        final var response = send(browser(identity), URI.create(base() + X509_LOGIN));
+        final var response = signIn(browser(identity));
 
         assertFailed(response);
     }
@@ -191,7 +212,7 @@ class X509TlsLoginIT {
      */
     @Test
     void x509Login_whenTheClientPresentsNoCertificate_redirectsToTheLoginPage() throws Exception {
-        final var response = send(browser(null), URI.create(base() + X509_LOGIN));
+        final var response = signIn(browser(null));
 
         assertFailed(response);
     }
@@ -206,11 +227,11 @@ class X509TlsLoginIT {
         final var user = fixtures().createUser();
         final var identity = PKI.issueClient("revoked-" + UUID.randomUUID());
         final var binding = bind(user.username(), identity);
-        final var signedIn = send(browser(identity), URI.create(base() + X509_LOGIN));
+        final var signedIn = signIn(browser(identity));
         assertFalse(location(signedIn).endsWith(FAILED), "The bound certificate must sign in");
         unbindCertificateUseCase.execute(binding.userId(), user.username(), binding.id());
 
-        final var response = send(browser(identity), URI.create(base() + X509_LOGIN));
+        final var response = signIn(browser(identity));
 
         assertFailed(response);
     }
@@ -227,9 +248,43 @@ class X509TlsLoginIT {
         final var identity = PKI.issueExpiredClient("expired-" + UUID.randomUUID());
         bind(user.username(), identity);
 
-        final var response = send(browser(identity), URI.create(base() + X509_LOGIN));
+        final var response = signIn(browser(identity));
 
         assertFailed(response);
+    }
+
+    /**
+     * Verifies that a {@code GET} of the sign-in path on the TLS port, even with a bound certificate, signs nobody in:
+     * it goes to the login page and the session stays anonymous.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void x509Login_whenRequestedWithGet_signsNobodyIn() throws Exception {
+        final var user = fixtures().createUser();
+        final var identity = PKI.issueClient("get-" + UUID.randomUUID());
+        bind(user.username(), identity);
+        final var browser = browser(identity);
+
+        final var response = send(browser, URI.create(base() + X509_LOGIN));
+
+        assertEquals(FOUND, response.statusCode());
+        assertTrue(location(response).endsWith(LOGIN_PAGE), "Expected the login page but got " + location(response));
+        assertEquals(FOUND, send(browser, URI.create(base() + PROTECTED_PAGE)).statusCode());
+    }
+
+    /**
+     * Verifies that the login page served on the main port posts the certificate sign-in to the TLS port of the same
+     * host, the only port that asks for a certificate.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void loginPage_whenServedOnTheMainPort_postsTheCertificateSignInToTheTlsPort() throws Exception {
+        final var page = mockMvc.perform(MockMvcRequestBuilders.get(LOGIN_PAGE)).andReturn().getResponse()
+                .getContentAsString();
+
+        assertEquals(base() + X509_LOGIN, formAction(page));
     }
 
     /**
@@ -277,6 +332,44 @@ class X509TlsLoginIT {
     private static HttpResponse<String> send(final HttpClient browser, final URI uri)
             throws IOException, InterruptedException {
         return browser.send(HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    /**
+     * Signs in the way a user does: opens the login page on the TLS port and submits the form of the certificate
+     * sign-in, with its CSRF token.
+     *
+     * @param browser the browser.
+     * @return the answer of the sign-in.
+     * @throws IOException          if a request fails.
+     * @throws InterruptedException if the thread is interrupted.
+     */
+    private static HttpResponse<String> signIn(final HttpClient browser) throws IOException, InterruptedException {
+        final var page = send(browser, URI.create(base() + LOGIN_PAGE));
+        assertEquals(OK, page.statusCode());
+        final var form = X509_FORM.matcher(page.body());
+        assertTrue(form.find(), "The login page must offer the certificate sign-in");
+        final var csrf = CSRF_FIELD.matcher(form.group(2));
+        assertTrue(csrf.find(), "The form must carry the CSRF token");
+        final var request = HttpRequest.newBuilder(URI.create(base()).resolve(formAction(page.body())))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "_csrf=" + URLEncoder.encode(csrf.group(1), StandardCharsets.UTF_8)))
+                .build();
+        return browser.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    /**
+     * Reads the address the certificate sign-in form of a login page posts to.
+     *
+     * @param page the login page.
+     * @return the address, unescaped.
+     */
+    private static String formAction(final String page) {
+        final var form = X509_FORM.matcher(page);
+        assertTrue(form.find(), "The login page must offer the certificate sign-in");
+        final var action = ACTION.matcher(form.group(1));
+        assertTrue(action.find(), "The form must have an action");
+        return HtmlUtils.htmlUnescape(action.group(1));
     }
 
     /**

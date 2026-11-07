@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResp
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -41,7 +42,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  * receives the provider's answer) are public. The login page is the server's own, so the provider's page is never
  * chosen automatically even when one provider is configured. Apple posts its answer to the callback from another site,
  * so that one callback is exempt from CSRF protection (the {@code state} of the authorization request protects it) and
- * the session cookie must be sent on a cross-site post (see the documentation of the social login).
+ * the session cookie must be sent on a cross-site post (see the documentation of the social login). The same
+ * endpoints serve the explicit link flow of the identities page: the success and failure handlers tell a link apart.
  */
 @RequiredArgsConstructor
 public class SocialChainCustomizer implements LoginChainCustomizer {
@@ -64,8 +66,11 @@ public class SocialChainCustomizer implements LoginChainCustomizer {
     /** Resolves the account of an OAuth 2.0 sign-in. */
     private final FederatedOAuth2UserService oauth2UserService;
 
-    /** Grants the federated factor and resumes the saved request. */
+    /** Grants the federated factor and resumes the saved request, or completes a link. */
     private final AuthenticationSuccessHandler successHandler;
+
+    /** Sends a refused link back to the identities page, any other failure to the login page. */
+    private final AuthenticationFailureHandler failureHandler;
 
     /** Saves the security context of the sign-in. */
     private final SecurityContextRepository securityContextRepository;
@@ -97,6 +102,7 @@ public class SocialChainCustomizer implements LoginChainCustomizer {
                 .loginPage(LOGIN_PATH)
                 .securityContextRepository(securityContextRepository)
                 .successHandler(successHandler)
+                .failureHandler(failureHandler)
                 .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(authorizationRequestResolver))
                 .tokenEndpoint(endpoint -> endpoint.accessTokenResponseClient(tokenResponseClient))
                 .userInfoEndpoint(endpoint -> endpoint

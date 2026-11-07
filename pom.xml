@@ -170,6 +170,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>auth-server-infrastructure-github</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>auth-server-api-web</artifactId>
         <version>${project.version}</version>
       </dependency>

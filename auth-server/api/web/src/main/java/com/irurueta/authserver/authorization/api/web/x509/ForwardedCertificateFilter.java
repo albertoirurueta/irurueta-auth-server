@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -43,12 +44,16 @@ import org.springframework.web.util.UriUtils;
  * servlet container leaves a certificate of its own, in the {@code jakarta.servlet.request.X509Certificate} request
  * attribute, so the same X.509 filter and principal extractor serve both transports.
  *
- * <p>A header is only ever read when the request comes from one of the configured trusted proxies, by its direct
- * network address (so {@code server.forward-headers-strategy} must not rewrite it): anybody else could send any
- * certificate. The header of any other request is ignored, and so is one that is too long or does not hold a
- * certificate. The proxy is responsible for verifying the certificate (the chain, the dates, the revocation) and for
- * overwriting or removing a header of the same name sent by the client; the server only binds the certificate it is
- * handed by its fingerprint. The filter only looks at the sign-in path.
+ * <p>A header is only ever read when the request comes from one of the configured trusted proxies: anybody else could
+ * send any certificate. The address checked is {@code getRemoteAddr()}, which is the address left after Spring's or
+ * Tomcat's handling of the forwarded headers; only with {@code server.forward-headers-strategy=none} is it the direct
+ * network peer, because the {@code native} and {@code framework} strategies replace it with a value taken from
+ * {@code X-Forwarded-For}, which a client can choose. {@link X509ForwardedHeadersGuard} therefore refuses to start
+ * with this transport and any strategy that rewrites the address. The header of any other request is ignored, and so
+ * is one that is too long or does not hold a certificate. The proxy is responsible for verifying the certificate (the
+ * chain, the dates, the revocation) and for overwriting or removing a header of the same name sent by the client; the
+ * server only binds the certificate it is handed by its fingerprint. The filter only looks at the sign-in request
+ * ({@code POST /login/x509}).
  */
 @Slf4j
 public class ForwardedCertificateFilter extends OncePerRequestFilter {
@@ -82,7 +87,8 @@ public class ForwardedCertificateFilter extends OncePerRequestFilter {
     public ForwardedCertificateFilter(final X509Properties properties) {
         headerName = properties.forwardedHeader();
         trustedProxies = properties.trustedProxies().stream().map(IpAddressMatcher::new).toList();
-        loginRequests = PathPatternRequestMatcher.withDefaults().matcher(X509ChainCustomizer.LOGIN_PATH);
+        loginRequests = PathPatternRequestMatcher.withDefaults()
+                .matcher(HttpMethod.POST, X509ChainCustomizer.LOGIN_PATH);
     }
 
     /**
@@ -112,7 +118,7 @@ public class ForwardedCertificateFilter extends OncePerRequestFilter {
     /**
      * Tells whether an address belongs to a trusted proxy.
      *
-     * @param address the direct address of the client of the request, may be {@code null}.
+     * @param address the address of the client of the request, as the container reports it; may be {@code null}.
      * @return {@code true} when a trusted proxy matches it.
      */
     private boolean isTrusted(final String address) {

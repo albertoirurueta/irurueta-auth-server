@@ -16,11 +16,15 @@
 
 package com.irurueta.authserver.authorization.api.web.social;
 
+import static com.irurueta.authserver.authorization.api.web.login.LoginController.LOGIN_PATH;
+
 import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
 import com.irurueta.authserver.authorization.api.web.passkeys.AccountStatusUserDetailsService;
+import com.irurueta.authserver.authorization.application.social.LinkIdentityUseCase;
 import com.irurueta.authserver.authorization.application.social.ResolveFederatedLoginUseCase;
 import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import com.irurueta.authserver.authorization.domain.social.VerifiedEmailLookup;
 import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -39,10 +43,10 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.context.DelegatingSecurityContextRepository;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
-import org.springframework.web.client.RestClient;
 
 /**
  * Installs the sign-in with external providers in the login/UI chain. Nothing outside this feature is edited: the chain
@@ -89,24 +93,18 @@ public class SocialConfiguration {
      * Declares the resolver of the local account of a sign-in, with the account status rules of the other sign-in
      * methods.
      *
-     * @param useCase            use case that finds, links or provisions the account.
-     * @param userDetailsService loads the accounts.
+     * @param useCase              use case that finds, links or provisions the account.
+     * @param userDetailsService   loads the accounts.
+     * @param linkIdentityUseCase  links an identity to the signed-in account (the explicit link flow).
+     * @param pendingIdentityLinks the link markers of the explicit link flow.
      * @return the resolver.
      */
     @Bean
-    public FederatedAccountResolver federatedAccountResolver(
-            final ResolveFederatedLoginUseCase useCase, final UserDetailsService userDetailsService) {
-        return new FederatedAccountResolver(useCase, new AccountStatusUserDetailsService(userDetailsService));
-    }
-
-    /**
-     * Declares the client that reads the verified e-mail address of a GitHub user.
-     *
-     * @return the client.
-     */
-    @Bean
-    public GitHubEmailClient gitHubEmailClient() {
-        return new GitHubEmailClient(RestClient.create());
+    public FederatedAccountResolver federatedAccountResolver(final ResolveFederatedLoginUseCase useCase,
+            final UserDetailsService userDetailsService, final LinkIdentityUseCase linkIdentityUseCase,
+            final PendingIdentityLinks pendingIdentityLinks) {
+        return new FederatedAccountResolver(useCase, new AccountStatusUserDetailsService(userDetailsService),
+                linkIdentityUseCase, pendingIdentityLinks);
     }
 
     /**
@@ -125,15 +123,15 @@ public class SocialConfiguration {
     /**
      * Declares the user service of the OAuth 2.0 providers (GitHub).
      *
-     * @param emailClient reads the verified e-mail address.
-     * @param resolver    resolves the account.
-     * @param mapper      builds the local principal.
+     * @param verifiedEmailLookup reads the verified e-mail address (the GitHub adapter).
+     * @param resolver            resolves the account.
+     * @param mapper              builds the local principal.
      * @return the service.
      */
     @Bean
-    public FederatedOAuth2UserService federatedOAuth2UserService(final GitHubEmailClient emailClient,
+    public FederatedOAuth2UserService federatedOAuth2UserService(final VerifiedEmailLookup verifiedEmailLookup,
             final FederatedAccountResolver resolver, final FederatedUserMapper mapper) {
-        return new FederatedOAuth2UserService(new DefaultOAuth2UserService(), emailClient, resolver, mapper);
+        return new FederatedOAuth2UserService(new DefaultOAuth2UserService(), verifiedEmailLookup, resolver, mapper);
     }
 
     /**
@@ -171,7 +169,7 @@ public class SocialConfiguration {
      * @param grantor        adds the factor authority.
      * @param selector       chooses the factor.
      * @param apple          generates the Apple client secret; absent while Apple is not configured.
-     * @param properties     settings of the providers, for the Apple client id.
+     * @param pendingIdentityLinks the link markers, which tell a link apart from a sign-in.
      * @return the customizer.
      */
     @Bean
@@ -179,20 +177,22 @@ public class SocialConfiguration {
     public LoginChainCustomizer socialChainCustomizer(final ClientRegistrationRepository repository,
             final FederatedOidcUserService oidcService, final FederatedOAuth2UserService oauth2Service,
             final FactorGrantor grantor, final FederatedFactorSelector selector,
-            final ObjectProvider<AppleClientSecretGenerator> apple, final SocialProperties properties) {
+            final ObjectProvider<AppleClientSecretGenerator> apple, final PendingIdentityLinks pendingIdentityLinks) {
         final var securityContextRepository = new DelegatingSecurityContextRepository(
                 new RequestAttributeSecurityContextRepository(), new HttpSessionSecurityContextRepository());
-        final var successHandler = new FederatedAuthenticationSuccessHandler(
-                grantor, selector, securityContextRepository, new SavedRequestAwareAuthenticationSuccessHandler());
+        final var successHandler = new FederatedAuthenticationSuccessHandler(grantor, selector,
+                securityContextRepository, new SavedRequestAwareAuthenticationSuccessHandler(), pendingIdentityLinks);
+        final var failureHandler = new FederatedAuthenticationFailureHandler(
+                new SimpleUrlAuthenticationFailureHandler(LOGIN_PATH + "?error"));
         final var tokenClient = new RestClientAuthorizationCodeTokenResponseClient();
         final var resolver = new DefaultOAuth2AuthorizationRequestResolver(repository, "/oauth2/authorization");
         final var generator = apple.getIfAvailable();
         if (generator != null) {
-            final var clientId = properties.find(IdentityProvider.APPLE).orElseThrow().clientId();
+            final var clientId = generator.clientId();
             tokenClient.setParametersCustomizer(new AppleTokenRequestCustomizer(clientId, generator));
             resolver.setAuthorizationRequestCustomizer(new AppleAuthorizationRequestCustomizer(clientId));
         }
-        return new SocialChainCustomizer(repository, oidcService, oauth2Service, successHandler,
+        return new SocialChainCustomizer(repository, oidcService, oauth2Service, successHandler, failureHandler,
                 securityContextRepository, tokenClient, resolver, generator != null);
     }
     // end::social-chain-customizer[]

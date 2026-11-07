@@ -25,6 +25,16 @@ import java.util.UUID;
 public interface FederatedIdentityRepository {
 
     /**
+     * Serializes, until the caller's transaction ends, every caller that links or resolves the same identity of a
+     * provider, so that two first sign-ins of the same person never both try to link it: the second one waits and then
+     * finds the link of the first.
+     *
+     * @param provider provider that holds the identity.
+     * @param subject  stable identifier the provider assigned to the user.
+     */
+    void lockSubject(IdentityProvider provider, String subject);
+
+    /**
      * Finds the link of a provider's subject.
      *
      * @param provider provider that holds the identity.

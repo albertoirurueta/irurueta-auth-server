@@ -15,13 +15,18 @@
  */
 package com.irurueta.authserver.authorization;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,7 +47,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -52,8 +61,10 @@ import org.springframework.test.context.DynamicPropertySource;
  * GitHub as the plain OAuth 2.0 one and Apple with the client secret the application signs): the first sign-in
  * provisions an account, a verified e-mail address links an existing account and an unverified one never does, the
  * tokens carry the local {@code sub}, the {@code idp} and the {@code amr} of the sign-in, a provider that is not
- * trusted for multi-factor authentication still leads to the second-factor step, and linked identities are removed
- * through the account API under step-up. Every client id, secret, signing key and Apple key is generated at run time.
+ * trusted for multi-factor authentication still leads to the second-factor step, linked identities are removed
+ * through the account API under step-up, a disabled account is never linked, and a signed-in user links an identity
+ * explicitly from the identities page without the session changing its user. Every client id, secret, signing key and
+ * Apple key is generated at run time.
  */
 class SocialLoginIT extends AbstractSocialFlow {
 
@@ -83,6 +94,15 @@ class SocialLoginIT extends AbstractSocialFlow {
 
     /** Path of the linked identities of the account API. */
     private static final String IDENTITIES = "/api/account/identities";
+
+    /** Path of the identities page. */
+    private static final String IDENTITIES_PAGE = "/account/identities";
+
+    /** Path of the post that starts linking an identity. */
+    private static final String LINK = "/account/identities/link";
+
+    /** Name of the header with the target of a redirect. */
+    private static final String LOCATION = "Location";
 
     /** Name of the header with the credential of an API request. */
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -433,6 +453,113 @@ class SocialLoginIT extends AbstractSocialFlow {
                 .andExpect(status().isNotFound());
 
         assertEquals(1, identitiesOf(accountOf(email).orElseThrow()).size());
+    }
+
+    /**
+     * Verifies that a disabled account whose verified address matches is refused before anything is linked to it.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void signIn_whenTheMatchingAccountIsDisabled_isRefusedAndLinksNothing() throws Exception {
+        final var user = getFixtures().createUser();
+        final var account = accountOf(user.email()).orElseThrow();
+        disable(account);
+        final var session = new MockHttpSession();
+
+        final var result = signInWithOidc(session, "google", GOOGLE_ISSUER, GOOGLE_CLIENT_ID,
+                FakeIdentityProviders.userClaims("subject-" + UUID.randomUUID(), user.email(), true));
+
+        assertRefused(result, session);
+        assertTrue(identitiesOf(account).isEmpty());
+    }
+
+    /**
+     * Verifies the explicit link flow: a signed-in user starts it from the identities page, the provider's answer
+     * links its identity to that account (whatever address the provider reports, even an unverified one) and the
+     * session keeps its user and its own authentication; the page then lists the identity.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void link_whenASignedInUserLinksAProvider_linksTheIdentityAndKeepsTheSession() throws Exception {
+        final var user = getFixtures().createUser();
+        final var session = new MockHttpSession();
+        getFixtures().signIn(user, session);
+        final var subject = "linked-subject-" + UUID.randomUUID();
+        getMockMvc().perform(get(IDENTITIES_PAGE).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-link-provider=\"google\"")));
+
+        getMockMvc().perform(post(LINK).session(session).with(csrf()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("provider", "google"))
+                .andExpect(status().isSeeOther())
+                .andExpect(header().string(LOCATION, AUTHORIZATION + "google"));
+        final var result = signInWithOidc(session, "google", GOOGLE_ISSUER, GOOGLE_CLIENT_ID,
+                FakeIdentityProviders.userClaims(subject, "elsewhere-" + UUID.randomUUID() + "@example.com", false));
+
+        assertEquals(IDENTITIES_PAGE + "?status=linked", result.getResponse().getRedirectedUrl());
+        assertEquals(user.username(), signedInName(session).orElseThrow());
+        final var context = (SecurityContext) session.getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        assertInstanceOf(UsernamePasswordAuthenticationToken.class, context.getAuthentication());
+        final var linked = identitiesOf(accountOf(user.email()).orElseThrow());
+        assertEquals(1, linked.size());
+        assertEquals(subject, linked.getFirst().subject());
+        getMockMvc().perform(get(IDENTITIES_PAGE).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-identity-provider=\"google\"")));
+    }
+
+    /**
+     * Verifies that an identity that is linked to another account is never moved by the link flow: the browser
+     * returns to the identities page with the refusal, still signed in as the same user, and nothing is linked.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void link_whenTheIdentityBelongsToAnotherAccount_isRefusedAndKeepsTheSession() throws Exception {
+        final var subject = "taken-subject-" + UUID.randomUUID();
+        signInWithOidc(new MockHttpSession(), "google", GOOGLE_ISSUER, GOOGLE_CLIENT_ID,
+                FakeIdentityProviders.userClaims(subject, "owner-" + UUID.randomUUID() + "@example.com", true));
+        final var user = getFixtures().createUser();
+        final var session = new MockHttpSession();
+        getFixtures().signIn(user, session);
+        getMockMvc().perform(post(LINK).session(session).with(csrf()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("provider", "google"))
+                .andExpect(status().isSeeOther());
+
+        final var result = signInWithOidc(session, "google", GOOGLE_ISSUER, GOOGLE_CLIENT_ID,
+                FakeIdentityProviders.userClaims(subject, user.email(), true));
+
+        assertEquals(IDENTITIES_PAGE + "?status=already-linked", result.getResponse().getRedirectedUrl());
+        assertEquals(user.username(), signedInName(session).orElseThrow());
+        assertTrue(identitiesOf(accountOf(user.email()).orElseThrow()).isEmpty());
+    }
+
+    /**
+     * Verifies that a provider that is not configured is answered on the page, and that a session that still owes its
+     * second factor cannot start a link.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void link_whenTheProviderIsUnknownOrTheSessionOwesASecondFactor_startsNothing() throws Exception {
+        final var user = getFixtures().createUser();
+        final var session = new MockHttpSession();
+        getFixtures().signIn(user, session);
+        getMockMvc().perform(post(LINK).session(session).with(csrf()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("provider", "microsoft"))
+                .andExpect(status().isSeeOther())
+                .andExpect(header().string(LOCATION, IDENTITIES_PAGE + "?status=unknown-provider"));
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var passwordOnly = new MockHttpSession();
+        getFixtures().signIn(enrolled.user(), passwordOnly);
+
+        getMockMvc().perform(post(LINK).session(passwordOnly).with(csrf())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED).param("provider", "google"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string(LOCATION, containsString(SECOND_FACTOR_PAGE)));
     }
 
     /**

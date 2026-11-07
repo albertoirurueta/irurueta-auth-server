@@ -52,8 +52,8 @@ import org.springframework.web.util.UriUtils;
 /**
  * Drives the device authorization grant (RFC 8628) through the running application: the device asks for its codes, the
  * user signs in, types the code on the verification page, approves the consent on the consent page, and the device
- * obtains its tokens. A wrong code goes back to the page with an error, and a user whose account requires a second
- * factor is sent to the second-factor page instead of approving the device.
+ * obtains its tokens. A wrong code goes back to the page with an error, and a user whose account (or whose device's
+ * client) requires a second factor is sent to the second-factor page instead of approving the device.
  */
 @PostgresIT
 @AutoConfigureMockMvc
@@ -273,6 +273,37 @@ class DeviceVerificationPageIT {
         mockMvc.perform(post(VERIFICATION).session(signIn()).with(csrf()).param(USER_CODE_PARAM, "ZZZZ-ZZZZ"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string(LOCATION, endsWith("/login/second-factor")));
+    }
+
+    /**
+     * Verifies that the multi-factor requirement of the device's client applies to the user code alone: the client
+     * skips the consent page, so the post of the code (which names no client) is the approval, and a session that only
+     * presented a password is sent to the second-factor page; the device is still waiting afterwards.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void deviceVerification_whenTheClientRequiresMfaWithoutConsent_redirectsToTheSecondFactorPage() throws Exception {
+        final var mfaClientId = "device-mfa-" + UUID.randomUUID();
+        clientRegistrations.save(new ClientRegistration(mfaClientId, "Device MFA app", false, List.of("none"),
+                List.of(DEVICE_GRANT), List.of(), List.of("profile"), true,
+                List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE), TOKEN_TTL, REFRESH_TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, true), null);
+        final var authorization = AuthServerFixtures.parse(mockMvc.perform(post(DEVICE_AUTHORIZATION)
+                        .param(CLIENT_ID_PARAM, mfaClientId).param("scope", "profile"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        mockMvc.perform(post(VERIFICATION).session(signIn()).with(csrf())
+                        .param(USER_CODE_PARAM, authorization.get(USER_CODE_PARAM).asString()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string(LOCATION, endsWith("/login/second-factor")));
+
+        mockMvc.perform(post(AuthServerFixtures.TOKEN_PATH).param(AuthServerFixtures.GRANT_TYPE, DEVICE_GRANT)
+                        .param("device_code", authorization.get("device_code").asString())
+                        .param(CLIENT_ID_PARAM, mfaClientId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("authorization_pending"));
     }
 
     /**
