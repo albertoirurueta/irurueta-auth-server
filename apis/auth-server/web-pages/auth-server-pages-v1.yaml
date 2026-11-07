@@ -18,16 +18,18 @@
 # "pages", /v3/api-docs/pages) differ from it. Every page answers text/html rendered from a Thymeleaf template.
 # The endpoints Spring Security and Spring Authorization Server answer themselves are not part of it: the login form
 # post (POST /login), the second-factor post (POST /login/second-factor/totp), the sign-out (POST /logout), the
-# consent decision (POST /oauth2/authorize), the WebAuthn endpoints of the passkeys (/webauthn/**, POST /login/webauthn)
-# and every other OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error
+# consent decision (POST /oauth2/authorize), the WebAuthn endpoints of the passkeys (/webauthn/**, POST /login/webauthn),
+# the one-time token endpoints (POST /ott/generate, POST /login/ott, POST /login/second-factor/ott) and every other
+# OAuth 2.1 / OpenID Connect protocol endpoint. Errors are rendered by Spring Boot's own error
 # controller (/error).
 openapi: 3.1.0
 info:
   title: Irurueta Auth Server Pages
   description: >-
     Server-rendered HTML pages of the example OAuth 2.1 / OpenID Connect authorization server: sign-in, second
-    factor, recovery codes, consent, sign-out confirmation and the passkeys of the account. They are meant for a
-    browser, never for a script.
+    factor, recovery codes, consent, sign-out confirmation, the passkeys of the account and the one-time token
+    pages (enter a code, confirm a magic link, the development SMS inbox) and the phone of the account. They are meant for a browser, never for a
+    script.
   version: 1.0.0
   license:
     name: Apache License 2.0
@@ -49,6 +51,17 @@ tags:
     description: The page that asks the user to confirm signing out
   - name: Passkeys page
     description: The account page where a signed-in user registers passkeys and sees the ones already registered
+  - name: Phone page
+    description: >-
+      The account page where a signed-in user enrols, verifies and removes the phone number that receives one-time
+      codes by SMS, with the session-protected form posts it uses
+  - name: One-time token page
+    description: >-
+      The pages of the one-time token sign-in: the one where the code received by e-mail or SMS is entered and the
+      one a magic link opens
+  - name: Dev SMS inbox page
+    description: >-
+      Development only (the dev profile): the SMS messages the logging sender recorded instead of sending them
 security:
   - session: [ ]
 paths:
@@ -226,6 +239,200 @@ paths:
               schema:
                 type: string
   # end::passkeys-page-api[]
+  # tag::phone-page-api[]
+  /account/phone:
+    get:
+      tags: [ Phone page ]
+      operationId: phonePage
+      summary: Renders the phone account page
+      description: >-
+        Renders the page where the signed-in user enrols, verifies and removes the phone number that receives
+        one-time codes by SMS. It shows the verified phone, masked so that only its last digits are visible, or the form
+        to enter a number; once a number was submitted it shows the form that asks for the code received by SMS. The
+        forms post to POST /account/phone, POST /account/phone/verify and POST /account/phone/remove, with the CSRF
+        token, and each answers by redirecting back here: the bearer-protected REST API (/api/account/phone) is for
+        other clients, a browser page has a session, not a token. Like the passkeys page it needs a session that
+        satisfies the multi-factor policy of the account. A request without a signed-in session is redirected to the
+        sign-in page.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: >-
+            Outcome of the previous form post, so the page can tell it: pending (a code was sent, if the number can
+            receive one), verified, removed, invalid-phone, country-not-allowed, invalid-code, rate-limited or
+            step-up-required. Any other value is ignored.
+          schema:
+            type: string
+            maxLength: 40
+      responses:
+        '200':
+          description: The phone page.
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      tags: [ Phone page ]
+      operationId: startPhoneEnrolmentPage
+      summary: Starts the enrolment of a phone number from the page
+      description: >-
+        Sends a verification code by SMS to the number (the same operation as PUT /api/account/phone, for the
+        session of a browser) and redirects to the page with status pending. The answer is the same whether or not the
+        number already belongs to another account, so the page never reveals which numbers are registered. A number that
+        is not valid or belongs to a country SMS messages are not sent to redirects with the status invalid-phone or
+        country-not-allowed, and too many requests with rate-limited. While the account has a confirmed second factor
+        (the new number would replace the verified one), the session must show a recent multi-factor sign-in, or the
+        page is shown with the status step-up-required and nothing is sent.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ phone ]
+              properties:
+                phone:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
+                  description: The phone number, in international format (+34 600 111 222) or in the national one of the default region.
+      responses:
+        '303':
+          description: Redirects to the phone page, with the outcome in the status parameter.
+          headers:
+            Location:
+              description: The phone page.
+              schema:
+                type: string
+  /account/phone/verify:
+    post:
+      tags: [ Phone page ]
+      operationId: verifyPhonePage
+      summary: Confirms the phone number from the page
+      description: >-
+        Confirms the number with the code received by SMS (the same operation as POST /api/account/phone/verify, for the
+        session of a browser) and redirects to the page with status verified. A wrong or expired code redirects with
+        status invalid-code and counts as an attempt; too many requests redirect with rate-limited.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ code ]
+              properties:
+                code:
+                  type: string
+                  minLength: 1
+                  maxLength: 16
+                  description: The numeric code received by SMS.
+      responses:
+        '303':
+          description: Redirects to the phone page, with the outcome in the status parameter.
+          headers:
+            Location:
+              description: The phone page.
+              schema:
+                type: string
+  /account/phone/remove:
+    post:
+      tags: [ Phone page ]
+      operationId: removePhonePage
+      summary: Removes the phone number from the page
+      description: >-
+        Removes the verified phone and any pending verification (the same operation as DELETE /api/account/phone, for the
+        session of a browser) and redirects to the page with status removed. While the account has a confirmed second
+        factor the session must show a recent multi-factor sign-in, as the bearer token must for the REST API;
+        otherwise nothing is removed and the redirect carries status step-up-required, which asks the user to sign in
+        again.
+      responses:
+        '303':
+          description: Redirects to the phone page, with the outcome in the status parameter.
+          headers:
+            Location:
+              description: The phone page.
+              schema:
+                type: string
+  # end::phone-page-api[]
+  # tag::ott-pages-api[]
+  /login/ott:
+    get:
+      tags: [ One-time token page ]
+      operationId: ottCodePage
+      summary: Renders the page where the one-time code is entered
+      description: >-
+        Where the browser lands after a one-time token was requested on POST /ott/generate, for a sign-in or as a second
+        factor, whatever the identifier was: the answer never depends on whether the account exists. It tells the user
+        to check the inbox (the e-mail or the SMS) and, when a numeric code was requested, shows the form to type it.
+        The form posts to the security chain, never to this operation: POST /login/ott for a sign-in and
+        POST /login/second-factor/ott for a second factor (the CSRF token travels in the form). A code only works in
+        the browser that requested it. Public: a sign-in starts without a session; the second-factor variant is the
+        one a signed-in user sees.
+      security: [ ]
+      parameters:
+        - name: error
+          in: query
+          required: false
+          description: >-
+            Present (its value is ignored, usually empty) when the previous attempt failed; the page then shows the
+            message of that failure, which never says whether the code was close or the account exists.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The page.
+          content:
+            text/html:
+              schema:
+                type: string
+  /login/ott/confirm:
+    get:
+      tags: [ One-time token page ]
+      operationId: ottConfirmPage
+      summary: Renders the page a magic link opens
+      description: >-
+        Renders a page with a single button whose form posts the token of the link to POST /login/ott. A GET never
+        consumes the token, so a mail scanner or a link preview that opens the link does not use it up: only the
+        user's click does. The answer is never cached and sends no referrer. The token is not checked here: it is
+        verified when it is posted. Public.
+      security: [ ]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: The token of the magic link, as the e-mail carried it.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+            pattern: '^[A-Za-z0-9-]+$'
+      responses:
+        '200':
+          description: The confirmation page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::ott-pages-api[]
+  # tag::sms-dev-inbox-page-api[]
+  /dev/sms-inbox:
+    get:
+      tags: [ Dev SMS inbox page ]
+      operationId: devSmsInboxPage
+      summary: Renders the development SMS inbox
+      description: >-
+        Development only: it exists when the dev profile is active, and nowhere else (OpenApiDriftIT leaves it out of the
+        comparison because the application it starts does not run that profile). Lists the messages the logging
+        sender recorded instead of sending them, newest last, so a developer or an end-to-end test can read the code
+        of a sign-in or of a phone enrolment. Public in that profile; the inbox is bounded and lives in memory.
+      security: [ ]
+      responses:
+        '200':
+          description: The recorded messages.
+          content:
+            text/html:
+              schema:
+                type: string
+  # end::sms-dev-inbox-page-api[]
 components:
   securitySchemes:
     session:

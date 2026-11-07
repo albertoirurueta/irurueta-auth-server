@@ -41,9 +41,21 @@ or consent requests) can be cleaned up once they are old enough.
 
 |`V500__webauthn.sql`
 |Spring Security's WebAuthn tables (`user_entities`, `user_credentials`) and an index on the credential owner (see xref:passkeys.adoc[]).
+
+|`V600__one_time_tokens.sql`
+|Spring Security's `one_time_tokens` table for magic-link tokens (see xref:one-time-tokens.adoc[]).
+
+|`V610__ott_codes.sql`
+|Hashed numeric e-mail / SMS codes with their attempt counters.
+
+|`V620__user_phones.sql`
+|Verified E.164 phone numbers (one per user) and pending phone verifications.
+
+|`V630__sms_cost_ledger.sql`
+|Spend ledger used by the SMS cost caps.
 |===
 
-Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`. A
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`; one-time tokens and SMS (issue #6) use `V600`-`V699`. A
 migration is never written outside the range of the issue that adds it.
 
 [source,sql]

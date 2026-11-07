@@ -34,5 +34,6 @@
     <module>persistence</module>
     <module>keys</module>
     <module>mail</module>
+    <module>sms</module>
   </modules>
 </project>

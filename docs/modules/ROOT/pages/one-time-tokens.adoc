@@ -1,0 +1,141 @@
+= One-time tokens (e-mail, magic links and SMS)
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A one-time token is a short-lived secret sent over a channel the user controls: an e-mail code, a magic link or an SMS
+code. It works as a passwordless primary sign-in and as a second factor. The framework mechanism is Spring Security's
+`http.oneTimeTokenLogin(...)` (`POST /ott/generate`, `POST /login/ott`); this server adds the numeric code, the
+factors, the SMS gateways, the cost control and the pages.
+
+== Factors
+
+`OttFactors` registers four factors. The second-factor variants are separate authorities, so a code used to sign in is
+never also counted as the second factor. See xref:mfa-and-step-up.adoc[] for how the policy, `amr` and step-up use them.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttFactors.java[tag=ott-factors]
+----
+
+== Generating a token
+
+`POST /ott/generate` always answers with the same redirect to `/login/ott`, whether or not the account exists, so
+nothing reveals accounts. The request resolver sets the lifetime of a magic link from the policy.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttGenerateRequestResolver.java[tag=ott-generate-resolver]
+----
+
+The token is never delivered on the request thread nor inside a database transaction. The use cases store the code
+(or resolve the address of a link, or record the cost of an SMS) and publish a delivery event; `OttDeliveryListener`
+sends it after the transaction commits (`@TransactionalEventListener(phase = AFTER_COMMIT)`) and off the request
+thread (`@Async`, on Spring Boot's `applicationTaskExecutor`, enabled once by `AsyncConfiguration`). A slow or failing
+mail server or SMS gateway therefore holds no database connection, never shows in the response, and cannot tell an
+existing account from an unknown one by the time the request takes. A failed delivery is logged without the address,
+the number or the token.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttDeliveryListener.java[tag=ott-delivery-listener]
+----
+
+The sign-in page shows the e-mail / SMS form as a login method fragment.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttLoginMethodFragment.java[tag=ott-login-fragment]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/login-ott.html[tag=ott-login-fragment]
+----
+
+== As a second factor
+
+Which channels may be the second factor of a signed-in user is one rule, `OttSecondFactorChannels`, applied in three
+places: what the second-factor page offers, whether a requested token is delivered at all (`POST /ott/generate` is
+still answered with the same redirect, but nothing is sent), and whether a presented code or link is accepted. The rule
+is checked before a code is compared, so a code of a channel that is not allowed counts against the second-factor
+lockout and is never audited as a success.
+
+* The channel that signed the user in is never its own second factor.
+* SMS needs a verified phone.
+* E-mail is the second factor only of a user *without any other confirmed second factor* (authenticator app, passkey,
+  verified phone). The password is reset by e-mail too, so a mailbox is not independent from the password: whoever
+  controls it could otherwise skip the stronger factor the user enrolled. For a user whose multi-factor authentication
+  was forced by an administrator before anything was enrolled, the e-mail is then the only second factor available.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttSecondFactorChannels.java[tag=ott-second-factor-channels]
+----
+
+A consequence of the e-mail rule: a user whose only second factor is the verified phone, and who signs in with an SMS
+code, has no one-time token left to complete the second factor (SMS signed in, and e-mail is not allowed next to the
+phone); that user signs in with the password, or enrols another factor.
+
+A second-factor magic link carries a marker in the user name Spring's token store keeps, so a user name longer than
+`LinkTokenUsername.MAX_SECOND_FACTOR_LENGTH` (99 characters) would not fit whole; such a link is not delivered.
+
+== Phone
+
+Starting the enrolment of a phone (`PUT /api/account/phone` and the form of `/account/phone`) needs a recent
+multi-factor sign-in while the account already has a confirmed second factor, as removing it does, because the new
+number replaces a second factor. Replacing a verified phone revokes every trusted device of the user and is audited
+(`SECOND_FACTOR_REMOVED`); removing it is audited and, when no other second factor is left, revokes the trusted devices
+too. Two users confirming the same number at once are serialised by a PostgreSQL advisory lock on the number, so the
+second one is refused as an invalid code and never fails the request.
+
+== Schema and settings
+
+Spring's own `one_time_tokens` table holds the link tokens; the numeric codes are ours and only their hash is stored.
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V600__one_time_tokens.sql[tag=ott-schema]
+----
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=ott-config]
+----
+
+== Rate limits
+
+Generation and verification are limited per client address and per identifier (Bucket4j with Caffeine); an exceeded
+limit answers `429`. The filter is added before Spring's generate filter, which answers `POST /ott/generate` itself.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttRateLimiter.java[tag=ott-rate-limit]
+----
+
+== SMS
+
+The domain port `SmsSender` has three implementations chosen by a Spring profile, never by a property: `twilio`, `sns`,
+and, only under the `dev` or `test` profile, a logging sender with a bounded in-memory outbox (shown at `/dev/sms-inbox`
+under `dev`). With none of these profiles the application refuses to start (`MissingSmsGatewayConfiguration`), so a
+deployment never silently keeps its messages in memory. The gateway credentials are supplied only through environment
+variables (`AUTHSERVER_SMS_TWILIO_*`, the AWS default credential chain); none is stored in the repository.
+
+[source,java]
+----
+include::example$auth-server/domain/src/main/java/com/irurueta/authserver/authorization/domain/sms/SmsSender.java[tag=sms-sender]
+----
+
+[source,java]
+----
+include::example$auth-server/infrastructure/sms/src/main/java/com/irurueta/authserver/authorization/infrastructure/sms/SmsAdapterConfiguration.java[tag=sms-adapters]
+----
+
+Cost control checks the country allow-list and the per-window and per-day caps before each message. The caps are
+checked and the cost recorded in one step (`SmsCostLedgerRepository.tryRecord`: a conditional insert after a
+PostgreSQL transaction-level advisory lock), so concurrent senders cannot overshoot a budget and a refused message
+leaves no ledger row; the message is handed to the gateway only after that transaction commits.
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=sms-config]
+----

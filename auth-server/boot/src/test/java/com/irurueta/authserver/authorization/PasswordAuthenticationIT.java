@@ -121,6 +121,34 @@ class PasswordAuthenticationIT {
     }
 
     /**
+     * Verifies that the login page carries the one-time token fragment next to the password form, posting to the
+     * framework's token endpoint.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void loginPage_whenRequested_carriesTheOneTimeTokenFragment() throws Exception {
+        final var page = mockMvc.perform(get(LOGIN).locale(Locale.ENGLISH))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertTrue(page.contains("action=\"/ott/generate\""), page);
+        assertTrue(page.contains("name=\"password\""), page);
+    }
+
+    /**
+     * Verifies that asking for a code or a link as an anonymous user is answered with the same redirect whether the
+     * account exists or not, so the endpoint never reveals accounts.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void generateOneTimeToken_whenAccountIsUnknown_redirectsToTheCodePage() throws Exception {
+        mockMvc.perform(post("/ott/generate").with(csrf()).param("username", "unknown-" + UUID.randomUUID()))
+                .andExpect(redirectedUrl("/login/ott"));
+    }
+
+    /**
      * Posts the login form, expects it to fail and returns the session that holds the failure.
      *
      * @param username username to post.

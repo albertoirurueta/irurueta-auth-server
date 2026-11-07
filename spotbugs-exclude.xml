@@ -38,6 +38,28 @@
     <Class name="com.irurueta.authserver.authorization.api.web.totp.TotpAuthenticationToken"/>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
+  <!-- Same as TotpAuthenticationToken: the request to verify a one-time code as a second factor carries, by reference,
+       the Authentication the user already holds. It is an immutable Spring Security object that the provider hands
+       back enriched, so no copy could be made, and it is never shared outside the request. -->
+  <Match>
+    <Class name="com.irurueta.authserver.authorization.api.web.ott.OttSecondFactorToken"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <!-- OAuth2TokenClaimsSet.Builder.claims(Consumer) and JwtClaimsSet.Builder.claims(Consumer) mutate the builder through
+       the consumer, which is the whole purpose of the call, so ignoring the builder they return is correct (a false
+       positive). The detector infers "no side effect" for a library method from the classes the analysis loads, and the
+       inference flipped for these two customizers as soon as the one-time token login configurer of Spring Security was
+       referenced by OttChainCustomizer, without any change to them. -->
+  <Match>
+    <Class name="com.irurueta.authserver.authorization.api.web.tokens.ReferenceTokenClaimsCustomizer"/>
+    <Method name="customize"/>
+    <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+  </Match>
+  <Match>
+    <Class name="com.irurueta.authserver.authorization.api.web.tokens.RolesTenantAudienceTokenCustomizer"/>
+    <Method name="customize"/>
+    <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+  </Match>
   <!-- The filter keeps the Spring-managed cookie writer it is built with; the filter is created by a configuration
        and never exposed, so the reference cannot be used to alter it from outside. -->
   <Match>

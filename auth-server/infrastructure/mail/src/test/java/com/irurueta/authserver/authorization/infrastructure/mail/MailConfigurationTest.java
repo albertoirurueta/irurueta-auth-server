@@ -48,6 +48,28 @@ class MailConfigurationTest {
     }
 
     /**
+     * The one-time token delivery is the Thymeleaf mailer.
+     */
+    @Test
+    void emailOttDelivery_whenCalled_returnsThymeleafMailer() {
+        final var delivery = new MailConfiguration().emailOttDelivery(mailSender,
+                new MailProperties(null, null, null));
+
+        assertInstanceOf(ThymeleafOttMailer.class, delivery);
+    }
+
+    /**
+     * The one-time token bundle resolves for an unknown locale without using the platform locale.
+     */
+    @Test
+    void ottMessages_whenLocaleIsUnknown_resolvesBaseBundle() {
+        final var subject = MailConfiguration.ottMessages()
+                .getMessage("ott.code.subject", null, Locale.JAPANESE);
+
+        assertEquals("Your sign-in code", subject);
+    }
+
+    /**
      * The bundle resolves for an unknown locale without using the platform locale.
      */
     @Test

@@ -1,0 +1,7 @@
+[[#{ott.code.intro}]]
+
+[(${code})]
+
+[[#{ott.code.validity(${validMinutes})}]]
+
+[[#{ott.ignore}]]

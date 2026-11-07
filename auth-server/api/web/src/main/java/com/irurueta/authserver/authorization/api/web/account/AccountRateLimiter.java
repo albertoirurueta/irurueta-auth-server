@@ -15,14 +15,8 @@
  */
 package com.irurueta.authserver.authorization.api.web.account;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.TimeMeter;
+import com.irurueta.authserver.authorization.api.web.ratelimit.FixedWindowBuckets;
 import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -30,10 +24,10 @@ import org.springframework.stereotype.Component;
 // tag::account-rate-limit[]
 /**
  * Rate limiter of the unauthenticated account endpoints (register, verify, reset request, reset), built on
- * <a href="https://bucket4j.com">Bucket4j</a> token buckets. Requests are limited twice: per client address, and
- * per e-mail address when the request names one, so neither a single client nor many clients aiming at one
- * address can flood the server (and the mailboxes) with account mail or guess reset tokens. Each bucket holds the
- * limit of its key and is refilled all at once every {@link AccountRateLimitProperties#window()}.
+ * <a href="https://bucket4j.com">Bucket4j</a> token buckets ({@link FixedWindowBuckets}). Requests are limited twice:
+ * per client address, and per e-mail address when the request names one, so neither a single client nor many clients
+ * aiming at one address can flood the server (and the mailboxes) with account mail or guess reset tokens. Each bucket
+ * holds the limit of its key and is refilled all at once every {@link AccountRateLimitProperties#window()}.
  *
  * <p>The buckets of each kind of key live in a Caffeine cache bounded to
  * {@link AccountRateLimitProperties#maxTrackedKeys()} entries, which also drops a bucket idle for a whole window
@@ -49,14 +43,11 @@ public final class AccountRateLimiter {
     /** Limits, window and bound of the tracked keys. */
     private final AccountRateLimitProperties properties;
 
-    /** Time source of the buckets and of the caches, read from the injected clock so tests can move it. */
-    private final ClockTimeMeter timeMeter;
-
     /** Buckets per client address. */
-    private final Cache<String, Bucket> clients;
+    private final FixedWindowBuckets clients;
 
     /** Buckets per (lower-cased) e-mail address. */
-    private final Cache<String, Bucket> emails;
+    private final FixedWindowBuckets emails;
 
     /**
      * Creates the limiter.
@@ -66,9 +57,8 @@ public final class AccountRateLimiter {
      */
     public AccountRateLimiter(final AccountRateLimitProperties properties, final Clock clock) {
         this.properties = properties;
-        timeMeter = new ClockTimeMeter(clock);
-        clients = cache();
-        emails = cache();
+        clients = new FixedWindowBuckets(clock, properties.window(), properties.maxTrackedKeys());
+        emails = new FixedWindowBuckets(clock, properties.window(), properties.maxTrackedKeys());
     }
 
     /**
@@ -94,9 +84,7 @@ public final class AccountRateLimiter {
      * @return the number of client keys plus the number of e-mail keys.
      */
     long trackedKeys() {
-        clients.cleanUp();
-        emails.cleanUp();
-        return clients.estimatedSize() + emails.estimatedSize();
+        return clients.trackedKeys() + emails.trackedKeys();
     }
 
     /**
@@ -107,56 +95,10 @@ public final class AccountRateLimiter {
      * @param limit   requests the key may make per window.
      * @throws AccountRateLimitExceededException if the bucket is empty.
      */
-    private void consume(final Cache<String, Bucket> buckets, final String key, final int limit) {
-        final var probe = buckets.get(key, ignored -> bucket(limit)).tryConsumeAndReturnRemaining(1);
-        if (!probe.isConsumed()) {
-            throw new AccountRateLimitExceededException(Duration.ofNanos(probe.getNanosToWaitForRefill()));
-        }
-    }
-
-    /**
-     * Builds the bucket of a key: the whole limit, refilled at once at the end of every window.
-     *
-     * @param limit requests per window.
-     * @return the bucket.
-     */
-    private Bucket bucket(final int limit) {
-        return Bucket.builder()
-                .addLimit(bandwidth -> bandwidth.capacity(limit).refillIntervally(limit, properties.window()))
-                .withCustomTimePrecision(timeMeter)
-                .build();
-    }
-
-    /**
-     * Builds the cache of the buckets of one kind of key. Maintenance runs on the calling thread, so eviction is
-     * deterministic and needs no extra thread.
-     *
-     * @return the cache.
-     */
-    private Cache<String, Bucket> cache() {
-        return Caffeine.newBuilder()
-                .maximumSize(properties.maxTrackedKeys())
-                .expireAfterAccess(properties.window())
-                .ticker(timeMeter::currentTimeNanos)
-                .executor(Runnable::run)
-                .build();
-    }
-
-    /**
-     * Bucket4j and Caffeine time source backed by a {@link Clock}.
-     *
-     * @param clock source of the current time.
-     */
-    private record ClockTimeMeter(Clock clock) implements TimeMeter {
-
-        @Override
-        public long currentTimeNanos() {
-            return ChronoUnit.NANOS.between(Instant.EPOCH, clock.instant());
-        }
-
-        @Override
-        public boolean isWallClockBased() {
-            return true;
+    private static void consume(final FixedWindowBuckets buckets, final String key, final int limit) {
+        final var wait = buckets.tryConsume(key, limit);
+        if (wait.isPresent()) {
+            throw new AccountRateLimitExceededException(wait.get());
         }
     }
 }

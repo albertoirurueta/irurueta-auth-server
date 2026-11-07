@@ -39,6 +39,8 @@ tags:
     description: Browsers on which the second factor is skipped for a limited time
   - name: Passkeys
     description: WebAuthn credentials of the authenticated account
+  - name: Phone
+    description: The phone number of the authenticated account, used to receive one-time codes by SMS
   - name: Signing keys
     description: Administration of the signing keys
   - name: Clients
@@ -409,6 +411,120 @@ paths:
                 $ref: '#/components/schemas/Problem'
   # end::passkeys-api-contract[]
   # end::totp-api-contract[]
+  # tag::phone-api-contract[]
+  /api/account/phone:
+    get:
+      tags: [ Phone ]
+      operationId: getPhone
+      summary: Gets the verified phone number
+      description: >-
+        Answers the verified phone number of the authenticated account, masked so that only its last digits are
+        shown. A number whose verification is still pending is not reported, and neither is any number of another
+        account.
+      responses:
+        '200':
+          description: The verified phone number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The account has no verified phone number (problem type urn:problem:phone:phone-not-found)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    put:
+      tags: [ Phone ]
+      operationId: startPhoneEnrolment
+      summary: Starts the enrolment of a phone number
+      description: >-
+        Normalises the number to E.164 (a number without a country prefix is read in the default region of the
+        server), checks that SMS messages may be sent to its country and sends a verification code by SMS. The
+        enrolment is pending until it is confirmed with the code on POST /api/account/phone/verify; starting it again
+        replaces the pending one. The answer is the same whether or not the number already belongs to another
+        account, and in that case no message is sent, so the endpoint never reveals which numbers are registered.
+        The message is sent after the answer, so a slow or failing SMS gateway never shows in it. Limited per client
+        address and per account. While the account has a confirmed second factor (the new number would replace the
+        verified one), the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPhoneEnrolmentRequest'
+      responses:
+        '202':
+          description: The verification code was requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneEnrolmentResponse'
+        '400':
+          description: >-
+            The request is invalid, the number is not a valid phone number (problem type
+            urn:problem:phone:invalid-phone) or SMS messages are not sent to its country (problem type
+            urn:problem:phone:country-not-allowed)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [ Phone ]
+      operationId: removePhone
+      summary: Removes the phone number
+      description: >-
+        Removes the verified phone number and any pending verification of the authenticated account, so SMS codes can
+        no longer be used, and audits the removal; when the account is then left without any confirmed second factor,
+        every trusted device of the account is revoked. Removing a phone that is not set succeeds as well. While the account has a confirmed second
+        factor, the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
+      responses:
+        '204':
+          description: The phone number is removed
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+  /api/account/phone/verify:
+    post:
+      tags: [ Phone ]
+      operationId: verifyPhone
+      summary: Confirms the phone number with the code sent by SMS
+      description: >-
+        Checks the code against the pending verification of the authenticated account. A correct code makes the
+        number the verified phone of the account; a wrong one counts as an attempt, and the verification is discarded
+        after too many. A number that replaces another verified one is audited as the removal of a second factor and
+        revokes every trusted device of the account. Limited per client address and per account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyPhoneRequest'
+      responses:
+        '200':
+          description: The phone number is verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneResponse'
+        '400':
+          description: >-
+            The request is invalid, or the code is wrong, expired or there is no verification in progress (problem
+            type urn:problem:phone:invalid-code)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  # end::phone-api-contract[]
   # tag::clients-api[]
   /api/admin/clients:
     get:
@@ -881,6 +997,51 @@ components:
           maxLength: 100
           pattern: '[\s\S]*\S[\s\S]*'
     # end::passkeys-schemas[]
+    # tag::phone-schemas[]
+    PhoneResponse:
+      type: object
+      description: The verified phone number of the account
+      required: [ maskedNumber, verifiedAt ]
+      properties:
+        maskedNumber:
+          type: string
+          description: The number in E.164 form with every digit but the last four hidden, for example +*******1222.
+        verifiedAt:
+          type: string
+          format: date-time
+          description: When the number was verified.
+    StartPhoneEnrolmentRequest:
+      type: object
+      description: The phone number to enrol
+      required: [ phone ]
+      properties:
+        phone:
+          type: string
+          description: >-
+            The number, in international form (+34 600 11 22 33) or national form of the default region; spaces,
+            dashes and brackets are ignored.
+          minLength: 1
+          maxLength: 32
+          pattern: '[\s\S]*\S[\s\S]*'
+    PhoneEnrolmentResponse:
+      type: object
+      description: Confirmation that a verification code was requested
+      required: [ expiresIn ]
+      properties:
+        expiresIn:
+          type: string
+          format: duration
+          description: How long the verification code stays valid, as an ISO-8601 duration.
+    VerifyPhoneRequest:
+      type: object
+      description: The code received by SMS
+      required: [ code ]
+      properties:
+        code:
+          type: string
+          description: The numeric verification code.
+          pattern: '^[0-9]{4,10}$'
+    # end::phone-schemas[]
     # tag::clients-schemas[]
     ClientRequest:
       type: object

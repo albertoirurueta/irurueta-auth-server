@@ -121,6 +121,11 @@
     <bucket4j.version>8.22.0</bucket4j.version>
     <!-- QR code rendering of the TOTP enrolment; not managed by the Spring Boot BOM -->
     <zxing.version>3.5.4</zxing.version>
+    <!-- E.164 normalisation of phone numbers (SMS one-time codes); not managed by the Spring Boot BOM -->
+    <libphonenumber.version>9.0.43</libphonenumber.version>
+    <!-- SMS gateways (profile-gated adapters of infrastructure/sms): Twilio and AWS SDK v2 (SNS, through its BOM) -->
+    <twilio.version>13.2.0</twilio.version>
+    <aws-sdk.version>2.57.11</aws-sdk.version>
   </properties>
 
   <dependencyManagement>
@@ -154,6 +159,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>auth-server-infrastructure-mail</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>auth-server-infrastructure-sms</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -250,6 +260,23 @@
         <groupId>com.bucket4j</groupId>
         <artifactId>bucket4j_jdk17-core</artifactId>
         <version>${bucket4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.googlecode.libphonenumber</groupId>
+        <artifactId>libphonenumber</artifactId>
+        <version>${libphonenumber.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.twilio.sdk</groupId>
+        <artifactId>twilio</artifactId>
+        <version>${twilio.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>com.google.zxing</groupId>
