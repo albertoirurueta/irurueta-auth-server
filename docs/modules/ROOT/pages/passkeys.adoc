@@ -84,6 +84,8 @@ include::example$auth-server/infrastructure/persistence/src/main/resources/db/mi
 
 * Passkey-first sign-up is not possible: registration needs an authenticated session, so an account starts with
   another primary factor.
-* A passkey-only session gets the password `acr`, so it cannot satisfy the step-up check of the account API.
+* A passkey-only session gets the password `acr`, by design: the passkey is a strong factor but not multi-factor alone
+  (user verification is only preferred), so it cannot satisfy a step-up and the user adds a second factor (see
+  xref:mfa-and-step-up.adoc[]).
 * Spring's relying party operations fix user verification to `preferred`.
 * `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.

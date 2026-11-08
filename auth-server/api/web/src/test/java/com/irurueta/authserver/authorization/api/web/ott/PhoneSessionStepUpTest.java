@@ -20,9 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.irurueta.authserver.authorization.api.web.mfa.AuthenticationFactorRegistry;
 import com.irurueta.authserver.authorization.api.web.mfa.FactorTimeline;
 import com.irurueta.authserver.authorization.application.mfa.HasConfirmedSecondFactorUseCase;
 import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
+import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import com.irurueta.authserver.authorization.domain.mfa.MfaPolicy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,6 +40,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.FactorGrantedAuthority;
 
 /** Unit tests of {@link PhoneSessionStepUp}. */
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +58,12 @@ class PhoneSessionStepUpTest {
 
     /** Lockout, in minutes. */
     private static final int LOCKOUT_MINUTES = 15;
+
+    /** Authority of the strong federated factor, multi-factor alone. */
+    private static final String FEDERATED_MFA = "FACTOR_FEDERATED_MFA";
+
+    /** Authority of the passkey factor, strong but a single factor. */
+    private static final String PASSKEY = "FACTOR_WEBAUTHN";
 
     /** The instant of the clock. */
     private static final Instant NOW = Instant.parse("2026-01-01T12:00:00Z");
@@ -77,9 +89,7 @@ class PhoneSessionStepUpTest {
     /** Creates the rule over a fixed clock. */
     @BeforeEach
     void setUp() {
-        final var properties = new MfaProperties(MAX_FAILED_ATTEMPTS, Duration.ofMinutes(LOCKOUT_MINUTES),
-                Duration.ofDays(TRUSTED_DAYS), "Issuer", Duration.ofMinutes(MAX_AGE_MINUTES));
-        stepUp = new PhoneSessionStepUp(hasConfirmedSecondFactorUseCase, factorTimeline, properties,
+        stepUp = new PhoneSessionStepUp(hasConfirmedSecondFactorUseCase, factorTimeline, properties(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -140,5 +150,43 @@ class PhoneSessionStepUpTest {
         when(factorTimeline.authTime(session)).thenReturn(Optional.empty());
 
         assertFalse(stepUp.isSatisfied(userId, session));
+    }
+
+    /**
+     * Pins how the shared multi-factor rule reaches the phone page, over the real timeline: a recent sign-in at a
+     * provider trusted for its multi-factor authentication is enough on its own, a passkey alone is not.
+     */
+    @Test
+    void isSatisfied_whenTheSessionHoldsOneStrongFactor_followsTheMultiFactorRule() {
+        when(hasConfirmedSecondFactorUseCase.execute(userId)).thenReturn(true);
+        final var registry = new AuthenticationFactorRegistry(List.of(
+                new AuthenticationFactor("federated-mfa", "fed", FEDERATED_MFA, FactorStrength.PRIMARY_STRONG, true),
+                new AuthenticationFactor("passkey", "hwk", PASSKEY, FactorStrength.PRIMARY_STRONG)));
+        final var realRule = new PhoneSessionStepUp(hasConfirmedSecondFactorUseCase,
+                new FactorTimeline(registry, new MfaPolicy()), properties(), Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertTrue(realRule.isSatisfied(userId, signedInWith(FEDERATED_MFA)));
+        assertFalse(realRule.isSatisfied(userId, signedInWith(PASSKEY)));
+    }
+
+    /**
+     * Builds a session that presented one factor a minute ago.
+     *
+     * @param authority the authority of the factor.
+     * @return the session.
+     */
+    private static UsernamePasswordAuthenticationToken signedInWith(final String authority) {
+        return UsernamePasswordAuthenticationToken.authenticated("alice", null, List.<GrantedAuthority>of(
+                FactorGrantedAuthority.withAuthority(authority).issuedAt(NOW.minus(Duration.ofMinutes(1))).build()));
+    }
+
+    /**
+     * Builds the multi-factor settings of the tests.
+     *
+     * @return the settings.
+     */
+    private static MfaProperties properties() {
+        return new MfaProperties(MAX_FAILED_ATTEMPTS, Duration.ofMinutes(LOCKOUT_MINUTES),
+                Duration.ofDays(TRUSTED_DAYS), "Issuer", Duration.ofMinutes(MAX_AGE_MINUTES));
     }
 }

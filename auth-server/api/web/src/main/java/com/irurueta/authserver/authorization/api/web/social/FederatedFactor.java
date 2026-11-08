@@ -29,10 +29,12 @@ import org.springframework.context.annotation.Configuration;
  *   proved the user, but the server does not know how, so the normal second-factor flow applies;</li>
  *   <li>{@link #STRONG_AUTHORITY} ({@code fed}, {@link FactorStrength#PRIMARY_STRONG}): granted instead of the first
  *   only when the provider is marked {@code trust-mfa} <em>and</em> its upstream {@code amr} contains {@code mfa}, so
- *   the sign-in satisfies the multi-factor policy on its own, like a passkey.</li>
+ *   the sign-in satisfies the multi-factor policy on its own, like a passkey. Unlike a passkey it is also
+ *   {@link AuthenticationFactor#multiFactor() multi-factor alone}: the provider proved several factors, so the
+ *   session reaches the multi-factor {@code acr} and passes a step-up without a local second factor.</li>
  * </ul>
- * Both report the same {@code amr} value, so the tokens read {@code fed} either way (plus the upstream values and
- * {@code mfa} for the strong one, see {@link IdpClaimsContributor}).
+ * Both report the same {@code amr} value, so the tokens read {@code fed} either way (plus {@code mfa} and the upstream
+ * values for the strong one, see {@link IdpClaimsContributor}).
  */
 @Configuration(proxyBeanMethods = false)
 public class FederatedFactor {
@@ -64,7 +66,8 @@ public class FederatedFactor {
      */
     @Bean
     public AuthenticationFactor federatedStrongAuthenticationFactor() {
-        return new AuthenticationFactor("federated-mfa", AMR_VALUE, STRONG_AUTHORITY, FactorStrength.PRIMARY_STRONG);
+        return new AuthenticationFactor("federated-mfa", AMR_VALUE, STRONG_AUTHORITY, FactorStrength.PRIMARY_STRONG,
+                true);
     }
     // end::social-factor[]
 }

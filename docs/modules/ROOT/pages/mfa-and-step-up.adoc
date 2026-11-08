@@ -371,6 +371,49 @@ resource server enforces the policy; see xref:resource-server.adoc[]. Both the c
 factors through `FactorTimeline`: a remembered device never counts, and `auth_time` (and so `max_age`) is the time of
 the primary factor, not of a later second factor, so adding a code never makes an old sign-in look recent.
 
+Whether a sign-in is multi-factor is decided in one place, `MfaPolicy.isMultiFactor`, which `FactorTimeline` applies
+to the counted factors: two distinct factors, or one factor that proves a multi-factor authentication by itself (the
+`multiFactor` flag of `AuthenticationFactor`). So the `amr` `mfa` value, the `acr`, the step-up of the authorization
+endpoint and `StepUpGuard` (which reads the `acr` of the token) always agree.
+
+[cols="2,1,1,1",options="header"]
+|===
+|Sign-in
+|Satisfies the sign-in policy alone
+|Multi-factor (`acr` `mfa`) alone
+|Step-up needs
+
+|Password, e-mail or SMS code, ordinary social sign-in (`PRIMARY`)
+|no
+|no
+|a second factor
+
+|Passkey, X.509 certificate (`PRIMARY_STRONG`)
+|yes
+|no
+|a second factor
+
+|Social sign-in at a provider with `trust-mfa` that reported `mfa` (`FACTOR_FEDERATED_MFA`, `PRIMARY_STRONG` and
+multi-factor alone)
+|yes
+|yes
+|nothing more (only a recent enough sign-in)
+
+|Any primary factor plus a second factor, or two distinct primary factors (for example a password, then a passkey in
+the same session, whose authorities Spring merges)
+|yes
+|yes
+|nothing more (only a recent enough sign-in)
+|===
+
+The same rule guards the session's sensitive changes: the phone page (`PhoneSessionStepUp`) accepts a recent
+multi-factor session, so a trusted provider's multi-factor sign-in may change the phone without a local second factor,
+as its bearer tokens may on the account API.
+
+A passkey or a certificate proves one thing, however strongly: user verification of a passkey is only preferred, so
+possession is all it proves for certain, and a certificate is possession of a key. They let the user in without a
+second factor but do not claim a multi-factor sign-in.
+
 [source,java]
 ----
 include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/mfa/FactorTimeline.java[tag=mfa-factor-timeline]

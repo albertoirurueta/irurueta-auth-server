@@ -118,8 +118,9 @@ class IdpClaimsContributorTest {
     }
 
     /**
-     * Verifies that a strong sign-in adds the upstream methods once each (the {@code fed} the provider repeated, too),
-     * lists {@code mfa} once and gets the multi-factor class, in a mutable list.
+     * Verifies that a strong sign-in, multi-factor alone, gets {@code mfa} and the multi-factor class from the
+     * multi-factor contributor, and that the upstream methods are then added once each (the {@code fed} and
+     * {@code mfa} the provider repeated, too), in a mutable list.
      */
     @Test
     void contribute_whenSignInIsStrong_mergesTheUpstreamMethodsOnceAndReportsMultiFactor() {
@@ -130,23 +131,25 @@ class IdpClaimsContributorTest {
         mfaContributor.contribute(context, claims);
         contributor.contribute(context, claims);
 
-        assertEquals(List.of("fed", "pwd", "mfa"), claims.get(IdTokenClaimNames.AMR));
+        assertEquals(List.of("fed", "mfa", "pwd"), claims.get(IdTokenClaimNames.AMR));
         assertInstanceOf(ArrayList.class, claims.get(IdTokenClaimNames.AMR));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, claims.get(IdTokenClaimNames.ACR));
         assertEquals("google", claims.get(IdpClaimsContributor.IDP_CLAIM));
     }
 
     /**
-     * Verifies that a strong sign-in whose claims have no {@code amr} yet still gets one.
+     * Verifies that a strong sign-in whose claims have no {@code amr} yet still gets one, and that this contributor
+     * never sets {@code acr} itself: the multi-factor contributor owns it.
      */
     @Test
-    void contribute_whenSignInIsStrongAndClaimsHaveNoAmr_createsIt() {
+    void contribute_whenSignInIsStrongAndClaimsHaveNoAmr_createsItWithoutAcr() {
         final var claims = new HashMap<String, Object>();
         final var context = context(token(List.of("mfa"), factor(FederatedFactor.STRONG_AUTHORITY, SIGN_IN)));
 
         contributor.contribute(context, claims);
 
         assertEquals(List.of("mfa"), claims.get(IdTokenClaimNames.AMR));
+        assertFalse(claims.containsKey(IdTokenClaimNames.ACR));
     }
 
     /**

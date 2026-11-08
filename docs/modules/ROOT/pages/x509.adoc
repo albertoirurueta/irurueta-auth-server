@@ -73,7 +73,10 @@ include::example$auth-server/application/src/main/java/com/irurueta/authserver/a
 == Factor and chain
 
 `FACTOR_X509` is a strong primary factor whose `amr` value is `sc` (smart card) or `hwk` (hardware-bound key), from
-`authserver.x509.amr`.
+`authserver.x509.amr`. It lets the user in without a second factor, but it is not multi-factor alone (a certificate is
+possession of a key, and the server cannot tell whether a PIN protected it): a certificate-only session gets the
+password `acr`, so a step-up (`acr_values` for the multi-factor class, or the account API's `StepUpGuard`) asks for a
+second factor (see xref:mfa-and-step-up.adoc[]).
 
 [source,java]
 ----

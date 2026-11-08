@@ -23,6 +23,9 @@ import java.util.Set;
  */
 public class MfaPolicy {
 
+    /** Minimum number of distinct reported factors of a multi-factor authentication. */
+    public static final int MIN_MULTI_FACTORS = 2;
+
     /**
      * Tells whether a set of factors satisfies the sign-in policy: a {@link FactorStrength#PRIMARY_STRONG} factor
      * alone, or a {@link FactorStrength#PRIMARY} factor together with a {@link FactorStrength#SECOND} or a
@@ -47,6 +50,22 @@ public class MfaPolicy {
      */
     public boolean isReported(final AuthenticationFactor factor) {
         return factor.strength() != FactorStrength.REMEMBERED;
+    }
+
+    /**
+     * Tells whether the factors of an authentication make it multi-factor, the one rule behind the {@code amr}
+     * {@code mfa} value, the multi-factor {@code acr} and every step-up check: at least {@link #MIN_MULTI_FACTORS}
+     * distinct reported factors, or one reported factor that proves a multi-factor authentication alone
+     * ({@link AuthenticationFactor#multiFactor()}). A {@link FactorStrength#PRIMARY_STRONG} factor alone satisfies
+     * the sign-in policy ({@link #isSatisfied}) but is multi-factor only when it says so: a passkey or a certificate
+     * proves one thing, however strongly.
+     *
+     * @param factors the factors used by the authentication; must not be {@code null}.
+     * @return {@code true} for a multi-factor authentication.
+     */
+    public boolean isMultiFactor(final Set<AuthenticationFactor> factors) {
+        final var reported = factors.stream().filter(this::isReported).toList();
+        return reported.size() >= MIN_MULTI_FACTORS || reported.stream().anyMatch(AuthenticationFactor::multiFactor);
     }
 
     /**

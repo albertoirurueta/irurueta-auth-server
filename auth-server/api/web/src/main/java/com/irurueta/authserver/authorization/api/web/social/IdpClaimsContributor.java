@@ -17,7 +17,6 @@
 package com.irurueta.authserver.authorization.api.web.social;
 
 import com.irurueta.authserver.authorization.api.web.tokens.JwtClaimsContributor;
-import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +39,12 @@ import org.springframework.stereotype.Component;
  * <p>When the provider is trusted for its multi-factor authentication and proved it (the strong factor,
  * {@link FederatedFactor#STRONG_AUTHORITY}), the upstream {@code amr} values are added to the {@code amr} claim the
  * {@link com.irurueta.authserver.authorization.api.web.mfa.MfaClaimsContributor} wrote (each value once, so the
- * repeated ones of the factor and of the provider are listed once, and {@code mfa} is there exactly once) and the
- * {@code acr} is the multi-factor class, so the token can satisfy a step-up. The upstream {@code amr} of a provider
- * that is not trusted is never copied: it would claim a strength the server did not accept.
+ * repeated ones of the factor and of the provider are listed once, and {@code mfa} is there exactly once). The
+ * {@code acr} is not set here: the strong factor is {@link
+ * com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor#multiFactor() multi-factor alone}, so the
+ * multi-factor contributor already wrote the multi-factor class, from the same rule the step-up checks use. The
+ * upstream {@code amr} of a provider that is not trusted is never copied: it would claim a strength the server did not
+ * accept.
  */
 @Component
 @Order(IdpClaimsContributor.ORDER)
@@ -80,7 +82,6 @@ public class IdpClaimsContributor implements JwtClaimsContributor {
         final var upstream = userMapper.upstreamAmr(Objects.requireNonNull(token.getPrincipal()));
         upstream.stream().filter(value -> !amr.contains(value)).forEach(amr::add);
         claims.put(IdTokenClaimNames.AMR, amr);
-        claims.put(IdTokenClaimNames.ACR, AuthenticationContextClass.MULTI_FACTOR);
     }
 
     /**

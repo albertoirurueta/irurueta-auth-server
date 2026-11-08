@@ -145,7 +145,8 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
 - **Authentication factors (`mfa`, #4)**: a login method is also an *authentication factor*, and the MFA framework
   decides, from the factors a session has proved, whether the user may continue. Nothing here is edited by a new
   method; it only registers itself.
-  - `domain.mfa.AuthenticationFactor` is a record (`id`, `amrValue`, `authority`, `strength`); `FactorStrength` is
+  - `domain.mfa.AuthenticationFactor` is a record (`id`, `amrValue`, `authority`, `strength`, `multiFactor`; the
+    four-argument constructor sets `multiFactor` to `false`); `FactorStrength` is
     `PRIMARY`, `PRIMARY_STRONG` (proves identity alone, for example a passkey), `SECOND` (only counts on top of a
     primary) or `REMEMBERED` (stands in for a `SECOND` at sign-in only, today the trusted device; never reported in
     `amr`/`acr`/`auth_time` and never satisfies a step-up: `MfaPolicy.isReported`). The `authority` is the `FACTOR_*` authority that Spring Security 7 `FactorGrantedAuthority` carries for
@@ -157,7 +158,11 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     `TrustedDeviceFactor` (`REMEMBERED`, `FACTOR_TRUSTED_DEVICE`) are the existing declarations. The registry answers `findByAuthority`, `withStrength` and `factorsOf(Authentication)`.
   - **Policy**: `domain.mfa.MfaPolicy` is pure and a bean (`application.mfa.MfaConfiguration`).
     `isRequired(clientRequires, userRequires)` is true when the client has `settings.client.mfa.required` (admin API
-    `mfaRequired`) or the user requires it; `isSatisfied(factors)` is true for one `PRIMARY_STRONG` factor or a
+    `mfaRequired`) or the user requires it; `isMultiFactor(factors)` is the one rule behind the `amr` `mfa` value, the
+    multi-factor `acr` and every step-up check: two distinct reported factors, or one reported factor with
+    `multiFactor` (only a `PRIMARY_STRONG` factor may set it; today only `FACTOR_FEDERATED_MFA`). A passkey or an X.509
+    certificate alone is `PRIMARY_STRONG` but proves one thing, so it satisfies the sign-in policy and not a step-up;
+    `isSatisfied(factors)` is true for one `PRIMARY_STRONG` factor or a
     `PRIMARY` plus a `SECOND` or `REMEMBERED` one. `api.web.mfa.MfaAuthorizationManager` applies it and, when not
     satisfied, names the registered `SECOND` factors as missing.
   - **"The user requires MFA"** (`application.mfa.IsUserMfaRequiredUseCase`) is `users.mfa_required` (forced by an
@@ -178,9 +183,11 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     ignored) and `max_age` (seconds since the primary factor was presented) and either lets the request go on, throws
     `SecondFactorRequiredException.forStepUp()` (send to the second-factor page, which then renders the form even on
     a trusted device) or `ReauthenticationRequiredException` (sign in again). `MfaClaimsContributor` (a
-    `JwtClaimsContributor`, `@Order(100)`) writes `amr` (factor `amrValue`s in issue order plus `mfa` when two or more
-    distinct factors), `acr` and, on access tokens, `auth_time`. Both read the factors only through
-    `api.web.mfa.FactorTimeline`: registered, reported (not `REMEMBERED`) factors, and `auth_time` = issue instant of
+    `JwtClaimsContributor`, `@Order(100)`) writes `amr` (factor `amrValue`s in issue order plus `mfa` when
+    `MfaPolicy.isMultiFactor`), `acr` and, on access tokens, `auth_time`. Both read the factors only through
+    `api.web.mfa.FactorTimeline` (whose `isMultiFactor` delegates to `MfaPolicy.isMultiFactor`, so the claims, the
+    authorization-endpoint step-up and, through the `acr` claim, `StepUpGuard` never disagree): registered, reported
+    (not `REMEMBERED`) factors, and `auth_time` = issue instant of
     the earliest primary factor (else the earliest counted one), so a later second factor never makes a sign-in look
     newer.
   - **API step-up** (RFC 9470): `api.web.mfa.StepUpGuard` is called first by the controllers that remove or reset a
@@ -278,10 +285,12 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
   - **Gap, passkey-first sign-up**: not possible with the Spring APIs used. Registration (`/webauthn/register/**`) needs an
     authenticated session, so a user first signs in with a password (or any other primary factor) and then registers a
     passkey on `/account/passkeys`; an account cannot be created with a passkey and no password.
-  - **Known limitations** (they need a shared-file or design decision): a passkey-only session gets `acr` = the password URN
-    (`MfaClaimsContributor` reports `mfa` only for two distinct factors), so it cannot satisfy `StepUpGuard` and must
-    re-authenticate with a second factor; `Webauthn4JRelyingPartyOperations` hardcodes user verification to `PREFERRED`;
-    `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.
+  - **By design**: a passkey-only session gets `acr` = the password URN: `PasskeyFactor` is not `multiFactor`, because
+    `Webauthn4JRelyingPartyOperations` hardcodes user verification to `PREFERRED`, so a passkey proves possession only for
+    certain; it cannot satisfy a step-up and the user adds a second factor. Do not mark it `multiFactor` without requiring
+    user verification.
+  - **Known limitations** (they need a shared-file or design decision): user verification is hardcoded to `PREFERRED`
+    (above); `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.
 - **One-time tokens (`ott` and `sms`, #6)**: e-mail codes, magic links and SMS codes, as a primary sign-in and as a second
   factor, built on Spring Security's `http.oneTimeTokenLogin(...)` (`POST /ott/generate`, `POST /login/ott`, framework
   endpoints) and registered through the extension points above. Four `AuthenticationFactor` beans (`OttFactors`):
@@ -321,7 +330,8 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     `GET/PUT/DELETE /api/account/phone` and `POST /api/account/phone/verify` (starting an enrolment and removal call
     `StepUpGuard`, a no-op while the account has no confirmed second factor) and with the session page
     `GET /account/phone` (`PhonePageController`, guarded by `PhonePageChainCustomizer` `@Order(4)` behind the MFA policy,
-    form posts under `/account/phone/**`, `PhoneSessionStepUp` for the enrolment and the removal). A verified phone is a
+    form posts under `/account/phone/**`, `PhoneSessionStepUp` for the enrolment and the removal: it applies
+    `FactorTimeline.isMultiFactor`, so a recent `FACTOR_FEDERATED_MFA` sign-in is enough there too). A verified phone is a
     confirmed second factor (`HasVerifiedPhoneUseCase` as a `SecondFactorEnrolmentQuery`), so a user with a phone requires
     MFA. `RemovePhoneUseCase` audits `SECOND_FACTOR_REMOVED` and revokes the trusted devices when no second factor is
     left (as `DeletePasskeyUseCase`); `ConfirmPhoneUseCase` treats a new number over a verified one as a replacement:
@@ -447,7 +457,8 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     - **Claims**: `sub` is the principal's name, which is the local username (the project's `sub` for every sign-in method; there
       is no separate user-id `sub`), through the `local_username` attribute. `IdpClaimsContributor` (`JwtClaimsContributor`,
       `@Order(110)`, after `MfaClaimsContributor`) writes `idp` and, for the strong factor only, merges the upstream `amr` values
-      (each once) into `amr` and sets `acr` to the multi-factor class.
+      (each once) into `amr`. It never sets `acr`: `FACTOR_FEDERATED_MFA` is `multiFactor`, so `MfaClaimsContributor` already
+      wrote the multi-factor class and `mfa`, and the authorization endpoint lets the same session pass `acr_values` for it.
     - **Stored principal**: `FederatedJacksonModuleContributor` (`AuthorizationJacksonModuleContributor`) allows the
       `OAuth2AuthenticationToken` / `OidcUser` types; claim values must be mutable lists (`ArrayList`) or the validator denies
       `List.of` when the principal is stored, which `FederatedUserMapper` guarantees.

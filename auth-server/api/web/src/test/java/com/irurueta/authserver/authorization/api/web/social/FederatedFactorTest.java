@@ -17,6 +17,8 @@
 package com.irurueta.authserver.authorization.api.web.social;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
 import org.junit.jupiter.api.Test;
@@ -40,11 +42,12 @@ class FederatedFactorTest {
         assertEquals("fed", factor.amrValue());
         assertEquals("FACTOR_FEDERATED", factor.authority());
         assertEquals(FactorStrength.PRIMARY, factor.strength());
+        assertFalse(factor.multiFactor());
     }
 
     /**
      * Verifies that the sign-in of a trusted provider that proved several factors is a strong primary factor, reported
-     * the same way.
+     * the same way, and multi-factor alone.
      */
     @Test
     void federatedStrongAuthenticationFactor_whenCalled_declaresAStrongPrimaryFactor() {
@@ -54,5 +57,6 @@ class FederatedFactorTest {
         assertEquals("fed", factor.amrValue());
         assertEquals("FACTOR_FEDERATED_MFA", factor.authority());
         assertEquals(FactorStrength.PRIMARY_STRONG, factor.strength());
+        assertTrue(factor.multiFactor());
     }
 }
