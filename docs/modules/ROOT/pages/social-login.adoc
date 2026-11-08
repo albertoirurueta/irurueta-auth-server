@@ -1,0 +1,234 @@
+= Social login (identity brokering)
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The server can broker sign-in to Google, Microsoft Entra ID, Apple and GitHub through Spring Security's
+`oauth2Login(...)`. A provider is enabled only when its `client-id` has text, so nothing is configured until a
+deployment supplies the values; with none configured there is no social bean and the login chain is unchanged.
+
+== Providers and settings
+
+Every secret comes from an environment variable and none is kept in a file. `trust-mfa` is described in
+<<factors>>.
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=social-config]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/SocialProperties.java[tag=social-properties]
+----
+
+`ClientRegistrationMapper` builds the registrations: Google and GitHub from Spring's `CommonOAuth2Provider`, Microsoft
+and Apple by hand.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/ClientRegistrationMapper.java[tag=social-client-registrations]
+----
+
+The chain customizer (`@Order(5)`) enables `oauth2Login` with the server's own `/login` page, and a fragment adds the
+provider links below the password form.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/SocialChainCustomizer.java[tag=social-chain]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/login-social.html[tag=social-login-fragment]
+----
+
+== Linking and provisioning
+
+`ResolveFederatedLoginUseCase` finds the identity by provider and subject, otherwise links to an existing account by
+e-mail, otherwise provisions a new password-less account. An e-mail links only when the provider *and* the existing
+account have verified it; an unverified e-mail never links and never provisions over an existing account. GitHub's
+verified primary e-mail is read from `/user/emails`; Entra's e-mail counts as verified only with `email_verified` or
+`xms_edov`. A disabled account is refused inside the use case, before anything is linked, updated or audited, and the
+account is then loaded through the account-status check as well, so a disabled, locked or expired account is refused
+with the same `access_denied` as every other refusal.
+
+Two first sign-ins of the same person can arrive at once (two tabs, a double click). The use case starts by locking
+the identity (`FederatedIdentityRepository.lockSubject`, a PostgreSQL transaction-level advisory lock on provider and
+subject, released when the transaction ends), so the second one waits and then finds the link the first one stored,
+instead of failing on the unique constraint.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/social/JdbcFederatedIdentityRepository.java[tag=social-lock-subject]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedOidcUserService.java[tag=social-oidc-user-service]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedOAuth2UserService.java[tag=social-oauth2-user-service]
+----
+
+GitHub's API is another service, so it is called the way the BFF calls the resource server: through a client
+generated from a contract, behind a domain port. The port `VerifiedEmailLookup` (`domain.social`) is implemented by
+the `auth-server/infrastructure/github` adapter, whose `java` / `restclient` client is generated from
+`apis/github/rest-server/github-api-v1.yaml`, the one GitHub operation the server relies on. The base URI is the
+registration's user-info URI without its trailing `/user`, so GitHub Enterprise (and the fake provider of the tests)
+is called where it is, and every failure means "no verified address", which refuses the sign-in.
+
+[source,yaml]
+----
+include::example$apis/github/rest-server/github-api-v1.yaml[tag=github-emails-contract]
+----
+
+[source,java]
+----
+include::example$auth-server/infrastructure/github/src/main/java/com/irurueta/authserver/authorization/infrastructure/github/GitHubVerifiedEmailLookup.java[tag=github-verified-email]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedAccountResolver.java[tag=social-account-resolver]
+----
+
+A just-in-time account holds a random unknown password flagged as generated, so it does not count as a password
+sign-in method and the last-method rule (below) works.
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V700__federated_identities.sql[tag=federated-schema]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V701__generated_passwords.sql[tag=generated-password-schema]
+----
+
+[[link]]
+== Linking a provider to a signed-in account
+
+Linking by e-mail address only happens when both sides verified the address. A user whose provider address differs,
+or is not verified, links the provider explicitly after signing in to the existing account: the identities page,
+`GET /account/identities`, lists the linked identities and offers one button per configured provider. The button posts
+to `POST /account/identities/link`, which records a short-lived marker in the session (the provider, the account and an
+expiry five minutes later; it is used once) and sends the browser to the provider's sign-in. Both are kept behind the
+multi-factor policy, like the passkeys and phone pages.
+
+[source,yaml]
+----
+include::example$apis/auth-server/web-pages/auth-server-pages-v1.yaml[tag=identities-page-api]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/IdentitiesPageController.java[tag=social-identities-page-controller]
+----
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/templates/account-identities.html[tag=social-identities-link-form]
+----
+
+When the provider sends the user back, `FederatedAccountResolver` consumes the marker (same provider, not expired, and
+the session still signed in as the account that asked) and calls `LinkIdentityUseCase` for that account instead of
+resolving by e-mail or provisioning. The session keeps its principal: the success handler puts the authentication the
+session had back, grants no factor and returns to the page with `status=linked`. An identity already linked to another
+account is refused (`identity_link_refused`) and the failure handler returns to the page with `status=already-linked`;
+nothing changes and the session is still signed in.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/PendingIdentityLinks.java[tag=social-pending-link]
+----
+
+The principal is stored with the authorization, so the Jackson mapper must allow its types.
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/social/FederatedJacksonModuleContributor.java[tag=social-json-mapper]
+----
+
+== Microsoft Entra ID, multi-tenant
+
+The `common` and `organizations` discovery issuer carries a `+{tenantid}+` placeholder, which the framework's issuer
+check would reject, so the registration has no `issuerUri` and a validator checks that `iss` is
+`+https://login.microsoftonline.com/{tid}/v2.0+` for the token's own `tid`, limited to `allowed-tenants` when given.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/EntraIssuerValidator.java[tag=social-entra-validator]
+----
+
+== Apple
+
+Apple's `client_secret` is an ES256 JWT that Apple accepts only when signed by the key registered in the developer
+account. It is therefore *not* signed with the server's own `JwtEncoder`: a Nimbus signer uses the PKCS#8 key from the
+environment, and the result is cached for half of `client-secret-ttl`. Apple answers with `response_mode=form_post`, so
+its callback POST is the only CSRF exemption and a deployment needs `SameSite=None; Secure` session cookies.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/AppleClientSecretGenerator.java[tag=social-apple-secret]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/AppleTokenRequestCustomizer.java[tag=social-apple-token-request]
+----
+
+[[factors]]
+== Factors and claims
+
+Two factors, both with `amr` `fed`, are never held together: `FACTOR_FEDERATED` (a primary factor, so the normal
+second-factor and step-up flow applies) and `FACTOR_FEDERATED_MFA` (strong). The strong one is chosen only when the
+provider has `trust-mfa: true` and its upstream `amr` contains `mfa`.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedFactor.java[tag=social-factor]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedFactorSelector.java[tag=social-factor-selector]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedAuthenticationSuccessHandler.java[tag=social-success-handler]
+----
+
+The token's `sub` is the local username, `idp` names the provider and, for the strong factor only, the upstream `amr`
+values are merged into `amr` (see xref:mfa-and-step-up.adoc[]).
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/IdpClaimsContributor.java[tag=social-claims]
+----
+
+== Account API
+
+A user lists the linked identities with `GET /api/account/identities` and unlinks one with
+`DELETE /api/account/identities/\{id}`. Unlinking calls `StepUpGuard` and is refused (`409`) when it would remove the
+last sign-in method (password that is not generated, other identities, passkey, bound certificates). The methods are
+counted under a per-account lock (`LockSignInMethodsUseCase` over the `SignInMethodsLock` port, an advisory lock on the
+user id), which unbinding a certificate takes too, so two concurrent removals cannot each count the other's method as
+the one that remains.
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/social/LockSignInMethodsUseCase.java[tag=social-lock-sign-in-methods]
+----
+
+[source,yaml]
+----
+include::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=identities-schemas]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/IdentityController.java[tag=social-identity-controller]
+----

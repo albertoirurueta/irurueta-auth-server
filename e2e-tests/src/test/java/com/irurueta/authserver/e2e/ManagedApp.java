@@ -126,6 +126,23 @@ final class ManagedApp {
     }
 
     /**
+     * Waits for the application to end by itself.
+     *
+     * @param timeout longest time to wait.
+     * @return the exit code of the process.
+     * @throws InterruptedException if the thread is interrupted while waiting.
+     */
+    int awaitExit(final Duration timeout) throws InterruptedException {
+        if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+            synchronized (output) {
+                throw new IllegalStateException("Application did not end. Output tail:\n"
+                        + String.join("\n", tail()));
+            }
+        }
+        return process.exitValue();
+    }
+
+    /**
      * Stops the process, forcibly when it does not exit in time.
      */
     void stop() {

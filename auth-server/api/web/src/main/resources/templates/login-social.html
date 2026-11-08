@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  Sign in with an external provider (SocialLoginMethodFragment): one link per configured provider, to the framework
+  endpoint that starts the sign-in. The providers come from the bean that contributes this fragment, so the page lists
+  exactly the ones that are configured; the link text of each is the message social.login.<provider>.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!-- tag::social-login-fragment[] -->
+<div th:fragment="login" class="social-login">
+  <h2 th:text="#{social.login.heading}">Or sign in with</h2>
+  <ul>
+    <li th:each="provider : ${@socialLoginMethodFragment.providers()}">
+      <a th:href="@{/oauth2/authorization/{provider}(provider=${provider})}" th:attr="data-social-provider=${provider}"
+         th:text="#{${'social.login.' + provider}}">Sign in with a provider</a>
+    </li>
+  </ul>
+</div>
+<!-- end::social-login-fragment[] -->
+</body>
+</html>

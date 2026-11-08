@@ -41,6 +41,10 @@ tags:
     description: WebAuthn credentials of the authenticated account
   - name: Phone
     description: The phone number of the authenticated account, used to receive one-time codes by SMS
+  - name: Identities
+    description: Identities of external providers (Google, Microsoft, Apple, GitHub) linked to the authenticated account
+  - name: Certificates
+    description: X.509 client certificates bound to the authenticated account, to sign in with
   - name: Signing keys
     description: Administration of the signing keys
   - name: Clients
@@ -526,6 +530,166 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
   # end::phone-api-contract[]
   # tag::clients-api[]
+  # tag::identities-api-contract[]
+  /api/account/identities:
+    get:
+      tags: [ Identities ]
+      operationId: listIdentities
+      summary: Lists the linked identities
+      description: >-
+        Lists the identities of external providers linked to the authenticated account, never anything of another
+        account. The subject the provider assigned to the user is not disclosed.
+      responses:
+        '200':
+          description: The linked identities
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The linked identities, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Identity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/identities/{id}:
+    delete:
+      tags: [ Identities ]
+      operationId: unlinkIdentity
+      summary: Unlinks an identity
+      description: >-
+        The identity can no longer be used to sign in. An identity of another account is never touched and is answered
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470). The last way to sign in to the account is never removed: an identity
+        is refused while the account has neither a password nor another linked identity or credential.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of the linked identity.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Identity unlinked
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: No such linked identity for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: >-
+            The identity is the last way to sign in to the account (problem type urn:problem:identity:last-sign-in-method)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  # end::identities-api-contract[]
+  # tag::certificates-api-contract[]
+  /api/account/certificates:
+    get:
+      tags: [ Certificates ]
+      operationId: listCertificates
+      summary: Lists the bound certificates
+      description: >-
+        Lists the X.509 client certificates bound to the authenticated account, oldest first, never anything of another
+        account. A bound certificate signs the account in on POST /login/x509 when authserver.x509.enabled is true.
+      responses:
+        '200':
+          description: The bound certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The bound certificates, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Certificate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [ Certificates ]
+      operationId: bindCertificate
+      summary: Binds a certificate
+      description: >-
+        Binds the X.509 certificate of the request, in PEM form, to the authenticated account, so it can sign in with
+        it. Only the public certificate is sent, never its private key. The certificate is recognised by the SHA-256
+        fingerprint of its DER form, never by its subject; it must be within its validity period. Binding a certificate
+        the account already has answers the existing binding. While the account has a confirmed second factor, the
+        bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindCertificateRequest'
+      responses:
+        '201':
+          description: The certificate is bound (or was already bound to the account)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Certificate'
+        '400':
+          description: >-
+            The request is invalid, or the value is not a single PEM X.509 certificate within its validity period
+            (problem type urn:problem:certificate:invalid-certificate)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '409':
+          description: >-
+            The certificate is bound to another account (problem type urn:problem:certificate:certificate-already-bound)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/account/certificates/{id}:
+    delete:
+      tags: [ Certificates ]
+      operationId: unbindCertificate
+      summary: Unbinds a certificate
+      description: >-
+        The certificate can no longer be used to sign in. A certificate of another account is never touched and is
+        answered as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470). The last way to sign in to the account is never removed: a
+        certificate is refused while the account has neither a password nor a linked identity, a passkey or another
+        certificate.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of the binding.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Certificate unbound
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: >-
+            No such certificate for the authenticated account (problem type
+            urn:problem:certificate:certificate-not-found)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: >-
+            The certificate is the last way to sign in to the account (problem type
+            urn:problem:certificate:last-sign-in-method)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  # end::certificates-api-contract[]
   /api/admin/clients:
     get:
       tags: [ Clients ]
@@ -1042,6 +1206,66 @@ components:
           description: The numeric verification code.
           pattern: '^[0-9]{4,10}$'
     # end::phone-schemas[]
+    # tag::identities-schemas[]
+    Identity:
+      type: object
+      description: An identity of an external provider linked to the account
+      required: [ id, provider, linkedAt ]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the link.
+        provider:
+          type: string
+          enum: [ google, microsoft, apple, github ]
+          description: The provider that holds the identity.
+        email:
+          type: [ string, 'null' ]
+          description: E-mail address the provider reported when the identity was last used, if any.
+        linkedAt:
+          type: string
+          format: date-time
+          description: When the identity was linked to the account.
+        lastLoginAt:
+          type: [ string, 'null' ]
+          format: date-time
+          description: When the identity was last used to sign in, or null when it has not been used since it was linked.
+    # end::identities-schemas[]
+    # tag::certificates-schemas[]
+    Certificate:
+      type: object
+      description: An X.509 client certificate bound to the account
+      required: [ id, fingerprintSha256, subjectDn, createdAt ]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the binding.
+        fingerprintSha256:
+          type: string
+          description: SHA-256 fingerprint of the DER form of the certificate, as lower case hexadecimal digits.
+          pattern: '^[0-9a-f]{64}$'
+        subjectDn:
+          type: string
+          description: Subject distinguished name of the certificate, to tell the bindings apart.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the certificate was bound.
+    BindCertificateRequest:
+      type: object
+      description: The certificate to bind
+      required: [ certificate ]
+      properties:
+        certificate:
+          type: string
+          description: >-
+            The X.509 certificate in PEM form (-----BEGIN CERTIFICATE----- ... -----END CERTIFICATE-----); never a
+            private key.
+          minLength: 1
+          maxLength: 16384
+    # end::certificates-schemas[]
     # tag::clients-schemas[]
     ClientRequest:
       type: object

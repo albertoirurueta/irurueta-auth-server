@@ -163,6 +163,25 @@ class ReuseDetectingAuthorizationServiceTest {
     }
 
     /**
+     * Verifies that the device code and the user code of the device authorization grant are looked up by the delegate
+     * with their own token types, unchanged, and that an unknown one is never searched among the consumed refresh
+     * tokens: the device flow depends on both lookups.
+     */
+    @Test
+    void findByToken_whenDeviceOrUserCodeIsLooked_forwardsTheTypeUnchanged() {
+        final var deviceCodeType = new OAuth2TokenType("device_code");
+        final var userCodeType = new OAuth2TokenType("user_code");
+        final var authorization = authorization("id-9", token());
+        when(delegate.findByToken("device-code", deviceCodeType)).thenReturn(authorization);
+        when(delegate.findByToken("ABCD-EFGH", userCodeType)).thenReturn(authorization);
+
+        assertSame(authorization, service.findByToken("device-code", deviceCodeType));
+        assertSame(authorization, service.findByToken("ABCD-EFGH", userCodeType));
+        assertNull(service.findByToken("unknown", userCodeType));
+        verifyNoInteractions(client);
+    }
+
+    /**
      * Verifies that an unknown access token is not looked up among the consumed refresh tokens.
      */
     @Test

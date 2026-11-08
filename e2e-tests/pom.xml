@@ -77,6 +77,19 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency>
+      <!-- the device flow command line tool, run from its packaged jar by DeviceFlowEndToEndIT -->
+      <groupId>com.irurueta.authserver</groupId>
+      <artifactId>service-client-boot</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <!--
       Playwright for Java was chosen over Selenium because it manages its own browser binaries, auto-waits for
       elements (no explicit waits or flaky sleeps), and drives headless Chromium out of the box in CI.
@@ -100,6 +113,7 @@
             <authserver.jar>${project.basedir}/../auth-server/boot/target/auth-server-boot-${project.version}.jar</authserver.jar>
             <bff.jar>${project.basedir}/../bff/boot/target/bff-boot-${project.version}.jar</bff.jar>
             <resourceserver.jar>${project.basedir}/../resource-server/boot/target/resource-server-boot-${project.version}.jar</resourceserver.jar>
+            <serviceclient.jar>${project.basedir}/../service-client/boot/target/service-client-boot-${project.version}.jar</serviceclient.jar>
           </systemPropertyVariables>
         </configuration>
       </plugin>

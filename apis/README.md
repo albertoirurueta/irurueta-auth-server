@@ -16,23 +16,27 @@ apis/
   README.md
   auth-server/
     rest-server/
-      auth-server-api-v1.yaml       account, client and signing-key administration (/api/**)
+      auth-server-api-v1.yaml       account (passkeys, phone, linked identities, client certificates), client and signing-key administration (/api/**)
     web-pages/
-      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout, /account/passkeys, /account/phone, /login/ott, /login/ott/confirm, /dev/sms-inbox)
+      auth-server-pages-v1.yaml     server-rendered HTML pages (/login, /oauth2/consent, /logout, /account/passkeys, /account/phone, /account/identities, /login/ott, /login/ott/confirm, /oauth2/device_verification, /dev/sms-inbox)
   resource-server/
     rest-server/
       resource-server-api-v1.yaml   documents API (/api/**)
   bff/
     rest-server/
       bff-api-v1.yaml               JSON endpoints of the BFF (/bff/**) and its documents API (/api/documents)
+  github/
+    rest-server/
+      github-api-v1.yaml            the one GitHub operation the authorization server calls (GET /user/emails)
 ```
 
 | Contract | Generated into | Packages | Implemented by |
 |---|---|---|---|
-| `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController`, `PasskeyController`, `PhoneController` |
+| `auth-server/rest-server/auth-server-api-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.v1.generated.{api,model}` | `AccountController`, `ClientAdminController`, `SigningKeyAdminController`, `PasskeyController`, `PhoneController`, `IdentityController`, `CertificateController` |
 | `resource-server/rest-server/resource-server-api-v1.yaml` | `resource-server/api/web` | `com.irurueta.authserver.resourceserver.api.web.v1.generated.{api,model}` | `DocumentController` |
-| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController`, `PhonePageController`, `OttPagesController`, `DevSmsInboxController` (dev profile only) |
+| `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController`, `PhonePageController`, `IdentitiesPageController`, `OttPagesController`, `DeviceVerificationController`, `DevSmsInboxController` (dev profile only) |
 | `bff/rest-server/bff-api-v1.yaml` | `bff/api/web` | `com.irurueta.authserver.bff.api.web.v1.generated.{api,model}` | `UserController`, `BffLoginController`, `DocumentsController` |
+| `github/rest-server/github-api-v1.yaml` (a client, see below) | `auth-server/infrastructure/github` | `com.irurueta.authserver.authorization.infrastructure.github.v1.generated.{api,model}` | called by `GitHubVerifiedEmailLookup` |
 
 ### HTML pages
 
@@ -60,12 +64,22 @@ client from `resource-server/rest-server/resource-server-api-v1.yaml` into
 the shared server options with the client's own (`combine.self="override"`) and only generates the supporting files
 the client needs (`ApiClient`, the authentication classes and their helpers).
 
+The same holds for a third-party service: the authorization server reads the verified primary e-mail address of a
+GitHub user from GitHub's `GET /user/emails`, so `github/rest-server/github-api-v1.yaml` describes that one operation
+(GitHub owns the API; the file describes only what the server relies on, versioned as this description, not as
+GitHub's API) and `auth-server/infrastructure/github` generates a `java` / `restclient` client from it into
+`com.irurueta.authserver.authorization.infrastructure.github.v1.generated.{api,model}`. The client stays behind the
+domain port `VerifiedEmailLookup` (`GitHubVerifiedEmailLookup`, which turns every failure into "no verified address"),
+its base URI is taken at run time from the GitHub registration's user-info URI, and since no application of this
+repository serves it, no `OpenApiDriftIT` compares it.
+
 ### What is not in a contract
 
 Only endpoints owned by frameworks: the OAuth 2.1 / OpenID Connect protocol endpoints of the authorization server
 (`/oauth2/**`, `/.well-known/**`, `/connect/**`, `/userinfo`, ...), which are defined by their specifications, the
 Spring Security filters (`POST /login`, `POST /logout`, the BFF's `POST /bff/logout`, `/oauth2/authorization/**` and
-`/login/oauth2/**`, and the one-time token endpoints `POST /ott/generate`, `POST /login/ott` and `POST /login/second-factor/ott`), Spring Boot's error controller (`/error`, rendered through `ErrorPageViewResolver` in the
+`/login/oauth2/**`, the one-time token endpoints `POST /ott/generate`, `POST /login/ott` and `POST /login/second-factor/ott`,
+and the X.509 sign-in `POST /login/x509`), Spring Boot's error controller (`/error`, rendered through `ErrorPageViewResolver` in the
 authorization server) and actuator.
 
 ## Code generation

@@ -35,5 +35,6 @@
     <module>keys</module>
     <module>mail</module>
     <module>sms</module>
+    <module>github</module>
   </modules>
 </project>

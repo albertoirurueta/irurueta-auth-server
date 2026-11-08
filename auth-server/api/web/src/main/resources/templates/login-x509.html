@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  Sign in with a client certificate (X509LoginMethodFragment): one button that posts to Spring Security's X.509 filter
+  (POST /login/x509), never a link, so a cross-site page cannot make the browser sign in with its certificate; th:action
+  adds the CSRF field. The address comes from the bean: the relative path, or the dedicated TLS port of the same host
+  when only that transport is on and the page is served on another port.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!-- tag::x509-login-fragment[] -->
+<form th:fragment="login" class="x509-login" method="post" th:action="${@x509LoginMethodFragment.action()}">
+  <h2 th:text="#{x509.login.heading}">Sign in with a certificate</h2>
+  <p th:text="#{x509.login.hint}">Your browser or smart card will ask which certificate to present.</p>
+  <button type="submit" th:text="#{x509.login.button}">Use my certificate</button>
+</form>
+<!-- end::x509-login-fragment[] -->
+</body>
+</html>

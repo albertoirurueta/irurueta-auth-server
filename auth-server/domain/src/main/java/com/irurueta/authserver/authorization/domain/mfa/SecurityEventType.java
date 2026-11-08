@@ -48,5 +48,17 @@ public enum SecurityEventType {
     RECOVERY_CODE_USED,
 
     /** A user removed a second factor, which also revokes every trusted device of the user. */
-    SECOND_FACTOR_REMOVED
+    SECOND_FACTOR_REMOVED,
+
+    /** An identity of an external provider was linked to an account, or an account was created from one. */
+    IDENTITY_LINKED,
+
+    /** An identity of an external provider was unlinked from an account. */
+    IDENTITY_UNLINKED,
+
+    /** A client certificate was bound to an account. */
+    CERTIFICATE_BOUND,
+
+    /** A client certificate was unbound from an account. */
+    CERTIFICATE_UNBOUND
 }

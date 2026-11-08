@@ -15,6 +15,8 @@
  */
 
 /**
- * Legacy implicit grant support, kept for educational comparison. Filled by the implicit grant issue.
+ * OAuth 2.0 Device Authorization Grant (RFC 8628) for input-constrained clients, such as a command line tool: the
+ * protocol customizer that wires the device authorization and verification endpoints, the guard that applies the
+ * multi-factor policy and the limit on the attempts to the verification endpoint, and the verification page.
  */
 package com.irurueta.authserver.authorization.api.web.implicit;

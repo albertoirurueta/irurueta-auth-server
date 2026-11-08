@@ -53,9 +53,19 @@ or consent requests) can be cleaned up once they are old enough.
 
 |`V630__sms_cost_ledger.sql`
 |Spend ledger used by the SMS cost caps.
+
+|`V700__federated_identities.sql`
+|Linked external identities (provider and subject unique per user), see xref:social-login.adoc[].
+
+|`V701__generated_passwords.sql`
+|Flags a generated (unknown) password, so a just-in-time account does not count a password as a sign-in method.
+
+|`V710__x509_certificates.sql`
+|Client certificate bindings by SHA-256 fingerprint, see xref:x509.adoc[].
+
 |===
 
-Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`; one-time tokens and SMS (issue #6) use `V600`-`V699`. A
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`; one-time tokens and SMS (issue #6) use `V600`-`V699`; social login, X.509 and the device grant (issue #7) use `V700`-`V799`. A
 migration is never written outside the range of the issue that adds it.
 
 [source,sql]

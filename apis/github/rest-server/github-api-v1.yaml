@@ -1,0 +1,94 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Contract of the one operation of GitHub's REST API that the authorization server calls (version 1 of this
+# description, not of GitHub's API). GitHub owns the API; this file describes only what the server relies on, so a
+# client can be generated from it (auth-server/infrastructure/github, java / restclient generator). No application of
+# this repository serves it, so no OpenApiDriftIT compares it.
+openapi: 3.1.0
+info:
+  title: GitHub REST API (the subset the authorization server calls)
+  description: >-
+    The e-mail addresses of the authenticated GitHub user, read during a sign-in with GitHub because the e-mail of the
+    profile is whatever the user chose to show and is never marked as verified.
+  version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.txt
+servers:
+  - url: https://api.github.com
+    description: >-
+      GitHub's public API. The server derives the base path at run time from the user-info URI of the GitHub client
+      registration (that URI without its trailing /user), so GitHub Enterprise and the fake provider of the tests work
+      too.
+tags:
+  - name: Users
+    description: The authenticated user of the access token
+security:
+  - bearer: [ ]
+paths:
+  # tag::github-emails-contract[]
+  /user/emails:
+    get:
+      tags: [ Users ]
+      operationId: listEmailsForAuthenticatedUser
+      summary: Lists the e-mail addresses of the authenticated user
+      description: >-
+        Lists every e-mail address of the user the access token belongs to, each flagged as primary and as verified.
+        Needs the user:email scope. The authorization server only uses the address that is both primary and verified.
+      responses:
+        '200':
+          description: The e-mail addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The addresses, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Email'
+        '304':
+          description: Not modified since the conditional request
+        '401':
+          description: The access token is missing, invalid or expired
+        '403':
+          description: The token lacks the user:email scope, or the rate limit was exceeded
+        '404':
+          description: The resource is not available to the token
+  # end::github-emails-contract[]
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: The GitHub access token obtained by the sign-in (authorization code grant).
+  schemas:
+    # tag::github-emails-schema[]
+    Email:
+      type: object
+      description: An e-mail address of the GitHub user
+      required: [ email, primary, verified ]
+      properties:
+        email:
+          type: string
+          description: The address.
+        primary:
+          type: boolean
+          description: Whether it is the primary address of the account.
+        verified:
+          type: boolean
+          description: Whether GitHub verified that the user owns the address.
+        visibility:
+          type: [ string, 'null' ]
+          description: Whether the address is shown on the public profile (public or private), or null.
+    # end::github-emails-schema[]

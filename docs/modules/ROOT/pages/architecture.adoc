@@ -49,7 +49,9 @@ A layer is only created once it has code: `bff` has `domain` (the documents and 
 `application` (the documents use cases), `infrastructure/session` (the Spring Session JDBC store, its cookie and its
 Flyway migration), `infrastructure/resourceserver` (the generated client of the resource server behind the port),
 `api/web` (the security, login, logout, user and documents adapters) and `boot` (the SPA);
-`resource-server` has `domain`, `application`, `infrastructure/memory` and `api/web`, and
+`resource-server` has `domain`, `application`, `infrastructure/memory` and `api/web`;
+`auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail`, `infrastructure/sms` and
+`infrastructure/github` (the generated client of GitHub's `/user/emails` behind the `VerifiedEmailLookup` port); and
 `service-client` is a single `boot` module. A port is an interface in `domain` (for example `UserAccountRepository`);
 its implementation lives in an `infrastructure/*` adapter. Domain models are never returned from a controller: the
 `api/*` adapter maps them onto its own DTOs. Spring Security and Spring Authorization Server types are framework

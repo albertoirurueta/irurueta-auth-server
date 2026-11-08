@@ -62,7 +62,7 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
     private static final String UPSERT_PASSWORD = """
             INSERT INTO user_passwords (user_id, encoded_password) VALUES (?, ?)
             ON CONFLICT (user_id) DO UPDATE SET encoded_password = EXCLUDED.encoded_password,
-                updated_at = CURRENT_TIMESTAMP
+                generated = FALSE, updated_at = CURRENT_TIMESTAMP
             """;
 
     // tag::password-load-user[]
@@ -138,7 +138,7 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
 
     @Override
     public void updatePassword(final UUID userId, final String encodedPassword) {
-        jdbcClient.sql("UPDATE user_passwords SET encoded_password = ? WHERE user_id = ?")
+        jdbcClient.sql("UPDATE user_passwords SET encoded_password = ?, generated = FALSE WHERE user_id = ?")
                 .params(encodedPassword, userId).update();
     }
 

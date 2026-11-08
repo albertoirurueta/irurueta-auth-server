@@ -16,9 +16,14 @@
 
 package com.irurueta.authserver.authorization.infrastructure.persistence.dev;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -55,6 +61,9 @@ class DevDataInitializerTest {
     /** The BFF client the initializer creates from the configured values. */
     private static final ClientRegistration BFF = DefaultClientDefinitions.bff(REDIRECT_URIS,
             DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+
+    /** Client id of the device client. */
+    private static final String DEVICE_CLIENT_ID = DevDataInitializer.DEVICE_CLIENT_ID;
 
     /** JDBC client that stores the demo user. */
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -83,28 +92,40 @@ class DevDataInitializerTest {
     }
 
     /**
-     * Verifies that the user and the client are created when nothing exists yet.
+     * Verifies that the user and the clients are created when nothing exists yet, and that the device client is a
+     * public client of the device grant that has neither a secret nor a redirect URI.
      */
     @Test
-    void run_whenNothingExists_createsUserAndClient() {
+    void run_whenNothingExists_createsUserAndClients() {
         userCount(0);
-        when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID)).thenReturn(Optional.empty());
+        missing(DefaultClientDefinitions.BFF_CLIENT_ID);
+        missing(DEVICE_CLIENT_ID);
         when(encoder.encode(anyString())).thenReturn(ENCODED);
 
         initializer.run(new DefaultApplicationArguments());
 
         verify(jdbc).sql(INSERT_USER);
         verify(clients).save(BFF, ENCODED);
+        final var captor = ArgumentCaptor.<ClientRegistration>captor();
+        verify(clients).save(captor.capture(), isNull());
+        final var device = captor.getValue();
+        assertEquals(DEVICE_CLIENT_ID, device.clientId());
+        assertFalse(device.confidential());
+        assertEquals(List.of("none"), device.authMethods());
+        assertTrue(device.grantTypes().contains(DevDataInitializer.DEVICE_CODE_GRANT));
+        assertTrue(device.redirectUris().isEmpty());
+        assertTrue(device.requireProofKey());
+        assertTrue(device.requireConsent());
     }
 
     /**
-     * Verifies that nothing is created when the user and the client already exist.
+     * Verifies that nothing is created when the user and the clients already exist.
      */
     @Test
     void run_whenDataExists_doesNotCreateAnything() {
         userCount(1);
-        when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID))
-                .thenReturn(Optional.of(BFF));
+        exists(DefaultClientDefinitions.BFF_CLIENT_ID);
+        exists(DEVICE_CLIENT_ID);
 
         initializer.run(new DefaultApplicationArguments());
 
@@ -113,29 +134,31 @@ class DevDataInitializerTest {
     }
 
     /**
-     * Verifies that only the client is created when the user already exists.
+     * Verifies that only the BFF client is created when the user and the device client already exist.
      */
     @Test
-    void run_whenOnlyUserExists_createsOnlyClient() {
+    void run_whenOnlyUserAndDeviceClientExist_createsOnlyBffClient() {
         userCount(1);
-        when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID)).thenReturn(Optional.empty());
+        missing(DefaultClientDefinitions.BFF_CLIENT_ID);
+        exists(DEVICE_CLIENT_ID);
         when(encoder.encode(anyString())).thenReturn(ENCODED);
 
         initializer.run(new DefaultApplicationArguments());
 
         verify(jdbc, never()).sql(INSERT_USER);
         verify(clients).save(BFF, ENCODED);
+        verify(clients, times(1)).save(any(), any());
     }
 
     /**
-     * Verifies that only the user is created when the client already exists.
+     * Verifies that only the user is created when the clients already exist.
      */
     @Test
-    void run_whenOnlyClientExists_createsOnlyUser() {
+    void run_whenOnlyClientsExist_createsOnlyUser() {
         userCount(0);
         when(encoder.encode(anyString())).thenReturn(ENCODED);
-        when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID))
-                .thenReturn(Optional.of(BFF));
+        exists(DefaultClientDefinitions.BFF_CLIENT_ID);
+        exists(DEVICE_CLIENT_ID);
 
         initializer.run(new DefaultApplicationArguments());
 
@@ -144,13 +167,29 @@ class DevDataInitializerTest {
     }
 
     /**
-     * Verifies that the client is not created when no redirect URI is configured, while the user still is.
+     * Verifies that only the device client is created when everything else exists, and that it keeps no secret.
+     */
+    @Test
+    void run_whenOnlyDeviceClientIsMissing_createsOnlyIt() {
+        userCount(1);
+        exists(DefaultClientDefinitions.BFF_CLIENT_ID);
+        missing(DEVICE_CLIENT_ID);
+
+        initializer.run(new DefaultApplicationArguments());
+
+        verify(clients, times(1)).save(any(), isNull());
+        verify(encoder, never()).encode(anyString());
+    }
+
+    /**
+     * Verifies that the BFF client is not created when no redirect URI is configured, while the user still is.
      */
     @Test
     void run_whenNoRedirectUriIsConfigured_createsOnlyUser() {
         userCount(0);
         when(encoder.encode(anyString())).thenReturn(ENCODED);
-        when(clients.findByClientId(DefaultClientDefinitions.BFF_CLIENT_ID)).thenReturn(Optional.empty());
+        missing(DefaultClientDefinitions.BFF_CLIENT_ID);
+        exists(DEVICE_CLIENT_ID);
         final var unconfigured = new DevDataInitializer(jdbc, encoder, clients, List.of(),
                 List.of(),
                 DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
@@ -159,6 +198,24 @@ class DevDataInitializerTest {
 
         verify(jdbc).sql(INSERT_USER);
         verify(clients, never()).save(any(), any());
+    }
+
+    /**
+     * Makes the mocked repository report a client as registered.
+     *
+     * @param clientId public identifier of the client.
+     */
+    private void exists(final String clientId) {
+        when(clients.findByClientId(clientId)).thenReturn(Optional.of(BFF));
+    }
+
+    /**
+     * Makes the mocked repository report a client as not registered.
+     *
+     * @param clientId public identifier of the client.
+     */
+    private void missing(final String clientId) {
+        when(clients.findByClientId(clientId)).thenReturn(Optional.empty());
     }
 
     /**

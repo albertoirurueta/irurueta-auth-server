@@ -43,6 +43,9 @@ ext:
         - dir: auth-server/infrastructure/sms
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/infrastructure/sms
+        - dir: auth-server/infrastructure/github
+          files: 'src/**'
+          into: modules/ROOT/examples/auth-server/infrastructure/github
         - dir: auth-server/api/web
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/api/web

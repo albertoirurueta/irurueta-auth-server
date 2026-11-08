@@ -15,6 +15,8 @@
  */
 
 /**
- * Social login through external identity providers. Filled by the social login issue.
+ * Social login (identity brokering) through external identity providers: Google, Microsoft Entra ID, Apple and GitHub.
+ * Everything here is inert until at least one provider is configured with a client id
+ * ({@code authserver.social.providers.<id>.client-id}); with none the login chain is exactly the one without it.
  */
 package com.irurueta.authserver.authorization.api.web.social;
