@@ -28,14 +28,18 @@ import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedExcepti
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 
 /**
  * Unit tests of {@link DocumentsExceptionHandler}.
  */
+@ExtendWith(MockitoExtension.class)
 class DocumentsExceptionHandlerTest {
 
     /** Message of the failures; it must never reach the answer. */
@@ -47,8 +51,13 @@ class DocumentsExceptionHandlerTest {
     /** Seconds of the maximum age of a step-up request. */
     private static final long MAX_AGE_SECONDS = 300L;
 
+    /** Builds the extra members of a step-up problem; the real one. */
+    @Spy
+    private StepUpProblemMapper stepUpProblemMapper;
+
     /** Handler under test. */
-    private final DocumentsExceptionHandler handler = new DocumentsExceptionHandler();
+    @InjectMocks
+    private DocumentsExceptionHandler handler;
 
     /**
      * A session without a valid token maps to 401.
@@ -69,8 +78,8 @@ class DocumentsExceptionHandlerTest {
 
         assertProblem(response, HttpStatus.UNAUTHORIZED, "step-up-required");
         final var properties = response.getBody().getProperties();
-        assertEquals(ACR_VALUES, properties.get(DocumentsExceptionHandler.ACR_VALUES_PROPERTY));
-        assertEquals(MAX_AGE_SECONDS, properties.get(DocumentsExceptionHandler.MAX_AGE_PROPERTY));
+        assertEquals(ACR_VALUES, properties.get(StepUpProblemMapper.ACR_VALUES_PROPERTY));
+        assertEquals(MAX_AGE_SECONDS, properties.get(StepUpProblemMapper.MAX_AGE_PROPERTY));
     }
 
     /**
@@ -122,7 +131,7 @@ class DocumentsExceptionHandlerTest {
     private static void assertProblem(final ResponseEntity<ProblemDetail> response, final HttpStatus status,
             final String type) {
         assertEquals(status, response.getStatusCode());
-        assertEquals(MediaType.APPLICATION_PROBLEM_JSON, response.getHeaders().getContentType());
+        assertNull(response.getHeaders().getContentType(), "the media type is left to content negotiation");
         final var body = response.getBody();
         assertNotNull(body);
         assertEquals(DocumentsExceptionHandler.TYPE_BASE + type, body.getType().toString());

@@ -94,8 +94,7 @@ public class StepUpChallengeMapper {
      */
     private static boolean isBearer(final String challenge) {
         final var trimmed = challenge.trim();
-        return trimmed.length() > BEARER.length()
-                && trimmed.substring(0, BEARER.length()).toLowerCase(Locale.ROOT).equals(BEARER)
+        return trimmed.length() > BEARER.length() && trimmed.regionMatches(true, 0, BEARER, 0, BEARER.length())
                 && Character.isWhitespace(trimmed.charAt(BEARER.length()));
     }
 
@@ -124,11 +123,12 @@ public class StepUpChallengeMapper {
      * @return the maximum age, or {@code null} when absent, not a number or negative.
      */
     private static Duration maxAgeOf(final String value) {
-        if (value == null || value.isEmpty() || !value.chars().allMatch(Character::isDigit)) {
+        if (value == null) {
             return null;
         }
         try {
-            return Duration.ofSeconds(Long.parseLong(value));
+            final var seconds = Long.parseLong(value);
+            return seconds < 0 ? null : Duration.ofSeconds(seconds);
         } catch (final NumberFormatException e) {
             return null;
         }

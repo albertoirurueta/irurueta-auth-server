@@ -221,6 +221,46 @@ class DocumentsApiIT {
     }
 
     /**
+     * Verifies that a client that only accepts JSON can delete, and gets the step-up problem with its status instead of
+     * {@code 406}: the operation also declares its problems as JSON, and Spring writes a problem detail as
+     * {@code application/problem+json} when the client's types do not include it.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void deleteDocument_whenClientOnlyAcceptsJson_negotiatesInsteadOfAnsweringNotAcceptable() throws Exception {
+        server.expect(requestTo(DOCUMENT)).andRespond(withStatus(HttpStatus.NO_CONTENT));
+        server.expect(requestTo(DOCUMENT)).andRespond(withStatus(HttpStatus.UNAUTHORIZED).header("WWW-Authenticate",
+                "Bearer error=\"insufficient_user_authentication\", acr_values=\"" + STEP_UP_ACR + "\""));
+
+        mockMvc.perform(delete(BFF_DOCUMENT).with(csrf()).with(oidcLogin()).with(signedInClient())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(delete(BFF_DOCUMENT).with(csrf()).with(oidcLogin()).with(signedInClient())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentType(PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("urn:problem:documents:step-up-required"))
+                .andExpect(jsonPath("$.acrValues").value(STEP_UP_ACR));
+    }
+
+    /**
+     * Verifies that a failure of the listing reaches a client that only accepts JSON as a problem with its status, not
+     * as {@code 406}.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void listDocuments_whenClientOnlyAcceptsJsonAndCallFails_answersJsonProblem() throws Exception {
+        server.expect(requestTo(DOCUMENTS)).andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+
+        mockMvc.perform(get(BFF_DOCUMENTS).with(oidcLogin()).with(signedInClient()).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentType(PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("urn:problem:documents:unauthorized"));
+    }
+
+    /**
      * Verifies that a refusal of the resource server is answered 403 as problem details, without its challenge or
      * its body.
      *

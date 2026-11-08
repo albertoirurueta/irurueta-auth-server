@@ -352,8 +352,11 @@ resource server's own contract (`apis/resource-server/rest-server/resource-serve
 the `restclient` library) and translates every failure into a domain exception: a token that cannot be obtained or
 renewed, or a `401` of the resource server, is unauthorized (`401`, so the SPA signs in again), except a `401` whose
 challenge asks for step-up (below); a `403` is forbidden; a `404` is not found; an unreachable resource server or any
-other answer is unavailable (`502`). No HTTP or OAuth2 type crosses the port, and nothing the resource server answers (headers, cookies, challenges, error bodies) reaches the
-browser: the BFF builds its own responses.
+other answer is unavailable (`502`). No HTTP or OAuth2 type crosses the port, and nothing the resource server answers (headers, cookies, error bodies) reaches the browser: the BFF
+builds its own responses. The one exception is the `acr_values` and `max_age` of a step-up challenge, which the browser
+needs to sign in again; they are kept within what `GET /bff/login` accepts (below). The problems are answered as
+`application/problem+json`; the operations also declare them under `application/json` and the handler does not force
+the media type, so a client that only accepts JSON gets the status and the problem instead of `406`.
 
 [source,java]
 ----
@@ -384,7 +387,10 @@ xref:mfa-and-step-up.adoc[]). When the token of the session does not prove one, 
 `WWW-Authenticate: Bearer error="insufficient_user_authentication", acr_values="...", max_age="..."`.
 `StepUpChallengeMapper` reads that challenge (any other `401` stays unauthorized) and `RestDocumentGateway` throws the
 domain exception `DocumentsStepUpRequiredException` with its values. `DocumentsExceptionHandler` answers it as a `401`
-problem of type `urn:problem:documents:step-up-required` with the extra members `acrValues` and `maxAge` (seconds):
+problem of type `urn:problem:documents:step-up-required` with the extra members `acrValues` and `maxAge` (seconds).
+`StepUpProblemMapper` keeps them within what the login accepts: references of another format are dropped, and a
+`maxAge` above one day is capped at one day, which is stricter than the resource server asked for, so the new sign-in
+still satisfies it:
 
 [source,json]
 ----

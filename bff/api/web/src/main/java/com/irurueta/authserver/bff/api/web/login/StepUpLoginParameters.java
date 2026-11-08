@@ -17,6 +17,7 @@ package com.irurueta.authserver.bff.api.web.login;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.regex.Pattern;
 
 /**
  * Step-up values of a login (RFC 9470), kept in the session by {@link BffLoginController} until
@@ -29,6 +30,15 @@ import java.io.Serializable;
  *                  none.
  */
 public record StepUpLoginParameters(String acrValues, Long maxAge) implements Serializable {
+
+    /** Largest {@code maxAge}, in seconds, that {@code GET /bff/login} accepts (one day, as in the contract). */
+    public static final long MAX_AGE_LIMIT_SECONDS = 86_400L;
+
+    /** Longest {@code acrValues} that {@code GET /bff/login} accepts, as in the contract. */
+    public static final int MAX_ACR_VALUES_LENGTH = 512;
+
+    /** One authentication context class reference {@code GET /bff/login} accepts, as in the contract's pattern. */
+    public static final Pattern ACR_VALUE = Pattern.compile("[A-Za-z0-9:._~/-]+");
 
     /** Serialization version. */
     @Serial

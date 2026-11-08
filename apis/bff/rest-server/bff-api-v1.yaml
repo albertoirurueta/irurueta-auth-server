@@ -158,6 +158,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '502':
           $ref: '#/components/responses/BadGateway'
   /api/documents/{id}:
@@ -194,6 +197,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '403':
           description: >-
             The request lacks the CSRF token (answered by the security chain, without a body), or the access token
@@ -202,10 +208,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: The document does not exist or belongs to someone else.
           content:
             application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
         '502':
@@ -239,10 +251,16 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     BadGateway:
       description: The resource server cannot be reached or failed to answer.
       content:
         application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+        application/json:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
@@ -265,7 +283,10 @@ components:
           description: Body of the document.
     Problem:
       type: object
-      description: RFC 9457 problem details of a failed call to the documents.
+      description: >-
+        RFC 9457 problem details of a failed call to the documents, answered as application/problem+json. The
+        operations also declare them under application/json so that a client that only asks for JSON is not refused
+        with 406: it gets the status and the problem (still as application/problem+json).
       properties:
         type:
           type: string

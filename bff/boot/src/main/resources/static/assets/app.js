@@ -124,8 +124,7 @@ const loadUser = async () => {
  */
 const loadDocuments = async () => {
     showError('');
-    // The BFF answers its failures as RFC 9457 problem details (application/problem+json): accepting only
-    // application/json would turn a 401 problem into a 406 and the sign-in would never start.
+    // The BFF answers its failures as RFC 9457 problem details; asking for both types gets application/problem+json.
     const response = await fetch('/api/documents', {credentials: 'same-origin', headers: {Accept: JSON_OR_PROBLEM}});
     if (response.status === 401) {
         login();

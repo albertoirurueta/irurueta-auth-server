@@ -22,29 +22,30 @@ import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredExcep
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Translates the failures of {@link DocumentsController} to RFC 9457 problem details, answered as
- * {@code application/problem+json}. The detail is a fixed text: the message of the failure, and anything the resource
- * server said, never reach the browser.
+ * Translates the failures of {@link DocumentsController} to RFC 9457 problem details. The media type is not forced, so
+ * a client that only accepts {@code application/json} still gets the status and the problem instead of {@code 406}:
+ * Spring writes a problem detail as {@code application/problem+json} when the client's types do not include it. The
+ * detail is a fixed text: the message of the failure, and anything the resource server said, never reach the browser,
+ * except the values of a step-up request, which {@link StepUpProblemMapper} keeps within what {@code GET /bff/login}
+ * accepts.
  */
 @RestControllerAdvice(assignableTypes = DocumentsController.class)
+@RequiredArgsConstructor
 public class DocumentsExceptionHandler {
 
     /** Base of the problem type URNs. */
     static final String TYPE_BASE = "urn:problem:documents:";
 
-    /** Problem property carrying the authentication context classes of a step-up request. */
-    static final String ACR_VALUES_PROPERTY = "acrValues";
-
-    /** Problem property carrying the maximum age, in seconds, of a step-up request. */
-    static final String MAX_AGE_PROPERTY = "maxAge";
+    /** Builds the extra members of a step-up problem. */
+    private final StepUpProblemMapper stepUpProblemMapper;
 
     /**
      * Answers a session without a valid token with 401, so the SPA signs the user in again.
@@ -68,8 +69,7 @@ public class DocumentsExceptionHandler {
     public ResponseEntity<ProblemDetail> handleStepUpRequired(final DocumentsStepUpRequiredException exception) {
         final var problem = problem(HttpStatus.UNAUTHORIZED, "step-up-required",
                 "The operation needs a stronger or more recent sign-in");
-        exception.getAcrValues().ifPresent(acrValues -> problem.setProperty(ACR_VALUES_PROPERTY, acrValues));
-        exception.getMaxAge().ifPresent(maxAge -> problem.setProperty(MAX_AGE_PROPERTY, maxAge.toSeconds()));
+        stepUpProblemMapper.toProblemProperties(exception).forEach(problem::setProperty);
         return respond(problem);
     }
 
@@ -134,13 +134,12 @@ public class DocumentsExceptionHandler {
     }
 
     /**
-     * Answers a problem detail with its status, as {@code application/problem+json}.
+     * Answers a problem detail with its status; the media type is left to content negotiation.
      *
      * @param problem the problem detail.
      * @return the response.
      */
     private static ResponseEntity<ProblemDetail> respond(final ProblemDetail problem) {
-        return ResponseEntity.status(problem.getStatus()).contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(problem);
+        return ResponseEntity.status(problem.getStatus()).body(problem);
     }
 }

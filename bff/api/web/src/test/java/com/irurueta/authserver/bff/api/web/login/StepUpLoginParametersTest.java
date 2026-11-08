@@ -54,7 +54,7 @@ class StepUpLoginParametersTest {
      * @throws ClassNotFoundException if the class cannot be found when read back.
      */
     @Test
-    void serialization_whenWrittenAndRead_keepsTheValues() throws IOException, ClassNotFoundException {
+    void equalsAndHashCode_whenSerializedAndRead_areEqual() throws IOException, ClassNotFoundException {
         final var parameters = new StepUpLoginParameters(ACR_VALUES, MAX_AGE);
         final var bytes = new ByteArrayOutputStream();
         try (var output = new ObjectOutputStream(bytes)) {
