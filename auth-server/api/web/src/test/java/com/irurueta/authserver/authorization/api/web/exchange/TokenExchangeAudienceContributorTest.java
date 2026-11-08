@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web.exchange;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.irurueta.authserver.authorization.api.web.tokens.IssuedTokenClaims;
 import com.irurueta.authserver.authorization.application.clients.DefaultClientDefinitions;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenExchangeAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
@@ -95,16 +97,32 @@ class TokenExchangeAudienceContributorTest {
     }
 
     /**
-     * An audience the client may not have is not granted and the audiences of the client stay.
+     * A request whose audiences the client may not have is refused with invalid_target and the claims stay untouched.
      */
     @Test
-    void contribute_whenNoRequestedAudienceIsAllowed_keepsTheAudiencesOfTheClient() {
+    void contribute_whenNoRequestedAudienceIsAllowed_throwsInvalidTarget() {
+        final var claims = claimsWithAudiences(RESOURCE_SERVER, API);
+        final var context = contextOf(AuthorizationGrantType.TOKEN_EXCHANGE, OAuth2TokenType.ACCESS_TOKEN,
+                Set.of(FOREIGN));
+
+        final var error = assertThrows(OAuth2AuthenticationException.class,
+                () -> contributor.contribute(context, claims));
+
+        assertEquals(TokenExchangeAudienceContributor.INVALID_TARGET, error.getError().getErrorCode());
+        assertEquals(List.of(RESOURCE_SERVER, API), claims.get(OAuth2TokenClaimNames.AUD));
+    }
+
+    /**
+     * When only some requested audiences are allowed, the allowed ones are granted and the others dropped.
+     */
+    @Test
+    void contribute_whenSomeRequestedAudiencesAreAllowed_grantsOnlyThose() {
         final var claims = claimsWithAudiences(RESOURCE_SERVER, API);
 
         contributor.contribute(contextOf(AuthorizationGrantType.TOKEN_EXCHANGE, OAuth2TokenType.ACCESS_TOKEN,
-                Set.of(FOREIGN)), claims);
+                new LinkedHashSet<>(List.of(API, FOREIGN))), claims);
 
-        assertEquals(List.of(RESOURCE_SERVER, API), claims.get(OAuth2TokenClaimNames.AUD));
+        assertEquals(List.of(API), claims.get(OAuth2TokenClaimNames.AUD));
     }
 
     /**
@@ -147,10 +165,10 @@ class TokenExchangeAudienceContributorTest {
     }
 
     /**
-     * A client without the audiences setting gets no audience claim.
+     * A client without the audiences setting may have no requested audience: the request is refused.
      */
     @Test
-    void contribute_whenClientHasNoAudiencesSetting_addsNothing() {
+    void contribute_whenClientHasNoAudiencesSetting_throwsInvalidTarget() {
         final var claims = new HashMap<String, Object>();
         final var client = clientBuilder().build();
         final var context = OAuth2TokenClaimsContext.with(OAuth2TokenClaimsSet.builder().subject("user"))
@@ -159,8 +177,10 @@ class TokenExchangeAudienceContributorTest {
                 .authorizationGrant(exchange(client, Set.of(RESOURCE_SERVER)))
                 .tokenType(OAuth2TokenType.ACCESS_TOKEN).build();
 
-        contributor.contribute(context, claims);
+        final var error = assertThrows(OAuth2AuthenticationException.class,
+                () -> contributor.contribute(context, claims));
 
+        assertEquals(TokenExchangeAudienceContributor.INVALID_TARGET, error.getError().getErrorCode());
         assertFalse(claims.containsKey(OAuth2TokenClaimNames.AUD));
     }
 

@@ -128,6 +128,26 @@ class TokenExchangeIT {
     }
 
     /**
+     * An exchange for an audience the client may not have is refused with {@code invalid_target} instead of answering
+     * a token for every audience of the client.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void tokenExchange_whenAudienceIsNotAllowed_isRefusedWithInvalidTarget() throws Exception {
+        final var user = fixtures.createUser();
+        final var subject = fixtures.authorizationCodeTokens(user, fixtures.createCodeClient())
+                .get(ACCESS_TOKEN).asString();
+        final var client = createExchangeClient(true);
+        final var actor = fixtures.clientCredentialsToken(client, "profile");
+
+        final var answer = AuthServerFixtures.parse(exchange(client, subject, actor, "billing-api")
+                .andExpect(status().isBadRequest()).andReturn().getResponse().getContentAsString());
+
+        assertEquals("invalid_target", answer.get(ERROR).asString());
+    }
+
+    /**
      * A client that was not registered with the token exchange grant is refused.
      *
      * @throws Exception if a request cannot be performed.

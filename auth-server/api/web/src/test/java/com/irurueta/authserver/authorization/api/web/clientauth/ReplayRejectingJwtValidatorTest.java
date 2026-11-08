@@ -26,8 +26,10 @@ import static org.mockito.Mockito.when;
 import com.irurueta.authserver.authorization.application.clientauth.ClientAssertionProperties;
 import com.irurueta.authserver.authorization.application.clientauth.RegisterClientAssertionUseCase;
 import com.irurueta.authserver.authorization.domain.clientauth.ClientAssertionUse;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,6 +58,9 @@ class ReplayRejectingJwtValidatorTest {
     /** The instant the assertions were issued. */
     private static final Instant ISSUED_AT = Instant.parse("2026-01-01T00:00:00Z");
 
+    /** Clock skew the validator tolerates for {@code iat}. */
+    private static final Duration CLOCK_SKEW = Duration.ofSeconds(60);
+
     /** Records the use of an assertion. */
     @Mock
     private RegisterClientAssertionUseCase registerClientAssertion;
@@ -63,11 +68,11 @@ class ReplayRejectingJwtValidatorTest {
     /** Validator under test. */
     private ReplayRejectingJwtValidator validator;
 
-    /** Creates the validator with a five minute limit. */
+    /** Creates the validator with a five minute limit and a clock fixed at the issue instant. */
     @BeforeEach
     void setUp() {
         validator = new ReplayRejectingJwtValidator(registerClientAssertion,
-                new ClientAssertionProperties(MAX_LIFETIME, null));
+                new ClientAssertionProperties(MAX_LIFETIME, null), Clock.fixed(ISSUED_AT, ZoneOffset.UTC));
     }
 
     /** A new assertion is accepted and its use recorded with the client, identifier and expiry. */
@@ -110,6 +115,27 @@ class ReplayRejectingJwtValidatorTest {
 
         assertTrue(result.hasErrors());
         verify(registerClientAssertion, never()).execute(any());
+    }
+
+    /** An assertion issued in the future, beyond the clock skew, is refused and does not consume its identifier. */
+    @Test
+    void validate_whenIssuedAtIsInTheFuture_failsWithoutRegistering() {
+        final var future = ISSUED_AT.plus(CLOCK_SKEW).plusSeconds(1);
+
+        final var result = validator.validate(jwt(CLIENT_ID, JTI, future, future.plus(SHORT_LIFETIME)));
+
+        assertTrue(result.hasErrors());
+        assertEquals(OAuth2ErrorCodes.INVALID_CLIENT, result.getErrors().iterator().next().getErrorCode());
+        verify(registerClientAssertion, never()).execute(any());
+    }
+
+    /** An assertion issued within the clock skew is accepted. */
+    @Test
+    void validate_whenIssuedAtIsWithinTheClockSkew_succeeds() {
+        when(registerClientAssertion.execute(any())).thenReturn(true);
+        final var ahead = ISSUED_AT.plus(CLOCK_SKEW);
+
+        assertFalse(validator.validate(jwt(CLIENT_ID, JTI, ahead, ahead.plus(SHORT_LIFETIME))).hasErrors());
     }
 
     /** An assertion without jti is refused. */

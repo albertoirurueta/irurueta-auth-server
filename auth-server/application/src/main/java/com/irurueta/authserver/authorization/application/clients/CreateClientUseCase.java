@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.application.clients;
 import com.irurueta.authserver.authorization.domain.clients.ClientAlreadyExistsException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.clients.ImplicitClientRefusedException;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,8 +52,12 @@ public class CreateClientUseCase {
      * @return the stored client and, for a client that uses a secret, its generated secret;
      *         {@code null} when the client has no {@code client_secret_*} authentication method.
      * @throws ClientAlreadyExistsException if the client id is taken.
+     * @throws ImplicitClientRefusedException if the client has the implicit grant type.
      */
     public CreatedClient execute(final ClientRegistration registration) {
+        if (registration.usesImplicit()) {
+            throw new ImplicitClientRefusedException(registration.clientId());
+        }
         if (clientRegistrationRepository.findByClientId(registration.clientId()).isPresent()) {
             throw new ClientAlreadyExistsException(registration.clientId());
         }

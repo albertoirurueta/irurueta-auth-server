@@ -125,15 +125,17 @@ public class RegisteredJwksClientAssertionDecoderFactory implements JwtDecoderFa
     }
 
     /**
-     * Combines the default assertion validators with the replay one.
+     * Combines the default assertion validators with the replay one, failing fast so the replay validator only runs
+     * (and only records the {@code jti}) for an assertion that passed every default check.
      *
      * @param registeredClient the client that authenticates.
      * @return the validator.
      */
     private OAuth2TokenValidator<Jwt> validatorsOf(final RegisteredClient registeredClient) {
         final var defaults = JwtClientAssertionDecoderFactory.DEFAULT_JWT_VALIDATOR_FACTORY.apply(registeredClient);
-        return new DelegatingOAuth2TokenValidator<>(defaults,
-                replayValidator);
+        final var validators = new DelegatingOAuth2TokenValidator<>(defaults, replayValidator);
+        validators.setFailOnError(true);
+        return validators;
     }
 
     /**

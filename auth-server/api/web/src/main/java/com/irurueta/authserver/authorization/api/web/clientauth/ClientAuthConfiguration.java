@@ -19,6 +19,7 @@ import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.x509.X509Properties;
 import com.irurueta.authserver.authorization.application.clientauth.ClientAssertionProperties;
 import com.irurueta.authserver.authorization.application.clientauth.RegisterClientAssertionUseCase;
+import java.time.Clock;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,12 +55,14 @@ public class ClientAuthConfiguration {
      *
      * @param registerClientAssertion records the use of an assertion.
      * @param properties              settings of the assertions.
+     * @param clock                   source of the current instant.
      * @return the validator.
      */
     @Bean
     public ReplayRejectingJwtValidator replayRejectingJwtValidator(
-            final RegisterClientAssertionUseCase registerClientAssertion, final ClientAssertionProperties properties) {
-        return new ReplayRejectingJwtValidator(registerClientAssertion, properties);
+            final RegisterClientAssertionUseCase registerClientAssertion, final ClientAssertionProperties properties,
+            final Clock clock) {
+        return new ReplayRejectingJwtValidator(registerClientAssertion, properties, clock);
     }
 
     // tag::clientauth-decoder-bean[]

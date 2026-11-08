@@ -18,6 +18,7 @@ package com.irurueta.authserver.authorization.api.web.clientauth;
 import com.irurueta.authserver.authorization.application.clientauth.ClientAssertionProperties;
 import com.irurueta.authserver.authorization.application.clientauth.RegisterClientAssertionUseCase;
 import com.irurueta.authserver.authorization.domain.clientauth.ClientAssertionUse;
+import java.time.Clock;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -30,7 +31,9 @@ import org.springframework.util.StringUtils;
 // tag::clientauth-replay-validator[]
 /**
  * Validates what the framework's default assertion validators leave out: the assertion must carry a {@code jti}, an
- * {@code iat} and an {@code exp} no more than the configured maximum lifetime after it, and its {@code jti} must not
+ * {@code iat} no later than now (within the same clock skew the framework's timestamp validator allows) and an
+ * {@code exp} no more than the configured maximum lifetime after it, so a future {@code iat} cannot stretch the
+ * window, and its {@code jti} must not
  * have been used before by the same client (RFC 7523, section 3). The use is recorded last, only for an assertion
  * that passed the other checks, so a refused assertion never consumes its identifier. The record is made through
  * {@link RegisterClientAssertionUseCase}, so the replay protection is shared by every instance of the server.
@@ -41,17 +44,24 @@ public class ReplayRejectingJwtValidator implements OAuth2TokenValidator<Jwt> {
     /** Description of the failures. */
     private static final String DESCRIPTION_PREFIX = "The client assertion ";
 
+    /** Clock skew tolerated for {@code iat}, the default of the framework's {@code JwtTimestampValidator}. */
+    private static final Duration CLOCK_SKEW = Duration.ofSeconds(60);
+
     /** Remembers the assertions that were accepted. */
     private final RegisterClientAssertionUseCase registerClientAssertion;
 
     /** Settings of the client assertions, for the longest lifetime. */
     private final ClientAssertionProperties properties;
 
+    /** Source of the current instant. */
+    private final Clock clock;
+
     /**
      * Checks the assertion and records its use.
      *
      * @param jwt the assertion, already verified for signature, issuer, subject, audience and expiry.
-     * @return success, or a failure when the {@code jti}, {@code iat} or {@code exp} is missing, the lifetime is
+     * @return success, or a failure when the {@code jti}, {@code iat} or {@code exp} is missing, {@code iat} is in
+     *         the future, the lifetime is
      *         longer than allowed or the {@code jti} was already used.
      */
     @Override
@@ -66,6 +76,9 @@ public class ReplayRejectingJwtValidator implements OAuth2TokenValidator<Jwt> {
         }
         if (expiresAt == null) {
             return failure("must have an exp");
+        }
+        if (issuedAt.isAfter(clock.instant().plus(CLOCK_SKEW))) {
+            return failure("is issued in the future");
         }
         final var maxLifetime = properties.maxLifetime();
         if (Duration.between(issuedAt, expiresAt).compareTo(maxLifetime) > 0) {

@@ -1299,9 +1299,9 @@ components:
           type: array
           description: >-
             Allowed grant types. Accepted values: authorization_code, refresh_token, client_credentials,
-            urn:ietf:params:oauth:grant-type:device_code, urn:ietf:params:oauth:grant-type:token-exchange and
-            implicit. A client whose only grant type is implicit must be public, cannot require consent and does
-            not need PKCE.
+            urn:ietf:params:oauth:grant-type:device_code and urn:ietf:params:oauth:grant-type:token-exchange. The
+            legacy implicit grant is refused here (400): only the demo client seeded under the opt-in
+            legacy-implicit profile has it, and it may appear in a response for that client.
           items:
             type: string
         redirectUris:

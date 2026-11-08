@@ -150,6 +150,17 @@ class RegisteredJwksClientAssertionDecoderFactoryTest {
         verify(replayValidator, never()).validate(any());
     }
 
+    /** An assertion for another audience is refused by the default checks and never reaches the replay check. */
+    @Test
+    void createDecoder_whenAudienceIsWrong_refusesWithoutTheReplayCheck() throws Exception {
+        final var client = clientWithJwks(clientKey, SignatureAlgorithm.RS256);
+        final var decoder = factory.createDecoder(client);
+        final var assertion = assertion(client, clientKey, "https://other.example.com");
+
+        assertThrows(JwtException.class, () -> decoder.decode(assertion));
+        verify(replayValidator, never()).validate(any());
+    }
+
     /** The decoder of an unchanged client is reused. */
     @Test
     void createDecoder_whenSettingsAreUnchanged_returnsTheCachedDecoder() {
@@ -276,9 +287,23 @@ class RegisteredJwksClientAssertionDecoderFactoryTest {
      * @throws JOSEException if it cannot be signed.
      */
     private static String assertion(final RegisteredClient client, final RSAKey signer) throws JOSEException {
+        return assertion(client, signer, ISSUER);
+    }
+
+    /**
+     * Builds an assertion of the client for the given audience, signed by the given key.
+     *
+     * @param client   the client.
+     * @param signer   the signing key.
+     * @param audience the {@code aud} of the assertion.
+     * @return the serialized assertion.
+     * @throws JOSEException if the assertion cannot be signed.
+     */
+    private static String assertion(final RegisteredClient client, final RSAKey signer, final String audience)
+            throws JOSEException {
         final var now = Instant.now();
         final var claims = new JWTClaimsSet.Builder().issuer(client.getClientId()).subject(client.getClientId())
-                .audience(ISSUER).jwtID(UUID.randomUUID().toString()).issueTime(Date.from(now))
+                .audience(audience).jwtID(UUID.randomUUID().toString()).issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(LIFETIME_SECONDS))).build();
         final var jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signer.getKeyID()).build(),
                 claims);

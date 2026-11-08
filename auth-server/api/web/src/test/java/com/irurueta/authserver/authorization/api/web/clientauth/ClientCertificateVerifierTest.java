@@ -181,6 +181,19 @@ class ClientCertificateVerifierTest {
                 tlsSettings(authority.getSubjectX500Principal().getName()), authority));
     }
 
+    /**
+     * A chain that starts with the authority is refused even when an issued certificate follows it, so the DN is never
+     * read from a certificate the path validation left out.
+     */
+    @Test
+    void accept_whenChainStartsWithTheAuthority_throwsInvalidClient() {
+        verifier = new ClientCertificateVerifier(anchors, defaultProvider);
+        final var authority = anchors.anchors().iterator().next().getTrustedCert();
+
+        assertInvalidClient(context(ClientAuthenticationMethod.TLS_CLIENT_AUTH,
+                tlsSettings(authority.getSubjectX500Principal().getName()), authority, issued));
+    }
+
     /** Credentials that are not a certificate chain are refused. */
     @Test
     void accept_whenCredentialsAreNotACertificateChain_throwsInvalidClient() {

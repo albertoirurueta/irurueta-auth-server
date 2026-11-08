@@ -86,8 +86,9 @@ client has none. `tls_client_auth` requires a subject DN, `self_signed_tls_clien
 include::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=clients-auth-settings]
 ----
 
-A client whose only grant type is `implicit` (see xref:legacy-implicit.adoc[]) is public, needs no PKCE and may not require
-consent.
+The administration API refuses the `implicit` grant type (`400`): only the demo client of the opt-in `legacy-implicit`
+profile has it (see xref:legacy-implicit.adoc[]), seeded at startup, public, with no PKCE and no consent. A
+`private_key_jwt` client with a registered `jwks` must also give `tokenEndpointAuthSigningAlgorithm`.
 
 == Dynamic client registration
 

@@ -100,10 +100,12 @@ public class ClientCertificateVerifier implements Consumer<OAuth2ClientAuthentic
             throw invalidClient();
         }
         final var leaf = chain[0];
-        final var path = Arrays.stream(chain).filter(certificate -> !isAnchor(certificate)).toList();
-        if (path.isEmpty()) {
+        // the leaf is the certificate whose key the TLS handshake proved and whose DN is compared below: it must be
+        // the first certificate of the validated path, never an anchor left out of it
+        if (isAnchor(leaf)) {
             throw invalidClient();
         }
+        final var path = Arrays.stream(chain).filter(certificate -> !isAnchor(certificate)).toList();
         try {
             final var parameters = new PKIXParameters(trustAnchors.anchors());
             parameters.setRevocationEnabled(false);

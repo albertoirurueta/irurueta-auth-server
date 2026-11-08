@@ -175,7 +175,7 @@ class ClientRegistrationTest {
         assertThrows(IllegalArgumentException.class, () -> authClient("private_key_jwt", null, null, null));
         assertThrows(IllegalArgumentException.class,
                 () -> authClient("self_signed_tls_client_auth", null, null, null));
-        assertEquals("{\"keys\":[]}", authClient("private_key_jwt", null, "{\"keys\":[]}", null).jwks());
+        assertEquals("{\"keys\":[]}", authClient("self_signed_tls_client_auth", null, "{\"keys\":[]}", null).jwks());
         assertEquals("https://c.example.test/jwks",
                 authClient("self_signed_tls_client_auth", "https://c.example.test/jwks", null, null).jwkSetUrl());
     }
@@ -198,6 +198,28 @@ class ClientRegistrationTest {
         assertTrue(authClient("client_secret_post", null, null, null).usesClientSecret());
         assertFalse(authClient("none", null, null, null).usesClientSecret());
         assertFalse(authClient("private_key_jwt", "https://c.example.test/jwks", null, null).usesClientSecret());
+    }
+
+    /**
+     * Verifies that a private_key_jwt client with registered keys needs the algorithm its assertions are signed with.
+     */
+    @Test
+    void constructor_whenPrivateKeyJwtHasJwksAndNoAlgorithm_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> authClient("private_key_jwt", null, "{\"keys\":[]}", null));
+        assertEquals("ES256", new ClientRegistration(CLIENT_ID, "Name", true, List.of("private_key_jwt"),
+                List.of("client_credentials"), List.of(), List.of("api"), true, List.of(), TTL, TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false, null, "{\"keys\":[]}",
+                "ES256", null, false).tokenEndpointSigningAlgorithm());
+    }
+
+    /**
+     * Verifies that only a client with the implicit grant type reports using it.
+     */
+    @Test
+    void usesImplicit_whenGrantTypesVary_matchesImplicitOnly() {
+        assertTrue(implicit(false, false, List.of("implicit"), true).usesImplicit());
+        assertFalse(authClient("client_secret_basic", null, null, null).usesImplicit());
     }
 
     /**

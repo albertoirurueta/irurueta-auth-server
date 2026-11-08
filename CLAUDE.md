@@ -544,7 +544,8 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     with `#access_token=…`. Errors before the client and redirect URI are validated are thrown (no redirect); after that they are returned
     as a `LegacyImplicitErrorToken` rendered as `#error=…&state=…`, because the error handler and response handler are single slots
     (the first owned by `MfaProtocolChainCustomizer`). The provider applies `MfaPolicy` itself. `ClientRegistration` relaxes "a public client requires
-    PKCE" only for a client whose only grant type is `implicit` (no consent, no refresh token, no secret). The demo page is served from
+    PKCE" only for a client whose only grant type is `implicit` (no consent, no refresh token, no secret), and `CreateClientUseCase` /
+    `UpdateClientUseCase` refuse `implicit` (`ImplicitClientRefusedException`, `400 invalid`), so only the seeder creates such a client. The demo page is served from
     `classpath:/legacy-implicit/` (not `static/`) by a profile-only resource handler.
   - **Client authentication** (`api.web.clientauth`, `ClientAuthProtocolChainCustomizer` `@Order(3)`, replay store `V800`): Spring Authorization Server
     7.1.2 requires neither `jti` nor `iat` of a client assertion and keeps no replay store, so `ReplayRejectingJwtValidator` requires

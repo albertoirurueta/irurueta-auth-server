@@ -250,6 +250,29 @@ class ClientAdminIT {
     }
 
     /**
+     * Verifies that the administration API refuses a client with the legacy implicit grant, which only the demo client
+     * seeded under the {@code legacy-implicit} profile may have.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void adminApi_whenClientUsesImplicit_answersInvalid() throws Exception {
+        final var admin = fixtures.adminToken();
+        final var clientId = "implicit-" + UUID.randomUUID();
+        final var json = """
+                {"clientId":"%s","name":"Implicit","confidential":false,"authMethods":["none"],
+                 "grantTypes":["implicit"],"redirectUris":["https://app.example.test/callback"],
+                 "scopes":["read"],"requireProofKey":false,"accessTokenTtl":"PT5M","refreshTokenTtl":"PT5M",
+                 "requireConsent":false}
+                """.formatted(clientId);
+
+        send(post(CLIENTS_PATH), admin, json)
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("urn:problem:client:invalid")));
+        assertEquals(0, count(clientId));
+    }
+
+    /**
      * Verifies that rotating the secret returns a new one, stores it encoded and stops the old one working.
      *
      * @throws Exception if a request cannot be performed.

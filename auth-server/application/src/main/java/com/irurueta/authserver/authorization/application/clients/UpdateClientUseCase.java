@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.application.clients;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.clients.ImplicitClientRefusedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,8 +40,12 @@ public class UpdateClientUseCase {
      *
      * @param registration the new settings, identified by their client id.
      * @throws ClientNotFoundException if the client is not registered.
+     * @throws ImplicitClientRefusedException if the client has the implicit grant type.
      */
     public void execute(final ClientRegistration registration) {
+        if (registration.usesImplicit()) {
+            throw new ImplicitClientRefusedException(registration.clientId());
+        }
         if (clientRegistrationRepository.findByClientId(registration.clientId()).isEmpty()) {
             throw new ClientNotFoundException(registration.clientId());
         }

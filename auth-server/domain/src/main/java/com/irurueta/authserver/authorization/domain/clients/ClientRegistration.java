@@ -137,6 +137,20 @@ public record ClientRegistration(
             throw new IllegalArgumentException(
                     "private_key_jwt and self_signed_tls_client_auth require jwks or jwkSetUrl");
         }
+        if (authMethods.contains(AUTH_PRIVATE_KEY_JWT) && jwks != null && tokenEndpointSigningAlgorithm == null) {
+            throw new IllegalArgumentException(
+                    "private_key_jwt with registered jwks requires tokenEndpointSigningAlgorithm");
+        }
+    }
+
+    /**
+     * Tells whether the client may use the legacy implicit grant, which only the legacy demo client seeded under the
+     * {@code legacy-implicit} profile may have.
+     *
+     * @return {@code true} when the grant types contain {@code implicit}.
+     */
+    public boolean usesImplicit() {
+        return grantTypes.contains(GRANT_IMPLICIT);
     }
 
     /**

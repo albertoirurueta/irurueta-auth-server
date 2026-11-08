@@ -27,6 +27,7 @@ import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
 import com.irurueta.authserver.authorization.api.web.x509.X509Properties;
 import com.irurueta.authserver.authorization.application.clientauth.ClientAssertionProperties;
 import com.irurueta.authserver.authorization.application.clientauth.RegisterClientAssertionUseCase;
+import java.time.Clock;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,7 @@ class ClientAuthConfigurationTest {
     void beans_whenCreated_areNotNull() {
         final var properties = new ClientAssertionProperties(null, null);
         final var validator = configuration.replayRejectingJwtValidator(
-                mock(RegisterClientAssertionUseCase.class), properties);
+                mock(RegisterClientAssertionUseCase.class), properties, Clock.systemUTC());
         final var decoderFactory = configuration.registeredJwksClientAssertionDecoderFactory(validator);
         final var verifier = configuration.clientCertificateVerifier(new MtlsTrustAnchors(Set.of()),
                 mock(RegisteredClientRepository.class), mock(OAuth2AuthorizationService.class));

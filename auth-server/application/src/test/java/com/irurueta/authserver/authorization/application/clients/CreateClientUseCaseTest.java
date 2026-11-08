@@ -29,6 +29,7 @@ import java.util.List;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientAlreadyExistsException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.clients.ImplicitClientRefusedException;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class CreateClientUseCaseTest {
 
     /** Redirect URI of the default clients built by the tests. */
     private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
+    /** Token lifetime of the implicit client. */
+    private static final Duration IMPLICIT_TTL = Duration.ofMinutes(15);
 
     /** Access token lifetime of the key-based client. */
     private static final Duration ACCESS_TTL = Duration.ofMinutes(5);
@@ -133,6 +137,19 @@ class CreateClientUseCaseTest {
     }
 
     /**
+     * Verifies that a client with the implicit grant is refused before anything is looked up or stored.
+     */
+    @Test
+    void execute_whenClientUsesImplicit_throwsImplicitClientRefusedException() {
+        final var client = implicitClient();
+
+        assertThrows(ImplicitClientRefusedException.class, () -> useCase.execute(client));
+
+        verify(clientRegistrationRepository, never()).findByClientId(any());
+        verify(clientRegistrationRepository, never()).save(any(), any());
+    }
+
+    /**
      * Builds the default {@code bff} client with a test redirect URI.
      *
      * @return the client.
@@ -161,5 +178,17 @@ class CreateClientUseCaseTest {
                 List.of("client_credentials"), List.of(), List.of("documents.read"), false, List.of(),
                 ACCESS_TTL, Duration.ofDays(1), ClientRegistration.FORMAT_SELF_CONTAINED, false,
                 List.of(), false, false, "https://client.example.test/jwks.json", null, null, null, false);
+    }
+
+    /**
+     * Builds a public client with the legacy implicit grant, as the legacy demo seeds it.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration implicitClient() {
+        return new ClientRegistration("legacy-implicit-spa", "Legacy", false, List.of("none"), List.of("implicit"),
+                List.of(TEST_REDIRECT_URI), List.of("documents.read"), false, List.of(), IMPLICIT_TTL,
+                IMPLICIT_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false);
     }
 }

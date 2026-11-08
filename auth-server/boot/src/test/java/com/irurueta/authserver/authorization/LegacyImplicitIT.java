@@ -161,6 +161,26 @@ class LegacyImplicitIT {
     }
 
     /**
+     * Verifies that a browser without a session is sent to the login page, not answered with an error: the framework
+     * puts the authorization endpoint after the authorization filter, so the implicit provider only ever sees a
+     * signed-in user.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void authorize_whenNobodyIsSignedIn_redirectsToTheLoginPage() throws Exception {
+        final var request = authorize(LEGACY_CLIENT, LEGACY_REDIRECT, STATE).session(new MockHttpSession())
+                .header("Accept", "text/html");
+
+        final var location = mockMvc.perform(request).andExpect(status().isFound()).andReturn().getResponse()
+                .getRedirectedUrl();
+
+        assertNotNull(location);
+        assertTrue(location.endsWith("/login"));
+        assertFalse(location.contains("access_token"));
+    }
+
+    /**
      * Verifies that a public client of the code flow cannot use the implicit flow.
      *
      * @throws Exception if a request cannot be performed.
