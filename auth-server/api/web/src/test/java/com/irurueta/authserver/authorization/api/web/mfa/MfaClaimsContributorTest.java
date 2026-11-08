@@ -74,6 +74,12 @@ class MfaClaimsContributorTest {
     /** Authority of the SMS one-time token as a second factor. */
     private static final String OTT_SMS_SECOND_AUTHORITY = "FACTOR_OTT_SMS_2FA";
 
+    /** Authority of a strong factor that is multi-factor alone (a trusted provider that reported MFA). */
+    private static final String FEDERATED_MFA_AUTHORITY = "FACTOR_FEDERATED_MFA";
+
+    /** Authority of a strong single factor, the X.509 certificate. */
+    private static final String X509_AUTHORITY = "FACTOR_X509";
+
     /** Authority of a factor nobody registered. */
     private static final String UNKNOWN_AUTHORITY = "FACTOR_UNKNOWN";
 
@@ -97,6 +103,9 @@ class MfaClaimsContributorTest {
         final var registry = new AuthenticationFactorRegistry(List.of(
                 new AuthenticationFactor("password", "pwd", PASSWORD_AUTHORITY, FactorStrength.PRIMARY),
                 new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND),
+                new AuthenticationFactor("federated-mfa", "fed", FEDERATED_MFA_AUTHORITY,
+                        FactorStrength.PRIMARY_STRONG, true),
+                new AuthenticationFactor("x509", "sc", X509_AUTHORITY, FactorStrength.PRIMARY_STRONG),
                 new AuthenticationFactor("trusted-device", "trusted-device", TRUSTED_DEVICE_AUTHORITY,
                         FactorStrength.REMEMBERED)));
         contributor = new MfaClaimsContributor(new FactorTimeline(registry, new MfaPolicy()));
@@ -131,6 +140,34 @@ class MfaClaimsContributorTest {
         assertEquals(List.of("pwd", "otp", "mfa"), claims.get(IdTokenClaimNames.AMR));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, claims.get(IdTokenClaimNames.ACR));
         assertEquals(PASSWORD_TIME.getEpochSecond(), claims.get(IdTokenClaimNames.AUTH_TIME));
+    }
+
+    /**
+     * A factor that is multi-factor alone gives its amr value, mfa and the multi-factor acr, the same rule the
+     * step-up checks apply.
+     */
+    @Test
+    void contribute_whenOnlyAFactorThatIsMultiFactorAlonePresented_addsMultiFactorClaims() {
+        final var claims = new HashMap<String, Object>();
+
+        contributor.contribute(contextOf(authentication(factor(FEDERATED_MFA_AUTHORITY, PASSWORD_TIME))), claims);
+
+        assertEquals(List.of("fed", "mfa"), claims.get(IdTokenClaimNames.AMR));
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR, claims.get(IdTokenClaimNames.ACR));
+    }
+
+    /**
+     * A strong single factor (a certificate) alone gets its amr value and the password acr: it satisfies the sign-in
+     * policy but proves one thing.
+     */
+    @Test
+    void contribute_whenOnlyAStrongSingleFactorPresented_addsPasswordClass() {
+        final var claims = new HashMap<String, Object>();
+
+        contributor.contribute(contextOf(authentication(factor(X509_AUTHORITY, PASSWORD_TIME))), claims);
+
+        assertEquals(List.of("sc"), claims.get(IdTokenClaimNames.AMR));
+        assertEquals(AuthenticationContextClass.PASSWORD, claims.get(IdTokenClaimNames.ACR));
     }
 
     /**

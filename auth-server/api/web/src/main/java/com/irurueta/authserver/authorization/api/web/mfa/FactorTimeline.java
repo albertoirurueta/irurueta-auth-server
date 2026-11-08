@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.FactorGrantedAuthority;
@@ -38,7 +39,8 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>only the factors of the {@link AuthenticationFactorRegistry} that {@link MfaPolicy#isReported} accepts count:
  *       a remembered (trusted) device does not;</li>
- *   <li>the authentication is multi-factor when at least two distinct factors count;</li>
+ *   <li>the authentication is multi-factor when {@link MfaPolicy#isMultiFactor} says so: at least two distinct
+ *       factors count, or one counted factor proves a multi-factor authentication alone;</li>
  *   <li>{@code auth_time} is when the primary factor was presented (the earliest one when there are several), so a
  *       second factor added later never makes the sign-in look newer; without a primary factor it is the earliest
  *       counted factor.</li>
@@ -47,9 +49,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class FactorTimeline {
-
-    /** Minimum number of distinct factors of a multi-factor authentication. */
-    public static final int MIN_MULTI_FACTORS = 2;
 
     /** Registry of the known factors. */
     private final AuthenticationFactorRegistry factorRegistry;
@@ -83,14 +82,16 @@ public class FactorTimeline {
     }
 
     /**
-     * Tells whether an authentication presented at least {@link #MIN_MULTI_FACTORS} distinct counted factors.
+     * Tells whether an authentication is multi-factor, by {@link MfaPolicy#isMultiFactor} over its counted factors.
      *
      * @param authentication the authentication.
      * @return {@code true} for a multi-factor authentication.
      */
     public boolean isMultiFactor(final Authentication authentication) {
-        return countedFactors(authentication).stream().map(FactorGrantedAuthority::getAuthority).distinct().count()
-                >= MIN_MULTI_FACTORS;
+        return mfaPolicy.isMultiFactor(countedFactors(authentication).stream()
+                .map(authority -> factorRegistry.findByAuthority(authority.getAuthority()))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet()));
     }
 
     /**

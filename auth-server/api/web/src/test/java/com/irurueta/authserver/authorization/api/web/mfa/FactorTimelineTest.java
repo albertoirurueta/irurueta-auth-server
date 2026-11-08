@@ -43,6 +43,9 @@ class FactorTimelineTest {
     /** Authority of the passkey factor. */
     private static final String PASSKEY = "FACTOR_WEBAUTHN";
 
+    /** Authority of a strong factor that proves a multi-factor authentication alone (a trusted provider's MFA). */
+    private static final String FEDERATED_MFA = "FACTOR_FEDERATED_MFA";
+
     /** Authority of the TOTP factor. */
     private static final String TOTP = "FACTOR_TOTP";
 
@@ -62,6 +65,7 @@ class FactorTimelineTest {
     private final FactorTimeline timeline = new FactorTimeline(new AuthenticationFactorRegistry(List.of(
             new AuthenticationFactor("password", "pwd", PRIMARY, FactorStrength.PRIMARY),
             new AuthenticationFactor("passkey", "hwk", PASSKEY, FactorStrength.PRIMARY_STRONG),
+            new AuthenticationFactor("federated-mfa", "fed", FEDERATED_MFA, FactorStrength.PRIMARY_STRONG, true),
             new AuthenticationFactor("totp", "otp", TOTP, FactorStrength.SECOND),
             new AuthenticationFactor("trusted-device", "trusted-device", TRUSTED_DEVICE,
                     FactorStrength.REMEMBERED))), new MfaPolicy());
@@ -87,6 +91,24 @@ class FactorTimelineTest {
     void isMultiFactor_whenOnlyPasswordAndTrustedDevice_returnsFalse() {
         assertFalse(timeline.isMultiFactor(user(factor(PRIMARY, PASSWORD_TIME), factor(TRUSTED_DEVICE,
                 DEVICE_TIME))));
+    }
+
+    /**
+     * Verifies that a factor that proves a multi-factor authentication alone makes the session multi-factor.
+     */
+    @Test
+    void isMultiFactor_whenOnlyAFactorThatIsMultiFactorAlone_returnsTrue() {
+        assertTrue(timeline.isMultiFactor(user(factor(FEDERATED_MFA, PASSWORD_TIME))));
+    }
+
+    /**
+     * Verifies that a strong factor that proves one thing (a passkey) is not multi-factor alone, although it satisfies
+     * the sign-in policy, and is with a second factor.
+     */
+    @Test
+    void isMultiFactor_whenOnlyAStrongSingleFactor_returnsFalse() {
+        assertFalse(timeline.isMultiFactor(user(factor(PASSKEY, PASSWORD_TIME))));
+        assertTrue(timeline.isMultiFactor(user(factor(PASSKEY, PASSWORD_TIME), factor(TOTP, TOTP_TIME))));
     }
 
     /**

@@ -183,8 +183,9 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 == Factors and claims
 
 Two factors, both with `amr` `fed`, are never held together: `FACTOR_FEDERATED` (a primary factor, so the normal
-second-factor and step-up flow applies) and `FACTOR_FEDERATED_MFA` (strong). The strong one is chosen only when the
-provider has `trust-mfa: true` and its upstream `amr` contains `mfa`.
+second-factor and step-up flow applies) and `FACTOR_FEDERATED_MFA` (strong, and multi-factor alone). The strong one is
+chosen only when the provider has `trust-mfa: true` and its upstream `amr` contains `mfa`; the session then reaches the
+multi-factor `acr` and passes a step-up for it without a local second factor.
 
 [source,java]
 ----
@@ -202,7 +203,8 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 ----
 
 The token's `sub` is the local username, `idp` names the provider and, for the strong factor only, the upstream `amr`
-values are merged into `amr` (see xref:mfa-and-step-up.adoc[]).
+values are merged into `amr` after the `fed` and `mfa` the multi-factor contributor wrote (see
+xref:mfa-and-step-up.adoc[]); `IdpClaimsContributor` never sets `acr` itself.
 
 [source,java]
 ----

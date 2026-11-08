@@ -42,6 +42,10 @@ class MfaPolicyTest {
     private static final AuthenticationFactor TRUSTED_DEVICE = new AuthenticationFactor("trusted-device",
             "trusted-device", "FACTOR_TRUSTED_DEVICE", FactorStrength.REMEMBERED);
 
+    /** A strong factor that proves a multi-factor authentication alone, like a trusted provider's MFA sign-in. */
+    private static final AuthenticationFactor FEDERATED_MFA = new AuthenticationFactor("federated-mfa", "fed",
+            "FACTOR_FEDERATED_MFA", FactorStrength.PRIMARY_STRONG, true);
+
     /** Subject under test. */
     private final MfaPolicy policy = new MfaPolicy();
 
@@ -83,6 +87,36 @@ class MfaPolicyTest {
     @Test
     void isSatisfied_whenRememberedDeviceOnly_returnsFalse() {
         assertFalse(policy.isSatisfied(Set.of(TRUSTED_DEVICE)));
+    }
+
+    /**
+     * Verifies that two distinct reported factors are multi-factor.
+     */
+    @Test
+    void isMultiFactor_whenTwoDistinctReportedFactors_returnsTrue() {
+        assertTrue(policy.isMultiFactor(Set.of(PASSWORD, TOTP)));
+        assertTrue(policy.isMultiFactor(Set.of(PASSKEY, TOTP)));
+    }
+
+    /**
+     * Verifies that a factor that proves a multi-factor authentication alone is multi-factor by itself.
+     */
+    @Test
+    void isMultiFactor_whenFactorIsMultiFactorAlone_returnsTrue() {
+        assertTrue(policy.isMultiFactor(Set.of(FEDERATED_MFA)));
+    }
+
+    /**
+     * Verifies that a strong factor that proves one thing is not multi-factor alone, although it satisfies the sign-in
+     * policy, and neither is one factor nor a factor plus a remembered device.
+     */
+    @Test
+    void isMultiFactor_whenOneFactorProvesOneThing_returnsFalse() {
+        assertFalse(policy.isMultiFactor(Set.of(PASSKEY)));
+        assertTrue(policy.isSatisfied(Set.of(PASSKEY)));
+        assertFalse(policy.isMultiFactor(Set.of(PASSWORD)));
+        assertFalse(policy.isMultiFactor(Set.of(PASSWORD, TRUSTED_DEVICE)));
+        assertFalse(policy.isMultiFactor(Set.of()));
     }
 
     /**

@@ -16,7 +16,9 @@
 package com.irurueta.authserver.authorization.domain.mfa;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +38,27 @@ class AuthenticationFactorTest {
         assertEquals("otp", factor.amrValue());
         assertEquals("FACTOR_TOTP", factor.authority());
         assertEquals(FactorStrength.SECOND, factor.strength());
+        assertFalse(factor.multiFactor());
+    }
+
+    /**
+     * Verifies that a strong factor may prove a multi-factor authentication alone.
+     */
+    @Test
+    void constructor_whenStrongFactorIsMultiFactorAlone_keepsIt() {
+        assertTrue(new AuthenticationFactor("federated-mfa", "fed", "FACTOR_FEDERATED_MFA",
+                FactorStrength.PRIMARY_STRONG, true).multiFactor());
+    }
+
+    /**
+     * Verifies that only a strong primary factor may prove a multi-factor authentication alone.
+     */
+    @Test
+    void constructor_whenWeakerFactorClaimsMultiFactor_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new AuthenticationFactor("password", "pwd", "FACTOR_PASSWORD", FactorStrength.PRIMARY, true));
+        assertThrows(IllegalArgumentException.class,
+                () -> new AuthenticationFactor("totp", "otp", "FACTOR_TOTP", FactorStrength.SECOND, true));
     }
 
     /**

@@ -23,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.irurueta.authserver.authorization.domain.mfa.AuthenticationContextClass;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
@@ -81,10 +82,40 @@ class SocialTrustedProviderIT extends AbstractSocialFlow {
         final var tokens = completeAuthorization(authorizeUri, client, verifier, session);
 
         final var access = AuthServerFixtures.claimsOf(tokens.get("access_token").asString());
-        assertEquals(List.of("fed", "pwd", "mfa"), strings(access.get(AMR)));
+        assertEquals(List.of("fed", "mfa", "pwd"), strings(access.get(AMR)));
         assertEquals(AuthenticationContextClass.MULTI_FACTOR, access.get(ACR).asString());
         assertEquals("google", access.get("idp").asString());
         assertEquals(enrolled.user().username(), access.get(SUB).asString());
+    }
+
+    /**
+     * Verifies that the same strong sign-in also satisfies a step-up request for the multi-factor class: the
+     * authorization endpoint applies the rule its tokens' {@code acr} comes from, so the user is not sent to the
+     * second-factor page.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void authorize_whenTheTrustedProviderReportsMfaAndStepUpIsRequested_issuesTheCodeWithoutSecondFactor()
+            throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var session = new MockHttpSession();
+        final var client = getFixtures().createCodeClient();
+        final var verifier = newVerifier();
+        final var authorizeUri = beginAuthorization(client, verifier, session);
+        final var claims = FakeIdentityProviders.userClaims(
+                "subject-" + UUID.randomUUID(), enrolled.user().email(), true);
+        claims.put(UPSTREAM_AMR, List.of("pwd", "mfa"));
+        signInWithOidc(session, "google", GOOGLE_ISSUER, GOOGLE_CLIENT_ID, claims);
+        completeAuthorization(authorizeUri, client, verifier, session);
+
+        final var stepUpVerifier = newVerifier();
+        final var stepUpUri = AuthServerFixtures.authorizeUri(client, stepUpVerifier,
+                Map.of("acr_values", AuthenticationContextClass.MULTI_FACTOR));
+        final var tokens = completeAuthorization(stepUpUri, client, stepUpVerifier, session);
+
+        final var access = AuthServerFixtures.claimsOf(tokens.get("access_token").asString());
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR, access.get(ACR).asString());
     }
 
     /**

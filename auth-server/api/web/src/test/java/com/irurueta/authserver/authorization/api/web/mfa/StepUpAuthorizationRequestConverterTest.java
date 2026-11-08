@@ -51,6 +51,15 @@ class StepUpAuthorizationRequestConverterTest {
     /** Authority of the TOTP factor. */
     private static final String TOTP_AUTHORITY = "FACTOR_TOTP";
 
+    /** Authority of the strong federated factor, multi-factor alone (a trusted provider that reported MFA). */
+    private static final String FEDERATED_MFA_AUTHORITY = "FACTOR_FEDERATED_MFA";
+
+    /** Authority of the passkey factor, strong but a single factor. */
+    private static final String PASSKEY_AUTHORITY = "FACTOR_WEBAUTHN";
+
+    /** Authority of the X.509 factor, strong but a single factor. */
+    private static final String X509_AUTHORITY = "FACTOR_X509";
+
     /** Authority of the trusted-device factor. */
     private static final String TRUSTED_DEVICE_AUTHORITY = "FACTOR_TRUSTED_DEVICE";
 
@@ -71,6 +80,10 @@ class StepUpAuthorizationRequestConverterTest {
             new FactorTimeline(new AuthenticationFactorRegistry(List.of(
                     new AuthenticationFactor("password", "pwd", PASSWORD_AUTHORITY, FactorStrength.PRIMARY),
                     new AuthenticationFactor("totp", "otp", TOTP_AUTHORITY, FactorStrength.SECOND),
+                    new AuthenticationFactor("federated-mfa", "fed", FEDERATED_MFA_AUTHORITY,
+                            FactorStrength.PRIMARY_STRONG, true),
+                    new AuthenticationFactor("passkey", "hwk", PASSKEY_AUTHORITY, FactorStrength.PRIMARY_STRONG),
+                    new AuthenticationFactor("x509", "sc", X509_AUTHORITY, FactorStrength.PRIMARY_STRONG),
                     new AuthenticationFactor("trusted-device", "trusted-device", TRUSTED_DEVICE_AUTHORITY,
                             FactorStrength.REMEMBERED))), new MfaPolicy()),
             Clock.fixed(NOW, ZoneOffset.UTC));
@@ -221,6 +234,31 @@ class StepUpAuthorizationRequestConverterTest {
     }
 
     /**
+     * Verifies that a sign-in at a provider trusted for its multi-factor authentication satisfies a request for the
+     * multi-factor class alone, as its tokens' {@code acr} says.
+     */
+    @Test
+    void convert_whenMultiFactorIsRequestedAfterTrustedFederatedMfa_returnsNull() {
+        signIn(only(FEDERATED_MFA_AUTHORITY));
+
+        assertNull(converter.convert(request(null, AuthenticationContextClass.MULTI_FACTOR)));
+    }
+
+    /**
+     * Verifies that a passkey or a certificate alone, strong but single factors, still need a second factor for the
+     * multi-factor class.
+     */
+    @Test
+    void convert_whenMultiFactorIsRequestedAfterStrongSingleFactor_throwsSecondFactorRequiredException() {
+        final var request = request(null, AuthenticationContextClass.MULTI_FACTOR);
+
+        signIn(only(PASSKEY_AUTHORITY));
+        assertThrows(SecondFactorRequiredException.class, () -> converter.convert(request));
+        signIn(only(X509_AUTHORITY));
+        assertThrows(SecondFactorRequiredException.class, () -> converter.convert(request));
+    }
+
+    /**
      * Verifies that a password-only session satisfies a request that also accepts the password class.
      */
     @Test
@@ -281,6 +319,18 @@ class StepUpAuthorizationRequestConverterTest {
         return UsernamePasswordAuthenticationToken.authenticated("alice", null, List.<GrantedAuthority>of(
                 FactorGrantedAuthority.withAuthority(PASSWORD_AUTHORITY).issuedAt(issuedAt).build(),
                 FactorGrantedAuthority.withAuthority(TOTP_AUTHORITY).issuedAt(issuedAt).build()));
+    }
+
+    /**
+     * Builds a user who presented one factor {@link #AGE_SECONDS} seconds ago.
+     *
+     * @param authority the authority of the factor.
+     * @return the authentication.
+     */
+    private static UsernamePasswordAuthenticationToken only(final String authority) {
+        return UsernamePasswordAuthenticationToken.authenticated("alice", null,
+                List.<GrantedAuthority>of(FactorGrantedAuthority.withAuthority(authority)
+                        .issuedAt(NOW.minusSeconds(AGE_SECONDS)).build()));
     }
 
     /**
