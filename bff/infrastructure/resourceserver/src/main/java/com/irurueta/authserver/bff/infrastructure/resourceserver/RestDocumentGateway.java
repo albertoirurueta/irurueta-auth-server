@@ -36,8 +36,9 @@ import org.springframework.web.client.RestClientResponseException;
 /**
  * Implements the documents port with the client generated from the resource server's contract. The call runs on behalf
  * of the signed-in user (the REST client adds the user's access token) and every failure becomes a domain exception:
- * a missing or unrenewable token and a {@code 401} are unauthorized, a {@code 403} forbidden, a {@code 404} not found,
- * and an unreachable resource server or any other answer unavailable. No token is ever logged.
+ * a missing or unrenewable token and a {@code 401} are unauthorized, except a {@code 401} carrying a step-up challenge
+ * (RFC 9470), which asks for a stronger or more recent authentication; a {@code 403} is forbidden, a {@code 404} not
+ * found, and an unreachable resource server or any other answer unavailable. No token is ever logged.
  */
 @Component
 @RequiredArgsConstructor
@@ -49,6 +50,9 @@ public class RestDocumentGateway implements DocumentGateway {
 
     /** Maps the generated model onto the domain. */
     private final DocumentMapper documentMapper;
+
+    /** Reads the step-up challenge of a {@code 401} answer. */
+    private final StepUpChallengeMapper stepUpChallengeMapper;
 
     // tag::bff-documents-gateway[]
     @Override
@@ -90,9 +94,13 @@ public class RestDocumentGateway implements DocumentGateway {
      * @param e the error answer.
      * @return the domain exception that describes it.
      */
-    private static RuntimeException translate(final RestClientResponseException e) {
+    private RuntimeException translate(final RestClientResponseException e) {
         return switch (HttpStatus.resolve(e.getStatusCode().value())) {
-            case UNAUTHORIZED -> new DocumentsUnauthorizedException("The resource server refused the token", e);
+            case UNAUTHORIZED -> {
+                final var stepUp = stepUpChallengeMapper.toException(e.getResponseHeaders(), e);
+                yield stepUp.isPresent() ? stepUp.get()
+                        : new DocumentsUnauthorizedException("The resource server refused the token", e);
+            }
             case FORBIDDEN -> new DocumentsForbiddenException("The token does not allow the operation", e);
             case NOT_FOUND -> new DocumentNotFoundException("The document does not exist", e);
             case null, default -> {

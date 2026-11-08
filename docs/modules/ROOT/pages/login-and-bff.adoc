@@ -277,6 +277,13 @@ redirected to the authorization request. Once the OAuth2 login succeeds, `Return
 and removes that attribute, validates it again and redirects there, or to `/` when it is absent or not allowed. A
 request saved by Spring Security for any other reason is never used as a target.
 
+The login also takes the optional `acrValues` and `maxAge` parameters, used to answer a step-up request of the
+resource server (see <<_step_up_through_the_bff>>). The contract checks their format (authentication context class
+references separated by spaces, and a number of seconds from `0` to `86400`), and `BffLoginController` keeps them in the
+session as `StepUpLoginParameters`. `StepUpAuthorizationRequestResolver` wraps the PKCE-enabled
+`DefaultOAuth2AuthorizationRequestResolver` of the chain: it adds them to the next authorization request as the OpenID
+Connect `acr_values` and `max_age` parameters and then removes them, so they apply to one login only.
+
 [source,java]
 ----
 include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/login/BffLoginController.java[tag=bff-login]
@@ -317,8 +324,11 @@ include::example$apis/bff/rest-server/bff-api-v1.yaml[tag=bff-login-api]
 
 The SPA reads and deletes the user's documents through the BFF: `GET /api/documents` and
 `+DELETE /api/documents/{id}+` are operations of the BFF's own contract, with the same schema and status codes as the
-resource server's, plus `401` (no session, or no valid token) and `502` (the resource server is unreachable or
-failed). There is no pass-through relay: OpenAPI has no wildcard paths, and every operation the browser can call is
+resource server's, plus `401` (no session, no valid token, or a step-up request) and `502` (the resource server is
+unreachable or failed). The BFF's registration asks for both `documents.read` and `documents.delete` (property
+`spring.security.oauth2.client.registration.bff.scope`), because each operation of the resource server needs its own
+scope; the seeded `bff` client allows both and the user grants them on the consent page. There is no pass-through
+relay: OpenAPI has no wildcard paths, and every operation the browser can call is
 described, generated and checked by `OpenApiDriftIT` like any other.
 
 [source,yaml]
@@ -340,9 +350,9 @@ The use cases only see the domain port `DocumentGateway` (`bff/domain`). Its imp
 the driven adapter `bff/infrastructure/resourceserver`, calls the resource server through a client generated from the
 resource server's own contract (`apis/resource-server/rest-server/resource-server-api-v1.yaml`, `java` generator with
 the `restclient` library) and translates every failure into a domain exception: a token that cannot be obtained or
-renewed, or a `401` of the resource server, is unauthorized (`401`, so the SPA signs in again); a `403` is forbidden; a
-`404` is not found; an unreachable resource server or any other answer is unavailable (`502`). No HTTP or OAuth2 type
-crosses the port, and nothing the resource server answers (headers, cookies, challenges, error bodies) reaches the
+renewed, or a `401` of the resource server, is unauthorized (`401`, so the SPA signs in again), except a `401` whose
+challenge asks for step-up (below); a `403` is forbidden; a `404` is not found; an unreachable resource server or any
+other answer is unavailable (`502`). No HTTP or OAuth2 type crosses the port, and nothing the resource server answers (headers, cookies, challenges, error bodies) reaches the
 browser: the BFF builds its own responses.
 
 [source,java]
@@ -366,6 +376,33 @@ include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/au
 ----
 include::example$bff/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/bff/infrastructure/resourceserver/ResourceServerClientConfiguration.java[tag=bff-documents-client]
 ----
+
+=== Step-up through the BFF
+
+Deleting a document needs a recent multi-factor sign-in at the resource server (see xref:resource-server.adoc[] and
+xref:mfa-and-step-up.adoc[]). When the token of the session does not prove one, the resource server answers `401` with
+`WWW-Authenticate: Bearer error="insufficient_user_authentication", acr_values="...", max_age="..."`.
+`StepUpChallengeMapper` reads that challenge (any other `401` stays unauthorized) and `RestDocumentGateway` throws the
+domain exception `DocumentsStepUpRequiredException` with its values. `DocumentsExceptionHandler` answers it as a `401`
+problem of type `urn:problem:documents:step-up-required` with the extra members `acrValues` and `maxAge` (seconds):
+
+[source,json]
+----
+{
+  "type": "urn:problem:documents:step-up-required",
+  "status": 401,
+  "detail": "The operation needs a stronger or more recent sign-in",
+  "acrValues": "urn:irurueta:acr:mfa",
+  "maxAge": 300
+}
+----
+
+The client then navigates to `/bff/login?returnTo=...&acrValues=...&maxAge=...` with those values. The authorization
+server, receiving `acr_values` and `max_age`, sends the user to its second-factor page (or to sign in again when the
+sign-in is too old), and the new tokens carry `acr` = `urn:irurueta:acr:mfa` and a fresh `auth_time`, which the resource
+server accepts. The shipped SPA lists documents but has no delete button (the resource server starts with no documents),
+so this path is exercised through the API: `DocumentsApiIT`, `SecurityConfigIT` and the end-to-end
+`BffEndToEndIT.documentDelete_whenSignInIsNotStrongEnough_asksForStepUpThroughTheLogin`.
 
 === The single page application
 

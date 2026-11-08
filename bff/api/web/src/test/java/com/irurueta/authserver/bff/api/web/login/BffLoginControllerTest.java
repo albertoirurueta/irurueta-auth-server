@@ -43,6 +43,12 @@ class BffLoginControllerTest {
     /** An allowed path with a query string and a fragment. */
     private static final String RETURN_TO = "/orders?x=1#top";
 
+    /** Authentication context class of a step-up login. */
+    private static final String ACR_VALUES = "urn:irurueta:acr:mfa";
+
+    /** Maximum age, in seconds, of a step-up login. */
+    private static final Long MAX_AGE = 300L;
+
     /** Validator of the {@code returnTo} values. */
     @Mock
     private ReturnToValidator returnToValidator;
@@ -68,11 +74,54 @@ class BffLoginControllerTest {
         when(returnToValidator.isAllowed(RETURN_TO)).thenReturn(true);
         when(request.getSession()).thenReturn(session);
 
-        final var response = controller.login(RETURN_TO);
+        final var response = controller.login(RETURN_TO, null, null);
 
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         assertEquals(BffLoginController.AUTHORIZATION_PATH, response.getHeaders().getLocation().toString());
         verify(session).setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE, RETURN_TO);
+        verify(session).removeAttribute(StepUpAuthorizationRequestResolver.STEP_UP_ATTRIBUTE);
+    }
+
+    /**
+     * Verifies that the step-up values are kept in the session for the authorization request.
+     */
+    @Test
+    void login_whenStepUpValuesAreGiven_keepsThemInTheSession() {
+        when(returnToValidator.isAllowed(RETURN_TO)).thenReturn(true);
+        when(request.getSession()).thenReturn(session);
+
+        controller.login(RETURN_TO, ACR_VALUES, MAX_AGE);
+
+        verify(session).setAttribute(StepUpAuthorizationRequestResolver.STEP_UP_ATTRIBUTE,
+                new StepUpLoginParameters(ACR_VALUES, MAX_AGE));
+    }
+
+    /**
+     * Verifies that a maximum age alone is kept, and a blank {@code acrValues} is not.
+     */
+    @Test
+    void login_whenOnlyMaxAgeIsGiven_keepsItWithoutAcrValues() {
+        when(returnToValidator.isAllowed(RETURN_TO)).thenReturn(true);
+        when(request.getSession()).thenReturn(session);
+
+        controller.login(RETURN_TO, " ", MAX_AGE);
+
+        verify(session).setAttribute(StepUpAuthorizationRequestResolver.STEP_UP_ATTRIBUTE,
+                new StepUpLoginParameters(null, MAX_AGE));
+    }
+
+    /**
+     * Verifies that {@code acrValues} alone is kept.
+     */
+    @Test
+    void login_whenOnlyAcrValuesAreGiven_keepsThemWithoutMaxAge() {
+        when(returnToValidator.isAllowed(RETURN_TO)).thenReturn(true);
+        when(request.getSession()).thenReturn(session);
+
+        controller.login(RETURN_TO, ACR_VALUES, null);
+
+        verify(session).setAttribute(StepUpAuthorizationRequestResolver.STEP_UP_ATTRIBUTE,
+                new StepUpLoginParameters(ACR_VALUES, null));
     }
 
     /**
@@ -83,7 +132,7 @@ class BffLoginControllerTest {
         when(returnToValidator.isAllowed(BffLoginController.DEFAULT_RETURN_TO)).thenReturn(true);
         when(request.getSession()).thenReturn(session);
 
-        final var response = controller.login(null);
+        final var response = controller.login(null, null, null);
 
         assertTrue(response.getStatusCode().is3xxRedirection());
         verify(session).setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE,
@@ -98,7 +147,7 @@ class BffLoginControllerTest {
         when(returnToValidator.isAllowed(BffLoginController.DEFAULT_RETURN_TO)).thenReturn(true);
         when(request.getSession()).thenReturn(session);
 
-        controller.login("  ");
+        controller.login("  ", null, null);
 
         verify(session).setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE,
                 BffLoginController.DEFAULT_RETURN_TO);
@@ -111,7 +160,8 @@ class BffLoginControllerTest {
     void login_whenReturnToIsRejected_throwsBadRequest() {
         when(returnToValidator.isAllowed("//evil.example")).thenReturn(false);
 
-        final var error = assertThrows(ResponseStatusException.class, () -> controller.login("//evil.example"));
+        final var error = assertThrows(ResponseStatusException.class,
+                () -> controller.login("//evil.example", ACR_VALUES, MAX_AGE));
 
         assertSame(HttpStatus.BAD_REQUEST, error.getStatusCode());
         verifyNoInteractions(session);

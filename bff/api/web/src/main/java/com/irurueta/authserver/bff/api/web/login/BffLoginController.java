@@ -49,19 +49,31 @@ public class BffLoginController implements LoginApi {
     // tag::bff-login[]
     /**
      * Validates {@code returnTo}, keeps it in the session for {@link ReturnToAuthenticationSuccessHandler}, which sends
-     * the browser there once the OAuth2 login succeeds, and redirects to the authorization request.
+     * the browser there once the OAuth2 login succeeds, keeps the step-up values (if any) for
+     * {@link StepUpAuthorizationRequestResolver}, which adds them to the authorization request, and redirects to the
+     * authorization request. The format and range of {@code acrValues} and {@code maxAge} are checked by the generated
+     * interface.
      *
-     * @param returnTo relative path to return to after the login; the root of the application when absent.
+     * @param returnTo  relative path to return to after the login; the root of the application when absent.
+     * @param acrValues authentication context classes to ask the authorization server for; none when absent.
+     * @param maxAge    maximum age, in seconds, of the authentication to ask for; none when absent.
      * @return a redirect to the authorization request.
      * @throws ResponseStatusException answered 400 when {@code returnTo} is not an allowed relative path.
      */
     @Override
-    public ResponseEntity<Void> login(final String returnTo) {
+    public ResponseEntity<Void> login(final String returnTo, final String acrValues, final Long maxAge) {
         final var target = StringUtils.hasText(returnTo) ? returnTo : DEFAULT_RETURN_TO;
         if (!returnToValidator.isAllowed(target)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "returnTo is not an allowed relative path");
         }
-        request.getSession().setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE, target);
+        final var session = request.getSession();
+        session.setAttribute(ReturnToAuthenticationSuccessHandler.RETURN_TO_ATTRIBUTE, target);
+        if (StringUtils.hasText(acrValues) || maxAge != null) {
+            session.setAttribute(StepUpAuthorizationRequestResolver.STEP_UP_ATTRIBUTE,
+                    new StepUpLoginParameters(StringUtils.hasText(acrValues) ? acrValues : null, maxAge));
+        } else {
+            session.removeAttribute(StepUpAuthorizationRequestResolver.STEP_UP_ATTRIBUTE);
+        }
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(AUTHORIZATION_PATH)).build();
     }
     // end::bff-login[]

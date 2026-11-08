@@ -18,6 +18,7 @@ package com.irurueta.authserver.bff.api.web.documents;
 
 import com.irurueta.authserver.bff.domain.documents.DocumentNotFoundException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsForbiddenException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
 import java.net.URI;
@@ -39,6 +40,12 @@ public class DocumentsExceptionHandler {
     /** Base of the problem type URNs. */
     static final String TYPE_BASE = "urn:problem:documents:";
 
+    /** Problem property carrying the authentication context classes of a step-up request. */
+    static final String ACR_VALUES_PROPERTY = "acrValues";
+
+    /** Problem property carrying the maximum age, in seconds, of a step-up request. */
+    static final String MAX_AGE_PROPERTY = "maxAge";
+
     /**
      * Answers a session without a valid token with 401, so the SPA signs the user in again.
      *
@@ -48,6 +55,22 @@ public class DocumentsExceptionHandler {
     @ExceptionHandler(DocumentsUnauthorizedException.class)
     public ResponseEntity<ProblemDetail> handleUnauthorized(final DocumentsUnauthorizedException exception) {
         return respond(HttpStatus.UNAUTHORIZED, "unauthorized", "The session has no valid token");
+    }
+
+    /**
+     * Answers a step-up request of the resource server (RFC 9470) with 401 and the values the SPA passes to
+     * {@code GET /bff/login}, so the user signs in again with a strong and recent enough authentication.
+     *
+     * @param exception the failure, with the values the resource server asked for.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(DocumentsStepUpRequiredException.class)
+    public ResponseEntity<ProblemDetail> handleStepUpRequired(final DocumentsStepUpRequiredException exception) {
+        final var problem = problem(HttpStatus.UNAUTHORIZED, "step-up-required",
+                "The operation needs a stronger or more recent sign-in");
+        exception.getAcrValues().ifPresent(acrValues -> problem.setProperty(ACR_VALUES_PROPERTY, acrValues));
+        exception.getMaxAge().ifPresent(maxAge -> problem.setProperty(MAX_AGE_PROPERTY, maxAge.toSeconds()));
+        return respond(problem);
     }
 
     /**
@@ -93,8 +116,31 @@ public class DocumentsExceptionHandler {
      */
     private static ResponseEntity<ProblemDetail> respond(final HttpStatus status, final String type,
             final String detail) {
+        return respond(problem(status, type, detail));
+    }
+
+    /**
+     * Builds a problem detail.
+     *
+     * @param status HTTP status.
+     * @param type   last segment of the problem type.
+     * @param detail explanation shown to the user.
+     * @return the problem detail.
+     */
+    private static ProblemDetail problem(final HttpStatus status, final String type, final String detail) {
         final var problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(URI.create(TYPE_BASE + type));
-        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+        return problem;
+    }
+
+    /**
+     * Answers a problem detail with its status, as {@code application/problem+json}.
+     *
+     * @param problem the problem detail.
+     * @return the response.
+     */
+    private static ResponseEntity<ProblemDetail> respond(final ProblemDetail problem) {
+        return ResponseEntity.status(problem.getStatus()).contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
     }
 }

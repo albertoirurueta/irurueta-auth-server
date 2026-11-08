@@ -34,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -95,6 +96,27 @@ class BffEndToEndIT {
 
     /** Name of the response header that carries the target of a redirect (lower case, as Playwright reports it). */
     private static final String LOCATION = "location";
+
+    /** Authentication context class the resource server asks for before a deletion. */
+    private static final String STEP_UP_ACR = "urn:irurueta:acr:mfa";
+
+    /** Maximum age, in seconds, of the authentication the resource server accepts before a deletion. */
+    private static final int STEP_UP_MAX_AGE_SECONDS = 300;
+
+    /**
+     * Script run in the SPA page that deletes a document through the BFF the way a script of the SPA would (session
+     * cookie and the CSRF token in the {@code X-XSRF-TOKEN} header) and returns the status and the body of the answer.
+     */
+    private static final String DELETE_DOCUMENT_SCRIPT = """
+            async () => {
+                const entry = document.cookie.split('; ').find((cookie) => cookie.startsWith('XSRF-TOKEN='));
+                const token = decodeURIComponent(entry.substring('XSRF-TOKEN='.length));
+                const response = await fetch('/api/documents/missing', {method: 'DELETE', credentials: 'same-origin',
+                    headers: {'X-XSRF-TOKEN': token,
+                    Accept: 'application/json, application/problem+json'}});
+                return {status: response.status, body: await response.text()};
+            }
+            """;
 
     /** Path of the sign-out of the BFF. */
     private static final String BFF_LOGOUT_PATH = "/bff/logout";
@@ -222,18 +244,66 @@ class BffEndToEndIT {
     }
 
     /**
+     * Signs in with a password only and deletes a document through the BFF. The BFF must ask the resource server with
+     * the {@code documents.delete} scope (without it the answer would be {@code 403}), and the resource server's
+     * step-up challenge (RFC 9470) must reach the SPA as a {@code step-up-required} problem. Starting the login with
+     * its values must then send the browser to the second-factor page of the authorization server, which proves that
+     * {@code acr_values} and {@code max_age} reached the authorization request.
+     *
+     * @throws Exception if a step of the flow fails.
+     */
+    @Test
+    void documentDelete_whenSignInIsNotStrongEnough_asksForStepUpThroughTheLogin() throws Exception {
+        try (var playwright = Playwright.create(); var browser = playwright.chromium().launch();
+             var context = browser.newContext()) {
+            final var page = context.newPage();
+            page.setDefaultTimeout(PAGE_TIMEOUT_MILLIS);
+            // a user of its own: the consent the other tests grant to demo would otherwise skip the consent page
+            final var username = "step-up-" + UUID.randomUUID();
+            authServer.createUserLikeDemo(username);
+
+            signIn(page, username);
+            consent(page, "#allow");
+            page.waitForSelector("#profile:not([hidden])");
+
+            final var answer = (Map<?, ?>) page.evaluate(DELETE_DOCUMENT_SCRIPT);
+
+            assertEquals(HTTP_UNAUTHORIZED, ((Number) answer.get("status")).intValue(), String.valueOf(answer));
+            final var body = String.valueOf(answer.get("body"));
+            assertTrue(body.contains("\"urn:problem:documents:step-up-required\""), body);
+            assertTrue(body.contains("\"acrValues\":\"" + STEP_UP_ACR + "\""), body);
+            assertTrue(body.contains("\"maxAge\":" + STEP_UP_MAX_AGE_SECONDS), body);
+
+            page.navigate(bffUrl + "/bff/login?returnTo=%2F&acrValues=" + STEP_UP_ACR + "&maxAge="
+                    + STEP_UP_MAX_AGE_SECONDS);
+            page.waitForURL(url -> url.startsWith(authServer.issuer() + "/login/second-factor"));
+        }
+    }
+
+    /**
      * Opens the SPA, which shows its signed-out state without leaving the page, clicks <em>Sign in</em> and signs the
      * demo user in on the login page of the authorization server.
      *
      * @param page the page of the browser.
      */
     private static void signIn(final Page page) {
+        signIn(page, "demo");
+    }
+
+    /**
+     * Opens the SPA, clicks <em>Sign in</em> and signs a user that shares the demo user's password in on the login
+     * page of the authorization server, up to its consent page.
+     *
+     * @param page     the page of the browser.
+     * @param username name of the user.
+     */
+    private static void signIn(final Page page, final String username) {
         page.navigate(bffUrl + "/");
         page.waitForSelector("#signed-out:not([hidden])");
         assertEquals(bffUrl + "/", page.url(), "the first visit does not start the sign-in by itself");
         page.click("#sign-in");
         page.waitForURL(url -> url.startsWith(authServer.issuer() + "/login"));
-        page.fill("#username", "demo");
+        page.fill("#username", username);
         page.fill("#password", authServer.demoPassword());
         page.click("button[type=submit]");
         page.waitForURL(url -> url.startsWith(authServer.issuer() + "/oauth2/consent"));

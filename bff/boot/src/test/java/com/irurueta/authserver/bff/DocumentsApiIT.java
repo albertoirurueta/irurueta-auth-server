@@ -86,6 +86,15 @@ class DocumentsApiIT {
     /** Path of one document on the BFF. */
     private static final String BFF_DOCUMENT = BFF_DOCUMENTS + "/7";
 
+    /** Authentication context class the resource server asks for in its step-up challenge. */
+    private static final String STEP_UP_ACR = "urn:irurueta:acr:mfa";
+
+    /** Maximum age, in seconds, the resource server asks for in its step-up challenge. */
+    private static final int STEP_UP_MAX_AGE = 300;
+
+    /** {@code Accept} header of the SPA's calls to the documents API: the JSON results and the problem details. */
+    private static final String ACCEPT_JSON_OR_PROBLEM = "application/json, application/problem+json";
+
     /** Media type of the problem details. */
     private static final String PROBLEM_JSON = MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 
@@ -184,6 +193,31 @@ class DocumentsApiIT {
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:problem:documents:not-found"));
+    }
+
+    /**
+     * Verifies that a step-up challenge of the resource server (RFC 9470) is answered 401 with the values the SPA
+     * passes to the login, and without the challenge itself, to a client that accepts the JSON results and the
+     * problem details, as the SPA does.
+     *
+     * @throws Exception if the request cannot be performed.
+     */
+    @Test
+    void deleteDocument_whenResourceServerAsksForStepUp_answersStepUpRequiredProblem() throws Exception {
+        server.expect(requestTo(DOCUMENT)).andRespond(withStatus(HttpStatus.UNAUTHORIZED).header("WWW-Authenticate",
+                "Bearer error=\"insufficient_user_authentication\", error_description=\"step-up\", "
+                        + "acr_values=\"" + STEP_UP_ACR + "\", max_age=\"" + STEP_UP_MAX_AGE + "\""));
+
+        final var result = mockMvc.perform(delete(BFF_DOCUMENT).with(csrf()).with(oidcLogin())
+                        .with(signedInClient()).header("Accept", ACCEPT_JSON_OR_PROBLEM))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentType(PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("urn:problem:documents:step-up-required"))
+                .andExpect(jsonPath("$.acrValues").value(STEP_UP_ACR))
+                .andExpect(jsonPath("$.maxAge").value(STEP_UP_MAX_AGE))
+                .andReturn().getResponse();
+
+        assertNull(result.getHeader("WWW-Authenticate"));
     }
 
     /**

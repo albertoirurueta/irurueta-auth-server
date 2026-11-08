@@ -17,6 +17,7 @@
 package com.irurueta.authserver.bff.api.web.security;
 
 import com.irurueta.authserver.bff.api.web.login.ReturnToAuthenticationSuccessHandler;
+import com.irurueta.authserver.bff.api.web.login.StepUpAuthorizationRequestResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -73,9 +74,12 @@ public class SecurityConfig {
     SecurityFilterChain bffFilterChain(final HttpSecurity http, final ClientRegistrationRepository clientRepository,
             final ReturnToAuthenticationSuccessHandler loginSuccessHandler,
             final OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
-        final var resolver = new DefaultOAuth2AuthorizationRequestResolver(clientRepository, "/oauth2/authorization");
+        final var defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(clientRepository,
+                "/oauth2/authorization");
         // The auth server requires PKCE; Spring only enables it by default for public clients.
-        resolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+        defaultResolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+        // A login started for step-up (GET /bff/login with acrValues / maxAge) also asks for acr_values and max_age.
+        final var resolver = new StepUpAuthorizationRequestResolver(defaultResolver);
 
         http.authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/static/**", "/error",

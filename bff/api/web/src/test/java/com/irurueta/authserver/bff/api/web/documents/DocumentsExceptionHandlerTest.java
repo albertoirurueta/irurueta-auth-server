@@ -19,11 +19,14 @@ package com.irurueta.authserver.bff.api.web.documents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.irurueta.authserver.bff.domain.documents.DocumentNotFoundException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsForbiddenException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,6 +41,12 @@ class DocumentsExceptionHandlerTest {
     /** Message of the failures; it must never reach the answer. */
     private static final String SECRET = "internal detail";
 
+    /** Authentication context class of a step-up request. */
+    private static final String ACR_VALUES = "urn:irurueta:acr:mfa";
+
+    /** Seconds of the maximum age of a step-up request. */
+    private static final long MAX_AGE_SECONDS = 300L;
+
     /** Handler under test. */
     private final DocumentsExceptionHandler handler = new DocumentsExceptionHandler();
 
@@ -48,6 +57,32 @@ class DocumentsExceptionHandlerTest {
     void handleUnauthorized_whenCalled_answersUnauthorized() {
         assertProblem(handler.handleUnauthorized(new DocumentsUnauthorizedException(SECRET, null)),
                 HttpStatus.UNAUTHORIZED, "unauthorized");
+    }
+
+    /**
+     * A step-up request maps to 401 with the values the resource server asked for.
+     */
+    @Test
+    void handleStepUpRequired_whenValuesAreKnown_answersUnauthorizedWithThem() {
+        final var response = handler.handleStepUpRequired(new DocumentsStepUpRequiredException(SECRET, ACR_VALUES,
+                Duration.ofSeconds(MAX_AGE_SECONDS), null));
+
+        assertProblem(response, HttpStatus.UNAUTHORIZED, "step-up-required");
+        final var properties = response.getBody().getProperties();
+        assertEquals(ACR_VALUES, properties.get(DocumentsExceptionHandler.ACR_VALUES_PROPERTY));
+        assertEquals(MAX_AGE_SECONDS, properties.get(DocumentsExceptionHandler.MAX_AGE_PROPERTY));
+    }
+
+    /**
+     * A step-up request that names no value maps to 401 without those properties.
+     */
+    @Test
+    void handleStepUpRequired_whenValuesAreUnknown_answersUnauthorizedWithoutThem() {
+        final var response = handler.handleStepUpRequired(new DocumentsStepUpRequiredException(SECRET, null, null,
+                null));
+
+        assertProblem(response, HttpStatus.UNAUTHORIZED, "step-up-required");
+        assertNull(response.getBody().getProperties());
     }
 
     /**

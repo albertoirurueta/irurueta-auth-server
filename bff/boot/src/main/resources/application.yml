@@ -39,8 +39,10 @@ spring:
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_basic
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            # documents.read lets the /api/documents call to the resource server succeed; the user grants it on the consent page.
-            scope: openid,profile,documents.read
+            # documents.read and documents.delete let the BFF list and delete documents on the resource server (each
+            # operation there needs its scope); the user grants them on the consent page. The seeded bff client of the
+            # auth server allows both.
+            scope: openid,profile,documents.read,documents.delete
         provider:
           auth-server:
             issuer-uri: ${AUTH_ISSUER:http://localhost:9000}
