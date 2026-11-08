@@ -72,6 +72,23 @@ include::example$auth-server/infrastructure/persistence/src/main/java/com/irurue
 include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/clients/CreateClientUseCase.java[tag=clients-admin]
 ----
 
+== Client authentication settings
+
+A client also carries the settings of the stronger authentication methods (see xref:client-credentials.adoc[]):
+`jwkSetUrl` and `jwks` (a public JWK set; a key with private material is refused with `400 invalid-jwks`),
+`tokenEndpointAuthSigningAlgorithm`, `tlsClientAuthSubjectDn` and `certificateBoundAccessTokens`. A confidential client
+gets a generated secret only when one of its authentication methods is a `client_secret_*` one; a `private_key_jwt` or mTLS
+client has none. `tls_client_auth` requires a subject DN, `self_signed_tls_client_auth` and `private_key_jwt` require
+`jwks` or `jwkSetUrl`.
+
+[source,yaml]
+----
+include::example$apis/auth-server/rest-server/auth-server-api-v1.yaml[tag=clients-auth-settings]
+----
+
+A client whose only grant type is `implicit` (see xref:legacy-implicit.adoc[]) is public, needs no PKCE and may not require
+consent.
+
 == Dynamic client registration
 
 OpenID Connect dynamic client registration (`/connect/register`) is supported by Spring Authorization Server and is off

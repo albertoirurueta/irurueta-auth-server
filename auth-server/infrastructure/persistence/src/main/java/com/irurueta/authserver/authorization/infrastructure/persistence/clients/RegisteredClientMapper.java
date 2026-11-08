@@ -22,11 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.jose.jws.JwsAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * Maps the domain {@link ClientRegistration} onto Spring Authorization Server's {@link RegisteredClient} and back.
@@ -45,6 +48,12 @@ public class RegisteredClientMapper {
      */
     public static final String MFA_REQUIRED_SETTING = "settings.client.mfa.required";
 
+    /**
+     * Name of the custom client setting that holds the client's registered public JWK set as JSON, used to verify
+     * {@code private_key_jwt} assertions and self-signed certificates.
+     */
+    public static final String JWKS_SETTING = "settings.client.jwks";
+
     /** Authentication method that marks a public client. */
     private static final String AUTH_METHOD_NONE = ClientAuthenticationMethod.NONE.getValue();
 
@@ -56,9 +65,30 @@ public class RegisteredClientMapper {
      * @param issuedAt     instant the client identifier was issued.
      * @param secret       encoded secret, or {@code null}.
      * @return the registered client.
+     * @throws IllegalArgumentException if the token endpoint signing algorithm is not a JWS signature algorithm.
      */
     public RegisteredClient toRegisteredClient(
             final ClientRegistration registration, final String id, final Instant issuedAt, final String secret) {
+        final var clientSettings = ClientSettings.builder()
+                .requireProofKey(registration.requireProofKey())
+                .requireAuthorizationConsent(registration.requireConsent())
+                .setting(AUDIENCES_SETTING, new ArrayList<>(registration.audiences()))
+                .setting(MFA_REQUIRED_SETTING, registration.mfaRequired());
+        // tag::clients-auth-settings[]
+        if (registration.jwkSetUrl() != null) {
+            clientSettings.jwkSetUrl(registration.jwkSetUrl());
+        }
+        if (registration.jwks() != null) {
+            clientSettings.setting(JWKS_SETTING, registration.jwks());
+        }
+        if (registration.tokenEndpointSigningAlgorithm() != null) {
+            clientSettings.tokenEndpointAuthenticationSigningAlgorithm(
+                    signingAlgorithmOf(registration.tokenEndpointSigningAlgorithm()));
+        }
+        if (registration.tlsClientAuthSubjectDn() != null) {
+            clientSettings.x509CertificateSubjectDN(registration.tlsClientAuthSubjectDn());
+        }
+        // end::clients-auth-settings[]
         final var builder = RegisteredClient.withId(id)
                 .clientId(registration.clientId())
                 .clientIdIssuedAt(issuedAt)
@@ -71,18 +101,14 @@ public class RegisteredClientMapper {
                 .redirectUris(uris -> uris.addAll(registration.redirectUris()))
                 .postLogoutRedirectUris(uris -> uris.addAll(registration.postLogoutRedirectUris()))
                 .scopes(scopes -> scopes.addAll(registration.scopes()))
-                .clientSettings(ClientSettings.builder()
-                        .requireProofKey(registration.requireProofKey())
-                        .requireAuthorizationConsent(registration.requireConsent())
-                        .setting(AUDIENCES_SETTING, new ArrayList<>(registration.audiences()))
-                        .setting(MFA_REQUIRED_SETTING, registration.mfaRequired())
-                        .build())
+                .clientSettings(clientSettings.build())
                 // tag::tokens-settings[]
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(registration.accessTokenTtl())
                         .refreshTokenTimeToLive(registration.refreshTokenTtl())
                         .accessTokenFormat(new OAuth2TokenFormat(registration.accessTokenFormat()))
                         .reuseRefreshTokens(registration.reuseRefreshTokens())
+                        .x509CertificateBoundAccessTokens(registration.certificateBoundAccessTokens())
                         .build());
                 // end::tokens-settings[]
         return builder.build();
@@ -109,7 +135,9 @@ public class RegisteredClientMapper {
                 tokenSettings.getRefreshTokenTimeToLive(), tokenSettings.getAccessTokenFormat().getValue(),
                 tokenSettings.isReuseRefreshTokens(),
                 client.getPostLogoutRedirectUris().stream().sorted().toList(),
-                settings.isRequireAuthorizationConsent(), mfaRequiredOf(settings));
+                settings.isRequireAuthorizationConsent(), mfaRequiredOf(settings), settings.getJwkSetUrl(),
+                jwksOf(settings), signingAlgorithmNameOf(settings), settings.getX509CertificateSubjectDN(),
+                tokenSettings.isX509CertificateBoundAccessTokens());
     }
 
     /**
@@ -134,5 +162,42 @@ public class RegisteredClientMapper {
      */
     public boolean mfaRequiredOf(final ClientSettings settings) {
         return Boolean.TRUE.equals(settings.getSetting(MFA_REQUIRED_SETTING));
+    }
+
+    /**
+     * Reads the registered JWK set custom setting.
+     *
+     * @param settings client settings.
+     * @return the JWK set JSON, or {@code null} when the setting is absent.
+     */
+    public String jwksOf(final ClientSettings settings) {
+        final var value = settings.getSetting(JWKS_SETTING);
+        return value instanceof String jwks && StringUtils.hasText(jwks) ? jwks : null;
+    }
+
+    /**
+     * Reads the token endpoint authentication signing algorithm.
+     *
+     * @param settings client settings.
+     * @return the algorithm name, or {@code null} when none is set.
+     */
+    private String signingAlgorithmNameOf(final ClientSettings settings) {
+        final JwsAlgorithm algorithm = settings.getTokenEndpointAuthenticationSigningAlgorithm();
+        return algorithm == null ? null : algorithm.getName();
+    }
+
+    /**
+     * Resolves a JWS signature algorithm by name.
+     *
+     * @param name the algorithm name, for example {@code RS256}.
+     * @return the algorithm.
+     * @throws IllegalArgumentException if the name is not a JWS signature algorithm.
+     */
+    private SignatureAlgorithm signingAlgorithmOf(final String name) {
+        final var algorithm = SignatureAlgorithm.from(name);
+        if (algorithm == null) {
+            throw new IllegalArgumentException("unsupported token endpoint signing algorithm: " + name);
+        }
+        return algorithm;
     }
 }

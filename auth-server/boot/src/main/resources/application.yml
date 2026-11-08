@@ -214,6 +214,26 @@ authserver:
       per-client: 30
       per-user: 10
   # end::device-config[]
+  # tag::client-assertion-config[]
+  client-assertion:
+    # private_key_jwt / client_secret_jwt client authentication (RFC 7523): the longest lifetime accepted for an
+    # assertion (exp minus iat), and the jti replay records are purged after they expire.
+    max-lifetime: PT5M
+    cleanup:
+      # when the expired assertion identifiers are deleted (every hour)
+      cron: "0 30 * * * *"
+  # end::client-assertion-config[]
+  # tag::mtls-config[]
+  mtls:
+    # Mutual-TLS client authentication (RFC 8705): the certificate authorities, as PEM or key store locations, whose
+    # certificates are accepted for tls_client_auth. Empty: none, only self_signed_tls_client_auth can succeed.
+    trusted-authorities: []
+  # end::mtls-config[]
+  # tag::par-config[]
+  par:
+    # Pushed authorization requests (RFC 9126): the endpoint is off unless explicitly enabled.
+    enabled: false
+  # end::par-config[]
   oidc:
     client-registration:
       # Dynamic client registration (/connect/register) is off unless explicitly enabled.

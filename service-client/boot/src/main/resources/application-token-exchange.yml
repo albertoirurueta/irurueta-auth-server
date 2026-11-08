@@ -1,0 +1,41 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Profile of the token exchange runner (TokenExchangeCli): as client-credentials, plus the access token of the user,
+# which is only ever read from the environment.
+spring:
+  main:
+    banner-mode: "off"
+    log-startup-info: false
+service-client:
+  resource-server:
+    base-uri: ${SERVICE_CLIENT_RESOURCE_SERVER_URI:http://localhost:8081}
+  auth:
+    # client_secret_basic | private_key_jwt | tls_client_auth | self_signed_tls_client_auth
+    method: ${SERVICE_CLIENT_AUTH_METHOD:client_secret_basic}
+    client-id: ${SERVICE_CLIENT_ID:service-client}
+    client-secret: ${SERVICE_CLIENT_SECRET:}
+    token-uri: ${SERVICE_CLIENT_TOKEN_URI:http://localhost:9000/oauth2/token}
+    scopes: ${SERVICE_CLIENT_SCOPES:documents.read}
+    # a cached token is renewed when less than this of its life is left
+    refresh-before: ${SERVICE_CLIENT_REFRESH_BEFORE:PT60S}
+    dpop: ${SERVICE_CLIENT_DPOP:false}
+    # name of a spring.ssl.bundle.* entry with the client certificate (mutual TLS methods)
+    ssl-bundle: ${SERVICE_CLIENT_SSL_BUNDLE:}
+    key:
+      # unencrypted PKCS#8 PEM RSA key of private_key_jwt; or set service-client.auth.key.private-key-path
+      private-key: ${SERVICE_CLIENT_PRIVATE_KEY:}
+  cli:
+    print-access-token: ${SERVICE_CLIENT_PRINT_ACCESS_TOKEN:false}
+    subject-token: ${SERVICE_CLIENT_SUBJECT_TOKEN:}

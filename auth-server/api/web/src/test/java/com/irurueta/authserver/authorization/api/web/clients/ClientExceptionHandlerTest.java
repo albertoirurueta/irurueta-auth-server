@@ -67,4 +67,17 @@ class ClientExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertEquals("bad", response.getBody().getDetail());
     }
+
+    /**
+     * A JWK set that is not acceptable maps to 400 with the invalid-jwks type.
+     */
+    @Test
+    void handleInvalidJwks_whenCalled_answersBadRequestWithInvalidJwksType() {
+        final var response = handler.handleInvalidJwks(new InvalidClientJwksException("private key"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("urn:problem:client:invalid-jwks", response.getBody().getType().toString());
+        assertEquals("private key", response.getBody().getDetail());
+    }
 }

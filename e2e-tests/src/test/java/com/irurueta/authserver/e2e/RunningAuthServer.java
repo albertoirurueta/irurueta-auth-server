@@ -45,6 +45,9 @@ final class RunningAuthServer implements AutoCloseable {
     /** Longest wait for an application to log a given startup line. */
     static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(2);
 
+    /** Pause between two checks for the first signing key, in milliseconds. */
+    private static final long SIGNING_KEY_POLL_MILLIS = 100L;
+
     /** Number of random bytes of the generated key-encryption salt. */
     private static final int SALT_BYTES = 16;
 
@@ -129,7 +132,9 @@ final class RunningAuthServer implements AutoCloseable {
                         "AUTHSERVER_KEYS_ENCRYPTION_SALT=" + HexFormat.of().formatHex(salt)));
         final var demoPassword = app.await(PASSWORD_LOG, STARTUP_TIMEOUT);
         final var clientSecret = app.await(SECRET_LOG, STARTUP_TIMEOUT);
-        return new RunningAuthServer(postgres, app, port, demoPassword, clientSecret);
+        final var server = new RunningAuthServer(postgres, app, port, demoPassword, clientSecret);
+        server.awaitSigningKey();
+        return server;
     }
 
     /**
@@ -145,6 +150,24 @@ final class RunningAuthServer implements AutoCloseable {
         assertTrue(Files.exists(path),
                 "packaged application " + path + ", run './mvnw verify' from the repository root");
         return path;
+    }
+
+    /**
+     * Waits until the server has stored its first signing key. The bootstrap runner that creates it runs after the
+     * seeded credentials are logged, so a test that asks for a token right away (without a browser sign-in first)
+     * would otherwise race it and get a 500 ("Failed to select a JWK signing key").
+     *
+     * @throws Exception if the database cannot be queried.
+     */
+    private void awaitSigningKey() throws Exception {
+        final var deadline = System.nanoTime() + STARTUP_TIMEOUT.toNanos();
+        while (System.nanoTime() < deadline) {
+            if (!"0".equals(query("SELECT count(*) FROM signing_keys").getFirst())) {
+                return;
+            }
+            Thread.sleep(SIGNING_KEY_POLL_MILLIS);
+        }
+        throw new IllegalStateException("The server did not store a signing key within " + STARTUP_TIMEOUT);
     }
 
     /**

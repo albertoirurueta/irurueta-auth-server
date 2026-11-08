@@ -97,7 +97,7 @@ class JdbcClientRegistrationRepositoryIT {
         final var updated = new ClientRegistration(CLIENT_ID, "Renamed", true, List.of("client_secret_basic"),
                 List.of("authorization_code"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid"), true, List.of("other"), Duration.ofMinutes(5), Duration.ofHours(1),
-                ClientRegistration.FORMAT_REFERENCE, true, List.of(), true, false);
+                ClientRegistration.FORMAT_REFERENCE, true, List.of(), true, false, null, null, null, null, false);
 
         repository.save(updated, null);
 
@@ -105,6 +105,28 @@ class JdbcClientRegistrationRepositoryIT {
         assertEquals(before, jdbcClient.sql("SELECT client_secret FROM oauth2_registered_client WHERE client_id = ?")
                 .param(CLIENT_ID).query(String.class).single());
         assertEquals(1, repository.findAll().size());
+    }
+
+    /**
+     * Verifies that an update round trip keeps the key, algorithm, certificate subject and certificate-bound
+     * settings, and that a later update without them clears them.
+     */
+    @Test
+    void save_whenAuthenticationSettingsAreGiven_keepsThemOnUpdate() {
+        repository.save(confidential(CLIENT_ID), encoded());
+        final var withSettings = new ClientRegistration(CLIENT_ID, "Service", true,
+                List.of("private_key_jwt", "tls_client_auth"), List.of("client_credentials"), List.of(),
+                List.of("documents.read"), false, List.of("resource-server"), Duration.ofMinutes(ACCESS_MINUTES),
+                Duration.ofHours(REFRESH_HOURS), ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false,
+                false, "https://client.example.test/jwks.json", "{\"keys\":[]}", "ES256", "CN=client", true);
+
+        repository.save(withSettings, null);
+
+        assertEquals(withSettings, repository.findByClientId(CLIENT_ID).orElseThrow());
+
+        repository.save(confidential(CLIENT_ID), null);
+
+        assertEquals(confidential(CLIENT_ID), repository.findByClientId(CLIENT_ID).orElseThrow());
     }
 
     /**
@@ -211,6 +233,6 @@ class JdbcClientRegistrationRepositoryIT {
                 List.of("authorization_code", "refresh_token"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid", "profile"), true, List.of("resource-server"), Duration.ofMinutes(ACCESS_MINUTES),
                 Duration.ofHours(REFRESH_HOURS), ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false,
-                false);
+                false, null, null, null, null, false);
     }
 }

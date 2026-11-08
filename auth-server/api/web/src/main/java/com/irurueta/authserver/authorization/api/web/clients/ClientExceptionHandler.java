@@ -59,6 +59,17 @@ public class ClientExceptionHandler extends ProblemJsonExceptionHandler {
     }
 
     /**
+     * Answers a JWK set that is invalid or holds a private key.
+     *
+     * @param exception the failure.
+     * @return the problem detail.
+     */
+    @ExceptionHandler(InvalidClientJwksException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidJwks(final InvalidClientJwksException exception) {
+        return respond(HttpStatus.BAD_REQUEST, "invalid-jwks", "Invalid client JWK set", exception.getMessage());
+    }
+
+    /**
      * Answers an invalid client definition or a secret operation that does not apply.
      *
      * @param exception the failure.

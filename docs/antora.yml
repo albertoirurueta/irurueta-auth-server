@@ -85,6 +85,15 @@ ext:
         - dir: resource-server/boot
           files: 'src/**'
           into: modules/ROOT/examples/resource-server/boot
+        - dir: service-client/domain
+          files: 'src/**'
+          into: modules/ROOT/examples/service-client/domain
+        - dir: service-client/application
+          files: 'src/**'
+          into: modules/ROOT/examples/service-client/application
+        - dir: service-client/infrastructure/resourceserver
+          files: 'src/**'
+          into: modules/ROOT/examples/service-client/infrastructure/resourceserver
         - dir: service-client/boot
           files: 'src/**'
           into: modules/ROOT/examples/service-client/boot

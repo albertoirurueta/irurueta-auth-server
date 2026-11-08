@@ -71,6 +71,19 @@ The converter maps the `scope` claim to `SCOPE_*` authorities and the `roles` cl
 include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-converter]
 ----
 
+== Certificate-bound and DPoP-bound tokens
+
+The JWT chain accepts DPoP (`Authorization: DPoP`). A token with `cnf.x5t#S256` is accepted only on a TLS connection
+presenting the same certificate (Spring's validator, already in Boot's decoder, reads the request's client certificate;
+set `server.ssl.client-auth: want` and a bundle), and a token with `cnf.jkt` is refused as a `Bearer` token or without a valid
+proof. The DPoP replay cache is per instance and the `htu` check needs the request URL unchanged by any proxy. See
+xref:client-credentials.adoc[].
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-bound-tokens]
+----
+
 == Step-up authentication (RFC 9470)
 
 Deleting a document needs a recent multi-factor sign-in. `StepUpAuthorizationManager` checks that the token's `acr`

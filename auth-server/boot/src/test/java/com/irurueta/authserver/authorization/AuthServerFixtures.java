@@ -180,7 +180,8 @@ final class AuthServerFixtures {
         final var credential = randomValue();
         clientRegistrations.save(new ClientRegistration(clientId, "Test client", true,
                 List.of("client_secret_basic"), grantTypes, List.of(REDIRECT_URI), scopes, true, audiences,
-                TOKEN_TTL, REFRESH_TTL, accessTokenFormat, false, List.of(), false, false),
+                TOKEN_TTL, REFRESH_TTL, accessTokenFormat, false, List.of(), false, false,
+                null, null, null, null, false),
                 passwordEncoder.encode(credential));
         return new TestClient(clientId, credential);
     }
@@ -229,7 +230,8 @@ final class AuthServerFixtures {
                 List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
                 List.of(REDIRECT_URI), List.of("openid", "profile", "email"), true,
                 List.of(RESOURCE_SERVER_AUDIENCE, API_AUDIENCE), TOKEN_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, postLogoutRedirectUris, false, mfaRequired),
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, postLogoutRedirectUris, false, mfaRequired,
+                null, null, null, null, false),
                 passwordEncoder.encode(credential));
         return new TestClient(clientId, credential);
     }

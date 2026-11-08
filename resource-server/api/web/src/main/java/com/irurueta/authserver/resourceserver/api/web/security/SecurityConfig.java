@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -81,6 +82,12 @@ public class SecurityConfig {
         authorize(http, stepUp);
         http.oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                // tag::resource-server-bound-tokens[]
+                // DPoP (RFC 9449): "Authorization: DPoP <token>" plus a proof; the framework already refuses a
+                // token whose cnf holds jkt when it arrives as Bearer. A cnf.x5t#S256 token is checked against the
+                // TLS client certificate by the validator of the decoder Boot builds (no JwtDecoder bean here).
+                .dPoP(Customizer.withDefaults())
+                // end::resource-server-bound-tokens[]
                 .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
                 .accessDeniedHandler(accessDeniedHandler));
         return http.build();

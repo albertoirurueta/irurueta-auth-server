@@ -28,9 +28,12 @@
   <artifactId>service-client-parent</artifactId>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
-  <description>Aggregator of the service-client modules: non-interactive client that obtains tokens with the client credentials grant and calls the resource server. Only boot until the domain lands with the client-credentials issue (#8). Pure grouping, no sources of its own.</description>
+  <description>Aggregator of the service-client modules: non-interactive client that obtains tokens with the client credentials grant and calls the resource server. Hexagonal like the other applications: domain, application, infrastructure/resourceserver and boot; the device-flow CLI stays in boot. Pure grouping, no sources of its own.</description>
 
   <modules>
+    <module>domain</module>
+    <module>application</module>
+    <module>infrastructure</module>
     <module>boot</module>
   </modules>
 </project>

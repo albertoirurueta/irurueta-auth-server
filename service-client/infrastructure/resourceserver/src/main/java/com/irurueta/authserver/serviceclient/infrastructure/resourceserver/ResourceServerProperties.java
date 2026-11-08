@@ -1,0 +1,41 @@
+/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import java.net.URI;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Where the resource server is.
+ *
+ * @param baseUri base URI of the resource server ({@code service-client.resource-server.base-uri}), used when
+ *                nothing is configured: {@code http://localhost:8081}.
+ */
+@ConfigurationProperties(prefix = "service-client.resource-server")
+public record ResourceServerProperties(URI baseUri) {
+
+    /** Base URI used when nothing is configured. */
+    private static final URI DEFAULT_BASE_URI = URI.create("http://localhost:8081");
+
+    /**
+     * Applies the default base URI.
+     */
+    public ResourceServerProperties {
+        baseUri = baseUri == null ? DEFAULT_BASE_URI : baseUri;
+    }
+}

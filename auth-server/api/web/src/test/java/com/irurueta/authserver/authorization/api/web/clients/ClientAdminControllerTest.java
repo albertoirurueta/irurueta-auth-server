@@ -98,7 +98,7 @@ class ClientAdminControllerTest {
 
     /** Real mapper between the generated DTOs and the domain, spied so the controller is wired with it. */
     @Spy
-    private ClientDtoMapper clientDtoMapper = new ClientDtoMapper();
+    private ClientDtoMapper clientDtoMapper = new ClientDtoMapper(new ClientJwksParser());
 
     /** Controller under test. */
     @InjectMocks

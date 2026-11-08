@@ -126,7 +126,8 @@ class DeviceVerificationPageIT {
         clientRegistrations.save(new ClientRegistration(clientId, "Device test app", false, List.of("none"),
                 List.of(DEVICE_GRANT), List.of(), List.of("profile", "documents.read"), true,
                 List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE), TOKEN_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), true, false), null);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), true, false,
+                null, null, null, null, false), null);
     }
 
     /**
@@ -288,7 +289,8 @@ class DeviceVerificationPageIT {
         clientRegistrations.save(new ClientRegistration(mfaClientId, "Device MFA app", false, List.of("none"),
                 List.of(DEVICE_GRANT), List.of(), List.of("profile"), true,
                 List.of(AuthServerFixtures.RESOURCE_SERVER_AUDIENCE), TOKEN_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, true), null);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, true,
+                null, null, null, null, false), null);
         final var authorization = AuthServerFixtures.parse(mockMvc.perform(post(DEVICE_AUTHORIZATION)
                         .param(CLIENT_ID_PARAM, mfaClientId).param("scope", "profile"))
                 .andExpect(status().isOk())
