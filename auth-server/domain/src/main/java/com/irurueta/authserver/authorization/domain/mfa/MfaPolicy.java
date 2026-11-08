@@ -65,8 +65,7 @@ public class MfaPolicy {
      */
     public boolean isMultiFactor(final Set<AuthenticationFactor> factors) {
         final var reported = factors.stream().filter(this::isReported).toList();
-        return reported.stream().anyMatch(AuthenticationFactor::multiFactor)
-                || reported.stream().map(AuthenticationFactor::authority).distinct().count() >= MIN_MULTI_FACTORS;
+        return reported.size() >= MIN_MULTI_FACTORS || reported.stream().anyMatch(AuthenticationFactor::multiFactor);
     }
 
     /**

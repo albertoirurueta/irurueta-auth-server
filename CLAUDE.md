@@ -285,11 +285,12 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
   - **Gap, passkey-first sign-up**: not possible with the Spring APIs used. Registration (`/webauthn/register/**`) needs an
     authenticated session, so a user first signs in with a password (or any other primary factor) and then registers a
     passkey on `/account/passkeys`; an account cannot be created with a passkey and no password.
-  - **Known limitations** (they need a shared-file or design decision): a passkey-only session gets `acr` = the password URN
-    (by design: `PasskeyFactor` is not `multiFactor`, because `Webauthn4JRelyingPartyOperations` hardcodes user
-    verification to `PREFERRED`, so a passkey proves possession only for certain), so it cannot satisfy a step-up and the
-    user adds a second factor;
-    `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.
+  - **By design**: a passkey-only session gets `acr` = the password URN: `PasskeyFactor` is not `multiFactor`, because
+    `Webauthn4JRelyingPartyOperations` hardcodes user verification to `PREFERRED`, so a passkey proves possession only for
+    certain; it cannot satisfy a step-up and the user adds a second factor. Do not mark it `multiFactor` without requiring
+    user verification.
+  - **Known limitations** (they need a shared-file or design decision): user verification is hardcoded to `PREFERRED`
+    (above); `lastUsedAt` equals `createdAt` until the first use, because Spring's schema requires `last_used`.
 - **One-time tokens (`ott` and `sms`, #6)**: e-mail codes, magic links and SMS codes, as a primary sign-in and as a second
   factor, built on Spring Security's `http.oneTimeTokenLogin(...)` (`POST /ott/generate`, `POST /login/ott`, framework
   endpoints) and registered through the extension points above. Four `AuthenticationFactor` beans (`OttFactors`):
@@ -329,7 +330,8 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
     `GET/PUT/DELETE /api/account/phone` and `POST /api/account/phone/verify` (starting an enrolment and removal call
     `StepUpGuard`, a no-op while the account has no confirmed second factor) and with the session page
     `GET /account/phone` (`PhonePageController`, guarded by `PhonePageChainCustomizer` `@Order(4)` behind the MFA policy,
-    form posts under `/account/phone/**`, `PhoneSessionStepUp` for the enrolment and the removal). A verified phone is a
+    form posts under `/account/phone/**`, `PhoneSessionStepUp` for the enrolment and the removal: it applies
+    `FactorTimeline.isMultiFactor`, so a recent `FACTOR_FEDERATED_MFA` sign-in is enough there too). A verified phone is a
     confirmed second factor (`HasVerifiedPhoneUseCase` as a `SecondFactorEnrolmentQuery`), so a user with a phone requires
     MFA. `RemovePhoneUseCase` audits `SECOND_FACTOR_REMOVED` and revokes the trusted devices when no second factor is
     left (as `DeletePasskeyUseCase`); `ConfirmPhoneUseCase` treats a new number over a verified one as a replacement:

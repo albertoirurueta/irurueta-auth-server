@@ -399,11 +399,16 @@ multi-factor alone)
 |yes
 |nothing more (only a recent enough sign-in)
 
-|Any primary factor plus a second factor
+|Any primary factor plus a second factor, or two distinct primary factors (for example a password, then a passkey in
+the same session, whose authorities Spring merges)
 |yes
 |yes
 |nothing more (only a recent enough sign-in)
 |===
+
+The same rule guards the session's sensitive changes: the phone page (`PhoneSessionStepUp`) accepts a recent
+multi-factor session, so a trusted provider's multi-factor sign-in may change the phone without a local second factor,
+as its bearer tokens may on the account API.
 
 A passkey or a certificate proves one thing, however strongly: user verification of a passkey is only preferred, so
 possession is all it proves for certain, and a certificate is possession of a key. They let the user in without a
