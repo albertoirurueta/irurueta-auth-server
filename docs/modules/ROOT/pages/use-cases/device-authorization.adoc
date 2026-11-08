@@ -1,0 +1,143 @@
+= Device authorization grant
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A program that cannot open a browser or type a password (a CLI, a TV, an IoT device) asks the authorization server for a
+device code and a short user code, shows the user code and a verification address, and polls the token endpoint. The
+user opens the address on another device, signs in (with a second factor when the policy asks for one), enters or
+confirms the code and approves on the consent page. The next poll returns the tokens. In this repository the device is
+`service-client` started with the `device-flow` profile (`DeviceFlowCli`) and the client is the public `device-client`.
+
+.At a glance
+* *Actors*: the user with a browser, the device (`service-client`, `DeviceFlowCli`), `auth-server`.
+* *Clients involved*: `device-client`, public (`none`), grant types `urn:ietf:params:oauth:grant-type:device_code` and
+  `refresh_token`, scopes `profile documents.read`, consent required. It is seeded by `DevDataInitializer` under the `dev`
+  profile only; elsewhere, register such a client through `POST /api/admin/clients`.
+* *Preconditions*: Spring profile `device-flow` on `service-client` with `device-flow.issuer` (required); optional
+  `device-flow.client-id` (default `device-client`), `device-flow.scope` (default `profile documents.read`) and
+  `device-flow.print-access-token`. No `openid` scope: Spring Authorization Server refuses it in device requests.
+  Rate limit settings `authserver.device.rate-limit.*` (enabled, `window` `PT15M`, `per-client` 30, `per-user` 10).
+* *Endpoints*: `POST /oauth2/device_authorization` (framework), `GET /oauth2/device_verification` (custom page) and
+  `POST /oauth2/device_verification` (framework), `/oauth2/consent`, `POST /oauth2/token`.
+
+== Steps
+
+. `DeviceFlowCli` calls `DeviceAuthorizationClient.requestDeviceAuthorization`: `POST /oauth2/device_authorization` with
+  `client_id` and `scope`, no secret.
+. `DeviceProtocolChainCustomizer` (a `ProtocolChainCustomizer`, order 2) has enabled the device endpoints and added
+  `DeviceClientAuthenticationConverter` / `DeviceClientAuthenticationProvider`: for a request to the device authorization
+  endpoint or a `device_code` poll that carries a `client_id` and no credential, the client is authenticated by id alone,
+  provided it is registered with the `none` method.
+. The server answers `device_code`, `user_code` (for example `ABCD-EFGH`), `verification_uri`
+  (`/oauth2/device_verification`), `verification_uri_complete` (with the user code), `expires_in` and `interval`.
+  The CLI prints the user code and both addresses.
+. The user opens the address. Not signed in, the browser goes to `/login` and comes back afterwards.
+. Without a code, `DeviceVerificationController` renders `templates/device-verification.html` (a form posting `user_code`
+  to `POST /oauth2/device_verification`). The complete address carries the code and goes straight to the framework's
+  verification endpoint.
+. `DeviceVerificationRequestGuard` runs first among the verification converters:
+.. it counts the attempt in `DeviceVerificationRateLimiter` per client address and per user; over the limit,
+   `DeviceVerificationErrorHandler` answers `429` with `Retry-After`;
+.. it finds the client of the device authorization stored for the user code (`OAuth2AuthorizationService.findByToken`,
+   the code normalised to `XXXX-XXXX`), falling back to the consent post's `client_id`, and applies the MFA policy with
+   that client's `mfaRequired`; when it is not satisfied, the user is sent to `/login/second-factor` and the request
+   resumes after the second factor.
+. The framework looks the user code up. An unknown or expired code redirects to `/oauth2/device_verification?error`.
+  Otherwise, because `device-client` requires consent, it redirects to `/oauth2/consent`.
+. The user approves (or denies) the scopes; the consent page posts the decision to `POST /oauth2/device_verification`.
+  On approval the success handler redirects to `/oauth2/device_verification?success`.
+. Meanwhile `DeviceFlowCli` polls: it waits `interval` seconds, then `DeviceAuthorizationClient.pollToken` posts
+  `grant_type=urn:ietf:params:oauth:grant-type:device_code`, `device_code` and `client_id` to `/oauth2/token`.
+.. `authorization_pending`: keep polling.
+.. `slow_down`: add `DeviceFlowCli.SLOW_DOWN_INCREMENT_SECONDS` (5) to the interval.
+.. `access_denied` (the user denied) or `expired_token`, or the local deadline from `expires_in` passes: stop with a
+   `DeviceFlowException`.
+.. `200`: print `token_type`, `expires_in`, `scope` and whether a refresh token came, and the access token when
+   `device-flow.print-access-token` is set.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/DeviceVerificationRequestGuard.java[tag=device-guard]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant D as DeviceFlowCli
+  participant A as auth-server
+  participant B as User browser
+  D->>A: POST /oauth2/device_authorization client_id=device-client scope
+  A-->>D: device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval
+  D->>D: print user code and addresses
+  B->>A: GET verification_uri_complete
+  A-->>B: 302 /login
+  B->>A: sign in, second factor if required
+  A->>A: DeviceVerificationRequestGuard: rate limit and MFA policy
+  A-->>B: 302 /oauth2/consent
+  B->>A: approve scopes, POST /oauth2/device_verification
+  A-->>B: 302 /oauth2/device_verification?success
+  loop every interval seconds
+    D->>A: POST /oauth2/token grant_type=device_code device_code client_id
+    alt user has not decided
+      A-->>D: 400 authorization_pending
+    else server asks to slow down
+      A-->>D: 400 slow_down, interval plus 5 s
+    else approved
+      A-->>D: 200 access_token, refresh_token
+    end
+  end
+....
+
+[mermaid]
+....
+flowchart TD
+  P["POST /oauth2/device_verification (user_code)"] --> S{"Signed in?"}
+  S -- No --> L[Redirect to /login]
+  S -- Yes --> R{"Within rate limit?"}
+  R -- No --> E429["429 with Retry-After"]
+  R -- Yes --> M{"MFA policy satisfied for the code's client?"}
+  M -- No --> SF[Redirect to /login/second-factor]
+  M -- Yes --> C{"User code known and valid?"}
+  C -- No --> ERR["Redirect to ?error"]
+  C -- Yes --> CO[Consent page]
+  CO -- Approve --> OK["Redirect to ?success, next poll gets tokens"]
+  CO -- Deny --> DN["Next poll gets access_denied"]
+....
+
+== Tokens and claims
+
+* Token response: `access_token` (JWT), `refresh_token`, `token_type=Bearer`, `expires_in`, `scope`. No ID token
+  (no `openid`).
+* `sub`: the user who approved (`demo` with the dev data). `scope`: the approved scopes, for example
+  `profile documents.read`.
+* `aud`: the client's configured audiences; the seeded `device-client` has `resource-server` and the API audience
+  (`authserver.api.audience`, default `auth-server`). `roles` and `tenant`: the user's.
+* The seeded client's tokens live 10 minutes (access) and 8 hours (refresh).
+
+== How it is tested
+
+* `auth-server/boot`: `DeviceVerificationPageIT` (the page signed in and out, error and success states, a full approval
+  in which the device obtains tokens, an unknown code, the complete address going straight to consent, and the second
+  factor required by the account or by a client without consent); `DeviceVerificationRateLimitIT` (`429`).
+* `e2e-tests`: `DeviceFlowEndToEndIT` runs the packaged `service-client` with `device-flow`, approves in headless Chromium
+  through Playwright and checks the token; a denial ends the tool without tokens.
+* `service-client/boot`: unit tests `DeviceFlowCliTest` and `DeviceAuthorizationClientTest` (pending, slow down, denial,
+  expiry).
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc8628#section-3.1[RFC 8628 §3.1, Device authorization request] and
+  https://www.rfc-editor.org/rfc/rfc8628#section-3.2[§3.2, response]
+* https://www.rfc-editor.org/rfc/rfc8628#section-3.3[RFC 8628 §3.3, User interaction]
+* https://www.rfc-editor.org/rfc/rfc8628#section-3.4[RFC 8628 §3.4, Device access token request] and
+  https://www.rfc-editor.org/rfc/rfc8628#section-3.5[§3.5, response (`authorization_pending`, `slow_down`)]
+* https://www.rfc-editor.org/rfc/rfc8628#section-5.1[RFC 8628 §5.1, User code brute forcing]
+
+== Further reading
+
+* {oauth-ref}/device-authorization-grant.html[Device Authorization Grant]
+* {oauth-ref}/spring-boot-flow-recipes.html[Spring Boot Flow Recipes]
+* xref:device-grant.adoc[] (feature page)
+* xref:mfa-and-step-up.adoc[]
+* xref:use-cases/authentication-methods.adoc[]

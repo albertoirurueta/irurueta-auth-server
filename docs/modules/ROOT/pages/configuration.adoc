@@ -1,0 +1,1307 @@
+= Configuration
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+This page lists every configuration property the four applications implement: `auth-server`, `bff`,
+`resource-server` and `service-client`. For each one it gives the environment variable that `application*.yml` maps
+to it, the default when nothing is set, what it does and the profile where it matters.
+
+A property can be set in several ways:
+
+* in `application.yml` or a profile file (`application-<profile>.yml`) of the application's `boot` module;
+* through the environment variable that the yml file maps with a placeholder such as
+  `${AUTHSERVER_ISSUER_URL:http://localhost:9000}` (the value after the colon is the default);
+* through any other environment variable, by Spring Boot's relaxed binding: upper case, dots and dashes replaced by
+  underscores. For example `AUTHSERVER_MFA_MAX_FAILED_ATTEMPTS` sets `authserver.mfa.max-failed-attempts`, even
+  though no yml file maps it;
+* as a command-line argument, for example `--authserver.par.enabled=true`.
+
+When a yml file sets a value, that value is the effective default, even if the code has another one. The tables say
+so where the two differ. Most settings are bound into validated `@ConfigurationProperties` records: an invalid value
+(a negative duration, an unknown provider, a malformed country code, ...) stops the application at startup with a
+message that names the property.
+
+In the tables, "none" means there is no default and "-" means no yml file maps an environment variable (relaxed
+binding still works).
+
+== Profiles
+
+[cols="2,2,6",options="header"]
+|===
+|Profile
+|Application
+|What it switches
+
+|`dev`
+|`auth-server`
+|Local development only. Starts the root `compose.yaml` with Spring Boot's Docker Compose support (PostgreSQL,
+Mailpit), points mail at `localhost:1025`, sets the local redirect URIs of the seeded `bff` and `spa-public` clients,
+seeds a demo user, the `bff` client with a generated secret and the public `device-client` (`DevDataInitializer`),
+generates the key-encryption secret under `~/.irurueta-auth-server/` (`DevKeyEncryptionSecret`), generates a
+self-signed server certificate for the X.509 TLS port when one is configured (`DevX509KeyStore`), keeps SMS messages
+in memory and shows them at `/dev/sms-inbox`. Never activate it outside local development.
+
+|`test`
+|`auth-server`
+|Activated by the integration tests (`@PostgresIT`). Selects the logging SMS sender, which keeps the messages in an
+in-memory outbox. Not meant for a deployment.
+
+|`twilio`
+|`auth-server`
+|Sends SMS through Twilio (`application-twilio.yml`). Ignored when `sns` is active too.
+
+|`sns`
+|`auth-server`
+|Sends SMS through Amazon SNS (`application-sns.yml`). Credentials and region come from the AWS SDK default chains
+(`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, the shared profile files or the instance role); no
+project property is involved.
+
+|`legacy-implicit`
+|`auth-server`
+|Enables the legacy implicit flow demo for the one client `legacy-implicit-spa` (`application-legacy-implicit.yml`).
+Opt-in, outside OAuth 2.1, and never to be enabled in production. See xref:legacy-implicit.adoc[].
+
+|`dev`
+|`bff`
+|Starts the root `compose.yaml` with Docker Compose and points the BFF at its own `bff` database
+(`BffDevDatabase`).
+
+|`opaque`
+|`resource-server`
+|Validates bearer tokens by introspection at the authorization server instead of as JWTs
+(`application-opaque.yml`). See xref:resource-server.adoc[].
+
+|`client-credentials`
+|`service-client`
+|Runs `ClientCredentialsCli`: gets a token with the client credentials grant and lists `GET /api/documents`. See
+xref:client-credentials.adoc[].
+
+|`device-flow`
+|`service-client`
+|Runs `DeviceFlowCli`: the device authorization grant against the framework endpoints. See xref:device-grant.adoc[].
+
+|`token-exchange`
+|`service-client`
+|Runs `TokenExchangeCli`: exchanges the user's access token (`SERVICE_CLIENT_SUBJECT_TOKEN`) for one that names the
+client as actor. See xref:client-credentials.adoc[].
+|===
+
+The SMS sender is chosen by profile, never by a property. The profile expressions are `twilio & !sns` (Twilio),
+`sns` (SNS) and `(dev | test) & !twilio & !sns` (logging sender). With none of `dev`, `test`, `twilio` or `sns`
+active, `auth-server` refuses to start (`MissingSmsGatewayConfiguration`), so a deployment never keeps its messages in
+memory by mistake. A deployment therefore always activates `twilio` or `sns`.
+
+== Secrets
+
+These values must come from the environment (or a secret store that feeds it) and never from a file in the
+repository. Never write a real value in a yml file or in these docs.
+
+[cols="3,3,4",options="header"]
+|===
+|Property
+|Environment variable
+|Notes
+
+|`authserver.keys.encryption.password`
+|`AUTHSERVER_KEYS_ENCRYPTION_PASSWORD`
+|Encrypts the private signing keys at rest. Required without `dev`.
+
+|`authserver.keys.encryption.salt`
+|`AUTHSERVER_KEYS_ENCRYPTION_SALT`
+|Hex-encoded salt of the same encryption. Required without `dev`.
+
+|`spring.datasource.password` (`auth-server`)
+|`AUTHSERVER_DB_PASSWORD`
+|Database password.
+
+|`authserver.clients.bff-secret`
+|`AUTHSERVER_BFF_CLIENT_SECRET`
+|Secret of the seeded `bff` client.
+
+|`authserver.social.providers.{google,microsoft,github}.client-secret`
+|`AUTHSERVER_SOCIAL_GOOGLE_CLIENT_SECRET`, `AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_SECRET`,
+`AUTHSERVER_SOCIAL_GITHUB_CLIENT_SECRET`
+|Client secrets at the identity providers.
+
+|`authserver.social.providers.apple.private-key`
+|`AUTHSERVER_SOCIAL_APPLE_PRIVATE_KEY`
+|PKCS#8 PEM text of the `.p8` key Apple issued; it signs the Apple client secret.
+
+|`authserver.sms.twilio.auth-token`
+|`AUTHSERVER_SMS_TWILIO_AUTH_TOKEN`
+|Twilio API token (`twilio` profile).
+
+|`authserver.x509.key-store-password`
+|`AUTHSERVER_X509_KEY_STORE_PASSWORD` (relaxed binding)
+|Password of the server key store of the X.509 TLS port.
+
+|`spring.datasource.password` (`bff`)
+|`BFF_DB_PASSWORD`
+|Database password of the BFF.
+
+|`spring.security.oauth2.client.registration.bff.client-secret`
+|`BFF_CLIENT_SECRET`
+|Secret of the BFF at the authorization server; the BFF does not start without it.
+
+|`spring.security.oauth2.resourceserver.opaquetoken.client-secret`
+|`INTROSPECTION_CLIENT_SECRET`
+|Secret the resource server uses at the introspection endpoint (`opaque` profile).
+
+|`service-client.auth.client-secret`
+|`SERVICE_CLIENT_SECRET`
+|Secret of the `service-client` (`client_secret_basic`).
+
+|`service-client.auth.key.private-key`
+|`SERVICE_CLIENT_PRIVATE_KEY`
+|PKCS#8 RSA private key that signs the client assertion (`private_key_jwt`).
+
+|`service-client.cli.subject-token`
+|`SERVICE_CLIENT_SUBJECT_TOKEN`
+|The user's access token exchanged by `token-exchange`. It is a credential too.
+|===
+
+AWS credentials of the `sns` profile and SMTP credentials, when the relay needs them (`spring.mail.username`,
+`spring.mail.password`), also come from the environment only.
+
+== auth-server
+
+All the project properties of the authorization server live under `authserver.*`. The framework properties it uses
+are in <<_framework_properties_the_project_relies_on>>.
+
+=== Issuer and API
+
+See xref:tokens-and-keys.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.api.audience`
+|`AUTHSERVER_API_AUDIENCE`
+|`auth-server`
+|Audience a bearer token must list to call `/api/**`. The seeded clients get it as one of their audiences.
+|===
+
+The issuer itself is the framework property `spring.security.oauth2.authorizationserver.issuer`
+(`AUTHSERVER_ISSUER_URL`, default `http://localhost:9000`).
+
+=== Seeded clients
+
+At startup `ClientSeeder` creates the default clients whose redirect URIs are configured; nothing is seeded by
+default. Lists are comma-separated. See xref:clients.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.clients.bff-secret`
+|`AUTHSERVER_BFF_CLIENT_SECRET`
+|none
+|Secret of the confidential `bff` client. Without it the `bff` client is skipped with a warning. Under `dev`,
+`DevDataInitializer` creates the `bff` client with a generated secret instead (logged once).
+
+|`authserver.clients.bff.redirect-uris`
+|`AUTHSERVER_BFF_REDIRECT_URIS`
+|none; `http://localhost:8080/login/oauth2/code/bff` in `dev`
+|Redirect URIs of the `bff` client. The client is seeded only when this is set.
+
+|`authserver.clients.bff.post-logout-redirect-uris`
+|`AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS`
+|none; `http://localhost:8080/` in `dev`
+|Where the user may be sent after an RP-initiated logout (`/connect/logout`) from the `bff` client.
+
+|`authserver.clients.spa-public.redirect-uris`
+|`AUTHSERVER_SPA_REDIRECT_URIS`
+|none; `http://localhost:3000/callback` in `dev`
+|Redirect URIs of the public `spa-public` client. The client is seeded only when this is set.
+
+|`authserver.clients.spa-public.post-logout-redirect-uris`
+|`AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS`
+|none; `http://localhost:3000/` in `dev`
+|Post-logout redirect URIs of the `spa-public` client.
+|===
+
+=== Keys and tokens
+
+See xref:tokens-and-keys.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.keys.encryption.password`
+|`AUTHSERVER_KEYS_ENCRYPTION_PASSWORD` (relaxed binding)
+|none (required without `dev`)
+|Passphrase that encrypts the private signing keys at rest. Without `dev` the application does not start without it.
+Under `dev`, when it or the salt is missing, both are generated once per machine in
+`~/.irurueta-auth-server/key-encryption`.
+
+|`authserver.keys.encryption.salt`
+|`AUTHSERVER_KEYS_ENCRYPTION_SALT` (relaxed binding)
+|none (required without `dev`)
+|Hex-encoded salt of the key encryption. Same rules as the password.
+
+|`authserver.keys.rotation-interval`
+|-
+|`P30D`
+|How long a signing key signs before it is replaced.
+
+|`authserver.keys.rotation.cron`
+|-
+|`0 0 * * * *`
+|Schedule of the job that checks whether the signing key must rotate (every hour).
+
+|`authserver.keys.retention`
+|-
+|`PT2H`
+|Minimum time a retired signing key stays published, so tokens it signed can still be verified.
+
+|`authserver.keys.clock-skew`
+|-
+|`PT60S`
+|Clock skew of the token consumers, added to the longest token lifetime when a retired key is kept.
+
+|`authserver.keys.jwks-cache-ttl`
+|-
+|`PT30S`
+|How long the JSON Web Key set read from the database is cached.
+
+|`authserver.tokens.cleanup.cron`
+|-
+|`0 0 * * * *`
+|Schedule of the job that deletes expired authorizations (every hour).
+
+|`authserver.tokens.cleanup.abandoned-after`
+|-
+|`P1D`
+|Age after which an authorization that never got a token is deleted.
+|===
+
+=== Accounts and passwords
+
+See xref:passwords-and-accounts.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.password.compromised-check.enabled`
+|-
+|`true`
+|Checks new passwords against the Have I Been Pwned range API. `false` turns the check off (for example offline);
+then no password is reported as compromised.
+
+|`authserver.account.rate-limit.enabled`
+|-
+|`true`
+|Rate limits the unauthenticated `/api/account` endpoints, per client address and per e-mail address (`429`).
+
+|`authserver.account.rate-limit.window`
+|-
+|`PT15M`
+|Length of the fixed counting window.
+
+|`authserver.account.rate-limit.per-client`
+|-
+|`20`
+|Requests allowed per client address and window.
+
+|`authserver.account.rate-limit.per-email`
+|-
+|`5`
+|Requests allowed per e-mail address and window.
+
+|`authserver.account.rate-limit.max-tracked-keys`
+|-
+|`10000`
+|Most addresses and e-mails tracked at once.
+
+|`authserver.account.cleanup.cron`
+|-
+|`0 30 * * * *`
+|Schedule of the job that deletes expired account tokens (every hour, at minute 30).
+|===
+
+=== Multi-factor authentication
+
+No yml file sets these; the record defaults apply. See xref:mfa-and-step-up.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.mfa.max-failed-attempts`
+|-
+|`5`
+|Failed second-factor attempts before the second factor of the user is locked. At least 1.
+
+|`authserver.mfa.lockout`
+|-
+|`PT15M`
+|How long the second factor stays locked.
+
+|`authserver.mfa.trusted-device-validity`
+|-
+|`P30D`
+|How long a remembered browser (trusted device cookie) stands in for the second factor.
+
+|`authserver.mfa.totp-issuer`
+|-
+|`Irurueta Auth Server`
+|Issuer shown by authenticator apps for the TOTP enrolment.
+
+|`authserver.mfa.step-up-max-age`
+|-
+|`PT5M`
+|Longest age of the `auth_time` of a bearer token for an API operation that requires step-up (`StepUpGuard`).
+|===
+
+=== Passkeys
+
+The defaults are the local development values; a deployment must set its public host. See xref:passkeys.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.passkeys.rp-name`
+|`AUTHSERVER_PASSKEYS_RP_NAME`
+|`Irurueta Auth Server`
+|Relying party name shown by the authenticator.
+
+|`authserver.passkeys.rp-id`
+|`AUTHSERVER_PASSKEYS_RP_ID`
+|`localhost` (application.yml; no default in code)
+|Relying party id: the host name the credentials are scoped to. Must not be blank.
+
+|`authserver.passkeys.allowed-origins`
+|`AUTHSERVER_PASSKEYS_ALLOWED_ORIGINS`
+|`http://localhost:9000` (application.yml; no default in code)
+|Origins browsers may run the WebAuthn ceremonies from (comma-separated). At least one.
+|===
+
+=== One-time tokens
+
+E-mail codes, magic links and SMS codes. A `0` value of the code settings falls back to the default; a negative one
+fails at startup. See xref:one-time-tokens.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.ott.code-length`
+|-
+|`6`
+|Digits of an e-mail or SMS code.
+
+|`authserver.ott.code-ttl`
+|-
+|`PT10M`
+|How long a code stays valid.
+
+|`authserver.ott.link-ttl`
+|-
+|`PT15M`
+|How long a magic link stays valid.
+
+|`authserver.ott.max-attempts`
+|-
+|`5`
+|Wrong codes accepted before the code is spent.
+
+|`authserver.ott.cleanup.cron`
+|-
+|`0 15 * * * *`
+|Schedule of the job that deletes expired codes, phone verifications, SMS ledger entries and link tokens (every hour,
+at minute 15).
+
+|`authserver.ott.rate-limit.enabled`
+|-
+|`true`
+|Rate limits `POST /ott/generate`, `POST /login/ott`, `POST /login/second-factor/ott` and the phone enrolment, per
+client address and per identifier (`429`).
+
+|`authserver.ott.rate-limit.window`
+|-
+|`PT15M`
+|Length of the fixed counting window.
+
+|`authserver.ott.rate-limit.generation-per-client`
+|-
+|`20`
+|Code or link requests per client address and window.
+
+|`authserver.ott.rate-limit.generation-per-identifier`
+|-
+|`5`
+|Code or link requests per identifier (user name, e-mail or phone) and window.
+
+|`authserver.ott.rate-limit.verification-per-client`
+|-
+|`30`
+|Code submissions per client address and window.
+
+|`authserver.ott.rate-limit.verification-per-identifier`
+|-
+|`10`
+|Code submissions per identifier and window.
+
+|`authserver.ott.rate-limit.max-tracked-keys`
+|-
+|`10000`
+|Most addresses and identifiers tracked at once.
+|===
+
+=== SMS
+
+Phone numbers, cost control and the SMS gateways. Costs are in millionths of the billing currency. A `0` duration or
+count falls back to the default; a negative value fails at startup. See xref:one-time-tokens.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.sms.default-region`
+|-
+|`US`
+|Region a number typed without a country prefix is read in (ISO 3166-1 alpha-2, upper case).
+
+|`authserver.sms.allowed-countries`
+|-
+|`US,ES,GB`
+|Regions SMS may be sent to (comma-separated, upper case).
+
+|`authserver.sms.cost-per-country-micros`
+|-
+|empty
+|Price of one message per region, as a map (for example `authserver.sms.cost-per-country-micros.ES=70000`).
+
+|`authserver.sms.default-cost-micros`
+|-
+|`50000`
+|Price assumed for a region without an entry in `cost-per-country-micros`.
+
+|`authserver.sms.window`
+|-
+|`PT1H`
+|Window of `window-cap-micros`.
+
+|`authserver.sms.window-cap-micros`
+|-
+|`5000000`
+|Most that may be spent per window; a message over the cap is not sent.
+
+|`authserver.sms.daily-cap-micros`
+|-
+|`20000000`
+|Most that may be spent per day.
+
+|`authserver.sms.verification-code-length`
+|-
+|`6`
+|Digits of the code that verifies a phone being enrolled.
+
+|`authserver.sms.verification-code-ttl`
+|-
+|`PT10M`
+|How long that verification code stays valid.
+
+|`authserver.sms.verification-max-attempts`
+|-
+|`5`
+|Wrong verification codes accepted before the code is spent.
+
+|`authserver.sms.ledger-retention`
+|-
+|`P2D`
+|How long the spend ledger is kept. At least one day.
+
+|`authserver.sms.outbox.capacity`
+|-
+|`100`
+|Messages the in-memory outbox of the logging sender keeps (`dev` or `test` only). `0` or less means the default.
+|===
+
+The Twilio gateway (`twilio` profile, `application-twilio.yml`) needs the account SID and token, and a sender: `from`
+or `messaging-service-sid`. Without them it fails at startup.
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.sms.twilio.account-sid`
+|`AUTHSERVER_SMS_TWILIO_ACCOUNT_SID`
+|none
+|Twilio account SID (`twilio` profile).
+
+|`authserver.sms.twilio.auth-token`
+|`AUTHSERVER_SMS_TWILIO_AUTH_TOKEN`
+|none
+|Twilio auth token (`twilio` profile). Secret.
+
+|`authserver.sms.twilio.from`
+|`AUTHSERVER_SMS_TWILIO_FROM`
+|none
+|Sender number in E.164 (`twilio` profile). Used when set.
+
+|`authserver.sms.twilio.messaging-service-sid`
+|`AUTHSERVER_SMS_TWILIO_MESSAGING_SERVICE_SID`
+|none
+|Twilio Messaging Service that picks the sender, used when `from` is not set (`twilio` profile).
+|===
+
+The SNS gateway (`sns` profile) has no project property: see <<_profiles>>.
+
+=== Mail
+
+Sender and links of the one-time token and account e-mails. The SMTP server is the framework's `spring.mail.*`. See
+xref:one-time-tokens.adoc[] and xref:passwords-and-accounts.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.mail.from`
+|`AUTHSERVER_MAIL_FROM`
+|`no-reply@localhost`
+|Sender address of the e-mails.
+
+|`authserver.mail.base-url`
+|`AUTHSERVER_ISSUER_URL`
+|`http://localhost:9000`
+|Base of the links in the e-mails (magic links). It shares the issuer's environment variable. A trailing `/` is
+removed.
+
+|`authserver.mail.locale`
+|-
+|`en`
+|Language of the e-mails.
+|===
+
+=== Social login
+
+A provider is enabled only when its `client-id` has text; with none configured there is no social login at all.
+Provider ids are `google`, `microsoft`, `apple` and `github`; any other id fails at startup. An enabled provider must
+have its secret (Apple: `team-id`, `key-id` and `private-key`). See xref:social-login.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.social.providers.google.client-id`
+|`AUTHSERVER_SOCIAL_GOOGLE_CLIENT_ID`
+|none
+|Google OAuth client id. Enables Google.
+
+|`authserver.social.providers.google.client-secret`
+|`AUTHSERVER_SOCIAL_GOOGLE_CLIENT_SECRET`
+|none
+|Google client secret. Secret.
+
+|`authserver.social.providers.google.trust-mfa`
+|`AUTHSERVER_SOCIAL_GOOGLE_TRUST_MFA`
+|`false`
+|Counts Google's own multi-factor authentication when its `amr` claim contains `mfa`, so no local second factor is
+asked.
+
+|`authserver.social.providers.microsoft.client-id`
+|`AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_ID`
+|none
+|Microsoft Entra ID application id. Enables Microsoft.
+
+|`authserver.social.providers.microsoft.client-secret`
+|`AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_SECRET`
+|none
+|Entra client secret. Secret.
+
+|`authserver.social.providers.microsoft.tenant`
+|`AUTHSERVER_SOCIAL_MICROSOFT_TENANT`
+|`common`
+|`common`, `organizations`, `consumers`, a tenant id or a domain.
+
+|`authserver.social.providers.microsoft.allowed-tenants`
+|`AUTHSERVER_SOCIAL_MICROSOFT_ALLOWED_TENANTS`
+|empty
+|Tenants a multi-tenant sign-in is limited to (comma-separated). Empty: the tenant id when `tenant` is one, otherwise
+any tenant.
+
+|`authserver.social.providers.microsoft.trust-mfa`
+|`AUTHSERVER_SOCIAL_MICROSOFT_TRUST_MFA`
+|`false`
+|Same as for Google.
+
+|`authserver.social.providers.apple.client-id`
+|`AUTHSERVER_SOCIAL_APPLE_CLIENT_ID`
+|none
+|Apple Services ID. Enables Apple.
+
+|`authserver.social.providers.apple.team-id`
+|`AUTHSERVER_SOCIAL_APPLE_TEAM_ID`
+|none
+|Apple developer team id, issuer of the client secret JWT.
+
+|`authserver.social.providers.apple.key-id`
+|`AUTHSERVER_SOCIAL_APPLE_KEY_ID`
+|none
+|Id of the Apple key that signs the client secret.
+
+|`authserver.social.providers.apple.private-key`
+|`AUTHSERVER_SOCIAL_APPLE_PRIVATE_KEY`
+|none
+|PKCS#8 PEM text of the `.p8` key. Secret.
+
+|`authserver.social.providers.apple.client-secret-ttl`
+|-
+|`PT5M`
+|Lifetime of the generated client secret JWT; positive and at most 180 days. It is cached for half of it.
+
+|`authserver.social.providers.apple.trust-mfa`
+|`AUTHSERVER_SOCIAL_APPLE_TRUST_MFA`
+|`false`
+|Same as for Google.
+
+|`authserver.social.providers.github.client-id`
+|`AUTHSERVER_SOCIAL_GITHUB_CLIENT_ID`
+|none
+|GitHub OAuth app client id. Enables GitHub.
+
+|`authserver.social.providers.github.client-secret`
+|`AUTHSERVER_SOCIAL_GITHUB_CLIENT_SECRET`
+|none
+|GitHub client secret. Secret.
+
+|`authserver.social.providers.github.trust-mfa`
+|`AUTHSERVER_SOCIAL_GITHUB_TRUST_MFA`
+|`false`
+|Same as for Google. GitHub is plain OAuth 2.0, so it only matters if its sign-in carries an `amr` with `mfa`.
+|===
+
+The record also accepts `tenant`, `allowed-tenants`, `team-id`, `key-id`, `private-key` and `client-secret-ttl` for
+any provider, but only Microsoft uses the first two and only Apple the others.
+
+=== X.509 client certificates
+
+All off by default. See xref:x509.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.x509.enabled`
+|`AUTHSERVER_X509_ENABLED`
+|`false`
+|Enables the certificate sign-in (`POST /login/x509`) and its login button. The certificate API exists either way.
+
+|`authserver.x509.forwarded-header`
+|`AUTHSERVER_X509_FORWARDED_HEADER`
+|empty
+|Header in which a reverse proxy forwards the client certificate. Needs `trusted-proxies` and
+`server.forward-headers-strategy=none` (see <<_framework_properties_the_project_relies_on>>).
+
+|`authserver.x509.trusted-proxies`
+|`AUTHSERVER_X509_TRUSTED_PROXIES`
+|empty
+|Addresses or CIDR ranges whose forwarded header is honoured (comma-separated).
+
+|`authserver.x509.port`
+|`AUTHSERVER_X509_PORT`
+|`0`
+|Port of a dedicated TLS connector that asks for a client certificate. `0` means no such connector; at most `65535`.
+
+|`authserver.x509.amr`
+|`AUTHSERVER_X509_AMR`
+|`sc`
+|`amr` value the tokens report for a certificate sign-in: `sc` (smart card) or `hwk` (hardware key).
+
+|`authserver.x509.key-store`
+|`AUTHSERVER_X509_KEY_STORE`
+|empty
+|Path of the key store with the server certificate of the TLS port. Required with a `port`, except under `dev`, which
+generates a self-signed one under `~/.irurueta-auth-server/`.
+
+|`authserver.x509.key-store-password`
+|`AUTHSERVER_X509_KEY_STORE_PASSWORD` (relaxed binding)
+|empty
+|Password of that key store. Secret: from the environment only.
+
+|`authserver.x509.key-store-type`
+|-
+|`PKCS12`
+|Type of that key store.
+|===
+
+=== mTLS and client assertions
+
+Client authentication at the token endpoint. See xref:client-credentials.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.mtls.trusted-authorities`
+|-
+|empty
+|File paths of the certificates (PEM) of the authorities trusted for `tls_client_auth`. Empty means
+`tls_client_auth` is refused; `self_signed_tls_client_auth` still works.
+
+|`authserver.client-assertion.max-lifetime`
+|-
+|`PT5M`
+|Longest accepted lifetime (`exp` minus `iat`) of a `private_key_jwt` or `client_secret_jwt` assertion.
+
+|`authserver.client-assertion.cleanup.cron`
+|-
+|`0 30 * * * *`
+|Schedule of the job that deletes the expired assertion `jti` records (every hour, at minute 30).
+|===
+
+=== Device grant
+
+Attempts to verify a user code are limited per client address and per signed-in user (`429`). See
+xref:device-grant.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.device.rate-limit.enabled`
+|-
+|`true`
+|Turns the limit on or off.
+
+|`authserver.device.rate-limit.window`
+|-
+|`PT15M`
+|Length of the fixed counting window.
+
+|`authserver.device.rate-limit.per-client`
+|-
+|`30`
+|Attempts per client address and window.
+
+|`authserver.device.rate-limit.per-user`
+|-
+|`10`
+|Attempts per user and window.
+
+|`authserver.device.rate-limit.max-tracked-keys`
+|-
+|`10000`
+|Most addresses and users tracked at once.
+|===
+
+=== Pushed authorization requests
+
+See xref:legacy-implicit.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.par.enabled`
+|-
+|`false`
+|Enables the pushed authorization request endpoint `/oauth2/par` (RFC 9126).
+|===
+
+=== OIDC dynamic client registration
+
+See xref:clients.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.oidc.client-registration.enabled`
+|-
+|`false`
+|Enables `/connect/register`, which needs an initial access token with scope `client.create`.
+|===
+
+=== Legacy implicit
+
+Bound only under the `legacy-implicit` profile, whose file sets every value. Never enable it in production. See
+xref:legacy-implicit.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.legacy-implicit.client-id`
+|-
+|`legacy-implicit-spa`
+|Id of the one implicit client the profile seeds.
+
+|`authserver.legacy-implicit.redirect-uri`
+|`AUTHSERVER_LEGACY_IMPLICIT_REDIRECT_URI`
+|`http://localhost:9000/legacy-implicit/` (profile file; required in code)
+|Exact redirect URI of that client.
+
+|`authserver.legacy-implicit.scopes`
+|-
+|`documents.read`
+|Scopes of that client. Not empty.
+
+|`authserver.legacy-implicit.audience`
+|-
+|`resource-server`
+|Audience of the implicit access tokens.
+
+|`authserver.legacy-implicit.access-token-ttl`
+|-
+|`PT5M`
+|Lifetime of the implicit access tokens; positive and at most `PT15M`.
+|===
+
+=== UI branding
+
+Branding of the server's HTML pages. See xref:login-and-bff.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`authserver.ui.branding.application-name`
+|-
+|`Irurueta Auth Server`
+|Name shown on the pages. A blank value falls back to the default.
+
+|`authserver.ui.branding.logo-url`
+|-
+|empty
+|URL of a logo image; no logo when empty.
+
+|`authserver.ui.branding.footer-text`
+|-
+|empty
+|Footer text; no footer when empty.
+|===
+
+== bff
+
+See xref:login-and-bff.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`bff.resource-server.base-uri`
+|`RESOURCE_SERVER_URI`
+|`http://localhost:8081`
+|Base URI of the resource server the BFF calls.
+
+|`bff.login.allowed-return-paths`
+|-
+|`/`, `/index.html`
+|Relative paths the `returnTo` value of the login may name; anything else is refused (no open redirect). An empty
+list falls back to the default.
+|===
+
+The BFF's OAuth client registration is framework configuration: see
+<<_framework_properties_the_project_relies_on>>.
+
+== resource-server
+
+See xref:resource-server.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`resourceserver.step-up.enabled`
+|-
+|`true`
+|Requires a recent strong authentication (RFC 9470) to delete a document.
+
+|`resourceserver.step-up.acr-values`
+|-
+|`urn:irurueta:acr:mfa`
+|`acr` the token must carry for the step-up, and the value of the challenge. Not blank.
+
+|`resourceserver.step-up.max-age`
+|-
+|`PT5M`
+|Longest age of the token's `auth_time` for the step-up. Positive.
+|===
+
+The issuer, accepted audiences and introspection settings are framework properties: see
+<<_framework_properties_the_project_relies_on>>.
+
+== service-client
+
+The `service-client.*` values are mapped to environment variables only in the `client-credentials` and
+`token-exchange` profile files; the defaults below are the same in code and in those files. See
+xref:client-credentials.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`service-client.auth.method`
+|`SERVICE_CLIENT_AUTH_METHOD`
+|`client_secret_basic`
+|Client authentication method: `client_secret_basic`, `private_key_jwt`, `tls_client_auth` or
+`self_signed_tls_client_auth`.
+
+|`service-client.auth.client-id`
+|`SERVICE_CLIENT_ID`
+|`service-client`
+|Client id at the authorization server.
+
+|`service-client.auth.client-secret`
+|`SERVICE_CLIENT_SECRET`
+|empty
+|Client secret for `client_secret_basic`. Secret.
+
+|`service-client.auth.token-uri`
+|`SERVICE_CLIENT_TOKEN_URI`
+|`http://localhost:9000/oauth2/token`
+|Token endpoint.
+
+|`service-client.auth.scopes`
+|`SERVICE_CLIENT_SCOPES`
+|`documents.read`
+|Requested scopes (comma-separated).
+
+|`service-client.auth.refresh-before`
+|`SERVICE_CLIENT_REFRESH_BEFORE`
+|`PT60S`
+|How long before expiry a cached token is renewed. Not negative.
+
+|`service-client.auth.dpop`
+|`SERVICE_CLIENT_DPOP`
+|`false`
+|Sends a DPoP proof with each token request and API call, so the tokens are sender-constrained.
+
+|`service-client.auth.ssl-bundle`
+|`SERVICE_CLIENT_SSL_BUNDLE`
+|empty
+|Name of a `spring.ssl.bundle.*` entry with the client certificate. Required by `tls_client_auth` and
+`self_signed_tls_client_auth`.
+
+|`service-client.auth.key.private-key`
+|`SERVICE_CLIENT_PRIVATE_KEY`
+|empty
+|Unencrypted PKCS#8 RSA private key (PEM text, `\n` escapes allowed) that signs the `private_key_jwt` assertion.
+Takes precedence over `private-key-path`. Secret.
+
+|`service-client.auth.key.private-key-path`
+|-
+|none
+|File with that key, used when `private-key` is empty.
+
+|`service-client.auth.key.key-id`
+|-
+|none
+|`kid` of the signing key; no `kid` when not set.
+
+|`service-client.resource-server.base-uri`
+|`SERVICE_CLIENT_RESOURCE_SERVER_URI`
+|`http://localhost:8081`
+|Base URI of the resource server.
+
+|`service-client.cli.print-access-token`
+|`SERVICE_CLIENT_PRINT_ACCESS_TOKEN`
+|`false`
+|Also prints the access token (`client-credentials` and `token-exchange` profiles).
+
+|`service-client.cli.subject-token`
+|`SERVICE_CLIENT_SUBJECT_TOKEN` (`token-exchange` only)
+|none
+|The user's access token to exchange (`token-exchange` profile). Secret.
+|===
+
+The device flow CLI (`device-flow` profile) has its own properties, normally given as command-line arguments
+(`--device-flow.issuer=...`) or environment variables (`DEVICE_FLOW_ISSUER`, relaxed binding). See
+xref:device-grant.adoc[].
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`device-flow.issuer`
+|`DEVICE_FLOW_ISSUER` (relaxed binding)
+|none (required)
+|Issuer URL of the authorization server (`device-flow` profile).
+
+|`device-flow.client-id`
+|-
+|`device-client`
+|Public client used for the device grant (`device-flow` profile).
+
+|`device-flow.scope`
+|-
+|`profile documents.read`
+|Requested scope, space-separated (`device-flow` profile).
+
+|`device-flow.print-access-token`
+|-
+|`false`
+|Prints the access token once obtained (`device-flow` profile).
+|===
+
+== Framework properties the project relies on
+
+These properties are owned by Spring Boot or Spring Security, not by the project. The table gives the value the
+project's yml files give them.
+
+[cols="3,2,2,4",options="header"]
+|===
+|Property
+|Environment variable
+|Value
+|Notes
+
+4+|*auth-server*
+
+|`spring.security.oauth2.authorizationserver.issuer`
+|`AUTHSERVER_ISSUER_URL`
+|`http://localhost:9000`
+|Framework-owned. Issuer of every token and base of the metadata. Also read by the `/api/**` decoder and the signed
+token service.
+
+|`spring.datasource.url`
+|`AUTHSERVER_DB_URL`
+|`jdbc:postgresql://localhost:5432/authserver`
+|Framework-owned. Under `dev` Docker Compose supplies the connection instead.
+
+|`spring.datasource.username`
+|`AUTHSERVER_DB_USER`
+|`authserver`
+|Framework-owned.
+
+|`spring.datasource.password`
+|`AUTHSERVER_DB_PASSWORD`
+|empty
+|Framework-owned. Secret.
+
+|`spring.mail.host`
+|`AUTHSERVER_MAIL_HOST`
+|`localhost`
+|Framework-owned. SMTP relay; `localhost` also in `dev` (Mailpit). Credentials through `spring.mail.username` /
+`spring.mail.password` from the environment.
+
+|`spring.mail.port`
+|`AUTHSERVER_MAIL_PORT`
+|`1025`
+|Framework-owned. `1025` also in `dev`.
+
+|`spring.flyway.enabled`, `spring.flyway.locations`
+|-
+|`true`, `classpath:db/migration`
+|Framework-owned. Flyway migrates the schema at startup.
+
+|`server.port`
+|-
+|`9000`
+|Framework-owned. HTTP port.
+
+|`server.forward-headers-strategy`
+|-
+|not set
+|Framework-owned. With `authserver.x509.forwarded-header` set, it must be `none`: `X509ForwardedHeadersGuard` refuses
+to start with `native` or `framework`, or when it is unset on a detected cloud platform (which defaults to `native`),
+because the address compared with `trusted-proxies` would then come from `X-Forwarded-For`, which a client can
+forge.
+
+|`spring.web.locale`
+|-
+|`en`
+|Framework-owned. Language used when the request names none.
+
+|`spring.messages.fallback-to-system-locale`
+|-
+|`false`
+|Framework-owned. The language of a response never depends on the machine.
+
+|`spring.web.error.include-path`
+|-
+|`never`
+|Framework-owned. Error bodies do not carry the requested path.
+
+|`management.endpoints.web.exposure.include`
+|-
+|`health,info`
+|Framework-owned. Only health and info actuator endpoints are exposed (also in `bff` and `resource-server`).
+
+|`springdoc.api-docs.enabled`
+|-
+|`true`
+|Framework-owned. Serves the OpenAPI documents compared with the contracts.
+
+|`spring.docker.compose.enabled`, `.file`, `.lifecycle-management`
+|`SPRING_DOCKER_COMPOSE_FILE` for the file
+|`true`, `../../compose.yaml`, `start_and_stop` (`dev` only)
+|Framework-owned. The file is resolved against the working directory (the `boot` module under `spring-boot:run`);
+set `SPRING_DOCKER_COMPOSE_FILE` elsewhere. Same in the `bff` `dev` profile.
+
+4+|*bff*
+
+|`spring.datasource.url`
+|`BFF_DB_URL`
+|`jdbc:postgresql://localhost:5432/bff`
+|Framework-owned. Database of the sessions.
+
+|`spring.datasource.username`, `spring.datasource.password`
+|`BFF_DB_USER`, `BFF_DB_PASSWORD`
+|`bff`, empty
+|Framework-owned. The password is a secret.
+
+|`spring.session.jdbc.initialize-schema`
+|-
+|`never`
+|Framework-owned. The Spring Session schema comes from the BFF's Flyway migration (`V300`).
+
+|`spring.security.oauth2.client.registration.bff.client-secret`
+|`BFF_CLIENT_SECRET`
+|none (required)
+|Framework-owned. Secret of the `bff` client; the placeholder has no default, so the BFF does not start without it.
+
+|`spring.security.oauth2.client.registration.bff.*` (other keys)
+|-
+|client id `bff`, `authorization_code`, `client_secret_basic`, scopes `openid,profile,documents.read,documents.delete`,
+redirect URI
+`\{baseUrl}/login/oauth2/code/\{registrationId}`
+|Framework-owned. The registration of the BFF at the authorization server.
+
+|`spring.security.oauth2.client.provider.auth-server.issuer-uri`
+|`AUTH_ISSUER`
+|`http://localhost:9000`
+|Framework-owned. Issuer the BFF discovers the endpoints from.
+
+|`server.port`
+|-
+|`8080`
+|Framework-owned.
+
+4+|*resource-server*
+
+|`spring.security.oauth2.resourceserver.jwt.issuer-uri`
+|`AUTH_ISSUER`
+|`http://localhost:9000`
+|Framework-owned. Issuer of the accepted JWTs.
+
+|`spring.security.oauth2.resourceserver.jwt.audiences`
+|`RESOURCE_SERVER_AUDIENCES`
+|`resource-server`
+|Framework-owned. Accepted audiences. Must not be empty; the `opaque` variant checks them too.
+
+|`spring.security.oauth2.resourceserver.opaquetoken.introspection-uri`
+|`AUTH_INTROSPECTION_URI`
+|none (required under `opaque`)
+|Framework-owned. Introspection endpoint (`opaque` profile).
+
+|`spring.security.oauth2.resourceserver.opaquetoken.client-id`
+|`INTROSPECTION_CLIENT_ID`
+|none (required under `opaque`)
+|Framework-owned. Client the resource server introspects as (`opaque` profile).
+
+|`spring.security.oauth2.resourceserver.opaquetoken.client-secret`
+|`INTROSPECTION_CLIENT_SECRET`
+|none (required under `opaque`)
+|Framework-owned. Its secret (`opaque` profile).
+
+|`springdoc.swagger-ui.enabled`
+|-
+|`false`
+|Framework-owned. No Swagger UI.
+
+|`server.port`
+|-
+|`8081`
+|Framework-owned. A certificate-bound token needs `server.ssl.*` with `client-auth: want`, set by the deployment.
+
+4+|*service-client*
+
+|`spring.main.web-application-type`
+|-
+|`none`
+|Framework-owned. The service client is a command-line tool with no web server.
+
+|`spring.main.banner-mode`, `spring.main.log-startup-info`
+|-
+|`off`, `false` (in the three CLI profiles)
+|Framework-owned. Keeps the CLI output clean.
+
+|`spring.ssl.bundle.*`
+|-
+|none
+|Framework-owned. Holds the client certificate named by `service-client.auth.ssl-bundle` (mTLS methods).
+|===
+
+== Keeping this page complete
+
+`spring-boot-configuration-processor` is declared in the root `pom.xml`, so each module with a
+`@ConfigurationProperties` record writes `target/classes/META-INF/spring-configuration-metadata.json` at build time.
+Those files list every key of the records and can serve as a checklist when a property is added. They do not capture
+the defaults set in compact constructors, nor the keys read with `@Value`, `@ConditionalOnProperty`,
+`Environment.getProperty` or a `@Scheduled` cron placeholder (`authserver.keys.*`, `authserver.tokens.cleanup.*`,
+`authserver.account.cleanup.cron`, `authserver.ott.cleanup.cron`, `authserver.password.compromised-check.enabled`,
+`authserver.par.enabled`, `authserver.oidc.client-registration.enabled`, ...). Check those by hand in the code and in
+the `application*.yml` files.

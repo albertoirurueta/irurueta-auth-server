@@ -1,0 +1,200 @@
+= Authorization code with PKCE through the BFF
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The browser never takes part in the OAuth exchange as a client. The single page application (SPA) served by the `bff`
+asks the BFF to sign the user in; the BFF runs the authorization code flow with PKCE against `auth-server` as the
+confidential client `bff`, exchanges the code with its client secret, and keeps the access, refresh and ID tokens in
+its server-side session, stored in PostgreSQL by Spring Session JDBC. The browser only holds the `__Host-SESSION`
+cookie. When the SPA asks for the user's documents, the BFF calls the resource server with the access token of the
+session and answers with its own response.
+
+== At a glance
+
+[cols="1,3",options="header"]
+|===
+|Item
+|Value
+
+|Actors
+|User and browser (the SPA from `bff/boot`, `index.html` and `assets/app.js`), `bff` (port 8080), `auth-server` (port
+9000), `resource-server` (port 8081).
+
+|Client
+|`bff`: confidential, `client_secret_basic`, grants `authorization_code` and `refresh_token`, PKCE required, consent
+required, refresh tokens rotated, access token 10 minutes, refresh token 8 hours (`DefaultClientDefinitions.bff`).
+
+|Preconditions
+|`auth-server` seeds `bff` only when `authserver.clients.bff.redirect-uris` (`AUTHSERVER_BFF_REDIRECT_URIS`) and the
+secret `AUTHSERVER_BFF_CLIENT_SECRET` are set; with the `dev` profile `DevDataInitializer` seeds it with
+`http://localhost:8080/login/oauth2/code/bff` and a generated secret that it logs. The BFF reads the same secret from
+`BFF_CLIENT_SECRET` and the issuer from `AUTH_ISSUER` (default `http://localhost:9000`). The BFF asks for the scopes
+`openid`, `profile`, `documents.read` and `documents.delete` (each resource-server operation needs its own).
+
+|BFF endpoints
+|`GET /bff/login?returnTo=`, `GET /oauth2/authorization/bff`, `GET /login/oauth2/code/bff`, `GET /bff/user`,
+`GET /api/documents`, `+DELETE /api/documents/{id}+`.
+
+|Authorization server endpoints
+|`GET /oauth2/authorize`, `GET /login` and `POST /login`, `GET /login/second-factor` when a second factor is owed,
+`GET /oauth2/consent`, `POST /oauth2/authorize` (the consent decision), `POST /oauth2/token`, `GET /oauth2/jwks`,
+`GET /.well-known/openid-configuration`.
+
+|Resource server endpoint
+|`GET /api/documents` (needs `SCOPE_documents.read` and the audience `resource-server`).
+|===
+
+== Steps
+
+. The SPA calls `GET /bff/user`. Without a session the BFF chain answers `401` (requests under `/bff/**` and `/api/**`
+get an `HttpStatusEntryPoint`, not a redirect), and the SPA shows its *Sign in* button.
+. The user clicks it and the browser navigates to `GET /bff/login?returnTo=/`. `BffLoginController` checks `returnTo`
+against `bff.login.allowed-return-paths`, stores it in the session and answers `302` to `/oauth2/authorization/bff`.
+. Spring Security's authorization request filter builds the request with the `DefaultOAuth2AuthorizationRequestResolver`
+that `SecurityConfig.bffFilterChain` customises with `OAuth2AuthorizationRequestCustomizers.withPkce()` (Spring only
+adds PKCE by itself for public clients). It keeps `state`, `nonce` and the `code_verifier` in the BFF session and
+redirects the browser to `auth-server` `/oauth2/authorize` with `code_challenge` and `code_challenge_method=S256`.
+. The protocol chain (`SecurityConfig.authorizationServerSecurityFilterChain`) sees no session and sends the browser to
+`/login` through its `LoginUrlAuthenticationEntryPoint`. The user signs in with any method the login page offers (see
+xref:use-cases/authentication-methods.adoc[]).
+. If the MFA policy is not satisfied (`MfaProtocolChainCustomizer`, `MfaAuthorizationManager`), the browser is sent to
+`/login/second-factor`; once the factor is proved, the saved authorization request resumes.
+. `bff` requires consent, so Spring Authorization Server redirects to the custom consent page (`ConsentProtocolCustomizer`,
+`ConsentController`, `templates/consent.html`) unless the user already granted every requested scope. *Allow* posts the
+approved scopes to `/oauth2/authorize`; *Deny* posts none and the BFF gets `error=access_denied`.
+. `auth-server` redirects to `http://localhost:8080/login/oauth2/code/bff?code=...&state=...`.
+. The BFF's login filter checks `state` and posts the code, the `redirect_uri` and the `code_verifier` to
+`/oauth2/token`, authenticating with `client_secret_basic`. The server checks the code verifier against the stored
+challenge and answers with an access token, a refresh token and an ID token.
+. The BFF validates the ID token with the keys from `/oauth2/jwks` (found through the issuer's discovery document),
+builds an `OidcUser` and stores the authorized client in the session through `HttpSessionOAuth2AuthorizedClientRepository`.
+Spring Session JDBC writes the session to the `spring_session` tables of the `bff` database (`V300__spring_session.sql`).
+. `ReturnToAuthenticationSuccessHandler` reads and removes the stored `returnTo`, validates it again and redirects
+there. The SPA calls `GET /bff/user` again, and `UserController` answers with the claims of the `OidcUser`.
+. The SPA calls `GET /api/documents`. `DocumentsController` calls `ListDocumentsUseCase`, whose port
+`DocumentGateway` is implemented by `RestDocumentGateway`. The generated client runs on a `RestClient` with
+`OAuth2ClientHttpRequestInterceptor`, which asks the `OAuth2AuthorizedClientManager` for the session's access token
+(renewing it with the refresh token when it expired, see xref:use-cases/refresh-token-rotation.adoc[]) and sends it as
+`Authorization: Bearer` to the resource server.
+. The resource server validates the JWT (issuer, signature, audience `resource-server`, scope `documents.read`) and
+answers. `RestDocumentGateway` maps the answer, or translates a failure into a domain exception, and the BFF answers
+the SPA with its own body: no token, header or error body of the resource server reaches the browser.
+. Deleting (`+DELETE /api/documents/{id}+`, with the CSRF token) goes the same way with the `documents.delete` scope,
+but the resource server also requires a recent multi-factor sign-in. Without one it answers the RFC 9470 challenge,
+which the BFF turns into a `401` problem `urn:problem:documents:step-up-required` with `acrValues` and `maxAge` (the
+only values of the resource server that reach the browser). The SPA signs in again through
+`GET /bff/login?returnTo=...&acrValues=...&maxAge=...`, which adds `acr_values` and `max_age` to the next
+authorization request, and retries; see xref:use-cases/step-up.adoc[].
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser SPA
+  participant F as BFF
+  participant A as auth-server
+  participant R as resource-server
+  B->>F: GET /bff/login?returnTo=/
+  F-->>B: 302 to /oauth2/authorization/bff
+  B->>F: GET /oauth2/authorization/bff
+  Note over F: state, nonce and code_verifier saved in the session
+  F-->>B: 302 to /oauth2/authorize with code_challenge S256
+  B->>A: GET /oauth2/authorize
+  A-->>B: 302 to /login
+  B->>A: POST /login with credentials
+  A-->>B: 302 back to /oauth2/authorize
+  B->>A: GET /oauth2/authorize
+  A-->>B: consent page
+  B->>A: POST /oauth2/authorize with approved scopes
+  A-->>B: 302 to /login/oauth2/code/bff with code and state
+  B->>F: GET /login/oauth2/code/bff
+  F->>A: POST /oauth2/token with code, code_verifier and client_secret_basic
+  A-->>F: access_token, refresh_token, id_token
+  F->>A: GET /oauth2/jwks
+  Note over F: tokens stored in the Spring Session JDBC session
+  F-->>B: 302 to returnTo, Set-Cookie __Host-SESSION
+  B->>F: GET /api/documents with session cookie
+  F->>R: GET /api/documents with Bearer access token
+  R-->>F: 200 documents
+  F-->>B: 200 documents, no token
+....
+
+The branches of the authorization request on `auth-server`:
+
+[mermaid]
+....
+flowchart TD
+  Start(["GET /oauth2/authorize from the BFF"]) --> Session{"Signed in on auth-server?"}
+  Session -- "no" --> Login["/login: any sign-in method"]
+  Login --> Mfa
+  Session -- "yes" --> Mfa{"MFA policy satisfied?"}
+  Mfa -- "no" --> Second["/login/second-factor"]
+  Second --> Consent
+  Mfa -- "yes" --> Consent{"All requested scopes already granted?"}
+  Consent -- "no" --> Page["/oauth2/consent"]
+  Page -- "Allow" --> Code["302 with code and state"]
+  Page -- "Deny" --> Denied["302 with error=access_denied"]
+  Consent -- "yes" --> Code
+  Denied --> Fail["BFF redirects to /?error=signin"]
+  Code --> Token["BFF exchanges the code at /oauth2/token"]
+....
+
+The session store and the authorized client manager of the BFF:
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/security/SecurityConfig.java[tag=bff-authorized-client]
+----
+
+== Tokens and claims
+
+The token response goes to the BFF only:
+
+* *Access token*: a JWT signed with the active key (`RS256`), `sub` the username, `aud` `resource-server` and
+`auth-server` (the client's `audiences`), `scope`, `roles`, `tenant`, and `amr`, `acr` and `auth_time` from
+`MfaClaimsContributor`. Lifetime 10 minutes.
+* *Refresh token*: opaque, 8 hours, replaced on every use.
+* *ID token*: `sub`, `aud` `bff`, `azp`, `nonce`, `amr` and `acr`; no `roles`, `tenant` or custom `aud`. See
+xref:use-cases/openid-connect.adoc[].
+
+The SPA sees none of them. `GET /bff/user` answers a `SessionUserResponse` built from the `OidcUser` by
+`SessionUserDtoMapper`.
+
+== How it is tested
+
+* `e2e-tests` `BffEndToEndIT`: the packaged `auth-server`, `resource-server` and `bff` in headless Chromium. Signs in
+through the login and consent pages, lists the documents, signs out, and scans every response, the storages and the
+cookies for tokens; a second scenario denies consent and checks that no session is created.
+* `e2e-tests` `SignInSmokeIT`: the demo user signs in through the BFF and `/bff/user` carries the subject.
+* `bff/boot` `SecurityConfigIT`: the authorization request carries PKCE (`bffFilterChain_whenAuthorizationIsRequested_usesPkce`),
+a failed sign-in lands on `/?error=signin`, `returnTo` is validated.
+* `bff/boot` `BffSessionIT`: the session is stored in PostgreSQL with the hardened `__Host-` cookie.
+* `bff/boot` `DocumentsApiIT`: the bearer token is sent upstream and kept from the browser; resource server failures are
+mapped to `401`, `403`, `404` and `502`, a step-up challenge to the `step-up-required` problem, and a client that only
+accepts JSON is not refused with `406`.
+* `bff/boot` `SecurityConfigIT` also checks that both document scopes are requested and that a login started with
+`acrValues` / `maxAge` sends them once as `acr_values` / `max_age`.
+* `e2e-tests` `BffEndToEndIT` (third scenario): a password-only session's deletion answers the step-up problem and the
+step-up login reaches the authorization server's second-factor page.
+* `bff/boot` `UserControllerIT`: `GET /bff/user` signed in and anonymous.
+* `auth-server/boot` `AuthorizationCodePkceIT` and `ConsentPageIT`: the server side of the code flow and the consent page.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 §4.1: Authorization Code Grant]
+* https://www.rfc-editor.org/rfc/rfc7636[RFC 7636: Proof Key for Code Exchange]
+* https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/[The OAuth 2.1 Authorization Framework (draft)]
+* https://datatracker.ietf.org/doc/draft-ietf-oauth-browser-based-apps/[OAuth 2.0 for Browser-Based Applications (draft), Backend for Frontend pattern]
+* https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth[OpenID Connect Core §3.1: Authorization Code Flow]
+
+== Further reading
+
+* {oauth-ref}/authorization-code-and-pkce.html[Authorization Code & PKCE]
+* {oauth-ref}/browser-based-apps.html[Browser-Based Apps]
+* {oauth-ref}/spring-boot-flow-recipes.html[Spring Boot flow recipes]
+* xref:login-and-bff.adoc[]
+* xref:clients.adoc[]
+* xref:mfa-and-step-up.adoc[]
+* xref:resource-server.adoc[]
+* xref:use-cases/authorization-code-public-spa.adoc[]
+* xref:use-cases/logout.adoc[]

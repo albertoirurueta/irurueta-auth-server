@@ -1,0 +1,156 @@
+= Logout
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+Signing out involves two sessions: the relying party's (here the BFF session that holds the tokens) and the
+authorization server's own login session. The repository supports three ways out. The SPA signs out with
+`POST /bff/logout`, which ends the BFF session and then sends the browser to the OpenID Connect RP-initiated logout
+endpoint of `auth-server` (`/connect/logout`), which ends the server session and returns the browser to a
+registered post-logout redirect URI. A user of the server's own pages can also sign out there directly, through the
+`/logout` confirmation page. Back-channel and front-channel logout are not implemented.
+
+== At a glance
+
+[cols="1,3",options="header"]
+|===
+|Item
+|Value
+
+|Actors
+|User and browser (the SPA served by the `bff`), `bff`, `auth-server`.
+
+|Clients
+|`bff` (post-logout redirect URI `http://localhost:8080/` in the `dev` profile); `spa-public` may register its own
+(`http://localhost:3000/` in `dev`). Any client registered through the admin API can carry `postLogoutRedirectUris`.
+
+|Preconditions
+|The client's post-logout redirect URIs: `authserver.clients.bff.post-logout-redirect-uris`
+(`AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS`) and `authserver.clients.spa-public.post-logout-redirect-uris`
+(`AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS`); none by default. The relying party needs the ID token of the session
+(`id_token_hint` is required by Spring Authorization Server).
+
+|Endpoints
+|BFF: `POST /bff/logout` (Spring Security logout filter, CSRF protected). `auth-server`: `GET` or `POST /connect/logout`
+(the `end_session_endpoint` of the discovery document), `GET /logout` (confirmation page, `LogoutController`,
+pages contract) and `POST /logout` (Spring Security logout filter, CSRF protected).
+|===
+
+== Steps
+
+=== Sign-out from the SPA (RP-initiated)
+
+. The SPA builds a `<form method="post" action="/bff/logout">` with a hidden `_csrf` field copied from the
+`XSRF-TOKEN` cookie and submits it as a top-level navigation.
+. The BFF chain's logout filter (configured in `SecurityConfig.bffFilterChain`, matching only `POST /bff/logout`) runs
+its handlers: it clears the `XSRF-TOKEN` cookie and the security context and invalidates the session, which deletes it
+from the `spring_session` table, tokens included.
+. `OidcClientInitiatedLogoutSuccessHandler` (`LogoutConfiguration`) answers `302` to the `end_session_endpoint` it read
+from the discovery document, with `id_token_hint` (the session's ID token) and
+`post_logout_redirect_uri` (`+{baseUrl}/+`, the root of the SPA).
+. The browser follows the redirect to `/connect/logout`. Spring Authorization Server finds the authorization that
+issued the ID token, checks that its `aud` is the client, and, when the browser still has a server session, that the
+token's `sub` and `sid` match that session; then it checks that `post_logout_redirect_uri` is one of the client's
+registered `postLogoutRedirectUris`.
+. It ends the server session (security context cleared, session invalidated) and redirects to the post-logout
+redirect URI, adding `state` when the request carried one. The SPA loads in its signed-out state and does not start
+a new sign-in by itself.
+
+=== Sign-out on the authorization server pages
+
+. A signed-in user opens `GET /logout`. `LogoutController` renders `templates/logout.html`, whose form posts to
+`/logout` with the CSRF token added by `th:action`.
+. `POST /logout`, configured by `LogoutChainCustomizer` on the login chain, invalidates the session, deletes the
+`JSESSIONID` cookie and redirects to `/login?logout`. A post without the CSRF token is refused with `403` and the
+session is kept.
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser SPA
+  participant F as BFF
+  participant A as auth-server
+  B->>F: POST /bff/logout with _csrf
+  Note over F: XSRF-TOKEN cleared, session and tokens deleted
+  F-->>B: 302 to /connect/logout with id_token_hint and post_logout_redirect_uri
+  B->>A: GET /connect/logout
+  Note over A: check id_token_hint, client and registered redirect URI
+  A-->>B: 302 to post_logout_redirect_uri, server session ended
+  B->>F: GET /
+  F-->>B: SPA in its signed-out state
+  B->>F: GET /bff/user
+  F-->>B: 401
+....
+
+[mermaid]
+....
+flowchart TD
+  Start(["Request to /connect/logout"]) --> Hint{"id_token_hint present and issued by this server?"}
+  Hint -- "no" --> Bad["4xx error, nothing ended"]
+  Hint -- "yes" --> Aud{"aud matches the client?"}
+  Aud -- "no" --> Bad
+  Aud -- "yes" --> Sess{"Server session present?"}
+  Sess -- "yes" --> Match{"sub and sid match the session?"}
+  Match -- "no" --> Bad
+  Match -- "yes" --> Uri
+  Sess -- "no" --> Uri{"post_logout_redirect_uri sent?"}
+  Uri -- "no" --> Root["Session ended, 302 to the server root"]
+  Uri -- "yes" --> Reg{"Registered for the client?"}
+  Reg -- "no" --> Bad
+  Reg -- "yes" --> Back["Session ended, 302 to the URI with state"]
+....
+
+The BFF's logout handler:
+
+[source,java]
+----
+include::example$bff/api/web/src/main/java/com/irurueta/authserver/bff/api/web/logout/LogoutConfiguration.java[tag=bff-logout-handler]
+----
+
+The server's own logout:
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/logout/LogoutChainCustomizer.java[tag=logout-config]
+----
+
+== Tokens and claims
+
+No token is issued. The ID token travels as `id_token_hint` in the URL of a top-level navigation only, never in a
+response a script can read; `BffEndToEndIT` allows it there and nowhere else. The logout ends sessions; it does not
+revoke the authorization stored on the server, so a copied refresh token stays valid until it expires or is revoked
+(`/oauth2/revoke`). The BFF no longer holds any token once its session is invalidated.
+
+What is not implemented:
+
+* *Back-channel logout*: the server sends no `logout_token`, so another client's session survives a sign-out of the
+server until it expires.
+* *Front-channel logout*: not supported by Spring Authorization Server.
+
+== How it is tested
+
+* `auth-server/boot` `LogoutIT`: the confirmation page, `POST /logout` invalidating the session, refused without CSRF,
+and `/connect/logout` redirecting to a registered `post_logout_redirect_uri` with `state` (session invalidated) or
+refusing an unregistered one without redirecting (session kept).
+* `bff/boot` `SecurityConfigIT`: the sign-out form with the raw `_csrf` parameter ends the session and redirects; a
+`GET /bff/logout` is not handled.
+* `bff/boot` `SpaStaticResourcesIT`: the SPA signs out with a form post.
+* `e2e-tests` `BffEndToEndIT`: signs in and out through the real servers, lands on the signed-out SPA, and checks that
+`/bff/user` and `/api/documents` answer `401`.
+
+== Specifications
+
+* https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OpenID Connect RP-Initiated Logout 1.0]
+* https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout[§2: RP-Initiated Logout] and
+https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RedirectionAfterLogout[§3: Redirection to RP After Logout]
+* https://openid.net/specs/openid-connect-backchannel-1_0.html[OpenID Connect Back-Channel Logout 1.0] (not implemented)
+* https://openid.net/specs/openid-connect-frontchannel-1_0.html[OpenID Connect Front-Channel Logout 1.0] (not supported)
+
+== Further reading
+
+* {oauth-ref}/logout-and-session-management.html[Logout & Session Management]
+* {oauth-ref}/openid-connect.html[OpenID Connect]
+* xref:login-and-bff.adoc[]
+* xref:clients.adoc[]
+* xref:use-cases/authorization-code-bff.adoc[]
+* xref:use-cases/openid-connect.adoc[]

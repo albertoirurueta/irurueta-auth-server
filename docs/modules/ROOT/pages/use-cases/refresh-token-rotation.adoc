@@ -1,0 +1,167 @@
+= Refresh token rotation and reuse detection
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A client that holds a refresh token trades it at the token endpoint for a new access token. The default clients rotate
+refresh tokens (`reuseRefreshTokens` false), so every refresh also returns a *new* refresh token and the old one stops
+working. Spring Authorization Server does the rotation; this repository adds reuse detection on top:
+`ReuseDetectingAuthorizationService`, a decorator of the JDBC `OAuth2AuthorizationService`, records the SHA-256 hash of
+each rotated-out refresh token in `consumed_refresh_tokens`. If one of those tokens is ever presented again, the token
+was stolen or replayed, so the whole authorization is deleted: the attacker's token and the legitimate client's
+current refresh and access tokens all stop working.
+
+== At a glance
+
+[cols="1,3",options="header"]
+|===
+|Item
+|Value
+
+|Actors
+|A confidential client holding a refresh token (in this repository the `bff`, which refreshes on behalf of the
+browser session), `auth-server`; possibly an attacker holding a copied refresh token.
+
+|Client
+|`bff`: grant `refresh_token`, `reuseRefreshTokens` false, refresh token lifetime 8 hours, access token 10 minutes
+(`DefaultClientDefinitions.bff`). Any client created with the admin API and `reuseRefreshTokens` false behaves the same.
+A public client such as `spa-public` gets no refresh token in the authorization code grant (see
+xref:use-cases/authorization-code-public-spa.adoc[]).
+
+|Preconditions
+|The client was issued a refresh token by an earlier grant (for `bff`, the authorization code grant).
+Nothing to enable: the decorator is the `OAuth2AuthorizationService` bean built by `JdbcAuthorizationServerConfiguration`.
+
+|Endpoints
+|`POST /oauth2/token` with `grant_type=refresh_token`. The same detection applies to any lookup of a refresh token
+without a token type, as `/oauth2/revoke` and `/oauth2/introspect` make when no `token_type_hint` is sent.
+
+|Storage
+|`oauth2_authorization` (Spring Authorization Server schema, `V100`) and `consumed_refresh_tokens` (`V230`, foreign key
+to `oauth2_authorization` with `ON DELETE CASCADE`).
+|===
+
+== Steps
+
+=== Normal refresh
+
+. The client posts `grant_type=refresh_token&refresh_token=RT1` to `/oauth2/token`, authenticating as usual
+(`client_secret_basic` for `bff`). In the `bff` this happens inside `OAuth2AuthorizedClientManager`, called by
+`OAuth2ClientHttpRequestInterceptor` when the access token of the session has expired.
+. Spring Authorization Server calls `findByToken(RT1, refresh_token)`. The delegate finds the authorization, so the
+decorator returns it unchanged.
+. The framework checks that the refresh token belongs to this client and is active, then generates a new access token,
+a new refresh token `RT2` (rotation) and, when `openid` was granted, a new ID token.
+. It calls `save(authorization)`. The decorator reads the stored version first (`findById`), saves the new one through
+the delegate and, because the refresh token value changed from `RT1` to `RT2`, inserts the hash of `RT1` with the
+authorization id into `consumed_refresh_tokens` (`ON CONFLICT DO NOTHING`).
+. The client receives the new access token and `RT2`, and must drop `RT1`.
+
+=== Reuse of a rotated token
+
+. Someone presents `RT1` again (an attacker with a copy, or a client that kept the old value).
+. `findByToken(RT1, refresh_token)` finds nothing in `oauth2_authorization`, because the stored authorization now
+holds `RT2`.
+. The decorator hashes `RT1` and looks it up in `consumed_refresh_tokens`. It finds the authorization id, logs a warning
+(`A rotated refresh token was presented again; revoking the authorization ...`) and removes that authorization through
+the delegate. Its `consumed_refresh_tokens` rows go with it (cascade).
+. The decorator returns `null`, so the token endpoint answers `400 invalid_grant`.
+. When the legitimate client next refreshes with `RT2`, the authorization no longer exists and it also gets
+`400 invalid_grant`. In the `bff`, `RestDocumentGateway` reports the failed renewal as unauthorized, the SPA gets `401`
+and starts a new sign-in.
+
+A token that was never issued, or whose authorization was already deleted (by a previous reuse or by
+`ExpiredAuthorizationCleanupJob`), is simply unknown: `invalid_grant`, nothing revoked.
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant C as Client bff
+  participant X as Attacker
+  participant T as Token endpoint
+  participant S as ReuseDetectingAuthorizationService
+  participant D as oauth2_authorization and consumed_refresh_tokens
+  C->>T: grant_type=refresh_token, refresh_token=RT1
+  T->>S: findByToken RT1
+  S->>D: find authorization by RT1
+  D-->>S: authorization
+  S-->>T: authorization
+  Note over T: new access token and refresh token RT2
+  T->>S: save authorization with RT2
+  S->>D: update authorization, insert hash of RT1
+  T-->>C: 200 access_token and RT2
+  X->>T: grant_type=refresh_token, refresh_token=RT1
+  T->>S: findByToken RT1
+  S->>D: find authorization by RT1
+  D-->>S: none
+  S->>D: find hash of RT1 in consumed_refresh_tokens
+  D-->>S: authorization id
+  S->>D: delete the authorization
+  S-->>T: null
+  T-->>X: 400 invalid_grant
+  C->>T: grant_type=refresh_token, refresh_token=RT2
+  T->>S: findByToken RT2
+  S-->>T: null
+  T-->>C: 400 invalid_grant, sign in again
+....
+
+[mermaid]
+....
+flowchart TD
+  Start(["Refresh token presented"]) --> Found{"Authorization holds this refresh token?"}
+  Found -- "yes" --> Active{"Same client and token active?"}
+  Active -- "yes" --> Rotate["Issue new access and refresh token"]
+  Rotate --> Record["Record hash of the old refresh token"]
+  Record --> Ok["200 with new tokens"]
+  Active -- "no" --> Invalid["400 invalid_grant"]
+  Found -- "no" --> Consumed{"Hash in consumed_refresh_tokens?"}
+  Consumed -- "yes" --> Revoke["Delete the whole authorization"]
+  Revoke --> Invalid
+  Consumed -- "no" --> Invalid
+....
+
+The decorator and its table:
+
+[source,java]
+----
+include::example$auth-server/infrastructure/persistence/src/main/java/com/irurueta/authserver/authorization/infrastructure/persistence/tokens/ReuseDetectingAuthorizationService.java[tag=tokens-reuse-detection]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V230__consumed_refresh_tokens.sql[tag=tokens-reuse-detection]
+----
+
+== Tokens and claims
+
+The refresh response has the same shape as the authorization code response: a new `access_token` (same claims as
+before, `roles`, `tenant`, `aud`, `scope`; `amr`, `acr` and `auth_time` keep describing the original sign-in), a new
+`refresh_token`, `token_type`, `expires_in`, `scope` and, with the `openid` scope, a new `id_token`.
+
+Only hashes are stored in `consumed_refresh_tokens`, so the table cannot be used to obtain tokens. Lookups of other
+token types (access token, device and user codes) are forwarded unchanged.
+
+== How it is tested
+
+* `auth-server/boot` `TokenFlowIT`: `refresh_whenTokenIsValid_rotatesTheRefreshToken` (new access and refresh token,
+one authorization) and `refresh_whenRotatedTokenIsReused_revokesTheAuthorization` (the replay is refused, the
+authorization count drops to zero and the current refresh token is refused too); also revocation of a refresh token.
+* `auth-server/infrastructure/persistence` `ReuseDetectingAuthorizationServiceIT`: over the JDBC service and PostgreSQL,
+a replayed rotated token revokes the authorization, and a refresh token that is not rotated records nothing.
+* `auth-server/infrastructure/persistence` `ReuseDetectingAuthorizationServiceTest`: unit tests of each branch (new
+authorization, rotation, unchanged token, device and user codes forwarded unchanged, consumed and never-consumed tokens).
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc6749#section-6[RFC 6749 §6: Refreshing an Access Token]
+* https://www.rfc-editor.org/rfc/rfc9700#section-4.14[RFC 9700 §4.14: Refresh Token Protection]
+* https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.3[OAuth 2.1 draft §4.3: Refresh Token Grant]
+* https://www.rfc-editor.org/rfc/rfc7009[RFC 7009: Token Revocation]
+
+== Further reading
+
+* {oauth-ref}/access-and-refresh-tokens.html[Access & Refresh Tokens]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:tokens-and-keys.adoc[]
+* xref:data-model.adoc[]
+* xref:use-cases/authorization-code-bff.adoc[]

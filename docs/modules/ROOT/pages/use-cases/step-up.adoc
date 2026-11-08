@@ -1,0 +1,195 @@
+= Step-up authentication
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+Step-up authentication lets a client or an API demand a stronger or more recent sign-in than the one the user already
+has. A client asks for it up front with the OpenID Connect `acr_values` and `max_age` parameters of
+`GET /oauth2/authorize`; the authorization server then either continues, sends the user to the second-factor page or
+makes them sign in again. An API asks for it after the fact, per RFC 9470: it answers `401` with
+`WWW-Authenticate: Bearer error="insufficient_user_authentication"` and the `acr_values` and `max_age` it needs, and
+the client sends the user through the authorization server again with those values and retries with the new token.
+This repository has two such APIs: the authorization server's own account API (`StepUpGuard`) and the resource
+server's document deletion (`StepUpAuthorizationManager`).
+
+.At a glance
+* *Actors*: the user and their browser, the client (for example the `bff`), the authorization server, and the API that
+  demands the step-up (the authorization server's `/api/account/**` or the resource server on port 8081).
+* *Preconditions*:
+** Authorization request: nothing to enable; `StepUpProtocolChainCustomizer` is always on. Only the classes
+   `urn:irurueta:acr:pwd` and `urn:irurueta:acr:mfa` are understood; other values are ignored.
+** Account API: the account has a confirmed second factor (otherwise `StepUpGuard` lets the call through, since the
+   user could not step up); the age limit is `authserver.mfa.step-up-max-age` (default `PT5M`).
+** Resource server: `resourceserver.step-up.enabled` (default `true`), `acr-values` (default
+   `urn:irurueta:acr:mfa`) and `max-age` (default `PT5M`), bound into `StepUpProperties`; the token must have the
+   `documents.delete` scope.
+* *Endpoints*: `GET /oauth2/authorize` with `acr_values` and `max_age`, `GET /login`, `GET /login/second-factor`; on
+  the account API `DELETE /api/account/totp`, `POST /api/account/recovery-codes`,
+  `DELETE /api/account/trusted-devices/\{id}`, `DELETE /api/account/passkeys/\{id}`, `PUT` and `DELETE /api/account/phone`,
+  `POST /api/account/certificates`,
+  `DELETE /api/account/certificates/\{id}`, `DELETE /api/account/identities/\{id}`; on the resource server
+  `DELETE /api/documents/\{id}`.
+
+== Steps
+
+=== Step-up on the authorization request
+
+. The client sends `GET /oauth2/authorize` with `acr_values=urn:irurueta:acr:mfa` and, optionally, `max_age` in
+  seconds.
+. If nobody is signed in, the user signs in first (see xref:use-cases/authentication-methods.adoc[]).
+. `StepUpProtocolChainCustomizer` installed `StepUpAuthorizationRequestConverter` first among the authorization
+  endpoint converters. It reads the session's factors through `FactorTimeline`:
+.. If more than `max_age` seconds have passed since the primary factor was presented (`auth_time`), it throws
+   `ReauthenticationRequiredException`. `SecondFactorErrorResponseHandler` hands it to `ReauthenticationEntryPoint`,
+   which clears the security context, saves the request and redirects to `GET /login`.
+.. Otherwise, if `acr_values` names the multi-factor class only and the session is not multi-factor
+   (`MfaPolicy.isMultiFactor`: two distinct reported factors, or one factor that is multi-factor alone, today only a
+   trusted provider's `FACTOR_FEDERATED_MFA`), it throws `SecondFactorRequiredException.forStepUp()`, and `SecondFactorRequiredEntryPoint` redirects to
+   `GET /login/second-factor`. In this case the page renders the second-factor forms even on a trusted device, because
+   a remembered device never satisfies a step-up.
+.. Otherwise the request continues. A request that also lists `urn:irurueta:acr:pwd` is satisfied by the password.
+. After the new sign-in or second factor, the saved request resumes and the code is issued. The tokens carry the new
+  `acr` and `auth_time`.
+
+=== Step-up demanded by an API (RFC 9470)
+
+. The client calls a sensitive operation with a bearer token whose `acr` is `urn:irurueta:acr:pwd`, or whose
+  `auth_time` is too old.
+. On the authorization server, the controller (`TotpController`, `RecoveryCodeController`, `TrustedDeviceController`,
+  `PasskeyController`, `PhoneController`, `CertificateController`, `IdentityController`) first calls
+  `StepUpGuard.requireRecentMultiFactor`. While the account has a confirmed second factor
+  (`HasConfirmedSecondFactorUseCase`), the JWT's `acr` must be `urn:irurueta:acr:mfa` and its `auth_time` within
+  `authserver.mfa.step-up-max-age`; otherwise it throws `InsufficientUserAuthenticationException` and
+  `MfaExceptionHandler` answers `401` with the challenge and a problem body.
+. On the resource server, `StepUpAuthorizationManager` guards `DELETE /api/documents/\{id}`: with the
+  `SCOPE_documents.delete` authority but without an accepted `acr` and a recent enough `auth_time`, it returns a
+  `StepUpRequiredDecision`, and `StepUpAccessDeniedHandler` answers `401` with the challenge. Other denials keep the
+  RFC 6750 answers (`403` for a missing scope).
+. The client reads `acr_values` and `max_age` from `WWW-Authenticate`, sends the user to `GET /oauth2/authorize` with
+  them, and exchanges the new code for a token.
+. The client retries the call with the new token, which now passes.
+
+Through the `bff`, the browser never sees the challenge itself. `StepUpChallengeMapper` reads it and the BFF answers
+`401` with a problem of type `urn:problem:documents:step-up-required` carrying `acrValues` and `maxAge`
+(`StepUpProblemMapper` keeps them within what the login accepts). The SPA then navigates to
+`GET /bff/login?returnTo=...&acrValues=...&maxAge=...`, and `StepUpAuthorizationRequestResolver` adds `acr_values` and
+`max_age` to the next authorization request; see xref:use-cases/authorization-code-bff.adoc[] and
+xref:login-and-bff.adoc[].
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/mfa/StepUpAuthorizationRequestConverter.java[tag=mfa-step-up-converter]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/mfa/StepUpGuard.java[tag=mfa-step-up-guard]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/StepUpAccessDeniedHandler.java[tag=resource-server-step-up-handler]
+----
+
+=== Decision on the authorization request
+
+[mermaid]
+....
+flowchart TD
+  A["GET /oauth2/authorize with acr_values and max_age"] --> B{"Signed in?"}
+  B -- no --> L["302 to /login, then back here"]
+  L --> A
+  B -- yes --> C{"max_age given and auth_time older than max_age?"}
+  C -- yes --> R["ReauthenticationRequiredException: clear context, 302 to /login"]
+  R --> A
+  C -- no --> D{"acr_values names a known class?"}
+  D -- no --> OK["Continue: MFA policy, consent, code"]
+  D -- yes --> E{"Session is multi-factor, or the pwd class is accepted?"}
+  E -- yes --> OK
+  E -- no --> S["SecondFactorRequiredException.forStepUp: 302 to /login/second-factor"]
+  S --> T["Present TOTP, one-time token or passkey (trusted device does not count)"]
+  T --> A
+....
+
+=== API challenge and retry
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as Client
+  participant AS as Authorization server
+  participant API as Resource server or account API
+  C->>API: DELETE with bearer token (acr pwd)
+  API-->>C: 401 WWW-Authenticate error insufficient_user_authentication, acr_values, max_age
+  C->>B: redirect to /oauth2/authorize with acr_values and max_age
+  B->>AS: GET /oauth2/authorize with acr_values mfa and max_age 300
+  AS->>AS: StepUpAuthorizationRequestConverter
+  AS-->>B: 302 to /login/second-factor
+  B->>AS: POST /login/second-factor/totp with the code
+  AS-->>B: redirect to saved /oauth2/authorize, then to client with code
+  B->>C: code
+  C->>AS: POST /oauth2/token with code and PKCE verifier
+  AS-->>C: access token with acr mfa and fresh auth_time
+  C->>API: DELETE with the new token
+  API-->>C: 204 No Content
+....
+
+== Tokens and claims
+
+* `acr`: `urn:irurueta:acr:mfa` when the session is multi-factor (`MfaPolicy.isMultiFactor`: two distinct reported
+  factors, or one factor that is multi-factor alone), otherwise `urn:irurueta:acr:pwd` (`MfaClaimsContributor`). The
+  same rule decides the authorization request converter, so the claims and the step-up checks always agree. A trusted
+  provider's multi-factor sign-in is multi-factor alone (see xref:use-cases/social-login-federation.adoc[]).
+* `amr`: the RFC 8176 values of the presented factors plus `mfa`, for example `pwd`, `otp`, `mfa`.
+* `auth_time`: the time the earliest primary factor was presented, written by `MfaClaimsContributor` on access tokens
+  and by the framework on ID tokens. A second factor added later does not move it, so `max_age` and the APIs' age limit
+  measure the sign-in itself.
+* The challenge: `WWW-Authenticate: Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa",
+  max_age="300"` (the configured age in seconds).
+
+By design:
+
+* A remembered (trusted) device is never reported and never satisfies a step-up.
+* A passkey or a certificate alone is a strong factor, so it satisfies the sign-in policy, but it proves one thing (user
+  verification of a passkey is only preferred; a certificate is possession of a key), so its `acr` is the password
+  class: a step-up asks it for a second factor.
+* A sign-in at a provider with `trust-mfa` that reported `mfa` (`FACTOR_FEDERATED_MFA`) is multi-factor alone: it gets
+  `acr` `urn:irurueta:acr:mfa` and passes a step-up (`acr_values`, `StepUpGuard`, the resource server and the phone
+  page) without a local second factor, as long as it is recent enough.
+
+== How it is tested
+
+* `StepUpIT` (`auth-server/boot`): `acr_values` asking for the multi-factor class requires the second factor, the
+  password class is satisfied by the password, and an exceeded `max_age` forces a new sign-in with a newer `auth_time`.
+* `TotpApiIT` (`auth-server/boot`): the account API answers the step-up challenge to a token without a recent
+  multi-factor sign-in.
+* `TrustedDeviceIT` (`auth-server/boot`): a trusted device skips the second factor at sign-in.
+* `SocialLoginIT` (`auth-server/boot`): unlinking an identity needs a step-up token.
+* `StepUpDeletionIT` (`resource-server/boot`): a password-only or stale token is challenged, a recent multi-factor
+  token deletes, and listing is never challenged.
+* `SocialTrustedProviderIT` (`auth-server/boot`): after a trusted provider's multi-factor sign-in, `acr_values` asking
+  for the multi-factor class issues the code without a second factor.
+* `BffEndToEndIT` (`e2e-tests`): a password-only session's deletion through the BFF answers the step-up problem, and
+  the step-up login reaches the second-factor page.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc9470[RFC 9470, OAuth 2.0 Step Up Authentication Challenge Protocol]
+* https://www.rfc-editor.org/rfc/rfc8176[RFC 8176, Authentication Method Reference Values]
+* https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest[OpenID Connect Core 1.0, section 3.1.2.1]
+  (`acr_values`, `max_age`)
+* https://www.rfc-editor.org/rfc/rfc6749[RFC 6749, The OAuth 2.0 Authorization Framework]
+* https://www.rfc-editor.org/rfc/rfc7636[RFC 7636, Proof Key for Code Exchange]
+* https://www.rfc-editor.org/rfc/rfc6238[RFC 6238, TOTP]
+
+== Further reading
+
+* {oauth-ref}/authentication-methods-2fa-and-passwordless.html[Authentication Methods: Passwordless & 2FA]
+* {oauth-ref}/openid-connect.html[OpenID Connect]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:use-cases/authentication-methods.adoc[]
+* xref:use-cases/authorization-code-bff.adoc[]
+* xref:use-cases/openid-connect.adoc[]
+* xref:mfa-and-step-up.adoc[]
+* xref:resource-server.adoc[]

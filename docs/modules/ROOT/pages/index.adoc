@@ -25,11 +25,14 @@ When complete, the example shows how to:
   authentication, and token exchange
 * explain the legacy *implicit* flow and migrate away from it
 
-The work is tracked in the repository's issues and the *1.0.0* milestone. The current state is the walking skeleton plus
-the credential and token core: users sign in with a username and password (Argon2 storage) through the BFF
-(authorization code with PKCE), tokens are signed with persisted, rotating keys, clients are managed through an
-admin API, and the resource server exposes a documents API protected by scopes and audience. The other authentication methods are added on top of the
-extension points described in xref:architecture.adoc[].
+The work is tracked in the repository's issues and the *1.0.0* milestone, and every item above is implemented. Users
+sign in through the BFF (authorization code with PKCE) with a password (Argon2 storage), a passkey, an e-mail or SMS
+one-time code or magic link, a social provider or an X.509 client certificate; TOTP, one-time codes, passkeys and
+trusted devices provide the second factor, with step-up on demand. Tokens are signed with persisted, rotating keys,
+clients are managed through an admin API, services authenticate with secrets, `private_key_jwt` or mTLS and can use
+DPoP, token exchange, the device grant and pushed authorization requests, and the resource server exposes a documents
+API protected by scopes and audience. Every authentication method is added on top of the extension points described
+in xref:architecture.adoc[].
 
 == Modules
 
@@ -60,7 +63,8 @@ the SPA and calls the resource server on the user's behalf.
 
 |`service-client`
 |—
-|A non-interactive client that obtains tokens with the client credentials grant and calls `resource-server`.
+|A command-line client with one runner per profile: the client credentials grant (secret, `private_key_jwt` or mTLS,
+optionally DPoP), token exchange and the device authorization grant; it calls `resource-server`.
 |===
 
 [mermaid]
@@ -82,5 +86,7 @@ flowchart LR
 * xref:tokens-and-keys.adoc[] covers signing keys, rotation, token claims and refresh token reuse detection.
 * xref:clients.adoc[] covers client seeding, the admin API and dynamic registration.
 * xref:resource-server.adoc[] covers the documents API and token validation.
+* xref:use-cases/index.adoc[] walks through every OAuth 2.0 / OpenID Connect flow step by step, with diagrams.
+* xref:configuration.adoc[] lists every configuration property, its default and its environment variable.
 * xref:installation.adoc[] explains how to build the example and run each application from source.
 * xref:reference.adoc[] lists the reports the build generates.

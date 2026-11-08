@@ -1,0 +1,132 @@
+= Token exchange
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A service receives a user's access token and must call another API on that user's behalf, while making clear that it is
+the service doing so. With token exchange (RFC 8693) `service-client`, started with the `token-exchange` profile, sends
+the user's token as the subject token and its own client-credentials token as the actor token, and gets a new access
+token whose subject is still the user and whose `act` claim names the client (delegation). The new token keeps the user's
+`roles` and `tenant`, and its audience is limited to what the client may target.
+
+.At a glance
+* *Actors*: the user (who signed in earlier, for example through the BFF), `service-client`, `auth-server`,
+  `resource-server`.
+* *Clients involved*: the client that obtained the user's token (for example `bff`), and the exchanging confidential
+  client of `service-client`, registered through `POST /api/admin/clients` with the grant types `client_credentials`
+  and `urn:ietf:params:oauth:grant-type:token-exchange`, the scope `documents.read` and the audience `resource-server`.
+* *Preconditions*: Spring profile `token-exchange` on `service-client`; the user's access token, issued by this server,
+  in `SERVICE_CLIENT_SUBJECT_TOKEN` (`service-client.cli.subject-token`); the client settings of
+  xref:use-cases/client-credentials.adoc[] (`SERVICE_CLIENT_ID`, `SERVICE_CLIENT_SECRET`, `SERVICE_CLIENT_TOKEN_URI`, ...).
+* *Endpoints*: `POST /oauth2/token` (twice: client credentials, then token exchange), `GET /api/documents`.
+
+== Steps
+
+. `TokenExchangeCli` (profile `token-exchange`) reads the subject token from `SERVICE_CLIENT_SUBJECT_TOKEN` and fails
+  with a clear message when it is empty.
+. It runs `ListDocumentsOnBehalfOfUseCase`, which calls the port `OnBehalfOfDocumentGateway`, implemented by
+  `RestOnBehalfOfDocumentGateway`. The call's principal is the user's token (`PrincipalMapper.user`), and the
+  registration is `service-client-token-exchange` (`ServiceClientRegistrationMapper`).
+. The authorized client manager of `OAuth2ClientConfiguration` uses a `TokenExchangeOAuth2AuthorizedClientProvider`. Its
+  actor token resolver first obtains the client's own client-credentials token through the client-credentials manager
+  (cached and renewed as in xref:use-cases/client-credentials.adoc[]).
+. The provider posts to `/oauth2/token`: `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`, `subject_token`
+  (the user's token) with `subject_token_type=urn:ietf:params:oauth:token-type:access_token`, `actor_token` (the
+  client-credentials token) with its type, and the scopes, authenticating the client with its configured method.
+. Spring Authorization Server authenticates the client, checks it has the token-exchange grant (else
+  `unauthorized_client`), finds the authorization that holds the subject token (a token it did not issue is
+  `invalid_grant`), validates the actor token, honours a `may_act` claim of the subject token if present, and builds a
+  composite principal: the user, acted on by the client.
+. The token customizers run. `IssuedTokenClaims` adds the user's `roles` and `tenant` and the client's configured
+  audiences. `TokenExchangeAudienceContributor` (a `JwtClaimsContributor`, order 120) runs only for an access token of
+  this grant whose request named an `audience`: it keeps the requested audiences that are in the client's
+  `settings.client.audiences` and answers `invalid_target` when none is. It never widens `aud`.
+. The exchanged token is cached under the user's principal and sent as a bearer token (or DPoP) to
+  `GET /api/documents`. The resource server sees the user as `sub` and returns that user's documents.
+. With `SERVICE_CLIENT_PRINT_ACCESS_TOKEN=true` the exchanged token is printed too.
+
+`service-client` itself sends no `audience` parameter, so its exchanged token carries the client's configured audiences.
+
+[source,java]
+----
+include::example$service-client/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/serviceclient/infrastructure/resourceserver/OAuth2ClientConfiguration.java[tag=token-exchange-client]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/exchange/TokenExchangeAudienceContributor.java[tag=exchange-claims]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant U as User via BFF
+  participant S as service-client
+  participant A as auth-server
+  participant R as resource-server
+  U-->>S: user access token in SERVICE_CLIENT_SUBJECT_TOKEN
+  S->>A: POST /oauth2/token grant_type=client_credentials
+  A-->>S: actor token, sub = client id
+  S->>A: POST /oauth2/token grant_type=token-exchange, subject_token, actor_token
+  A->>A: authenticate client, check token-exchange grant
+  A->>A: find authorization of subject token, validate actor token, check may_act
+  A->>A: claims: sub = user, act.sub = client, roles, tenant, aud narrowed
+  A-->>S: 200 access_token, issued_token_type=access_token
+  S->>R: GET /api/documents with Authorization Bearer exchanged token
+  R-->>S: 200 documents of the user
+....
+
+[mermaid]
+....
+flowchart TD
+  Q[Token exchange request] --> G{"Client has token-exchange grant?"}
+  G -- No --> E1["400 unauthorized_client"]
+  G -- Yes --> S{"Subject token issued by this server and active?"}
+  S -- No --> E2["400 invalid_grant"]
+  S -- Yes --> M{"may_act present?"}
+  M -- "Yes, excludes actor" --> E2
+  M -- "No, or names actor" --> A{"audience requested?"}
+  A -- No --> T["aud = client audiences"]
+  A -- Yes --> N{"Any requested audience in client audiences?"}
+  N -- No --> E3["400 invalid_target"]
+  N -- Yes --> T2["aud = requested and allowed audiences"]
+  T --> OK["Token: sub user, act client"]
+  T2 --> OK
+....
+
+== Tokens and claims
+
+* Token response: `access_token`, `issued_token_type=urn:ietf:params:oauth:token-type:access_token`, `token_type`,
+  `expires_in`, `scope`.
+* `sub`: the user (the subject token's `sub`, the local username).
+* `act`: `{"sub": "<exchanging client id>"}`, written by the framework.
+* `roles` and `tenant`: the user's, as in the subject token.
+* `aud`: the client's configured audiences, or the requested ones that are among them.
+* `scope`: the granted scopes of the exchanging client.
+
+== How it is tested
+
+* `auth-server/boot`: `TokenExchangeIT` checks a valid exchange (`sub` user, `act.sub` client, `aud` narrowed), an
+  audience that is not allowed (`invalid_target`), a client without the grant (`unauthorized_client`), a foreign subject
+  token (`invalid_grant`) and a `may_act` claim that excludes or names the actor.
+* `service-client/infrastructure/resourceserver`: `ResourceServerAdapterIT`
+  (`listDocumentsAs_whenUserTokenIsGiven_exchangesItWithTheClientTokenAsActor`).
+* `e2e-tests`: `TokenExchangeEndToEndIT` signs the demo user in through the BFF, runs the packaged `service-client` with
+  the user's token and checks `sub`, `act.sub`, `aud` and `scope`; a foreign subject token makes the tool fail.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc8693#section-2.1[RFC 8693 §2.1, Token exchange request] and
+  https://www.rfc-editor.org/rfc/rfc8693#section-2.2[§2.2, response]
+* https://www.rfc-editor.org/rfc/rfc8693#section-4.1[RFC 8693 §4.1, `act` claim] and
+  https://www.rfc-editor.org/rfc/rfc8693#section-4.4[§4.4, `may_act` claim]
+* https://www.rfc-editor.org/rfc/rfc8693#section-2.2.2[RFC 8693 §2.2.2, error response (`invalid_target`)]
+
+== Further reading
+
+* {oauth-ref}/token-exchange-and-assertion-grants.html[Token Exchange & Assertion Grants]
+* {oauth-ref}/scopes-claims-and-permissions.html[Scopes, Claims & Permissions]
+* xref:client-credentials.adoc[] (feature page)
+* xref:tokens-and-keys.adoc[]
+* xref:use-cases/client-credentials.adoc[]
+* xref:use-cases/authorization-code-bff.adoc[]

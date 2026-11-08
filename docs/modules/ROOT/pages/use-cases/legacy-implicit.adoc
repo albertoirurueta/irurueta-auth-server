@@ -1,0 +1,136 @@
+= Legacy implicit flow
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+In the implicit grant (`response_type=token`) the authorization endpoint returns the access token directly in the
+fragment of the redirect URI, with no code and no token request. The token then sits in the browser's address bar and
+history, can leak through referrers, logs and injected scripts, cannot be bound to the client, and cannot be refreshed.
+OAuth 2.0 Security BCP (RFC 9700) says not to use it and OAuth 2.1 removes it; the authorization code flow with PKCE
+replaces it. This server rejects it by default, for every client. Under the opt-in `legacy-implicit` profile, which must
+never be enabled in production, one demo client may use it so that the risk can be shown end to end. The feature page
+xref:legacy-implicit.adoc[] describes the classes; this page follows the flow.
+
+.At a glance
+* *Actors*: the user with a browser, the demo page `/legacy-implicit/` (a single-page app served by the authorization
+  server), `auth-server`.
+* *Clients involved*: `legacy-implicit-spa`, public (`none`), only grant type `implicit`, no consent, no refresh token,
+  seeded by `LegacyImplicitClientSeeder`. The admin API refuses `implicit` for any other client
+  (`ImplicitClientRefusedException`, `400 invalid`).
+* *Preconditions*: Spring profile `legacy-implicit` on `auth-server` and the settings of
+  `application-legacy-implicit.yml`: `authserver.legacy-implicit.client-id` (`legacy-implicit-spa`), `redirect-uri`
+  (`AUTHSERVER_LEGACY_IMPLICIT_REDIRECT_URI`, default `http://localhost:9000/legacy-implicit/`), `scopes`
+  (`documents.read`), `audience` (`resource-server`) and `access-token-ttl` (`PT5M`, at most `PT15M`).
+* *Endpoints*: `GET /oauth2/authorize` with `response_type=token`, `/login`, the demo page `/legacy-implicit/`.
+
+== Steps
+
+=== Without the profile (default)
+
+. A request to `GET /oauth2/authorize` with `response_type=token` reaches Spring Authorization Server's authorization
+  endpoint, which only knows `code`.
+. The server answers `400` with `unsupported_response_type`, without redirecting, whatever the client.
+. `/legacy-implicit/` is not served (it ends at the catch-all rule and redirects to `/login`).
+
+=== With the legacy-implicit profile
+
+. At startup `LegacyImplicitClientSeeder` creates `legacy-implicit-spa` (if missing) with the exact redirect URI, scopes
+  and audience of the settings, and logs a warning.
+. The user opens `/legacy-implicit/` (served from `classpath:/legacy-implicit/` by a resource handler that exists only
+  under the profile). The page generates a random `state` and redirects to
+  `/oauth2/authorize?response_type=token&client_id=legacy-implicit-spa&redirect_uri=...&scope=documents.read&state=...`.
+. The authorization endpoint runs behind the authorization filter, so a user who is not signed in goes to `/login`
+  first and the request resumes afterwards.
+. `LegacyImplicitProtocolChainCustomizer` (a `ProtocolChainCustomizer`, order 4) has added
+  `LegacyImplicitAuthorizationRequestConverter` first: it takes only `GET` requests with `response_type=token`; any
+  client but `legacy-implicit-spa` is refused with `unsupported_response_type`, and repeated `client_id`, `scope`,
+  `redirect_uri` or `state` parameters with `invalid_request`.
+. `LegacyImplicitAuthenticationProvider` checks that the client has the `implicit` grant and that the redirect URI matches
+  a registered one exactly; until then errors are thrown and the browser is not redirected. It applies the MFA policy
+  (a client or user that requires a second factor is sent to `/login/second-factor`). A missing `state` or a scope
+  outside the client's becomes a `LegacyImplicitErrorToken`.
+. It issues the access token through the token generator, with the lifetime capped at `PT15M`, stores the authorization
+  and never issues a refresh token.
+. `LegacyImplicitResponseHandler` answers `302` to `redirect_uri` with the fragment
+  `access_token=...&token_type=Bearer&expires_in=...&scope=...&state=...` (or `error=...&state=...`), with
+  `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. Every other result (a `code` response) is delegated to
+  `AuthorizationCodeResponseHandler`, the framework's default, so the code flow is unchanged.
+. The demo page reads the fragment, refuses it when `state` does not match, removes it from the address with
+  `history.replaceState` and shows the token's claims.
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser demo page
+  participant A as auth-server
+  B->>B: generate random state
+  B->>A: GET /oauth2/authorize response_type=token client_id=legacy-implicit-spa redirect_uri scope state
+  alt profile legacy-implicit not active
+    A-->>B: 400 unsupported_response_type
+  else profile active
+    A-->>B: 302 /login
+    B->>A: sign in, second factor if required
+    A->>A: converter and provider: client, exact redirect URI, MFA, state, scopes
+    A->>A: issue short-lived audience-restricted token, no refresh token
+    A-->>B: 302 redirect_uri with fragment access_token, token_type, expires_in, scope, state
+    B->>B: check state, clear fragment with history.replaceState, show claims
+  end
+....
+
+[mermaid]
+....
+flowchart TD
+  R["GET /oauth2/authorize response_type=token"] --> P{"legacy-implicit profile?"}
+  P -- No --> U["400 unsupported_response_type"]
+  P -- Yes --> C{"client_id is legacy-implicit-spa?"}
+  C -- No --> U
+  C -- Yes --> L{"Signed in?"}
+  L -- No --> LG[Redirect to /login]
+  L -- Yes --> RU{"Redirect URI registered exactly?"}
+  RU -- No --> E1["400, no redirect"]
+  RU -- Yes --> M{"MFA policy satisfied?"}
+  M -- No --> SF[Redirect to /login/second-factor]
+  M -- Yes --> S{"state present and scopes allowed?"}
+  S -- No --> E2["Redirect with error in fragment"]
+  S -- Yes --> T["Redirect with access_token in fragment"]
+....
+
+== Why it is deprecated
+
+* The token travels in a URL: browser history, referrer headers (the response sets `Referrer-Policy: no-referrer` to
+  limit this), proxy logs and any script on the page can read it.
+* There is no client authentication and no PKCE, so a token injected into the redirect cannot be told apart from a
+  genuine one; `state` only protects against cross-site request forgery.
+* The token cannot be sender-constrained and there is no refresh token, so clients ask for long-lived tokens instead.
+* The authorization code flow with PKCE gives a browser app the same result without these problems (see
+  xref:use-cases/authorization-code-public-spa.adoc[]).
+
+== Tokens and claims
+
+* Fragment parameters: `access_token`, `token_type=Bearer`, `expires_in`, `scope`, `state`. No refresh token, no ID token.
+* Access token claims: `sub` the user, `aud` the configured audience (`resource-server`), `scope` the granted scopes
+  (`documents.read`), plus the user's `roles` and `tenant`; no `cnf`, it is a plain bearer token. Lifetime
+  `access-token-ttl`, at most 15 minutes.
+
+== How it is tested
+
+* `auth-server/boot`: `ImplicitRejectedIT` (default profile: `response_type=token` and an unknown response type answer
+  `unsupported_response_type`, the demo page is not served); `LegacyImplicitIT` (profile active: token in the fragment,
+  login redirect, another client refused, unregistered redirect URI not followed, missing `state` returned as
+  `invalid_request` in the fragment, code flow unchanged, demo page served).
+* `e2e-tests`: `LegacyImplicitEndToEndIT` signs the demo user in through the demo page in headless Chromium, checks the
+  claims and that the fragment is cleared, and checks that another client is refused.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc6749#section-4.2[RFC 6749 §4.2, Implicit Grant]
+* https://www.rfc-editor.org/rfc/rfc9700#section-2.1.2[RFC 9700 §2.1.2, Implicit Grant (not to be used)]
+* https://www.rfc-editor.org/rfc/rfc6749#section-10.16[RFC 6749 §10.16, Misuse of access token to impersonate resource owner in implicit flow]
+* https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/[OAuth 2.1 draft (removes the implicit grant)]
+
+== Further reading
+
+* {oauth-ref}/legacy-implicit-and-password-grants.html[Legacy Implicit & Password Grants]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:legacy-implicit.adoc[] (feature page)
+* xref:use-cases/authorization-code-public-spa.adoc[]

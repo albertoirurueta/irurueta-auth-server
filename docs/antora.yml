@@ -112,3 +112,9 @@ ext:
         - dir: '~+'
           files: '{pom.xml,compose.yaml}'
           into: modules/ROOT/examples
+asciidoc:
+  attributes:
+    # Base URL of the OAuth Reference in the Irurueta Docs site (repository albertoirurueta/docs, published at
+    # www.irurueta.com). This repository is not a content source of that site, so its pages are linked by URL, never by
+    # cross-component xref: {oauth-ref}/device-authorization-grant.html[Device Authorization Grant]
+    oauth-ref: https://www.irurueta.com/backend/oauth

@@ -1,0 +1,164 @@
+= Sender-constrained tokens
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A bearer token works for whoever holds it. A sender-constrained token is bound to a key the client proves it holds, so a
+stolen token alone is useless. Two bindings are implemented: DPoP, where the client signs a fresh proof JWT for every
+request and the token carries the thumbprint of the proof key (`cnf.jkt`), and certificate-bound tokens, where the client
+authenticates with mutual TLS and the token carries the thumbprint of its certificate (`cnf.x5t#S256`). The authorization
+server side is Spring Authorization Server's; `service-client` hand-wires the client side of DPoP because Spring Security
+has none; the resource server checks both bindings.
+
+.At a glance
+* *Actors*: `service-client`, `auth-server`, `resource-server`.
+* *Clients involved*: a confidential client of `service-client` (see xref:use-cases/client-credentials.adoc[]).
+* *Preconditions*:
+** DPoP: nothing on the server or the client registration; `service-client.auth.dpop=true` (`SERVICE_CLIENT_DPOP`) on
+   `service-client`.
+** Certificate-bound: the client registered with `tls_client_auth` or `self_signed_tls_client_auth` and
+   `certificateBoundAccessTokens: true`; the authorization server's TLS connector (`authserver.x509.enabled=true`,
+   `authserver.x509.port`); the resource server served over TLS with `server.ssl.client-auth: want` and a bundle.
+* *Endpoints*: `POST /oauth2/token`, `GET /api/documents`, the metadata endpoints
+  `/.well-known/oauth-authorization-server` and `/.well-known/openid-configuration` (for `mtls_endpoint_aliases`).
+
+== Steps
+
+=== DPoP
+
+. With `service-client.auth.dpop=true`, `OAuth2ClientConfiguration` declares a `DPoPProofs` bean over Nimbus'
+  `DefaultDPoPProofFactory` with a P-256 key generated in memory at startup (signing algorithm `ES256`). Nothing is
+  written to disk.
+. `TokenEndpointClients` adds a `DPoP` header to every token request: a proof for `POST` and the token URI
+  (`DPoPProofs.proof(method, uri)` drops the query and fragment, as `htu` requires).
+. Spring Authorization Server validates the proof and issues `token_type=DPoP` with `cnf.jkt`, the JWK SHA-256
+  thumbprint of the proof key.
+. For each resource call, `ResourceServerInterceptors` installs `DPoPClientHttpRequestInterceptor`, which gets the token
+  from the authorized client manager and, when its type is `DPoP`, sends `Authorization: DPoP <token>` and a new proof
+  for the request's method and URL with `ath` (the hash of the token). A token the server issued as `Bearer` is sent as
+  `Bearer`.
+. The resource server's JWT chain enables `dPoP(...)`: it checks the proof's signature, that its key matches `cnf.jkt`,
+  `htm`, `htu`, `ath`, its age and its `jti` against a replay cache. A DPoP-bound token sent as `Bearer` or without a
+  proof is answered `401`.
+
+[source,java]
+----
+include::example$service-client/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/serviceclient/infrastructure/resourceserver/DPoPClientHttpRequestInterceptor.java[tag=dpop-client]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant S as service-client
+  participant A as auth-server
+  participant R as resource-server
+  S->>S: generate P-256 key, DPoPProofs
+  S->>S: proof htm=POST htu=token URI signed with the key
+  S->>A: POST /oauth2/token with DPoP proof header and client authentication
+  A->>A: verify proof, compute key thumbprint
+  A-->>S: 200 token_type=DPoP, access token with cnf.jkt
+  S->>S: proof htm=GET htu=documents URL ath=hash of token
+  S->>R: GET /api/documents with Authorization DPoP token and DPoP proof
+  R->>R: validate JWT, then proof signature, jkt, htm, htu, ath, jti
+  alt proof valid
+    R-->>S: 200 documents
+  else token sent as Bearer or proof missing or wrong key
+    R-->>S: 401
+  end
+....
+
+=== Certificate-bound tokens
+
+. The client opens a TLS connection to the authorization server's TLS port and presents its certificate (the SSL bundle
+  named by `service-client.auth.ssl-bundle`, `SERVICE_CLIENT_SSL_BUNDLE`).
+. It authenticates with `tls_client_auth` or `self_signed_tls_client_auth` (`ClientCertificateVerifier`, see
+  xref:use-cases/client-authentication.adoc[]).
+. Because the client has `certificateBoundAccessTokens`, the framework writes `cnf.x5t#S256`, the base64url SHA-256
+  thumbprint of the certificate, into the access token.
+. The client calls the resource server over TLS with the same certificate. The validator that Spring Boot's JWT decoder
+  includes compares the thumbprint with the certificate of the connection; without it, or with another certificate,
+  the answer is `401`.
+. When `authserver.x509.port` is set, `MtlsEndpointAliases` adds `mtls_endpoint_aliases` to both metadata documents
+  (through `ClientAuthProtocolChainCustomizer`): the token, revocation, introspection, pushed authorization request and
+  device authorization endpoints as `https` URLs on that port, so a client knows where to send mutual TLS requests.
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-bound-tokens]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant S as service-client
+  participant A as auth-server TLS port
+  participant R as resource-server TLS
+  S->>A: TLS handshake with client certificate
+  S->>A: POST /oauth2/token grant_type=client_credentials client_id
+  A->>A: ClientCertificateVerifier checks chain or pinned key
+  A-->>S: 200 access token with cnf x5t S256 thumbprint
+  S->>R: TLS handshake with the same certificate
+  S->>R: GET /api/documents with Authorization Bearer token
+  R->>R: compare thumbprint with connection certificate
+  alt same certificate
+    R-->>S: 200 documents
+  else no certificate or another one
+    R-->>S: 401
+  end
+....
+
+[mermaid]
+....
+flowchart TD
+  T[Token arrives at resource server] --> C{"cnf in token?"}
+  C -- No --> B["Plain bearer token: normal JWT checks"]
+  C -- "cnf.jkt" --> D{"Authorization scheme DPoP with valid proof?"}
+  D -- No --> X[401]
+  D -- Yes --> OK[Accepted, then scope checks]
+  C -- "cnf.x5t S256" --> M{"TLS client certificate matches thumbprint?"}
+  M -- No --> X
+  M -- Yes --> OK
+  B --> OK
+....
+
+== Tokens and claims
+
+* DPoP: the token response has `token_type=DPoP`; the access token has `cnf: {"jkt": "<JWK SHA-256 thumbprint>"}`.
+* Certificate-bound: the access token has `cnf: {"x5t#S256": "<certificate SHA-256 thumbprint>"}`; `token_type` stays
+  `Bearer`.
+* All other claims are those of the grant (for client credentials: `sub` = client id, `aud`, `scope`).
+
+== How it is tested
+
+* `auth-server/boot`: `ClientAuthenticationIT` (`token_whenADpopProofIsSent_issuesADpopTokenBoundToTheProofKey`,
+  `token_whenCertificateBoundAccessTokensAreEnabled_carriesTheCertificateThumbprint`).
+* `resource-server/boot`: `BoundTokenIT` accepts a certificate-bound token only with its certificate, and a DPoP-bound token
+  only with a valid proof from the bound key (refused as `Bearer`, without a proof or with a proof of another key).
+* `service-client/infrastructure/resourceserver`: `ResourceServerAdapterIT`
+  (`listDocuments_whenDPoPIsOn_sendsProofsAndTheDPoPScheme`); unit tests `DPoPProofsTest` and
+  `DPoPClientHttpRequestInterceptorTest`.
+* `e2e-tests`: `ClientCredentialsEndToEndIT` (`clientCredentials_whenTheToolUsesDpop_theTokenIsBoundToItsKey` and
+  `clientCredentials_whenTheClientPresentsACertificateOfATrustedAuthority_theTokenIsBoundToTheCertificate`).
+* `auth-server/api/web`: unit test `MtlsEndpointAliasesTest`.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc9449#section-4[RFC 9449 §4, DPoP proof JWTs],
+  https://www.rfc-editor.org/rfc/rfc9449#section-5[§5, DPoP access token request],
+  https://www.rfc-editor.org/rfc/rfc9449#section-6[§6, public key confirmation] and
+  https://www.rfc-editor.org/rfc/rfc9449#section-7[§7, protected resource access]
+* https://www.rfc-editor.org/rfc/rfc8705#section-3[RFC 8705 §3, Mutual-TLS client certificate-bound access tokens] and
+  https://www.rfc-editor.org/rfc/rfc8705#section-5[§5, metadata for mutual-TLS endpoint aliases]
+* https://www.rfc-editor.org/rfc/rfc7800[RFC 7800, Proof-of-Possession key semantics for JWTs (`cnf`)]
+* https://www.rfc-editor.org/rfc/rfc9700#section-4.10[RFC 9700 §4.10, Misuse of stolen access tokens]
+
+== Further reading
+
+* {oauth-ref}/sender-constrained-tokens-dpop-and-mtls.html[Sender-Constrained Tokens: DPoP & mTLS]
+* {oauth-ref}/jwt-and-jose.html[JWT & JOSE]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:client-credentials.adoc[] (feature page)
+* xref:resource-server.adoc[]
+* xref:use-cases/client-authentication.adoc[]
+* xref:use-cases/resource-server-token-validation.adoc[]

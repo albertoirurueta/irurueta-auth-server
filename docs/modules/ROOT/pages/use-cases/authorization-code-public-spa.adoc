@@ -1,0 +1,150 @@
+= Authorization code with PKCE for a public client
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+`spa-public` is the registration a browser-only application (a single page application that talks to the authorization
+server itself, with no backend) would use. It is a public client: it has no secret, authenticates with `none`, and
+PKCE is the only thing that binds the authorization code to the application that asked for it. The repository ships
+the *registration* only: there is no single page application for `spa-public` in this repository (the SPA it ships
+is served by the `bff` and uses the confidential `bff` client, see xref:use-cases/authorization-code-bff.adoc[]). The
+`dev` profile seeds `spa-public` with the redirect URI `http://localhost:3000/callback`, where nothing of this
+repository runs. The flow below is what Spring Authorization Server does for such a client, with the settings this
+repository gives it.
+
+== At a glance
+
+[cols="1,3",options="header"]
+|===
+|Item
+|Value
+
+|Actors
+|User, browser running a third-party SPA (not part of this repository), `auth-server`, `resource-server`.
+
+|Client
+|`spa-public` (`DefaultClientDefinitions.spaPublic`): public, `none`, grants `authorization_code` and `refresh_token`,
+PKCE required, no consent, scopes `openid`, `profile`, `documents.read`, `documents.delete`, audiences
+`resource-server` and `auth-server`, access token 10 minutes, self-contained (JWT).
+
+|Preconditions
+|`ClientSeeder` seeds the client only when `authserver.clients.spa-public.redirect-uris` (`AUTHSERVER_SPA_REDIRECT_URIS`)
+is set; `authserver.clients.spa-public.post-logout-redirect-uris` (`AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS`) is
+optional. The `dev` profile (`application-dev.yml`) sets `http://localhost:3000/callback` and `http://localhost:3000/`.
+
+|Endpoints
+|`GET /oauth2/authorize`, `/login`, `/login/second-factor` when owed, `POST /oauth2/token`, `GET /oauth2/jwks`,
+`GET /userinfo`, `GET /.well-known/openid-configuration`; then `GET /api/documents` on the resource server.
+|===
+
+The domain model enforces PKCE for public clients: `ClientRegistration` refuses a non-confidential client with
+`requireProofKey` false (`a public client must require PKCE`), except a client whose only grant type is `implicit`,
+which only the legacy demo seeder creates (see xref:legacy-implicit.adoc[]).
+
+[source,java]
+----
+include::example$auth-server/application/src/main/java/com/irurueta/authserver/authorization/application/clients/DefaultClientDefinitions.java[tag=clients-seed]
+----
+
+== Steps
+
+. The SPA generates a random `code_verifier`, derives `code_challenge` with S256, and keeps the verifier, a `state`
+and a `nonce` in the browser.
+. It navigates to `GET /oauth2/authorize?response_type=code&client_id=spa-public&redirect_uri=...&scope=openid
+documents.read&state=...&nonce=...&code_challenge=...&code_challenge_method=S256`. The redirect URI must match a
+registered one exactly. A request without `code_challenge` is refused, because the client has `requireProofKey` true.
+. The protocol chain sends the browser to `/login`; the user signs in with any offered method and, if the MFA policy
+asks for it, completes `/login/second-factor` (see xref:use-cases/authentication-methods.adoc[]).
+. `spa-public` has `requireConsent` false, so there is no consent page: the server redirects to the redirect URI with
+`code` and `state`.
+. The SPA checks `state` and posts `grant_type=authorization_code`, `code`, `redirect_uri`, `client_id=spa-public` and
+`code_verifier` to `/oauth2/token`. Spring Authorization Server authenticates the public client through the PKCE
+verifier and answers with an access token and an ID token.
+. The SPA validates the ID token (signature from `/oauth2/jwks`, `iss`, `aud`, `nonce`) and calls the resource server
+with the access token as a bearer token.
+. When the access token expires the SPA runs the flow again: the server still has the user's session, so the user
+normally does not see the login page again.
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser SPA
+  participant A as auth-server
+  participant R as resource-server
+  Note over B: code_verifier, state and nonce generated in the browser
+  B->>A: GET /oauth2/authorize client_id=spa-public with code_challenge S256
+  A-->>B: 302 to /login
+  B->>A: POST /login
+  A-->>B: 302 back to /oauth2/authorize
+  B->>A: GET /oauth2/authorize
+  Note over A: requireConsent is false, no consent page
+  A-->>B: 302 to redirect_uri with code and state
+  B->>A: POST /oauth2/token with code, client_id and code_verifier
+  A-->>B: access_token and id_token, no refresh_token
+  B->>R: GET /api/documents with Bearer access token
+  R-->>B: 200 documents
+....
+
+[mermaid]
+....
+flowchart TD
+  Start(["GET /oauth2/authorize client_id=spa-public"]) --> Pkce{"code_challenge present?"}
+  Pkce -- "no" --> Error["Error, no code issued"]
+  Pkce -- "yes" --> Uri{"redirect_uri registered?"}
+  Uri -- "no" --> Error
+  Uri -- "yes" --> Signed{"Signed in and MFA satisfied?"}
+  Signed -- "no" --> Login["/login and /login/second-factor"]
+  Login --> Code
+  Signed -- "yes" --> Code["302 with code, no consent page"]
+  Code --> Token{"code_verifier matches the challenge?"}
+  Token -- "yes" --> Tokens["access_token and id_token"]
+  Token -- "no" --> Grant["400 invalid_grant"]
+....
+
+== Tokens and claims
+
+* *Access token*: the same JWT as for `bff` (`sub`, `aud` `resource-server` and `auth-server`, `scope`, `roles`,
+`tenant`, `amr`, `acr`, `auth_time`), 10 minutes.
+* *ID token*: `sub`, `aud` `spa-public`, `azp`, `nonce`, `amr`, `acr` (see xref:use-cases/openid-connect.adoc[]).
+* *No refresh token*. The registration lists the `refresh_token` grant, but Spring Authorization Server's
+`OAuth2RefreshTokenGenerator` does not issue a refresh token to a public client in the authorization code grant, and
+this repository does not replace that generator. Refresh token rotation (xref:use-cases/refresh-token-rotation.adoc[])
+therefore applies to `bff`, not to `spa-public`.
+
+== Limits of this repository
+
+* No application uses `spa-public`, and no test runs the full code flow with it; the seeding is tested, and the public
+client path of the authorization endpoint is tested with clients registered by the tests.
+* No CORS configuration exists in `auth-server`, so a script served from another origin (such as
+`http://localhost:3000`) cannot read the answers of `/oauth2/token` or `/userinfo` from the browser. A real SPA on
+another origin would need CORS on those endpoints.
+* Tokens held by browser JavaScript are exposed to any script injected into the page. The Browser-Based Apps BCP
+recommends the BFF pattern instead, which is why the shipped SPA uses the `bff`.
+
+== How it is tested
+
+* `auth-server/boot` `ConsentPageIT`: a public client (`none`, PKCE required) goes through the authorization endpoint
+with an S256 challenge up to the code (consent is on for that test client).
+* `auth-server/boot` `DevDataInitializerIT`: the `dev` profile seeds `spa-public`.
+* `auth-server/api/web` `ClientSeederTest` and `auth-server/application` `SeedRegisteredClientsUseCaseTest`,
+`DefaultClientDefinitionsTest`: the client is seeded only when configured, with the expected settings.
+* `e2e-tests` `LegacyImplicitEndToEndIT`: an implicit (`response_type=token`) request made as `spa-public` is refused.
+* `auth-server/boot` `ImplicitRejectedIT`: the default server answers `response_type=token` with
+`unsupported_response_type`.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 §4.1: Authorization Code Grant]
+* https://www.rfc-editor.org/rfc/rfc6749#section-2.1[RFC 6749 §2.1: Client Types]
+* https://www.rfc-editor.org/rfc/rfc7636[RFC 7636: Proof Key for Code Exchange]
+* https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/[The OAuth 2.1 Authorization Framework (draft)]
+* https://datatracker.ietf.org/doc/draft-ietf-oauth-browser-based-apps/[OAuth 2.0 for Browser-Based Applications (draft)]
+
+== Further reading
+
+* {oauth-ref}/authorization-code-and-pkce.html[Authorization Code & PKCE]
+* {oauth-ref}/browser-based-apps.html[Browser-Based Apps]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:clients.adoc[]
+* xref:login-and-bff.adoc[]
+* xref:use-cases/authorization-code-bff.adoc[]

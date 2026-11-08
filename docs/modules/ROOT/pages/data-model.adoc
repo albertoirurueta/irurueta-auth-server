@@ -71,6 +71,345 @@ or consent requests) can be cleaned up once they are old enough.
 Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`; one-time tokens and SMS (issue #6) use `V600`-`V699`; social login, X.509 and the device grant (issue #7) use `V700`-`V799`; client authentication, token exchange and PAR (issue #8) use `V800`-`V899`. A
 migration is never written outside the range of the issue that adds it.
 
+== Entity diagrams
+
+The diagrams below show every table of the `auth-server` database, grouped by area. They follow the migrations, which
+are the source of truth. Each entity lists its columns with their PostgreSQL type and marks primary keys (`PK`),
+foreign keys (`FK`) and unique columns (`UK`).
+
+Two kinds of relationship are drawn:
+
+* a *solid line* is a real foreign key declared in a migration (always to `users.id`, except
+  `consumed_refresh_tokens` to `oauth2_authorization.id`);
+* a *dashed line* is a *logical link with no foreign key*. The tables of Spring Authorization Server and Spring
+  Security (`oauth2_*`, `user_entities`, `user_credentials`, `one_time_tokens`) are joined by value, not by constraint:
+  their schema is the framework's, and a principal name or client id is copied into them. Deleting a user or a client
+  does not cascade to those rows.
+
+Columns that hold a secret store only a hash (`hashed_token`, `hashed_code`, `code_hash`, `pending_code_hash`,
+`token_hash`) or an encrypted value (`private_jwk_encrypted`, `encrypted_secret`); no table holds a code, token or
+private key in clear.
+
+=== Users and accounts
+
+`users` is the account. A password is optional (a just-in-time social account holds a generated one, flagged by
+`generated`); `account_tokens` holds the single-use e-mail verification and password reset tokens. See
+xref:passwords-and-accounts.adoc[].
+
+[mermaid]
+....
+erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+    boolean enabled
+    varchar email UK "unique on lower(email)"
+    boolean email_verified
+    varchar tenant "default 'default'"
+    boolean mfa_required "forced by an administrator"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  user_authorities {
+    uuid user_id PK, FK
+    varchar authority PK
+  }
+  user_passwords {
+    uuid user_id PK, FK
+    varchar encoded_password "Argon2"
+    boolean generated "unknown password of a JIT account"
+    timestamptz updated_at
+  }
+  account_tokens {
+    uuid id PK
+    uuid user_id FK
+    varchar purpose
+    varchar hashed_token UK
+    timestamptz expires_at
+    timestamptz used_at
+    timestamptz created_at
+  }
+  users ||--o{ user_authorities : "has"
+  users ||--o| user_passwords : "has"
+  users ||--o{ account_tokens : "receives"
+....
+
+=== Clients, authorizations and consents
+
+The three tables of Spring Authorization Server. `oauth2_authorization` holds one row per authorization (one grant
+for one client and one principal), with a group of `*_value`, `*_issued_at`, `*_expires_at` and `*_metadata` columns
+for each token it carries: authorization code, access token, OIDC ID token, refresh token, user code and device code
+(only the access token group is shown below). `created_at` (`V240`) lets abandoned authorizations be cleaned up.
+`consumed_refresh_tokens` keeps the hashes of rotated-out refresh tokens, and `client_assertion_jtis` the used
+`private_key_jwt` assertion ids. See xref:clients.adoc[], xref:tokens-and-keys.adoc[] and
+xref:client-credentials.adoc[].
+
+[mermaid]
+....
+erDiagram
+  oauth2_registered_client {
+    varchar id PK
+    varchar client_id "unique by the application"
+    timestamp client_id_issued_at
+    varchar client_secret "encoded, null for public clients"
+    timestamp client_secret_expires_at
+    varchar client_name
+    varchar client_authentication_methods
+    varchar authorization_grant_types
+    varchar redirect_uris
+    varchar post_logout_redirect_uris
+    varchar scopes
+    varchar client_settings "JSON, includes mfa.required, jwks, audiences"
+    varchar token_settings "JSON"
+  }
+  oauth2_authorization {
+    varchar id PK
+    varchar registered_client_id "logical link"
+    varchar principal_name "logical link"
+    varchar authorization_grant_type
+    varchar authorized_scopes
+    text attributes "serialized principal and request"
+    varchar state
+    text access_token_value
+    timestamp access_token_issued_at
+    timestamp access_token_expires_at
+    text access_token_metadata
+    varchar access_token_type
+    varchar access_token_scopes
+    timestamptz created_at
+  }
+  oauth2_authorization_consent {
+    varchar registered_client_id PK "logical link"
+    varchar principal_name PK "logical link"
+    varchar authorities "granted scopes"
+  }
+  consumed_refresh_tokens {
+    varchar token_hash PK "SHA-256"
+    varchar authorization_id FK
+    timestamptz consumed_at
+  }
+  client_assertion_jtis {
+    varchar client_id PK "logical link"
+    varchar jti PK
+    timestamptz expires_at
+  }
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  oauth2_registered_client ||..o{ oauth2_authorization : "registered_client_id = id"
+  oauth2_registered_client ||..o{ oauth2_authorization_consent : "registered_client_id = id"
+  oauth2_registered_client ||..o{ client_assertion_jtis : "client_id = client_id"
+  users ||..o{ oauth2_authorization : "principal_name = username"
+  users ||..o{ oauth2_authorization_consent : "principal_name = username"
+  oauth2_authorization ||--o{ consumed_refresh_tokens : "rotated out of"
+....
+
+`principal_name` is the username for a user grant, and the client id for a `client_credentials` grant (there is no
+user then), which is one more reason it has no foreign key.
+
+=== Signing keys
+
+`signing_keys` stands alone. A partial unique index on `status` allows at most one `ACTIVE` key; the `NEXT` key is
+published in the JWK set before it signs, and `RETIRED` keys stay published until no token they signed can still be
+valid. See xref:tokens-and-keys.adoc[].
+
+[mermaid]
+....
+erDiagram
+  signing_keys {
+    varchar kid PK
+    varchar alg
+    text public_jwk
+    text private_jwk_encrypted "AES-GCM"
+    varchar status "NEXT, ACTIVE or RETIRED, one ACTIVE at most"
+    timestamptz created_at
+    timestamptz activated_at
+    timestamptz retired_at
+  }
+....
+
+=== Multi-factor authentication
+
+The lockout counter (`second_factor_attempts`, one row per user, read `FOR UPDATE` so attempts of one user are
+serialized), the audit trail (`security_events`, which keeps the username after the user is deleted:
+`ON DELETE SET NULL`), the authenticator app (`totp_credentials`), the recovery codes and the trusted browsers. See
+xref:mfa-and-step-up.adoc[].
+
+[mermaid]
+....
+erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+    boolean mfa_required
+  }
+  security_events {
+    uuid id PK
+    varchar type
+    uuid user_id FK "set null on delete"
+    varchar username
+    varchar detail
+    timestamptz occurred_at
+  }
+  second_factor_attempts {
+    uuid user_id PK, FK
+    integer failed_count
+    timestamptz locked_until
+  }
+  totp_credentials {
+    uuid user_id PK, FK
+    bytea encrypted_secret "AES-GCM"
+    boolean confirmed
+    bigint last_used_step "replay protection"
+    timestamptz created_at
+  }
+  recovery_codes {
+    uuid id PK
+    uuid user_id FK
+    varchar hashed_code
+    timestamptz used_at
+    timestamptz created_at
+  }
+  trusted_devices {
+    uuid id PK
+    uuid user_id FK
+    varchar hashed_token UK "SHA-256 of the cookie token"
+    varchar user_agent
+    timestamptz expires_at
+    timestamptz created_at
+  }
+  users |o--o{ security_events : "subject of"
+  users ||--o| second_factor_attempts : "has"
+  users ||--o| totp_credentials : "enrols"
+  users ||--o{ recovery_codes : "holds"
+  users ||--o{ trusted_devices : "trusts"
+....
+
+=== Passkeys
+
+Spring Security's WebAuthn tables. `user_entities` is the WebAuthn user (its `id` is the user handle) and is linked to
+the account by name only; `user_credentials` holds one row per registered passkey. See xref:passkeys.adoc[].
+
+[mermaid]
+....
+erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  user_entities {
+    varchar id PK "WebAuthn user handle"
+    varchar name UK "logical link"
+    varchar display_name
+  }
+  user_credentials {
+    varchar credential_id PK "base64url"
+    varchar user_entity_user_id "logical link"
+    bytea public_key
+    bigint signature_count
+    boolean uv_initialized
+    boolean backup_eligible
+    boolean backup_state
+    varchar authenticator_transports
+    varchar public_key_credential_type
+    bytea attestation_object
+    bytea attestation_client_data_json
+    varchar label
+    timestamptz created
+    timestamptz last_used
+  }
+  users ||..o| user_entities : "name = username"
+  user_entities ||..o{ user_credentials : "user_entity_user_id = id"
+....
+
+=== One-time tokens and SMS
+
+`one_time_tokens` is Spring Security's table for magic-link tokens; `ott_codes` holds the numeric e-mail and SMS codes
+(bound to the browser session through `binding_id`, spent after too many `attempts`). Both name the user by username;
+a second-factor link carries a marker inside `username`, so it is not a plain copy. `user_phones` holds the verified
+number and, at the same time, a pending number being verified. `sms_cost_ledger` records what each sent SMS cost, for
+the spend caps. See xref:one-time-tokens.adoc[].
+
+[mermaid]
+....
+erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  one_time_tokens {
+    varchar token_value PK "UUID"
+    varchar username "logical link"
+    timestamptz expires_at
+  }
+  ott_codes {
+    uuid id PK
+    varchar username "logical link"
+    varchar channel "EMAIL or SMS"
+    varchar purpose "LOGIN or SECOND_FACTOR"
+    varchar code_hash
+    varchar binding_id "browser session"
+    integer attempts
+    timestamptz expires_at
+    timestamptz created_at
+  }
+  user_phones {
+    uuid user_id PK, FK
+    varchar phone_e164 UK "verified number"
+    timestamptz verified_at
+    varchar pending_phone_e164
+    varchar pending_code_hash
+    integer pending_attempts
+    timestamptz pending_expires_at
+  }
+  sms_cost_ledger {
+    bigint id PK "identity"
+    timestamptz sent_at
+    char country "ISO 3166 alpha-2"
+    bigint cost_micros
+  }
+  users ||..o{ one_time_tokens : "username"
+  users ||..o{ ott_codes : "username"
+  users ||--o| user_phones : "verifies"
+....
+
+=== Social login and X.509
+
+An account can have several external identities (one per provider and subject, unique across accounts) and several
+bound client certificates (one fingerprint, unique across accounts). Together with a non-generated password and a
+passkey they are the account's sign-in methods, of which the last one cannot be removed. See xref:social-login.adoc[]
+and xref:x509.adoc[].
+
+[mermaid]
+....
+erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  federated_identities {
+    uuid id PK
+    uuid user_id FK
+    varchar provider UK "google, microsoft, apple or github"
+    varchar subject UK "unique with provider"
+    varchar email
+    timestamptz linked_at
+    timestamptz last_login_at
+  }
+  x509_certificates {
+    uuid id PK
+    uuid user_id FK
+    char fingerprint_sha256 UK "lowercase hex"
+    varchar subject_dn
+    timestamptz created_at
+  }
+  users ||--o{ federated_identities : "links"
+  users ||--o{ x509_certificates : "binds"
+....
+
+== Schema listings
+
 [source,sql]
 ----
 include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V100__spring_authorization_server_schema.sql[tag=sas-schema]
@@ -97,3 +436,26 @@ the one of `auth-server`. Its single Flyway migration, `V300__spring_session.sql
 session) and `spring_session_attributes` (the serialized session attributes, among them the authorized OAuth2 client with
 the user's tokens). Spring Session never creates them (`initialize-schema: never`). The schema and its use are described
 in xref:login-and-bff.adoc[].
+
+[mermaid]
+....
+erDiagram
+  SPRING_SESSION {
+    char PRIMARY_ID PK
+    char SESSION_ID UK
+    bigint CREATION_TIME
+    bigint LAST_ACCESS_TIME
+    int MAX_INACTIVE_INTERVAL
+    bigint EXPIRY_TIME
+    varchar PRINCIPAL_NAME
+  }
+  SPRING_SESSION_ATTRIBUTES {
+    char SESSION_PRIMARY_ID PK, FK
+    varchar ATTRIBUTE_NAME PK
+    bytea ATTRIBUTE_BYTES "serialized attribute"
+  }
+  SPRING_SESSION ||--o{ SPRING_SESSION_ATTRIBUTES : "holds"
+....
+
+The `resource-server` and the `service-client` have no database: the resource server keeps its documents in memory,
+and the service client caches its token in memory.
