@@ -1,0 +1,188 @@
+= Client authentication
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+A confidential client proves its identity at the token endpoint (and at the introspection, revocation and PAR
+endpoints) with one of the methods it is registered for. This server supports a shared secret (`client_secret_basic`,
+also `client_secret_post`), a signed JWT assertion (`private_key_jwt`) and mutual TLS with a certificate issued by a
+trusted authority (`tls_client_auth`) or a self-signed one (`self_signed_tls_client_auth`). Spring Authorization Server
+provides the methods; this repository adds a replay store and lifetime cap for assertions, registered JWK sets, and the
+PKIX trust decision for mutual TLS.
+
+.At a glance
+* *Actors*: a confidential client (here `service-client`), `auth-server`.
+* *Clients involved*: any client registered through `POST /api/admin/clients` with `authMethods` set. Only a client with a
+  `client_secret_*` method gets a generated secret.
+* *Preconditions*:
+** `private_key_jwt`: `jwks` (public keys only, else `400 invalid-jwks`) or `jwkSetUrl`, and
+   `tokenEndpointAuthSigningAlgorithm`; `authserver.client-assertion.max-lifetime` (default `PT5M`).
+** `tls_client_auth`: `tlsClientAuthSubjectDn`; `authserver.mtls.trusted-authorities` (empty by default, which refuses
+   the method); the TLS connector of the server (`authserver.x509.enabled=true` and `authserver.x509.port`).
+** `self_signed_tls_client_auth`: `jwks` holding the certificate's public key, or `jwkSetUrl`; the same TLS connector.
+* *Endpoints*: `POST /oauth2/token` (and the other client-authenticated protocol endpoints:
+  `/oauth2/introspect`, `/oauth2/revoke`, `/oauth2/par`), on the TLS port for the mutual TLS methods.
+
+== Steps
+
+. The client sends a token request. Spring Authorization Server's client authentication filter tries its converters in
+  turn: HTTP Basic header (`client_secret_basic`), `client_secret` form parameter (`client_secret_post`),
+  `client_assertion` plus `client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`
+  (`private_key_jwt` and `client_secret_jwt`), or a TLS client certificate on the connection (mutual TLS methods).
+. The client is loaded by `client_id` and the method used must be one it is registered for, else `401 invalid_client`.
+. `ClientAuthProtocolChainCustomizer` (a `ProtocolChainCustomizer`, order 3, declared by `ClientAuthConfiguration`)
+  replaces two pieces of the framework providers, with no edit of `SecurityConfig`:
+.. on `JwtClientAssertionAuthenticationProvider` it sets `RegisteredJwksClientAssertionDecoderFactory` as the JWT decoder
+   factory;
+.. on `X509ClientCertificateAuthenticationProvider` it sets `ClientCertificateVerifier` as the certificate verifier.
+. *client_secret_basic*: the secret is compared with the stored hash. `service-client` sends it from
+  `SERVICE_CLIENT_SECRET`.
+. *private_key_jwt*:
+.. `RegisteredJwksClientAssertionDecoderFactory` builds (and caches with Caffeine) a decoder per client. With a registered
+   JWK set (client setting `settings.client.jwks`) it verifies the signature with those keys and the registered
+   algorithm; otherwise it falls back to the framework's `JwtClientAssertionDecoderFactory`, which reads `jwkSetUrl`.
+.. The framework's default validators check `iss` and `sub` (the client id), `aud` (the server) and the timestamps.
+.. `ReplayRejectingJwtValidator` then requires `jti`, `iat` and `exp`, refuses an `iat` in the future, refuses a lifetime
+   (`exp - iat`) above `authserver.client-assertion.max-lifetime`, and registers `(client_id, jti)` through
+   `RegisterClientAssertionUseCase` and the port `ClientAssertionReplayRegistry` (`JdbcClientAssertionReplayRegistry`,
+   table `client_assertion_jtis`, `INSERT ... ON CONFLICT DO NOTHING`). A second use of the same `jti` is
+   `401 invalid_client`.
+.. `ClientAssertionCleanupJob` deletes expired rows on `authserver.client-assertion.cleanup.cron` (default
+   `0 30 * * * *`).
+. *tls_client_auth*: `ClientCertificateVerifier` validates the presented chain by PKIX against the anchors read from
+  `authserver.mtls.trusted-authorities` (`MtlsTrustAnchors`, revocation checking off), refuses a leaf that is itself an
+  anchor, then compares the leaf's subject DN with the registered `tlsClientAuthSubjectDn`. The TLS port accepts any
+  chain (`AnyClientCertificateTrustManager`), so this check is the trust decision.
+. *self_signed_tls_client_auth*: the leaf must be self-issued and its public key must equal a key of the registered JWK
+  set; otherwise the framework's provider is asked, which pins it through `jwkSetUrl` (`x5c`).
+. Every failure answers `401` with `error=invalid_client`. On success the token request continues with its grant.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/clientauth/ClientAuthProtocolChainCustomizer.java[tag=clientauth-chain]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/clientauth/ReplayRejectingJwtValidator.java[tag=clientauth-replay-validator]
+----
+
+[source,sql]
+----
+include::example$auth-server/infrastructure/persistence/src/main/resources/db/migration/V800__client_assertion_jtis.sql[tag=client-assertion-schema]
+----
+
+=== Choosing and validating the method
+
+[mermaid]
+....
+flowchart TD
+  R[Token request] --> Q{"What does it carry?"}
+  Q -- "Basic header" --> SB["client_secret_basic: compare secret hash"]
+  Q -- "client_assertion" --> PK["private_key_jwt"]
+  Q -- "TLS client certificate" --> CM{"Registered method?"}
+  PK --> K{"Registered jwks?"}
+  K -- Yes --> K1[Verify with registered keys and algorithm]
+  K -- No --> K2["Verify with jwkSetUrl (framework factory)"]
+  K1 --> V["Default checks: iss, sub, aud, exp"]
+  K2 --> V
+  V --> RP{"jti and iat present, lifetime within max-lifetime?"}
+  RP -- No --> X["401 invalid_client"]
+  RP -- Yes --> J{"(client_id, jti) new?"}
+  J -- No --> X
+  J -- Yes --> OK[Client authenticated]
+  CM -- tls_client_auth --> T{"Trusted authorities configured?"}
+  T -- No --> X
+  T -- Yes --> P{"PKIX path valid and subject DN matches?"}
+  P -- No --> X
+  P -- Yes --> OK
+  CM -- self_signed_tls_client_auth --> S{"Self-issued and key in registered jwks?"}
+  S -- Yes --> OK
+  S -- No --> F{"Framework pins it through jwkSetUrl?"}
+  F -- Yes --> OK
+  F -- No --> X
+  SB -- match --> OK
+  SB -- mismatch --> X
+....
+
+=== A private_key_jwt token request
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant S as service-client
+  participant A as auth-server
+  participant D as RegisteredJwksClientAssertionDecoderFactory
+  participant V as ReplayRejectingJwtValidator
+  participant DB as client_assertion_jtis
+  S->>S: sign assertion iss=sub=client_id, aud, jti, iat, exp with private key
+  S->>A: POST /oauth2/token grant_type=client_credentials, client_assertion_type, client_assertion
+  A->>A: load client, check private_key_jwt is registered
+  A->>D: decoder for client
+  D-->>A: decoder over registered jwks or jwkSetUrl
+  A->>A: verify signature and default claims
+  A->>V: validate assertion
+  V->>V: require jti, iat, exp and exp minus iat within max-lifetime
+  V->>DB: INSERT client_id, jti, expires ON CONFLICT DO NOTHING
+  alt row inserted
+    DB-->>V: new
+    V-->>A: valid
+    A-->>S: 200 access token
+  else jti already used
+    DB-->>V: conflict
+    V-->>A: invalid_client
+    A-->>S: 401 invalid_client
+  end
+....
+
+On the client side, `service-client` with `SERVICE_CLIENT_AUTH_METHOD=private_key_jwt` reads an unencrypted PKCS#8 PEM key
+from `SERVICE_CLIENT_PRIVATE_KEY` or `service-client.auth.key.private-key-path`; `PrivateKeyJwkResolver` hands it to
+Spring Security's `NimbusJwtClientAuthenticationParametersConverter`, which `TokenEndpointClients` adds to the token
+request. For the mutual TLS methods `SERVICE_CLIENT_SSL_BUNDLE` names a `spring.ssl.bundle.*` entry with the client
+certificate (`SslRequestFactories`).
+
+[source,java]
+----
+include::example$service-client/infrastructure/resourceserver/src/main/java/com/irurueta/authserver/serviceclient/infrastructure/resourceserver/PrivateKeyJwkResolver.java[tag=private-key-jwt-client]
+----
+
+== Tokens and claims
+
+Client authentication does not change the token contents by itself: the client gets the token of its grant (for
+example the one in xref:use-cases/client-credentials.adoc[]). Two exceptions:
+
+* a `tls_client_auth` or `self_signed_tls_client_auth` client registered with `certificateBoundAccessTokens: true` gets
+  `cnf.x5t#S256` (the SHA-256 thumbprint of its certificate) in its access token;
+* the assertion itself is never stored, only its `(client_id, jti)` and expiry.
+
+== How it is tested
+
+* `auth-server/boot`: `ClientAuthenticationIT` covers a correct and a wrong secret, `private_key_jwt` with registered JWKs
+  and with a `jwkSetUrl`, a replayed assertion and one that lives too long (both `invalid_client`), `tls_client_auth`
+  with a trusted and an untrusted authority, `self_signed_tls_client_auth` with a registered and an unregistered key, and
+  the certificate thumbprint in a bound token.
+* `auth-server/infrastructure/persistence`: `JdbcClientAssertionReplayRegistryIT`.
+* `e2e-tests`: `ClientCredentialsEndToEndIT` runs `service-client` with each of the four methods.
+* `service-client/infrastructure/resourceserver`: `ResourceServerAdapterIT`
+  (`listDocuments_whenMethodIsPrivateKeyJwt_sendsAnAssertionSignedWithTheConfiguredKey`).
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc6749#section-2.3[RFC 6749 §2.3, Client Authentication]
+* https://www.rfc-editor.org/rfc/rfc7523#section-2.2[RFC 7523 §2.2, JWT for client authentication] and
+  https://www.rfc-editor.org/rfc/rfc7523#section-3[§3, JWT format and processing requirements]
+* https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication[OpenID Connect Core §9, Client Authentication]
+* https://www.rfc-editor.org/rfc/rfc8705#section-2.1[RFC 8705 §2.1, PKI mutual-TLS method] and
+  https://www.rfc-editor.org/rfc/rfc8705#section-2.2[§2.2, self-signed certificate mutual-TLS method]
+* https://www.rfc-editor.org/rfc/rfc9700#section-2.5[RFC 9700 §2.5, Client Authentication]
+
+== Further reading
+
+* {oauth-ref}/client-credentials-and-client-authentication.html[Client Credentials & Client Authentication]
+* {oauth-ref}/sender-constrained-tokens-dpop-and-mtls.html[Sender-Constrained Tokens: DPoP & mTLS]
+* {oauth-ref}/jwt-and-jose.html[JWT & JOSE]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:client-credentials.adoc[] (feature page)
+* xref:x509.adoc[] (the TLS port and its trust manager)
+* xref:use-cases/client-credentials.adoc[]
+* xref:use-cases/sender-constrained-tokens.adoc[]

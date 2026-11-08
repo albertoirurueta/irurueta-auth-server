@@ -1,0 +1,300 @@
+= Authentication methods inside the authorization code flow
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The authentication methods are not OAuth grants. They are how the user proves who they are *inside* the authorization
+code flow: between the client's `GET /oauth2/authorize` and the moment the server issues the code. Every method ends
+the same way: it adds an authentication factor (a `FACTOR_*` authority stamped with the time it was presented) to the
+session, the multi-factor policy decides whether that is enough, and the saved authorization request resumes. The
+client never sees which method was used, except through the `amr`, `acr` and `auth_time` claims of the tokens.
+
+.At a glance
+* *Actors*: the user and their browser, the client application (for example the `bff`, see
+  xref:use-cases/authorization-code-bff.adoc[]), the authorization server (port 9000) and, for one-time tokens, the
+  mail server or SMS gateway.
+* *Preconditions*:
+** Password: always on (`formLogin` in `SecurityConfig`).
+** Passkeys: always on; the relying party is set with `authserver.passkeys.rp-id`, `rp-name` and `allowed-origins`.
+   A passkey must first be registered from `GET /account/passkeys` by a signed-in user.
+** One-time tokens: always on for e-mail; SMS needs one of the profiles `dev`, `test` (logging sender), `twilio` or
+   `sns`, and a verified phone on the account.
+** X.509: `authserver.x509.enabled=true` plus a transport (`authserver.x509.forwarded-header` with
+   `trusted-proxies`, or `authserver.x509.port`), and a certificate bound through `POST /api/account/certificates`.
+** Second factor: required when the client has `mfaRequired`, an administrator set `users.mfa_required`, or the user
+   has a confirmed second factor.
+* *Endpoints*: `GET /login`, `POST /login` (password), `POST /webauthn/authenticate/options` and
+  `POST /login/webauthn` (passkeys), `POST /ott/generate`, `GET /login/ott`, `POST /login/ott`,
+  `GET /login/ott/confirm` (one-time tokens), `POST /login/x509` (certificate), `GET /login/second-factor`,
+  `POST /login/second-factor/totp`, `POST /login/second-factor/ott`, `GET /login/second-factor/recovery-codes`.
+
+== Steps
+
+. The client sends the browser to `GET /oauth2/authorize` (with PKCE). Nobody is signed in, so the protocol chain saves
+  the request and redirects to `GET /login` (`LoginUrlAuthenticationEntryPoint` in `SecurityConfig`).
+. `LoginController` renders `templates/login.html`: the password form plus every `LoginMethodFragment` bean
+  (`PasskeyLoginMethodFragment`, `OttLoginMethodFragment`, `SocialLoginMethodFragment` when a provider is configured,
+  `X509LoginMethodFragment` when X.509 is enabled).
+. The user signs in with one primary method (sections below). The method's filter adds its factor to the
+  authentication, changes the session id and redirects to the saved request.
+. `GET /oauth2/authorize` is evaluated again. `MfaProtocolChainCustomizer` (inside the authorization endpoint
+  validator) and `MfaLoginChainCustomizer` (on `/oauth2/consent`) ask `MfaAuthorizationManager`, which applies
+  `MfaPolicy`. When a second factor is required and missing, `SecondFactorRequiredEntryPoint` sends the browser to
+  `GET /login/second-factor` (see <<second-factors>>).
+. `StepUpAuthorizationRequestConverter` checks `acr_values` and `max_age` when the client sent them (see
+  xref:use-cases/step-up.adoc[]).
+. The consent page is shown if the client needs it, then the code is issued and the flow continues as described in
+  xref:use-cases/authorization-code-bff.adoc[].
+
+[[password]]
+== Password
+
+The password form posts to `POST /login`, a Spring Security filter endpoint. `UserAccountUserDetailsService` loads the
+account and the `DelegatingPasswordEncoder` built by `PasswordConfiguration` verifies the hash: Argon2 by default, with
+bcrypt and PBKDF2 hashes still accepted and upgraded on the next successful sign-in (`UpgradePasswordHashUseCase`).
+Spring Security adds `FACTOR_PASSWORD`, which `PasswordFactor` registers as a `PRIMARY` factor with `amr` `pwd`. See
+xref:passwords-and-accounts.adoc[].
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/password/PasswordConfiguration.java[tag=password-encoder]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant AS as Authorization server
+  participant DB as Database
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login (request saved)
+  B->>AS: GET /login
+  AS-->>B: login page with password form and fragments
+  B->>AS: POST /login with username, password and CSRF token
+  AS->>DB: load account (UserAccountUserDetailsService)
+  AS->>AS: verify Argon2 hash, add FACTOR_PASSWORD
+  AS-->>B: 302 to saved /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS->>AS: MfaPolicy check
+  AS-->>B: 302 to client redirect_uri with code
+....
+
+[[passkeys]]
+== Passkeys (WebAuthn)
+
+The passkey button and conditional-mediation autofill come from `PasskeyLoginMethodFragment` and `passkeys.js`. The
+script asks `POST /webauthn/authenticate/options` for a challenge, runs the browser's WebAuthn ceremony and posts the
+signed assertion to `POST /login/webauthn`. Both endpoints belong to Spring Security's `http.webAuthn(...)`, enabled
+by `PasskeyChainCustomizer`, whose shared `UserDetailsService` is `AccountStatusUserDetailsService`, so a disabled,
+locked or expired account is refused. `PasskeyFactor` registers `FACTOR_WEBAUTHN` as `PRIMARY_STRONG` (`amr` `hwk`): a
+passkey alone satisfies `MfaPolicy`, so no second factor is asked. See xref:passkeys.adoc[].
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/passkeys/PasskeyFactor.java[tag=passkeys-factor]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant A as Authenticator
+  participant AS as Authorization server
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login
+  B->>AS: POST /webauthn/authenticate/options
+  AS-->>B: challenge and allowed credentials
+  B->>A: navigator.credentials.get with the challenge
+  A-->>B: assertion signed by the passkey
+  B->>AS: POST /login/webauthn with the assertion
+  AS->>AS: verify signature, add FACTOR_WEBAUTHN (PRIMARY_STRONG)
+  AS-->>B: redirect to saved /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to client redirect_uri with code
+....
+
+[[one-time-tokens]]
+== E-mail or SMS code and magic link
+
+The form of `OttLoginMethodFragment` posts the user name, a channel (`email` or `sms`) and a kind (`code` or `link`) to
+`POST /ott/generate`, Spring Security's `oneTimeTokenLogin(...)` endpoint enabled by `OttChainCustomizer`.
+`OttRateLimitFilter` runs first and answers `429` when the per-address or per-identifier limit is reached. The answer
+is always the same redirect to `GET /login/ott`, whether or not the account exists, so nothing reveals accounts. The
+code is bound to the session (`PendingOtt`) and delivered after the transaction commits by `OttDeliveryListener`.
+
+* A code is typed on the `GET /login/ott` page and posted to `POST /login/ott`, verified by
+  `OttCodeAuthenticationProvider` through `VerifyOneTimeCodeUseCase`.
+* A magic link (e-mail only) opens `GET /login/ott/confirm`, whose button posts the token to `POST /login/ott`
+  (`OttLinkAuthenticationProvider`). A `GET` never spends the token, so a mail scanner that opens the link cannot use it.
+
+The e-mail code or link adds `FACTOR_OTT` (`amr` `otp`), the SMS code adds `FACTOR_OTT_SMS` (`amr` `sms`); both are
+`PRIMARY`, so a user who requires MFA is then asked for a second factor. See xref:one-time-tokens.adoc[].
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/ott/OttFactors.java[tag=ott-factors]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant AS as Authorization server
+  participant M as Mail server or SMS gateway
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login
+  B->>AS: POST /ott/generate with username, channel and kind
+  AS-->>B: 302 to /login/ott (same answer for unknown accounts)
+  AS-)M: after commit, send code or magic link
+  M-)B: code or link reaches the user
+  alt code
+    B->>AS: POST /login/ott with the code
+  else magic link
+    B->>AS: GET /login/ott/confirm with the token
+    AS-->>B: confirmation page with a button
+    B->>AS: POST /login/ott with the token
+  end
+  AS->>AS: verify, add FACTOR_OTT or FACTOR_OTT_SMS
+  AS-->>B: redirect to saved /oauth2/authorize
+....
+
+[[x509]]
+== X.509 client certificate
+
+`X509LoginMethodFragment` renders a button whose form posts, with the CSRF token, to `POST /login/x509`. The CSRF
+filter runs before the X.509 filter, so a page of another site cannot sign a browser in with its certificate, and a
+`GET` of that path signs nobody in. The certificate arrives either through the dedicated TLS port
+(`X509TlsConnectorCustomizer`) or in a header set by a reverse proxy, which `ForwardedCertificateFilter` reads only for
+a request from `trusted-proxies`. `CertificatePrincipalExtractor` turns it into its SHA-256 fingerprint (an expired or
+not yet valid certificate yields an unreadable one), `X509UserDetailsService` maps the fingerprint to an account
+through `ResolveCertificateLoginUseCase`, and `X509AuthenticationSuccessHandler` grants `FACTOR_X509`
+(`PRIMARY_STRONG`, `amr` `sc` or `hwk` from `authserver.x509.amr`) and changes the session id. See xref:x509.adoc[].
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/x509/X509Factor.java[tag=x509-factor]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant P as Reverse proxy or TLS port
+  participant AS as Authorization server
+  participant DB as Database
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login
+  B->>P: POST /login/x509 with CSRF token and client certificate
+  P->>AS: request with the certificate
+  AS->>AS: CSRF check, then fingerprint (CertificatePrincipalExtractor)
+  AS->>DB: find bound account (ResolveCertificateLoginUseCase)
+  AS->>AS: add FACTOR_X509 (PRIMARY_STRONG), new session id
+  AS-->>B: redirect to saved /oauth2/authorize
+....
+
+[[second-factors]]
+== Second factors
+
+When the policy is not satisfied, the browser lands on `GET /login/second-factor` (`SecondFactorController`, page
+`templates/second-factor.html`), which shows every `SecondFactorFragment` that applies to the user:
+
+* *TOTP* (`TotpSecondFactorFragment`): the code of an authenticator app, or a recovery code, posted to
+  `POST /login/second-factor/totp` and verified by `TotpAuthenticationProvider`. It adds `FACTOR_TOTP` (`SECOND`,
+  `amr` `otp`). A user without a confirmed app sees the enrolment form instead; `ConfirmTotpAtSignInUseCase` confirms
+  it and `GET /login/second-factor/recovery-codes` shows the recovery codes once.
+* *One-time token* (`OttSecondFactorFragment`): an e-mail code or link, or an SMS code, posted to
+  `POST /login/second-factor/ott` (`OttSecondFactorFilter`). It adds `FACTOR_OTT_EMAIL_2FA` (`amr` `otp`) or
+  `FACTOR_OTT_SMS_2FA` (`amr` `sms`). `OttSecondFactorChannels` allows neither the channel that signed the user in, nor
+  SMS without a verified phone, nor e-mail while the user has another confirmed second factor.
+* *Passkey* (`PasskeySecondFactorFragment`): the same WebAuthn ceremony posted to `POST /login/webauthn`. Spring merges
+  `FACTOR_WEBAUTHN` with `FACTOR_PASSWORD`, so `amr` becomes `pwd`, `hwk`, `mfa`.
+* *Trusted device* (`TrustedDeviceFilter`): on `GET /login/second-factor` only, a valid signed
+  `__Host-TRUSTED-DEVICE` cookie grants `FACTOR_TRUSTED_DEVICE` (`REMEMBERED`) and resumes the request without a form.
+  It satisfies the sign-in policy but is never reported in `amr` and never satisfies a step-up.
+
+Every verification starts with `CheckSecondFactorLockoutUseCase` and counts failures through
+`RegisterSecondFactorFailureUseCase`, so all factors share one lockout (`authserver.mfa.max-failed-attempts`,
+`authserver.mfa.lockout`). On success the filter changes the session id, renews the CSRF token and redirects to the
+saved authorization request. See xref:mfa-and-step-up.adoc[].
+
+[mermaid]
+....
+flowchart TD
+  A["GET /oauth2/authorize after a primary factor"] --> B{"MFA required? (client mfaRequired, users.mfa_required or a confirmed second factor)"}
+  B -- no --> OK["Continue: consent, then code"]
+  B -- yes --> C{"MfaPolicy satisfied?"}
+  C -- "PRIMARY_STRONG factor (passkey, X.509, trusted federated)" --> OK
+  C -- "PRIMARY plus SECOND or REMEMBERED" --> OK
+  C -- "PRIMARY only" --> D["302 to /login/second-factor (request saved)"]
+  D --> E{"Trusted device cookie valid?"}
+  E -- yes --> F["Grant FACTOR_TRUSTED_DEVICE"]
+  E -- no --> G["Show fragments: TOTP, one-time token, passkey"]
+  G --> H{"Code or assertion valid and not locked out?"}
+  H -- no --> I["Count failure, show the page with an error"]
+  I --> G
+  H -- yes --> J["Grant the SECOND factor, new session id"]
+  F --> K["Resume saved /oauth2/authorize"]
+  J --> K
+  K --> OK
+....
+
+== Tokens and claims
+
+`MfaClaimsContributor` (a `JwtClaimsContributor`) writes the claims from the factors the session holds, read through
+`FactorTimeline`:
+
+* `amr`: the `amr` value of each reported factor in the order presented, each once, plus `mfa` when the session is
+  multi-factor (`MfaPolicy.isMultiFactor`: two distinct reported factors, or one factor that is multi-factor alone).
+  `pwd` (password), `hwk` (passkey), `otp` (e-mail code or link, TOTP),
+  `sms` (SMS code), `sc` or `hwk` (X.509), `fed` (social login, see xref:use-cases/social-login-federation.adoc[]).
+  The trusted device is never reported.
+* `acr`: `urn:irurueta:acr:mfa` when the session is multi-factor (same rule), otherwise `urn:irurueta:acr:pwd`. A
+  passkey or a certificate alone is a strong factor but proves one thing, so it is reported with the password class;
+  only a trusted provider's multi-factor sign-in (`FACTOR_FEDERATED_MFA`) is multi-factor alone.
+* `auth_time`: on access tokens, the time the earliest primary factor was presented (the framework sets it on ID
+  tokens), so a later second factor never makes a sign-in look newer.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/mfa/MfaClaimsContributor.java[tag=mfa-claims]
+----
+
+== How it is tested
+
+* Password: `PasswordAuthenticationIT`, `PasswordUpgradeIT` and `AuthorizationCodePkceIT` in `auth-server/boot`;
+  `SignInSmokeIT` and `BffEndToEndIT` in `e2e-tests` (packaged jars and headless Chromium).
+* Passkeys: `PasskeyPagesIT` and `PasskeyRegistrationIT` in `auth-server/boot`; `PasskeyEndToEndIT` in `e2e-tests`
+  (virtual authenticator, passkey alone and password plus passkey).
+* One-time tokens: `OttEmailCodeIT`, `OttMagicLinkIT`, `OttSmsIT`, `OttEnumerationIT`, `OttRateLimitIT` and
+  `OttPagesIT` in `auth-server/boot`; `OttEndToEndIT` in `e2e-tests`.
+* X.509: `X509LoginIT` and `X509TlsLoginIT` in `auth-server/boot`.
+* Second factors: `TotpLoginIT`, `MfaPasswordOnlyForcedIT`, `RecoveryCodeIT`, `TrustedDeviceIT` and
+  `SecondFactorLockoutIT` in `auth-server/boot`.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc6749[RFC 6749, The OAuth 2.0 Authorization Framework] (section 4.1, authorization
+  code)
+* https://www.rfc-editor.org/rfc/rfc7636[RFC 7636, Proof Key for Code Exchange]
+* https://www.rfc-editor.org/rfc/rfc6238[RFC 6238, TOTP: Time-Based One-Time Password Algorithm]
+* https://www.rfc-editor.org/rfc/rfc8176[RFC 8176, Authentication Method Reference Values]
+* https://www.w3.org/TR/webauthn-3/[W3C Web Authentication, Level 3]
+* https://openid.net/specs/openid-connect-core-1_0.html[OpenID Connect Core 1.0] (`amr`, `acr`, `auth_time`)
+
+== Further reading
+
+* {oauth-ref}/authentication-methods-2fa-and-passwordless.html[Authentication Methods: Passwordless & 2FA]
+* {oauth-ref}/spring-boot-authentication-methods.html[Spring Boot Authentication Methods]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:use-cases/authorization-code-bff.adoc[]
+* xref:use-cases/step-up.adoc[]
+* xref:use-cases/social-login-federation.adoc[]
+* xref:mfa-and-step-up.adoc[]
+* xref:passwords-and-accounts.adoc[]
+* xref:passkeys.adoc[]
+* xref:one-time-tokens.adoc[]
+* xref:x509.adoc[]
+* xref:login-and-bff.adoc[]

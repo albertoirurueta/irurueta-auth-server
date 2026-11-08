@@ -1,0 +1,191 @@
+= Resource server token validation
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The resource server (port 8081) accepts a request only with an access token that the authorization server issued for
+it. By default tokens are self-contained JWTs, validated locally against the authorization server's published keys:
+signature, issuer, timestamps and audience, then scopes and roles. Under the `opaque` profile the resource server
+instead introspects reference tokens at the authorization server (RFC 7662), authenticating as a client of its own.
+Clients can revoke tokens (RFC 7009); an introspecting resource server sees the revocation at once, a JWT-validating one
+when the token expires. Failures follow RFC 6750.
+
+.At a glance
+* *Actors*: a client holding an access token (the BFF, `service-client`, ...), `resource-server`, `auth-server`.
+* *Clients involved*: the client the token was issued to, whose configured audiences must include `resource-server`;
+  under `opaque`, a confidential client for the resource server with `client_secret_basic` (any confidential client can
+  introspect), and token clients registered with `"accessTokenFormat": "reference"`.
+* *Preconditions*:
+** JWT (default, profile not `opaque`): `spring.security.oauth2.resourceserver.jwt.issuer-uri` (`AUTH_ISSUER`, default
+   `http://localhost:9000`) and `...jwt.audiences` (`RESOURCE_SERVER_AUDIENCES`, default `resource-server`; the
+   application refuses to start when it is empty).
+** Introspection: Spring profile `opaque` and `AUTH_INTROSPECTION_URI`, `INTROSPECTION_CLIENT_ID`,
+   `INTROSPECTION_CLIENT_SECRET` (no defaults); the same audiences setting.
+* *Endpoints*: `GET /api/documents`, `DELETE /api/documents/\{id}` (resource server);
+  `/.well-known/openid-configuration`, `/oauth2/jwks`, `POST /oauth2/introspect`, `POST /oauth2/revoke` (authorization
+  server).
+
+== Steps
+
+=== JWT validation (default)
+
+. A request arrives with `Authorization: Bearer <JWT>` (or `DPoP <JWT>` with a proof, see
+  xref:use-cases/sender-constrained-tokens.adoc[]).
+. `SecurityConfig.resourceServerFilterChain` (`@Profile("!opaque")`) uses the decoder Spring Boot builds from the issuer
+  URI. On the first request it reads the issuer's metadata and its `jwks_uri` (`/oauth2/jwks`), which publishes the
+  active, next and still-valid retired keys, so tokens signed before a key rotation still verify (see
+  xref:tokens-and-keys.adoc[]).
+. The decoder verifies the signature by `kid`, then `iss` (must equal the issuer), `exp` / `nbf` and `aud` (must list one
+  of the configured audiences). A token issued for another audience, for example the authorization server's own API
+  (`auth-server`), is refused.
+. `jwtAuthenticationConverter` maps `scope` to `SCOPE_*` authorities and `roles` to `ROLE_*` authorities
+  (`BearerAuthorities`).
+. Authorization: `GET /api/documents` needs `SCOPE_documents.read`; `DELETE /api/documents/\{id}` goes through
+  `StepUpAuthorizationManager` (`SCOPE_documents.delete` plus a recent multi-factor sign-in, see
+  xref:use-cases/step-up.adoc[]); ownership is checked by `DeleteDocumentUseCase`.
+. A token with `cnf.jkt` needs a valid DPoP proof and one with `cnf.x5t#S256` the matching TLS client certificate.
+
+Nothing in this repository sets or checks the RFC 9068 `typ: at+jwt` header; the checks that apply are the issuer,
+signature, audience and lifetime ones RFC 9068 §4 also asks for.
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-security]
+----
+
+[source,java]
+----
+include::example$resource-server/api/web/src/main/java/com/irurueta/authserver/resourceserver/api/web/security/SecurityConfig.java[tag=resource-server-converter]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant R as resource-server
+  participant A as auth-server
+  C->>R: GET /api/documents with Authorization Bearer JWT
+  opt first request or unknown kid
+    R->>A: GET /.well-known/openid-configuration
+    A-->>R: issuer, jwks_uri
+    R->>A: GET /oauth2/jwks
+    A-->>R: public keys
+  end
+  R->>R: verify signature, iss, exp, nbf, aud
+  R->>R: scope to SCOPE authorities, roles to ROLE authorities
+  alt valid and SCOPE_documents.read
+    R-->>C: 200 documents
+  else invalid signature, expired, wrong issuer or audience
+    R-->>C: 401 WWW-Authenticate Bearer error=invalid_token
+  else scope missing
+    R-->>C: 403 WWW-Authenticate Bearer error=insufficient_scope
+  end
+....
+
+=== Introspection of reference tokens (profile opaque)
+
+. A client registered with `"accessTokenFormat": "reference"` receives an opaque token. The authorization server stores
+  its claims with the authorization; `ReferenceTokenClaimsCustomizer` adds `roles`, `tenant` and `aud` to them.
+. `SecurityConfig.opaqueTokenFilterChain` (`@Profile("opaque")`) hands the token to `AudienceRolesOpaqueTokenIntrospector`,
+  which wraps Spring's `SpringOpaqueTokenIntrospector`.
+. The introspector posts `token=...` to `AUTH_INTROSPECTION_URI` (`/oauth2/introspect`), authenticating with
+  `INTROSPECTION_CLIENT_ID` and `INTROSPECTION_CLIENT_SECRET` (HTTP Basic).
+. The authorization server authenticates that client and answers `active` and, for an active token, `sub`, `client_id`,
+  `scope`, `aud`, `exp`, `iat`, `roles`, `tenant`. An unknown, expired or revoked token is `{"active": false}`.
+. An inactive token is `401 invalid_token`. For an active one, `AudienceRolesOpaqueTokenIntrospector` requires `aud` to
+  list a configured audience and adds `ROLE_*` authorities from `roles`; authorization then proceeds as for a JWT.
+  Introspection happens on every request.
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant R as resource-server opaque
+  participant A as auth-server
+  C->>R: GET /api/documents with Authorization Bearer opaque token
+  R->>A: POST /oauth2/introspect token, Basic INTROSPECTION_CLIENT_ID
+  A->>A: authenticate resource server client, look token up
+  alt active
+    A-->>R: active true, sub, scope, aud, roles, tenant
+    R->>R: AudienceRolesOpaqueTokenIntrospector checks aud, maps roles
+    R-->>C: 200 or 403 insufficient_scope
+  else unknown, expired or revoked
+    A-->>R: active false
+    R-->>C: 401 invalid_token
+  end
+....
+
+=== Revocation
+
+. The client that holds a token posts `token` (and optionally `token_type_hint=access_token` or `refresh_token`) to
+  `POST /oauth2/revoke`, authenticating as itself. A client can revoke only its own tokens.
+. The server answers `200` and marks the token invalid. Introspection then reports it inactive, and a revoked refresh
+  token can no longer be used. Separately, a reused rotated refresh token revokes the whole authorization (see
+  xref:use-cases/refresh-token-rotation.adoc[]).
+. A JWT-validating resource server does not ask the authorization server, so it accepts a revoked JWT until `exp`; keep
+  access token lifetimes short, or use reference tokens where immediate revocation matters.
+
+[mermaid]
+....
+flowchart TD
+  T[Token at resource server] --> P{"Profile opaque?"}
+  P -- No --> J["Validate JWT locally: signature, iss, exp, aud"]
+  P -- Yes --> I["POST /oauth2/introspect"]
+  I --> AC{"active?"}
+  AC -- No --> X["401 invalid_token"]
+  AC -- Yes --> AU{"aud lists a configured audience?"}
+  J --> JV{"Valid?"}
+  JV -- No --> X
+  JV -- Yes --> AU
+  AU -- No --> X
+  AU -- Yes --> B{"Bound token? cnf jkt or x5t"}
+  B -- "Yes, proof fails" --> X
+  B -- "No, or proof passes" --> S{"Required scope present?"}
+  S -- No --> F["403 insufficient_scope"]
+  S -- Yes --> OK[200]
+  RV["Client POST /oauth2/revoke"] -.->|"introspection now inactive"| AC
+....
+
+== Tokens and claims
+
+* Claims the resource server uses: `iss`, `exp`, `nbf`, `aud` (validation); `sub` (the caller, owner of the documents);
+  `scope` (`SCOPE_*`); `roles` (`ROLE_*`, `ROLE_ADMIN` sees and deletes every document); `acr` and `auth_time` (step-up
+  on delete); `cnf` (bound tokens).
+* Introspection response: `active`, plus for an active token the stored claims (`sub`, `client_id`, `scope`, `aud`,
+  `roles`, `tenant`, ...).
+* RFC 6750 challenges: no token is `401` with `WWW-Authenticate: Bearer`; an invalid token is `401` with
+  `error="invalid_token"`; a missing scope is `403` with `error="insufficient_scope"`. A missing step-up is `401` with
+  `error="insufficient_user_authentication"` (RFC 9470).
+
+== How it is tested
+
+* `resource-server/boot`: `SecurityConfigIT` (no token, valid token, accepted and other audience, no audience, invalid
+  token, missing scopes, ownership, step-up on delete); `OpaqueTokenSecurityIT` (active, inactive, other audience, missing
+  scope, no token, delete scope and step-up under `opaque`); `BoundTokenIT` (DPoP and certificate-bound tokens).
+* `auth-server/boot`: `TokenFlowIT` (`revoke_whenAccessTokenIsRevoked_introspectionTurnsInactive`,
+  `revoke_whenRefreshTokenIsRevoked_itCannotBeUsed`, `introspect_whenTokenIsActiveOrUnknown_reportsIt`,
+  `introspect_whenTokenIsAReferenceToken_returnsAudienceRolesAndTenant`).
+* `e2e-tests`: `ResourceServerEndToEndIT` runs the packaged resource server against the packaged authorization server, in
+  the default profile (a token for its audience accepted, one for another audience refused, no token refused) and in
+  `opaque` (a reference token introspected and accepted).
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc9068#section-4[RFC 9068 §4, Validating JWT access tokens]
+* https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3[RFC 7519 §4.1.3, `aud` claim]
+* https://www.rfc-editor.org/rfc/rfc7662#section-2[RFC 7662 §2, Introspection endpoint]
+* https://www.rfc-editor.org/rfc/rfc7009#section-2[RFC 7009 §2, Token revocation]
+* https://www.rfc-editor.org/rfc/rfc6750#section-3[RFC 6750 §3, The WWW-Authenticate response header] and
+  https://www.rfc-editor.org/rfc/rfc6750#section-3.1[§3.1, error codes]
+* https://www.rfc-editor.org/rfc/rfc9470#section-3[RFC 9470 §3, Step-up authentication challenge]
+
+== Further reading
+
+* {oauth-ref}/opaque-tokens-introspection-and-revocation.html[Opaque Tokens, Introspection & Revocation]
+* {oauth-ref}/scopes-claims-and-permissions.html[Scopes, Claims & Permissions]
+* {oauth-ref}/jwt-and-jose.html[JWT & JOSE]
+* xref:resource-server.adoc[] (feature page)
+* xref:tokens-and-keys.adoc[]
+* xref:use-cases/sender-constrained-tokens.adoc[]
+* xref:use-cases/step-up.adoc[]

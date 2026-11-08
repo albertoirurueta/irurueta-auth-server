@@ -1,0 +1,114 @@
+= Pushed authorization requests
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+With pushed authorization requests (PAR, RFC 9126) the client sends the parameters of its authorization request straight
+to the authorization server over an authenticated back-channel call, and the browser is then sent to the authorization
+endpoint with only an opaque `request_uri`. The parameters can no longer be read or altered in the browser, the client
+is authenticated before the user sees anything, and long requests do not hit URL limits. The endpoint is Spring
+Authorization Server's; this repository only switches it on with a property. The rest is the ordinary authorization code
+flow with PKCE (see xref:use-cases/authorization-code-bff.adoc[]).
+
+.At a glance
+* *Actors*: the user with a browser, a client of the authorization code flow, `auth-server`.
+* *Clients involved*: any client with the `authorization_code` grant and a registered redirect URI. No client setting
+  makes PAR mandatory: the endpoint is offered, not required. The BFF does not use it.
+* *Preconditions*: `authserver.par.enabled=true` (default `false`). It is a property, not a profile.
+* *Endpoints*: `POST /oauth2/par`, `GET /oauth2/authorize`, `POST /oauth2/token`; the metadata field
+  `pushed_authorization_request_endpoint` in `/.well-known/openid-configuration` and
+  `/.well-known/oauth-authorization-server`.
+
+== Steps
+
+. With `authserver.par.enabled=true`, `ParConfiguration` (conditional on the property) declares a
+  `ProtocolChainCustomizer` (order 5) that enables the framework's pushed authorization request endpoint. The metadata
+  then advertises `pushed_authorization_request_endpoint`; with the property off, `POST /oauth2/par` answers `404` and the
+  field is absent.
+. The client builds a normal authorization request (`response_type=code`, `client_id`, `redirect_uri`, `scope`, `state`,
+  `code_challenge`, `code_challenge_method=S256`) and posts it as a form to `POST /oauth2/par`, authenticating as it would
+  at the token endpoint (see xref:use-cases/client-authentication.adoc[]).
+. The server authenticates the client, validates the request as the authorization endpoint would (client, redirect URI,
+  scopes, PKCE), stores it and answers `201 Created` with `request_uri`
+  (`urn:ietf:params:oauth:request_uri:...`) and `expires_in`.
+. The client redirects the browser to `GET /oauth2/authorize?client_id=...&request_uri=...`.
+. The server resolves the stored request. From here the flow is the authorization code flow: sign-in at `/login`, the MFA
+  policy and step-up (`MfaProtocolChainCustomizer` and `StepUpProtocolChainCustomizer` apply as usual, so a client with
+  `mfaRequired` sends the user to `/login/second-factor`), consent, then a redirect to `redirect_uri` with `code` and
+  `state`.
+. The `request_uri` is single use: presenting it again does not yield another code.
+. The client exchanges the code with its `code_verifier` at `POST /oauth2/token`.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/par/ParConfiguration.java[tag=par-chain]
+----
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=par-config]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as Client
+  participant A as auth-server
+  C->>A: POST /oauth2/par client authentication, response_type=code, redirect_uri, scope, state, code_challenge
+  A->>A: authenticate client, validate and store request
+  A-->>C: 201 request_uri, expires_in
+  C-->>B: 302 /oauth2/authorize?client_id and request_uri
+  B->>A: GET /oauth2/authorize?client_id and request_uri
+  A->>A: resolve stored request
+  A-->>B: 302 /login
+  B->>A: sign in, second factor if required, consent
+  A-->>B: 302 redirect_uri?code and state
+  B->>C: code and state
+  C->>A: POST /oauth2/token grant_type=authorization_code, code, code_verifier
+  A-->>C: 200 access token, refresh token, ID token if openid
+....
+
+[mermaid]
+....
+flowchart TD
+  P["POST /oauth2/par"] --> E{"authserver.par.enabled?"}
+  E -- No --> N404[404]
+  E -- Yes --> CA{"Client authenticated?"}
+  CA -- No --> X["401 invalid_client"]
+  CA -- Yes --> V{"Request valid: redirect URI, scopes, PKCE?"}
+  V -- No --> X2["400 error"]
+  V -- Yes --> R["201 request_uri"]
+  R --> AZ["GET /oauth2/authorize with request_uri"]
+  AZ --> U{"request_uri known, unused, not expired?"}
+  U -- No --> X3["Error, no code"]
+  U -- Yes --> F[Sign-in, MFA, consent, code]
+....
+
+== Tokens and claims
+
+PAR changes how the request reaches the server, not the result: the tokens are those of the authorization code flow
+(access token with `roles`, `tenant`, `aud` and the MFA claims, refresh token, and an ID token when `openid` was
+requested). The push response holds only `request_uri` and `expires_in`.
+
+== How it is tested
+
+* `auth-server/boot`: `ParIT` checks that with the property off the endpoint answers `404` and is not advertised; with
+  `authserver.par.enabled=true` it answers a `request_uri` and is advertised, the pushed request completes the code flow,
+  a client requiring MFA is sent to the second-factor page, and a reused `request_uri` yields no code.
+
+== Specifications
+
+* https://www.rfc-editor.org/rfc/rfc9126#section-2[RFC 9126 §2, Pushed authorization request endpoint]
+* https://www.rfc-editor.org/rfc/rfc9126#section-4[RFC 9126 §4, Authorization request with `request_uri`]
+* https://www.rfc-editor.org/rfc/rfc9126#section-5[RFC 9126 §5, Authorization server metadata]
+* https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 §4.1, Authorization Code Grant] and
+  https://www.rfc-editor.org/rfc/rfc7636[RFC 7636, PKCE]
+
+== Further reading
+
+* {oauth-ref}/par-jar-and-hardened-profiles.html[PAR, JAR & Hardened Profiles]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:legacy-implicit.adoc[] (feature page, which also covers the PAR switch)
+* xref:use-cases/authorization-code-bff.adoc[]
+* xref:use-cases/client-authentication.adoc[]

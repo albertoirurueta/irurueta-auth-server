@@ -123,7 +123,8 @@ and role mapping, so both variants behave alike.
 
 The resource server authenticates to the introspection endpoint as a client of its own, which must be registered
 first, for example through `POST /api/admin/clients`: a confidential client (say `resource-server`) with the
-`client_secret_basic` method and the `client_credentials` grant, no redirect URI; its generated secret goes into
+`client_secret_basic` method and no redirect URI (any confidential client may call the introspection endpoint; the
+`client_credentials` grant is a convenient choice but not required); its generated secret goes into
 `INTROSPECTION_CLIENT_SECRET`, never into a file. The tokens it validates are the reference access tokens
 (`"accessTokenFormat": "reference"`) of clients whose audiences list `resource-server`: the authorization server
 stores their `roles`, `tenant` and `aud` with the authorization (see xref:tokens-and-keys.adoc[]), and the

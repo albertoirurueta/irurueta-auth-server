@@ -1,0 +1,214 @@
+= Social login and identity brokering
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+With social login the authorization server is both an authorization server and a client. Inside the user's own
+authorization code flow (the client application asked this server for a code), the user picks Google, Microsoft Entra
+ID, Apple or GitHub on the login page; this server then runs a second authorization code flow as an OpenID Connect
+client (Google, Entra ID, Apple) or a plain OAuth 2.0 client (GitHub) of that provider, through Spring Security's
+`oauth2Login(...)`. The provider's answer is resolved to a local account (an existing link, a link by verified
+e-mail, or a new account provisioned just in time), a federated factor is granted, and the original authorization
+request resumes. The client application only ever talks to this server and receives tokens whose `sub` is the local
+user name, with an `idp` claim naming the provider.
+
+.At a glance
+* *Actors*: the user and their browser, the client application (for example the `bff`), this authorization server
+  (acting as the client of the provider) and the external identity provider.
+* *Preconditions*: a provider is enabled only when `authserver.social.providers.<id>.client-id` has text
+  (`SocialProvidersCondition`); secrets come only from environment variables (`AUTHSERVER_SOCIAL_*`). Apple also needs
+  `team-id`, `key-id` and `private-key`; Entra ID takes `tenant` and `allowed-tenants`. `trust-mfa` (default `false`)
+  lets a provider's own multi-factor sign-in count. With no provider configured there is no social bean at all.
+* *Endpoints*: `GET /login` (provider buttons), `GET /oauth2/authorization/\{registrationId}` (start),
+  `/login/oauth2/code/\{registrationId}` (callback, a `POST` for Apple's `form_post`), `GET /account/identities` and
+  `POST /account/identities/link` (explicit link), `GET /api/account/identities` and
+  `DELETE /api/account/identities/\{id}` (account API). The provider's own endpoints are called server to server: the
+  token endpoint, the JWKS for ID tokens and, for GitHub, `/user` and `/user/emails`.
+
+== Steps
+
+=== Brokered sign-in
+
+. The client sends the browser to `GET /oauth2/authorize`. Nobody is signed in, so the request is saved and the
+  browser goes to `GET /login`.
+. `SocialLoginMethodFragment` (rendered by `templates/login-social.html`) shows one link per configured provider, to
+  `GET /oauth2/authorization/\{registrationId}`. `SocialChainCustomizer` enabled `oauth2Login` with the server's own
+  `/login` page, so a single provider never auto-redirects.
+. Spring Security redirects the browser to the provider's authorization endpoint with its own `state` and, for OpenID
+  Connect, a `nonce`. `ClientRegistrationMapper` built the registrations from `SocialProperties`, with the redirect URI
+  `\{baseUrl}/login/oauth2/code/\{registrationId}`. For Apple, `AppleAuthorizationRequestCustomizer` asks for
+  `response_mode=form_post`.
+. The user signs in at the provider, which redirects (or, for Apple, posts) back to
+  `/login/oauth2/code/\{registrationId}` with a code.
+. This server exchanges the code at the provider's token endpoint. Apple's `client_secret` is an ES256 JWT built by
+  `AppleClientSecretGenerator` and swapped in by `AppleTokenRequestCustomizer`. An Entra ID token is checked by
+  `EntraIssuerValidator` (installed by `IdTokenValidatorFactory`) for the `iss` of its own `tid`.
+. `FederatedOidcUserService` (Google, Entra ID, Apple) or `FederatedOAuth2UserService` (GitHub, whose verified primary
+  address comes from `/user/emails` through the `VerifiedEmailLookup` port, implemented by `GitHubVerifiedEmailLookup`)
+  extracts the subject, the e-mail and whether the provider verified it (for Entra ID only `email_verified` or
+  `xms_edov` count), and calls `FederatedAccountResolver`.
+. `FederatedAccountResolver` calls `ResolveFederatedLoginUseCase` (see <<account-resolution>>), then loads the account
+  through `AccountStatusUserDetailsService`. Any refusal becomes the OAuth 2.0 error `access_denied`, and
+  `FederatedAuthenticationFailureHandler` sends the browser to `/login?error`. `FederatedUserMapper` builds the
+  principal, whose name is the local user name.
+. `FederatedAuthenticationSuccessHandler` asks `FederatedFactorSelector` for the factor, grants it through
+  `FactorGrantor`, saves the security context and resumes the saved `/oauth2/authorize` request.
+. The multi-factor policy applies as for any primary factor (see xref:use-cases/authentication-methods.adoc[]): with
+  `FACTOR_FEDERATED` a user who requires MFA is sent to `GET /login/second-factor`; with `FACTOR_FEDERATED_MFA` the
+  policy is already satisfied, and because that factor is multi-factor alone (`AuthenticationFactor.multiFactor`) a
+  request with `acr_values` for the multi-factor class is satisfied too. The code is then issued to the client.
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedAccountResolver.java[tag=social-account-resolver]
+----
+
+[mermaid]
+....
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as Client application
+  participant AS as Authorization server
+  participant IdP as Identity provider
+  C->>B: redirect to /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login (request saved)
+  B->>AS: GET /oauth2/authorization/google
+  AS-->>B: 302 to provider with state and nonce
+  B->>IdP: authorization request
+  IdP->>IdP: user signs in at the provider
+  IdP-->>B: 302 to /login/oauth2/code/google with code
+  B->>AS: GET /login/oauth2/code/google with code and state
+  AS->>IdP: POST token request with code and client credentials
+  IdP-->>AS: ID token and access token
+  AS->>AS: validate ID token, FederatedOidcUserService
+  AS->>AS: ResolveFederatedLoginUseCase (link, provision or refuse)
+  AS->>AS: grant FACTOR_FEDERATED or FACTOR_FEDERATED_MFA
+  AS-->>B: 302 to saved /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS->>AS: MFA policy, maybe /login/second-factor
+  AS-->>B: 302 to client redirect_uri with code
+  B->>C: code
+  C->>AS: POST /oauth2/token
+  AS-->>C: tokens with local sub, idp and amr fed
+....
+
+[[account-resolution]]
+=== Account resolution
+
+`ResolveFederatedLoginUseCase` first takes `FederatedIdentityRepository.lockSubject(provider, subject)`, a
+PostgreSQL transaction-level advisory lock, so two concurrent first sign-ins of the same person are serialized and the
+second finds the link the first stored. Then:
+
+. An identity already linked by `(provider, subject)` in `federated_identities` signs in to its account, if
+  `FederatedLinkingPolicy.maySignIn` allows it (the account is enabled); the stored e-mail and last-use time are
+  updated.
+. Otherwise the provider must have verified a non-blank e-mail (`FederatedLinkingPolicy.mayProvision`); if not, the
+  sign-in is refused and nothing is linked.
+. An account with that e-mail is linked only when that account has verified the address too
+  (`FederatedLinkingPolicy.mayLinkByEmail`) and may sign in. A pre-registered account with an unverified address is
+  refused, so nobody can take it over by registering the address first.
+. With no account for the address, a password-less account is provisioned just in time: its user name is the e-mail
+  (or `<provider>-<uuid>` when that is taken or too long), its random password is flagged in
+  `user_passwords.generated` so it does not count as a sign-in method.
+
+Every link is audited as `IDENTITY_LINKED`.
+
+[mermaid]
+....
+flowchart TD
+  A["Provider answer: subject, e-mail, verified flag"] --> L["lockSubject(provider, subject)"]
+  L --> B{"Identity linked for provider and subject?"}
+  B -- yes --> E1{"Account enabled?"}
+  E1 -- yes --> S["Sign in to the linked account"]
+  E1 -- no --> X["Refuse: access_denied"]
+  B -- no --> C{"Provider verified a non-blank e-mail?"}
+  C -- no --> X
+  C -- yes --> D{"Account with that e-mail exists?"}
+  D -- yes --> F{"Account verified the e-mail and is enabled?"}
+  F -- yes --> K["Link identity to that account (IDENTITY_LINKED)"]
+  F -- no --> X
+  D -- no --> P["Provision account just in time, generated password"]
+  P --> K
+  K --> S
+....
+
+=== Explicit link from the identities page
+
+A user whose provider address differs from the account's, or is not verified, links the provider after signing in:
+
+. `GET /account/identities` (`IdentitiesPageController`, guarded by `IdentitiesPageChainCustomizer` behind the MFA
+  policy) lists the linked identities and one button per configured provider.
+. `POST /account/identities/link` (form field `provider`) stores a `PendingIdentityLink` in the session through
+  `PendingIdentityLinks` (used once, valid for five minutes) and redirects to
+  `/oauth2/authorization/\{registrationId}`.
+. When the provider answers, `FederatedAccountResolver` consumes the marker (same provider, not expired, session still
+  signed in as that account) and calls `LinkIdentityUseCase` for that account instead of resolving by e-mail.
+. On success `FederatedAuthenticationSuccessHandler` puts the session's previous authentication back, grants no factor
+  and redirects to `/account/identities?status=linked`. An identity linked to another account raises
+  `FederatedIdentityAlreadyLinkedException`, mapped to the error `identity_link_refused`, and the browser returns to
+  `/account/identities?status=already-linked` with the session unchanged.
+
+Unlinking is on the bearer API: `DELETE /api/account/identities/\{id}` (`IdentityController`) calls `StepUpGuard`
+first (see xref:use-cases/step-up.adoc[]) and is refused with `409 last-sign-in-method` when it would remove the last
+way to sign in.
+
+== Tokens and claims
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/FederatedFactorSelector.java[tag=social-factor-selector]
+----
+
+* Factor: `FACTOR_FEDERATED` (`PRIMARY`) by default. `FACTOR_FEDERATED_MFA` (`PRIMARY_STRONG`) only when the provider
+  has `trust-mfa: true` *and* its upstream `amr` contains `mfa`; an untrusted provider's `amr` is never believed. Both
+  report `amr` `fed` and are never held together.
+* `sub`: the local user name, never the provider's subject.
+* `idp`: the registration id of the provider (`google`, `microsoft`, `apple` or `github`), written by
+  `IdpClaimsContributor`.
+* `amr`: `fed` (by `MfaClaimsContributor`), plus `mfa` and the other factor when a second factor was presented. For
+  the strong factor `MfaClaimsContributor` writes `fed` and `mfa`, then `IdpClaimsContributor` merges the upstream
+  `amr` values after them, each once (for example `fed`, `mfa`, `pwd`).
+* `acr`: `urn:irurueta:acr:mfa` for the strong factor or after a second factor, otherwise `urn:irurueta:acr:pwd`. It is
+  always written by `MfaClaimsContributor` (`MfaPolicy.isMultiFactor`); `IdpClaimsContributor` never sets it.
+* `auth_time`: the time the federated factor was granted (on access tokens; the framework sets it on ID tokens).
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/social/IdpClaimsContributor.java[tag=social-claims]
+----
+
+== How it is tested
+
+The provider is a WireMock fake, so no test calls a real identity provider.
+
+* `SocialLoginIT` (`auth-server/boot`): provisioning, linking by verified e-mail, refusal of unverified addresses and
+  disabled accounts, GitHub's verified primary address, the `sub`, `idp` and `amr` claims, the second factor for an
+  untrusted provider, unlinking with step-up and the last-method rule, and the explicit link flow.
+* `SocialTrustedProviderIT` (`auth-server/boot`): a trusted provider reporting `mfa` skips the second factor and its
+  upstream factors are reported; without `mfa` or `amr` the second factor is asked.
+* `SocialEntraMultiTenantIT` and `SocialEntraSingleTenantIT` (`auth-server/boot`): the Entra ID issuer and tenant
+  checks.
+* `SocialLoginConfigurationIT` (`auth-server/boot`): which providers are enabled from the configuration.
+* `JdbcFederatedIdentityRepositoryIT`, `JdbcGeneratedPasswordRepositoryIT` and `JdbcSignInMethodsLockIT`
+  (`auth-server/infrastructure/persistence`): the identity table, the generated-password flag and the locks.
+
+== Specifications
+
+* https://openid.net/specs/openid-connect-core-1_0.html[OpenID Connect Core 1.0] (ID token, `nonce`, `amr`, `acr`)
+* https://www.rfc-editor.org/rfc/rfc6749[RFC 6749, The OAuth 2.0 Authorization Framework] (section 4.1, authorization
+  code)
+* https://www.rfc-editor.org/rfc/rfc7636[RFC 7636, Proof Key for Code Exchange]
+* https://www.rfc-editor.org/rfc/rfc8176[RFC 8176, Authentication Method Reference Values]
+
+== Further reading
+
+* {oauth-ref}/social-login-and-federation.html[Social Login and Federation]
+* {oauth-ref}/openid-connect.html[OpenID Connect]
+* {oauth-ref}/authentication-methods-2fa-and-passwordless.html[Authentication Methods: Passwordless & 2FA]
+* {oauth-ref}/security-best-practices.html[Security Best Practices]
+* xref:social-login.adoc[]
+* xref:use-cases/authentication-methods.adoc[]
+* xref:use-cases/step-up.adoc[]
+* xref:use-cases/authorization-code-bff.adoc[]
+* xref:use-cases/openid-connect.adoc[]

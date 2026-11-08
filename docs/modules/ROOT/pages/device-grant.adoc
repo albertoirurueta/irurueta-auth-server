@@ -81,5 +81,5 @@ the verification URI, then polls `/oauth2/token`, honouring `interval`, `slow_do
 
 [source,shell]
 ----
-java -jar service-client-boot.jar --spring.profiles.active=device-flow --device-flow.issuer=http://localhost:9000
+java -jar service-client/boot/target/service-client-boot-1.0.0-SNAPSHOT.jar --spring.profiles.active=device-flow --device-flow.issuer=http://localhost:9000
 ----

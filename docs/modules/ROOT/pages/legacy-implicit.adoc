@@ -32,7 +32,8 @@ include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/autho
 ----
 
 The provider needs an exact registered redirect URI and a `state`, applies the multi-factor policy, issues a short-lived
-token restricted to one audience and scope, and never a refresh token. The client has no consent step and no PKCE (a
+token restricted to the configured audience and to the requested scopes the client is allowed (the default
+configuration gives it one), and never a refresh token. The client has no consent step and no PKCE (a
 registration whose only grant type is `implicit` is exempt from the public-client PKCE rule).
 
 [source,java]

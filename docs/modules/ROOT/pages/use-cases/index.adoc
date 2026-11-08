@@ -1,0 +1,118 @@
+= Use cases
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The pages in this section walk through each OAuth 2.0 / OpenID Connect flow the example implements, step by step.
+Each page names the actors and the clients involved, what must be configured first, the endpoints, the tokens and
+claims it returns and the tests that exercise it, and shows the exchange as Mermaid sequence diagrams (with a
+flowchart where the flow branches). Each one links to the official specification and to the matching page of the
+{oauth-ref}/index.html[OAuth Reference] in the Irurueta Docs site, which explains the protocol itself; these pages
+explain how this example implements it.
+
+A *use case* here is a protocol flow, not one of the `*UseCase` classes of the `application` modules: one flow
+usually runs several of them.
+
+== Which flow for which client
+
+[mermaid]
+....
+flowchart TD
+  Start(["Who needs a token?"]) --> User{"Is a user present?"}
+  User -- "yes" --> Browser{"Does the client run in a browser?"}
+  Browser -- "yes, behind a backend" --> BFF["Authorization code + PKCE through the BFF"]
+  Browser -- "yes, JavaScript only" --> SPA["Authorization code + PKCE, public client"]
+  Browser -- "no keyboard or browser" --> Device["Device authorization grant"]
+  User -- "no, a service" --> Own{"Acting for itself?"}
+  Own -- "yes" --> CC["Client credentials"]
+  Own -- "no, on behalf of a user" --> TE["Token exchange"]
+....
+
+== Flows
+
+[cols="3,4,3",options="header"]
+|===
+|Use case
+|Specification
+|OAuth Reference
+
+|xref:use-cases/authorization-code-bff.adoc[Authorization code + PKCE through the BFF]
+|https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 §4.1], https://www.rfc-editor.org/rfc/rfc7636[RFC 7636]
+|{oauth-ref}/authorization-code-and-pkce.html[Authorization Code & PKCE],
+{oauth-ref}/browser-based-apps.html[Browser-Based Apps]
+
+|xref:use-cases/authorization-code-public-spa.adoc[Authorization code + PKCE for a public client]
+|https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 §4.1], https://www.rfc-editor.org/rfc/rfc7636[RFC 7636]
+|{oauth-ref}/browser-based-apps.html[Browser-Based Apps]
+
+|xref:use-cases/authentication-methods.adoc[Authentication methods inside the authorization code flow]
+|https://www.rfc-editor.org/rfc/rfc6238[RFC 6238], https://www.w3.org/TR/webauthn-3/[WebAuthn],
+https://www.rfc-editor.org/rfc/rfc8176[RFC 8176]
+|{oauth-ref}/authentication-methods-2fa-and-passwordless.html[Authentication Methods: Passwordless & 2FA]
+
+|xref:use-cases/step-up.adoc[Step-up authentication]
+|https://www.rfc-editor.org/rfc/rfc9470[RFC 9470],
+https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest[OIDC Core §3.1.2.1]
+|{oauth-ref}/authentication-methods-2fa-and-passwordless.html[Authentication Methods: Passwordless & 2FA]
+
+|xref:use-cases/social-login-federation.adoc[Social login and identity brokering]
+|https://openid.net/specs/openid-connect-core-1_0.html[OpenID Connect Core]
+|{oauth-ref}/social-login-and-federation.html[Social Login & Federation]
+
+|xref:use-cases/openid-connect.adoc[OpenID Connect: ID token, UserInfo, discovery and JWKS]
+|https://openid.net/specs/openid-connect-core-1_0.html[OIDC Core],
+https://openid.net/specs/openid-connect-discovery-1_0.html[OIDC Discovery],
+https://www.rfc-editor.org/rfc/rfc8414[RFC 8414]
+|{oauth-ref}/openid-connect.html[OpenID Connect]
+
+|xref:use-cases/refresh-token-rotation.adoc[Refresh token rotation and reuse detection]
+|https://www.rfc-editor.org/rfc/rfc6749#section-6[RFC 6749 §6], https://www.rfc-editor.org/rfc/rfc9700[RFC 9700]
+|{oauth-ref}/access-and-refresh-tokens.html[Access & Refresh Tokens]
+
+|xref:use-cases/logout.adoc[Logout]
+|https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OIDC RP-Initiated Logout]
+|{oauth-ref}/logout-and-session-management.html[Logout & Session Management]
+
+|xref:use-cases/pushed-authorization-requests.adoc[Pushed authorization requests]
+|https://www.rfc-editor.org/rfc/rfc9126[RFC 9126]
+|{oauth-ref}/par-jar-and-hardened-profiles.html[PAR, JAR & Hardened Profiles]
+
+|xref:use-cases/legacy-implicit.adoc[Legacy implicit flow (demo only)]
+|https://www.rfc-editor.org/rfc/rfc6749#section-4.2[RFC 6749 §4.2], https://www.rfc-editor.org/rfc/rfc9700[RFC 9700]
+|{oauth-ref}/legacy-implicit-and-password-grants.html[Legacy Grants: Implicit & Password]
+
+|xref:use-cases/client-credentials.adoc[Client credentials]
+|https://www.rfc-editor.org/rfc/rfc6749#section-4.4[RFC 6749 §4.4]
+|{oauth-ref}/client-credentials-and-client-authentication.html[Client Credentials & Client Authentication]
+
+|xref:use-cases/client-authentication.adoc[Client authentication]
+|https://www.rfc-editor.org/rfc/rfc7523[RFC 7523], https://www.rfc-editor.org/rfc/rfc8705[RFC 8705],
+https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication[OIDC Core §9]
+|{oauth-ref}/client-credentials-and-client-authentication.html[Client Credentials & Client Authentication]
+
+|xref:use-cases/sender-constrained-tokens.adoc[Sender-constrained tokens: DPoP and mTLS]
+|https://www.rfc-editor.org/rfc/rfc9449[RFC 9449], https://www.rfc-editor.org/rfc/rfc8705#section-3[RFC 8705 §3]
+|{oauth-ref}/sender-constrained-tokens-dpop-and-mtls.html[Sender-Constrained Tokens: DPoP & mTLS]
+
+|xref:use-cases/token-exchange.adoc[Token exchange]
+|https://www.rfc-editor.org/rfc/rfc8693[RFC 8693]
+|{oauth-ref}/token-exchange-and-assertion-grants.html[Token Exchange & Assertion Grants]
+
+|xref:use-cases/device-authorization.adoc[Device authorization grant]
+|https://www.rfc-editor.org/rfc/rfc8628[RFC 8628]
+|{oauth-ref}/device-authorization-grant.html[Device Authorization Grant]
+
+|xref:use-cases/dynamic-client-registration.adoc[Dynamic client registration]
+|https://openid.net/specs/openid-connect-registration-1_0.html[OIDC Dynamic Registration],
+https://www.rfc-editor.org/rfc/rfc7591[RFC 7591]
+|{oauth-ref}/discovery-metadata-and-client-registration.html[Discovery, Metadata & Client Registration]
+
+|xref:use-cases/resource-server-token-validation.adoc[Token validation at the resource server]
+|https://www.rfc-editor.org/rfc/rfc6750[RFC 6750], https://www.rfc-editor.org/rfc/rfc7662[RFC 7662],
+https://www.rfc-editor.org/rfc/rfc7009[RFC 7009]
+|{oauth-ref}/opaque-tokens-introspection-and-revocation.html[Opaque Tokens, Introspection & Revocation]
+|===
+
+The password, passkey, one-time code, social and certificate sign-ins are not OAuth grants: they are how the user
+authenticates inside the authorization code flow, between the authorization request and the code being issued, and
+are described together in xref:use-cases/authentication-methods.adoc[]. The feature pages (for example
+xref:mfa-and-step-up.adoc[] or xref:x509.adoc[]) describe how each piece is built.
