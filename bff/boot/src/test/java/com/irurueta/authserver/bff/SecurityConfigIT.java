@@ -17,6 +17,7 @@
 package com.irurueta.authserver.bff;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +55,24 @@ class SecurityConfigIT {
     /** Name of the CSRF cookie. */
     private static final String XSRF_COOKIE = "XSRF-TOKEN";
 
+    /** Authorization request endpoint of the {@code bff} registration. */
+    private static final String AUTHORIZATION = "/oauth2/authorization/bff";
+
+    /** Authorization request parameter naming the authentication context classes. */
+    private static final String ACR_VALUES_PARAMETER = "acr_values";
+
+    /** Authorization request parameter naming the maximum age of the authentication. */
+    private static final String MAX_AGE_PARAMETER = "max_age";
+
+    /** Authentication context class a step-up login asks for. */
+    private static final String STEP_UP_ACR = "urn:irurueta:acr:mfa";
+
+    /** Maximum age, in seconds, a step-up login asks for. */
+    private static final String STEP_UP_MAX_AGE = "300";
+
+    /** Longest {@code returnTo} the contract allows. */
+    private static final int MAX_RETURN_TO_LENGTH = 2048;
+
     /** Query that counts the stored sessions with a given id. */
     private static final String SESSIONS_WITH_ID = "SELECT COUNT(*) FROM spring_session WHERE session_id = ?";
 
@@ -66,17 +85,61 @@ class SecurityConfigIT {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * Verifies that the authorization request uses PKCE and asks for the OpenID scopes.
+     * Verifies that the authorization request uses PKCE, asks for the OpenID scopes and for both document scopes (the
+     * resource server needs {@code documents.delete} to delete), and carries no step-up parameter unless asked.
      *
      * @throws Exception if the request cannot be performed.
      */
     @Test
     void bffFilterChain_whenAuthorizationIsRequested_usesPkce() throws Exception {
-        mockMvc.perform(get("/oauth2/authorization/bff"))
+        mockMvc.perform(get(AUTHORIZATION))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", containsString("code_challenge=")))
                 .andExpect(header().string("Location", containsString("code_challenge_method=S256")))
-                .andExpect(header().string("Location", containsString("scope=openid%20profile%20documents.read")));
+                .andExpect(header().string("Location",
+                        containsString("scope=openid%20profile%20documents.read%20documents.delete")))
+                .andExpect(header().string("Location", not(containsString(ACR_VALUES_PARAMETER))))
+                .andExpect(header().string("Location", not(containsString(MAX_AGE_PARAMETER))));
+    }
+
+    /**
+     * Verifies that a login started for step-up keeps its values in the session and that the next authorization
+     * request, and only that one, carries them as {@code acr_values} and {@code max_age}.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void bffFilterChain_whenLoginAsksForStepUp_addsAcrValuesAndMaxAgeToNextAuthorizationRequestOnly()
+            throws Exception {
+        final var session = mockMvc.perform(get("/bff/login").param("returnTo", "/")
+                        .param("acrValues", STEP_UP_ACR).param("maxAge", STEP_UP_MAX_AGE))
+                .andExpect(status().isFound())
+                .andReturn().getResponse().getCookie(SESSION_COOKIE);
+
+        mockMvc.perform(get(AUTHORIZATION).cookie(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString(ACR_VALUES_PARAMETER + "=" + STEP_UP_ACR)))
+                .andExpect(header().string("Location", containsString(MAX_AGE_PARAMETER + "=" + STEP_UP_MAX_AGE)))
+                .andExpect(header().string("Location", containsString("code_challenge=")));
+        mockMvc.perform(get(AUTHORIZATION).cookie(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", not(containsString(ACR_VALUES_PARAMETER))));
+    }
+
+    /**
+     * Verifies that login parameters outside the contract (step-up values of the wrong format or range, a
+     * {@code returnTo} longer than allowed) are answered 400, not 500, before anything is kept.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void bffFilterChain_whenStepUpValuesAreInvalid_isBadRequest() throws Exception {
+        mockMvc.perform(get("/bff/login").param("acrValues", "urn:x\"&evil=1"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/bff/login").param("maxAge", "-1"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/bff/login").param("returnTo", "/" + "a".repeat(MAX_RETURN_TO_LENGTH)))
+                .andExpect(status().isBadRequest());
     }
 
     /**

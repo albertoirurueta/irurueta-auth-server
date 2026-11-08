@@ -88,6 +88,35 @@ paths:
             maxLength: 2048
             examples:
               - /orders
+        - name: acrValues
+          in: query
+          required: false
+          description: >-
+            Space-separated authentication context class references the authorization server must satisfy, sent as
+            the acr_values parameter of the authorization request. The SPA copies it from the acrValues of a
+            step-up-required problem (RFC 9470) so the user signs in again with a strong enough authentication.
+            Absent, the authorization request carries no acr_values.
+          schema:
+            type: string
+            maxLength: 512
+            pattern: '^[A-Za-z0-9:._~/-]+( [A-Za-z0-9:._~/-]+)*$'
+            examples:
+              - urn:irurueta:acr:mfa
+        - name: maxAge
+          in: query
+          required: false
+          description: >-
+            Maximum age, in seconds, of the user's authentication, sent as the max_age parameter of the authorization
+            request: an older sign-in makes the authorization server ask the user to authenticate again. The SPA
+            copies it from the maxAge of a step-up-required problem. Absent, the authorization request carries no
+            max_age.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            maximum: 86400
+            examples:
+              - 300
       responses:
         '302':
           description: Redirect to the authorization request of the authorization server
@@ -97,7 +126,8 @@ paths:
               schema:
                 type: string
         '400':
-          description: returnTo is not an allowed relative path
+          description: >-
+            returnTo is not an allowed relative path, or acrValues or maxAge is not valid
   # end::bff-login-api[]
   # tag::bff-documents-api[]
   /api/documents:
@@ -128,6 +158,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '502':
           $ref: '#/components/responses/BadGateway'
   /api/documents/{id}:
@@ -137,9 +170,9 @@ paths:
       summary: Deletes a document
       description: >-
         Deletes one of the signed-in user's documents; an administrator may delete any. The BFF asks the resource
-        server (DELETE /api/documents/{id} there, which needs the scope documents.delete) with the access token of
-        the session. Someone else's document is answered 404, like a missing one. A state-changing request: it needs
-        the CSRF token.
+        server (DELETE /api/documents/{id} there, which needs the scope documents.delete and a recent strong
+        authentication) with the access token of the session. Someone else's document is answered 404, like a missing
+        one. A state-changing request: it needs the CSRF token.
       security:
         - session: [ ]
           csrf: [ ]
@@ -154,7 +187,19 @@ paths:
         '204':
           description: The document was deleted.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: >-
+            There is no signed-in session (answered by the security chain, without a body), or the session holds no
+            valid access token (type urn:problem:documents:unauthorized: the SPA signs the user in again), or the
+            resource server asks for step-up authentication (RFC 9470) because the session's sign-in is not strong or
+            recent enough (type urn:problem:documents:step-up-required, with acrValues and maxAge: the SPA sends the
+            user to GET /bff/login with those values, then retries).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '403':
           description: >-
             The request lacks the CSRF token (answered by the security chain, without a body), or the access token
@@ -163,10 +208,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: The document does not exist or belongs to someone else.
           content:
             application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
         '502':
@@ -200,10 +251,16 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     BadGateway:
       description: The resource server cannot be reached or failed to answer.
       content:
         application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+        application/json:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
@@ -226,7 +283,10 @@ components:
           description: Body of the document.
     Problem:
       type: object
-      description: RFC 9457 problem details of a failed call to the documents.
+      description: >-
+        RFC 9457 problem details of a failed call to the documents, answered as application/problem+json. The
+        operations also declare them under application/json so that a client that only asks for JSON is not refused
+        with 406: it gets the status and the problem (still as application/problem+json).
       properties:
         type:
           type: string
@@ -246,6 +306,19 @@ components:
           type: string
           format: uri
           description: URI reference identifying this occurrence, usually the request path.
+        acrValues:
+          type: string
+          description: >-
+            Only in a urn:problem:documents:step-up-required problem: the space-separated authentication context
+            class references the resource server asks for, to pass as acrValues to GET /bff/login. Absent when the
+            resource server named none.
+        maxAge:
+          type: integer
+          format: int64
+          description: >-
+            Only in a urn:problem:documents:step-up-required problem: the maximum age, in seconds, of the
+            authentication the resource server accepts, to pass as maxAge to GET /bff/login. Absent when the resource
+            server named none.
     SessionUserResponse:
       type: object
       description: The user signed in to the BFF session

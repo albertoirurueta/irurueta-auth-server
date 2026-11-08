@@ -19,27 +19,45 @@ package com.irurueta.authserver.bff.api.web.documents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.irurueta.authserver.bff.domain.documents.DocumentNotFoundException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsForbiddenException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 
 /**
  * Unit tests of {@link DocumentsExceptionHandler}.
  */
+@ExtendWith(MockitoExtension.class)
 class DocumentsExceptionHandlerTest {
 
     /** Message of the failures; it must never reach the answer. */
     private static final String SECRET = "internal detail";
 
+    /** Authentication context class of a step-up request. */
+    private static final String ACR_VALUES = "urn:irurueta:acr:mfa";
+
+    /** Seconds of the maximum age of a step-up request. */
+    private static final long MAX_AGE_SECONDS = 300L;
+
+    /** Builds the extra members of a step-up problem; the real one. */
+    @Spy
+    private StepUpProblemMapper stepUpProblemMapper;
+
     /** Handler under test. */
-    private final DocumentsExceptionHandler handler = new DocumentsExceptionHandler();
+    @InjectMocks
+    private DocumentsExceptionHandler handler;
 
     /**
      * A session without a valid token maps to 401.
@@ -48,6 +66,32 @@ class DocumentsExceptionHandlerTest {
     void handleUnauthorized_whenCalled_answersUnauthorized() {
         assertProblem(handler.handleUnauthorized(new DocumentsUnauthorizedException(SECRET, null)),
                 HttpStatus.UNAUTHORIZED, "unauthorized");
+    }
+
+    /**
+     * A step-up request maps to 401 with the values the resource server asked for.
+     */
+    @Test
+    void handleStepUpRequired_whenValuesAreKnown_answersUnauthorizedWithThem() {
+        final var response = handler.handleStepUpRequired(new DocumentsStepUpRequiredException(SECRET, ACR_VALUES,
+                Duration.ofSeconds(MAX_AGE_SECONDS), null));
+
+        assertProblem(response, HttpStatus.UNAUTHORIZED, "step-up-required");
+        final var properties = response.getBody().getProperties();
+        assertEquals(ACR_VALUES, properties.get(StepUpProblemMapper.ACR_VALUES_PROPERTY));
+        assertEquals(MAX_AGE_SECONDS, properties.get(StepUpProblemMapper.MAX_AGE_PROPERTY));
+    }
+
+    /**
+     * A step-up request that names no value maps to 401 without those properties.
+     */
+    @Test
+    void handleStepUpRequired_whenValuesAreUnknown_answersUnauthorizedWithoutThem() {
+        final var response = handler.handleStepUpRequired(new DocumentsStepUpRequiredException(SECRET, null, null,
+                null));
+
+        assertProblem(response, HttpStatus.UNAUTHORIZED, "step-up-required");
+        assertNull(response.getBody().getProperties());
     }
 
     /**
@@ -87,7 +131,7 @@ class DocumentsExceptionHandlerTest {
     private static void assertProblem(final ResponseEntity<ProblemDetail> response, final HttpStatus status,
             final String type) {
         assertEquals(status, response.getStatusCode());
-        assertEquals(MediaType.APPLICATION_PROBLEM_JSON, response.getHeaders().getContentType());
+        assertNull(response.getHeaders().getContentType(), "the media type is left to content negotiation");
         final var body = response.getBody();
         assertNotNull(body);
         assertEquals(DocumentsExceptionHandler.TYPE_BASE + type, body.getType().toString());

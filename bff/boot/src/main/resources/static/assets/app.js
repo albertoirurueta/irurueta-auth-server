@@ -18,6 +18,9 @@
 const XSRF_COOKIE = 'XSRF-TOKEN';
 const XSRF_PARAMETER = '_csrf';
 
+/** Media types the documents API answers: its JSON results and its problem details. */
+const JSON_OR_PROBLEM = 'application/json, application/problem+json';
+
 /**
  * Finds an element of the page by its id.
  *
@@ -121,7 +124,8 @@ const loadUser = async () => {
  */
 const loadDocuments = async () => {
     showError('');
-    const response = await fetch('/api/documents', {credentials: 'same-origin', headers: {Accept: 'application/json'}});
+    // The BFF answers its failures as RFC 9457 problem details; asking for both types gets application/problem+json.
+    const response = await fetch('/api/documents', {credentials: 'same-origin', headers: {Accept: JSON_OR_PROBLEM}});
     if (response.status === 401) {
         login();
         return;

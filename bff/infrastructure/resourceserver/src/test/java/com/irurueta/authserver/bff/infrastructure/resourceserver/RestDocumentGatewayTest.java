@@ -26,12 +26,15 @@ import static org.mockito.Mockito.when;
 import com.irurueta.authserver.bff.domain.documents.Document;
 import com.irurueta.authserver.bff.domain.documents.DocumentNotFoundException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsForbiddenException;
+import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnauthorizedException;
 import com.irurueta.authserver.bff.domain.documents.DocumentsUnavailableException;
 import com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api.DocumentsApi;
 import com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.model.DocumentResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +64,9 @@ class RestDocumentGatewayTest {
     /** Identifier of the document. */
     private static final String ID = "7";
 
+    /** Seconds of the maximum age of the step-up challenge. */
+    private static final long MAX_AGE_SECONDS = 300L;
+
     /** A status code no {@link HttpStatus} constant names. */
     private static final int UNKNOWN_STATUS = 599;
 
@@ -71,6 +77,10 @@ class RestDocumentGatewayTest {
     /** Maps the generated model; the real one. */
     @Spy
     private DocumentMapper documentMapper;
+
+    /** Reads the step-up challenge; the real one. */
+    @Spy
+    private StepUpChallengeMapper stepUpChallengeMapper;
 
     /** Gateway under test. */
     @InjectMocks
@@ -178,5 +188,37 @@ class RestDocumentGatewayTest {
         final var error = assertThrows(expected, () -> gateway.deleteById(ID));
 
         assertSame(failure, error.getCause());
+    }
+
+    /**
+     * Verifies that a {@code 401} carrying a step-up challenge becomes a step-up request with its values.
+     */
+    @Test
+    void deleteById_whenResourceServerAsksForStepUp_throwsStepUpRequired() {
+        final var headers = new HttpHeaders();
+        headers.add(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"insufficient_user_authentication\", "
+                + "acr_values=\"urn:irurueta:acr:mfa\", max_age=\"" + MAX_AGE_SECONDS + "\"");
+        final var failure = HttpClientErrorException.create(HttpStatus.UNAUTHORIZED, "", headers, new byte[0],
+                StandardCharsets.UTF_8);
+        when(documentsApi.deleteDocumentWithHttpInfo(ID)).thenThrow(failure);
+
+        final var error = assertThrows(DocumentsStepUpRequiredException.class, () -> gateway.deleteById(ID));
+
+        assertEquals(Optional.of("urn:irurueta:acr:mfa"), error.getAcrValues());
+        assertEquals(Optional.of(Duration.ofSeconds(MAX_AGE_SECONDS)), error.getMaxAge());
+        assertSame(failure, error.getCause());
+    }
+
+    /**
+     * Verifies that a {@code 401} with another bearer challenge stays an unauthorized session.
+     */
+    @Test
+    void deleteById_whenResourceServerRefusesTheToken_throwsUnauthorized() {
+        final var headers = new HttpHeaders();
+        headers.add(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"invalid_token\"");
+        when(documentsApi.deleteDocumentWithHttpInfo(ID)).thenThrow(HttpClientErrorException.create(
+                HttpStatus.UNAUTHORIZED, "", headers, new byte[0], StandardCharsets.UTF_8));
+
+        assertThrows(DocumentsUnauthorizedException.class, () -> gateway.deleteById(ID));
     }
 }
