@@ -23,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.List;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
@@ -43,6 +44,9 @@ class RotateClientSecretUseCaseTest {
 
     /** Redirect URI of the default clients built by the tests. */
     private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
+    /** Access token lifetime of the key-based client. */
+    private static final Duration ACCESS_TTL = Duration.ofMinutes(5);
 
     /** Generated secret returned by the mocked generator. */
     private static final String SECRET = "generated-secret";
@@ -105,6 +109,20 @@ class RotateClientSecretUseCaseTest {
     }
 
     /**
+     * Verifies that a client without a {@code client_secret_*} method cannot have its secret rotated.
+     */
+    @Test
+    void execute_whenClientUsesPrivateKeyJwtOnly_throwsIllegalArgumentException() {
+        when(clientRegistrationRepository.findByClientId("service"))
+                .thenReturn(Optional.of(privateKeyJwtClient()));
+
+        assertThrows(IllegalArgumentException.class, () -> useCase.execute("service"));
+
+        verify(clientRegistrationRepository, never()).updateSecret(any(), any());
+        verify(clientSecretGenerator, never()).generate();
+    }
+
+    /**
      * Builds the default {@code bff} client with a test redirect URI.
      *
      * @return the client.
@@ -121,5 +139,17 @@ class RotateClientSecretUseCaseTest {
     private static ClientRegistration spaPublic() {
         return DefaultClientDefinitions.spaPublic(List.of(TEST_REDIRECT_URI),
                 DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+    }
+
+    /**
+     * Builds a confidential client that authenticates with {@code private_key_jwt} only.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration privateKeyJwtClient() {
+        return new ClientRegistration("service", "Service", true, List.of("private_key_jwt"),
+                List.of("client_credentials"), List.of(), List.of("documents.read"), false, List.of(),
+                ACCESS_TTL, Duration.ofDays(1), ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                List.of(), false, false, "https://client.example.test/jwks.json", null, null, null, false);
     }
 }

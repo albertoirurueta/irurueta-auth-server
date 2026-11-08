@@ -184,7 +184,8 @@ public class DevDataInitializer implements ApplicationRunner {
         clients.save(new ClientRegistration(DEVICE_CLIENT_ID, "Device flow demo", false, List.of("none"),
                 List.of(DEVICE_CODE_GRANT, "refresh_token"), List.of(), DEVICE_SCOPES, true,
                 List.of(DefaultClientDefinitions.RESOURCE_SERVER_AUDIENCE, apiAudience), DEVICE_ACCESS_TOKEN_TTL,
-                DEVICE_REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), true, false),
+                DEVICE_REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), true, false,
+                null, null, null, null, false),
                 null);
         log.warn("DEV ONLY, never use outside local development: created public client '{}' for the device flow",
                 DEVICE_CLIENT_ID);

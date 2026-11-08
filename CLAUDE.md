@@ -66,10 +66,16 @@ module (package granularity). Never weaken either to make code fit; move the cod
   `SecurityFilterChain`, …) are framework adapters: they live in `api/*` or `infrastructure/*`, never in `domain`
   or `application`.
 - A layer is only created once it has code: an application with no driven adapter or no use case yet has no
-  `infrastructure` or `application` module, so `service-client` stays a single `boot` module until #8 gives it a
-  domain (it already holds `serviceclient.device`, the `device-flow` profile polling CLI `DeviceFlowCli` of the device grant, a
-  hand-written main class in `src/main` because the end-to-end test runs the packaged jar; its calls use `RestClient` against the
-  framework endpoints, so no contract is generated). `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail`,
+  `infrastructure` or `application` module. `service-client` was a single `boot` module until #8 gave it a domain: it now
+  has `domain` (`Document`, ports `DocumentGateway` and `OnBehalfOfDocumentGateway`, `DocumentAccessException`),
+  `application` (`ListDocumentsUseCase`, `ListDocumentsOnBehalfOfUseCase`, no transactions), `infrastructure/resourceserver`
+  (the only module with Spring Security: the client generated from `apis/resource-server/rest-server/resource-server-api-v1.yaml`,
+  `RestDocumentGateway` / `RestOnBehalfOfDocumentGateway`, and `OAuth2ClientConfiguration`) and `boot`, with enforcer bans and a
+  `HexagonalArchitectureTest`. `boot` holds one runner per profile, each a hand-written main class in `src/main` because the
+  end-to-end tests run the packaged jar: `device-flow` (`serviceclient.device.DeviceFlowCli`, the device grant, `RestClient` against the
+  framework endpoints so no contract is generated for it), `client-credentials` (`ClientCredentialsCli`, lists
+  `GET /api/documents`, `print-access-token` also prints the token) and `token-exchange` (`TokenExchangeCli`, the user's access token from
+  `SERVICE_CLIENT_SUBJECT_TOKEN`). `auth-server` has `infrastructure/persistence`, `infrastructure/keys`, `infrastructure/mail`,
   `infrastructure/sms` and `infrastructure/github` (the generated GitHub client behind the `VerifiedEmailLookup` port);
   `resource-server` has `domain`, `application`, `infrastructure/memory`, `api/web` and `boot`; `bff` has `domain`,
   `application`, `infrastructure/session`, `infrastructure/resourceserver`, `api/web` and `boot`.
@@ -80,7 +86,11 @@ module (package granularity). Never weaken either to make code fit; move the cod
   generated under `~/.irurueta-auth-server/` by `keytool`, `dev` profile only), and
   `DevSmsInboxController` with its `DevSmsInboxConfiguration` in `api/web` (`ott` package, the `/dev/sms-inbox` page that
   shows the messages the logging SMS sender kept) of `auth-server`, and `BffDevDatabase` in `bff/infrastructure/session` (all `dev`-profile only, inert elsewhere, and
-  their Javadoc says why they cannot live in `src/test`: the end-to-end tests run the packaged jar). The logging
+  their Javadoc says why they cannot live in `src/test`: the end-to-end tests run the packaged jar). The **legacy implicit flow** of
+  `auth-server` (`api.web.implicit.LegacyImplicit*`, its `LegacyImplicitClientSeeder` of `legacy-implicit-spa` and the static demo page
+  under `classpath:/legacy-implicit/`) is the one exception that is a feature, not a dev aid: it is shipped in `src/main` but active
+  only under the opt-in `legacy-implicit` profile (inert elsewhere, never to be enabled in production), because the end-to-end test
+  runs the jar and the guide shows the risk of the flow. The logging
   `SmsSender` and its `SmsOutbox` (`infrastructure/sms`) are the same kind of exception, under the `dev` **or** `test`
   profile only (the end-to-end tests run the jar under `dev`, the integration tests under `test`, which `@PostgresIT`
   activates); with none of `dev`, `test`, `twilio`, `sns` the application refuses to start
@@ -93,10 +103,10 @@ module (package granularity). Never weaken either to make code fit; move the cod
 A feature (an authentication method or capability) spans the layers with **the same package name in each**, so it
 can be developed in parallel without editing shared files: `…domain.<feature>`, `…application.<feature>`,
 `…infrastructure.persistence.<feature>`, `…api.web.<feature>`. Feature names: `password`, `keys`, `tokens`,
-`clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `sms`, `social`, `x509`, `implicit`, `account`, `admin`. Each
+`clients`, `login`, `mfa`, `totp`, `passkeys`, `ott`, `sms`, `social`, `x509`, `implicit`, `clientauth`, `exchange`, `par`, `account`, `admin`. Each
 placeholder package holds a `package-info.java` saying which issue fills it. `mfa` (factor model, policy, lockout,
 trusted devices, security events, step-up) and `totp` (authenticator-app second factor and recovery codes) are filled
-in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e-mail / SMS codes and magic links, plus `sms` in the layers that need it); and so are `social` (#7, identity brokering), `x509` (#7, client certificates) and `implicit` (#7, the device grant lives here).
+in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e-mail / SMS codes and magic links, plus `sms` in the layers that need it); and so are `social` (#7, identity brokering), `x509` (#7, client certificates) and `implicit` (#7, the device grant lives here; #8 adds the legacy implicit classes, prefixed `LegacyImplicit`); and so are `clientauth` (#8, client authentication), `exchange` (#8, token exchange) and `par` (#8, pushed authorization requests), which have no domain or persistence package unless stated below.
 
 ### Extension points: adding a login method without editing shared files
 
@@ -522,6 +532,59 @@ in every layer (#4), and so is `passkeys` (#5, WebAuthn); and so is `ott` (#6, e
   - **Known limits**: Apple needs `SameSite=None; Secure` cookies (above); an expired or revoked certificate is refused by
     the extractor and the mapping, not by revocation lists (there is no CRL/OCSP check); a provider's `trust-mfa` is honoured
     only per sign-in from its `amr` claim; a JIT account has no usable password until the user sets one.
+- **Implicit (legacy demo), client credentials, client authentication, token exchange and PAR (`clientauth`, `exchange`, `par`, `implicit`, #8)**:
+  the non-interactive flows and an isolated legacy demo, registered through the extension points above with no edit of
+  `SecurityConfig`, `MfaPolicy` or `ApiSecurityConfig`. New `ProtocolChainCustomizer` orders: `clientauth` 3, legacy implicit 4, `par` 5.
+  - **Implicit**: the default server answers `response_type=token` with `unsupported_response_type` (`ImplicitRejectedIT`).
+    Under the opt-in `legacy-implicit` profile (never in production) `LegacyImplicitProtocolChainCustomizer` (`@Order(4)`) adds
+    `LegacyImplicitAuthorizationRequestConverter`, `LegacyImplicitAuthenticationProvider` and `LegacyImplicitResponseHandler`
+    (every non-implicit result is delegated to `AuthorizationCodeResponseHandler`, the framework default, so `code` responses are unchanged),
+    for the one client `legacy-implicit-spa` (`LegacyImplicitClientSeeder`, `authserver.legacy-implicit.*`, `application-legacy-implicit.yml`),
+    with an exact redirect URI, a mandatory `state`, a short-lived audience-restricted token (lifetime at most `PT15M`), no refresh token, and a redirect
+    with `#access_token=…`. Errors before the client and redirect URI are validated are thrown (no redirect); after that they are returned
+    as a `LegacyImplicitErrorToken` rendered as `#error=…&state=…`, because the error handler and response handler are single slots
+    (the first owned by `MfaProtocolChainCustomizer`). The provider applies `MfaPolicy` itself. `ClientRegistration` relaxes "a public client requires
+    PKCE" only for a client whose only grant type is `implicit` (no consent, no refresh token, no secret), and `CreateClientUseCase` /
+    `UpdateClientUseCase` refuse `implicit` (`ImplicitClientRefusedException`, `400 invalid`), so only the seeder creates such a client. The demo page is served from
+    `classpath:/legacy-implicit/` (not `static/`) by a profile-only resource handler.
+  - **Client authentication** (`api.web.clientauth`, `ClientAuthProtocolChainCustomizer` `@Order(3)`, replay store `V800`): Spring Authorization Server
+    7.1.2 requires neither `jti` nor `iat` of a client assertion and keeps no replay store, so `ReplayRejectingJwtValidator` requires
+    both, caps `exp - iat` at `authserver.client-assertion.max-lifetime` (default `PT5M`) and registers `(client_id, jti)` through
+    `RegisterClientAssertionUseCase` / the domain port `ClientAssertionReplayRegistry` (`JdbcClientAssertionReplayRegistry`, `INSERT … ON CONFLICT
+    DO NOTHING`); `ClientAssertionCleanupJob` purges expired rows. `private_key_jwt` keys are the client's registered public JWK set
+    (`settings.client.jwks`, admin API `jwks`, private material refused with `400 invalid-jwks`) read by
+    `RegisteredJwksClientAssertionDecoderFactory`, else `jwkSetUrl` through the framework's factory. `client_secret_basic` is unchanged and a client with
+    only `private_key_jwt` or mTLS methods gets no secret (`ClientRegistration.usesClientSecret`).
+  - **mTLS** (RFC 8705): `ClientCertificateVerifier` replaces the framework's verifier (so it repeats the subject-DN comparison):
+    `tls_client_auth` validates the chain by PKIX against `authserver.mtls.trusted-authorities` (PEM files, none configured means the method is
+    refused; the TLS port's `AnyClientCertificateTrustManager` accepts any chain, so this check is the trust decision) then compares the subject DN;
+    `self_signed_tls_client_auth` pins the certificate through the registered JWKs (`x5c`), else delegates to a default framework provider (`jwkSetUrl`).
+    `certificateBoundAccessTokens` makes the framework write `cnf.x5t#S256`. **Limit: PKIX without revocation (no CRL/OCSP).**
+    The metadata advertises `mtls_endpoint_aliases` when `authserver.x509.port` is set.
+  - **DPoP**: the framework issues `token_type=DPoP` and `cnf.jkt` when the token request carries a proof; nothing of ours is involved on the server.
+  - **Token exchange** (RFC 8693): enabled by the framework by default for a client with the grant `urn:ietf:params:oauth:grant-type:token-exchange`
+    (`DefaultClientDefinitions.TOKEN_EXCHANGE_GRANT`); the composite principal keeps `sub`, `roles` and `tenant` of the user and the framework writes
+    `act`. The provider ignores `audience` / `resource`, so `exchange.TokenExchangeAudienceContributor` (`@Order(120)`) narrows `aud` to the requested
+    audiences that are in the client's `settings.client.audiences` (never widens it). The exchanging client is `service-client` (profile `token-exchange`).
+  - **PAR**: `par.ParConfiguration` (`@Order(5)`) enables `/oauth2/par` only when `authserver.par.enabled=true` (a property, not a profile; default off).
+  - **Resource server**: its JWT chain enables DPoP (`dPoP(...)`); a certificate-bound token is checked by the validator Boot's decoder already includes
+    (`server.ssl.*` with `client-auth: want` set by the deployment, no code); a DPoP-bound token sent as `Bearer` is already rejected by the framework.
+  - **service-client**: `OAuth2ClientConfiguration` builds the registration from `service-client.auth.*` (`method`: `client_secret_basic`, the
+    assertion method, `tls_client_auth` or `self_signed_tls_client_auth`; the signing key from the environment or a file path, an SSL bundle for mTLS,
+    `refresh-before` default `PT60S`, `dpop`), an `AuthorizedClientServiceOAuth2AuthorizedClientManager` (the cached token is renewed before it expires)
+    and, for exchange, a `TokenExchangeOAuth2AuthorizedClientProvider` (subject token from `SERVICE_CLIENT_SUBJECT_TOKEN`, actor token the
+    client-credentials token, principal name the user's). Spring Security 7.1.2 has no client-side DPoP, so `DPoPProofs` and
+    `DPoPClientHttpRequestInterceptor` hand-wire Nimbus' `DefaultDPoPProofFactory`.
+  - **Settings** (tags `client-assertion-config`, `mtls-config`, `par-config`, `legacy-implicit-config`): `authserver.client-assertion.*`,
+    `authserver.mtls.trusted-authorities`, `authserver.par.enabled`, `authserver.legacy-implicit.*`.
+  - **Shared files it still touches, and why**: the clients contract and `apis/README.md`, `ClientRegistration` and every constructor call,
+    `RegisteredClientMapper` (new settings), `CreateClientUseCase` / `RotateClientSecretUseCase` (secret only for `client_secret_*`),
+    `DefaultClientDefinitions`, `application.yml`, the resource server's `SecurityConfig`, the `service-client` poms (new modules, enforcer bans),
+    `coverage/pom.xml`, `docs/antora.yml` (scans) and `e2e-tests`.
+  - **Known limits**: implicit exists only as a legacy opt-in demo and is not part of OAuth 2.1; `tls_client_auth` validates the chain without
+    revocation checks; the server ignores `resource` and honours `audience` only within the client's configured audiences; there is no client-side DPoP in
+    Spring, so the one in `service-client` is hand-wired; the resource server's DPoP replay cache is per instance and its `htu` check needs the
+    request URL unchanged by any proxy.
 - `api.web.ApiSecurityConfig`: the stateless `/api/**` chain (`@Order(0)`, errors per RFC 6750) with a decoder of its
   own over the published keys: issuer, timestamps, `aud` containing `authserver.api.audience` (default `auth-server`),
   and no `purpose` claim. Never make that decoder the framework-wide `JwtDecoder` bean, which the UserInfo endpoint
@@ -545,7 +608,7 @@ users). Used so far: `V200` account, `V210` signing keys, `V230` consumed refres
 trusted devices, `V500` WebAuthn schema (Spring's `user_entities` and `user_credentials`, which already hold `label`,
 `created` and `last_used`), `V600`–`V699` one-time tokens: `V600` Spring's `one_time_tokens`, `V610` `ott_codes`, `V620`
 `user_phones`, `V630` `sms_cost_ledger`, `V700`–`V799` social login and X.509: `V700` `federated_identities`, `V701`
-`user_passwords.generated`, `V710` `x509_certificates` (the device grant needs none). Each issue states its own
+`user_passwords.generated`, `V710` `x509_certificates` (the device grant needs none), `V800`–`V899` client authentication, token exchange and PAR (#8): `V800` `client_assertion_jtis` (the only migration). Each issue states its own
 range in its body; never write a migration outside it. The `bff` has its own database (`bff`) and its own Flyway
 history: `V300` (Spring Session schema) lives in `bff/infrastructure/session/src/main/resources/db/migration`.
 

@@ -63,9 +63,12 @@ or consent requests) can be cleaned up once they are old enough.
 |`V710__x509_certificates.sql`
 |Client certificate bindings by SHA-256 fingerprint, see xref:x509.adoc[].
 
+|`V800__client_assertion_jtis.sql`
+|Used client-assertion identifiers `(client_id, jti)` with their expiry, see xref:client-credentials.adoc[].
+
 |===
 
-Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`; one-time tokens and SMS (issue #6) use `V600`-`V699`; social login, X.509 and the device grant (issue #7) use `V700`-`V799`. A
+Each issue owns a range of migration numbers so features never collide: the walking skeleton uses `V100`-`V199` and the credential and token core (issue #2) uses `V200`-`V299`; multi-factor authentication (issue #4) uses `V400`-`V499`; passkeys (issue #5) use `V500`-`V599`; one-time tokens and SMS (issue #6) use `V600`-`V699`; social login, X.509 and the device grant (issue #7) use `V700`-`V799`; client authentication, token exchange and PAR (issue #8) use `V800`-`V899`. A
 migration is never written outside the range of the issue that adds it.
 
 [source,sql]

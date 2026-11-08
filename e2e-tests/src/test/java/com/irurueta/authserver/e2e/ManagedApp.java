@@ -143,6 +143,17 @@ final class ManagedApp {
     }
 
     /**
+     * Returns the console lines captured so far.
+     *
+     * @return a snapshot of the output, one entry per line.
+     */
+    List<String> output() {
+        synchronized (output) {
+            return List.copyOf(output);
+        }
+    }
+
+    /**
      * Stops the process, forcibly when it does not exit in time.
      */
     void stop() {

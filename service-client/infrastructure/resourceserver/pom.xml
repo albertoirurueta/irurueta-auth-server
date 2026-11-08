@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.irurueta.authserver</groupId>
+    <artifactId>irurueta-auth-server-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>service-client-infrastructure-resourceserver</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>Resource-server adapter of the service client: implements the documents ports with a REST client generated from the resource server's contract, which sends an access token obtained with the client credentials grant (or exchanged on behalf of a user with the token exchange grant) and authenticated with a secret, a signed assertion or a client certificate, optionally DPoP-bound.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>service-client-domain</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>service-client-application</artifactId>
+    </dependency>
+    <dependency>
+      <!-- RestClient.Builder auto-configuration (the builder test slices bind a mock server to) and spring-web -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <dependency>
+      <!-- OAuth2 client: the authorized client manager, the token response clients and OAuth2ClientHttpRequestInterceptor -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security-oauth2-client</artifactId>
+    </dependency>
+    <dependency>
+      <!-- the JSON mapper of the generated client and its model -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <!-- Bean Validation annotations of the generated model -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- the OAuth2 client interceptor reads the current servlet request when a call fails, and the service client is
+         not a web application, so the API (version managed by the Spring Boot BOM) has to come with this adapter -->
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+    </dependency>
+    <dependency>
+      <!-- fake token endpoint and resource server of the integration tests -->
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- REST client of the resource server, generated from its contract (see apis/README.md). The shared options of
+           the root pom's pluginManagement describe the server interfaces, so this execution replaces them with the
+           client's own (combine.self="override") instead of merging the two. -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-resource-server-client-v1</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/apis/resource-server/rest-server/resource-server-api-v1.yaml</inputSpec>
+              <generatorName>java</generatorName>
+              <library>restclient</library>
+              <apiPackage>com.irurueta.authserver.serviceclient.infrastructure.resourceserver.v1.generated.api</apiPackage>
+              <modelPackage>com.irurueta.authserver.serviceclient.infrastructure.resourceserver.v1.generated.model</modelPackage>
+              <invokerPackage>com.irurueta.authserver.serviceclient.infrastructure.resourceserver.v1.generated</invokerPackage>
+              <!-- the client needs its ApiClient and the classes it uses, which are supporting files; the build
+                   files of a standalone client project (pom, Gradle wrapper, README, CI workflow) are not wanted -->
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiClient.java,ExceptionProvider.java,JavaTimeFormatter.java,RFC3339DateFormat.java,ServerConfiguration.java,ServerVariable.java,StringUtil.java,Authentication.java,ApiKeyAuth.java,HttpBasicAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
+              <configOptions combine.self="override">
+                <useJakartaEe>true</useJakartaEe>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJackson3>true</useJackson3>
+                <useBeanValidation>true</useBeanValidation>
+                <openApiNullable>false</openApiNullable>
+                <annotationLibrary>none</annotationLibrary>
+                <documentationProvider>none</documentationProvider>
+                <dateLibrary>java8</dateLibrary>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                <useTags>true</useTags>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-infrastructure-boundary</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>false</searchTransitive>
+                  <excludes>
+                    <exclude>com.irurueta.authserver:service-client-api-*</exclude>
+                    <!-- wildcard, not today's siblings: an adapter added later is banned without editing this rule.
+                         Maven never bans a module's own artifact, so matching this module's own id is safe. -->
+                    <exclude>com.irurueta.authserver:service-client-infrastructure-*</exclude>
+                  </excludes>
+                  <message>An infrastructure module must not depend on an api module or on a sibling
+                    infrastructure module.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

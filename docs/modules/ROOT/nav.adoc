@@ -11,6 +11,8 @@
 * xref:social-login.adoc[]
 * xref:x509.adoc[]
 * xref:device-grant.adoc[]
+* xref:client-credentials.adoc[]
+* xref:legacy-implicit.adoc[]
 * xref:resource-server.adoc[]
 * xref:installation.adoc[]
 * xref:reference.adoc[]

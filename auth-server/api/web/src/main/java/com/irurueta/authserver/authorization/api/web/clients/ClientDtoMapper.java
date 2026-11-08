@@ -22,7 +22,9 @@ import com.irurueta.authserver.authorization.api.web.v1.generated.model.ClientSe
 import com.irurueta.authserver.authorization.api.web.v1.generated.model.CreatedClientResponse;
 import com.irurueta.authserver.authorization.application.clients.CreatedClient;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
+import java.net.URI;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -31,7 +33,11 @@ import org.springframework.util.StringUtils;
  * never returned from {@link ClientAdminController}.
  */
 @Component
+@RequiredArgsConstructor
 public class ClientDtoMapper {
+
+    /** Validates the JWK sets of the clients. */
+    private final ClientJwksParser jwksParser;
 
     /**
      * Maps a create or update request to a client registration. An absent flag is {@code false}, absent audiences
@@ -41,17 +47,24 @@ public class ClientDtoMapper {
      * @param request the validated request.
      * @return the registration.
      * @throws IllegalArgumentException if the registration is not valid.
+     * @throws InvalidClientJwksException if the JWK set is invalid or holds a private key.
      */
     public ClientRegistration toRegistration(final ClientRequest request) {
         final var format = StringUtils.hasText(request.accessTokenFormat())
                 ? request.accessTokenFormat() : ClientRegistration.FORMAT_SELF_CONTAINED;
         final var audiences = request.audiences() == null ? List.<String>of() : request.audiences();
+        final var jwkSetUrl = request.jwkSetUrl();
+        final var signingAlgorithm = request.tokenEndpointAuthSigningAlgorithm();
         return new ClientRegistration(request.clientId(), request.name(), Boolean.TRUE.equals(request.confidential()),
                 request.authMethods(), request.grantTypes(), request.redirectUris(), request.scopes(),
                 Boolean.TRUE.equals(request.requireProofKey()), audiences, request.accessTokenTtl(),
                 request.refreshTokenTtl(), format, Boolean.TRUE.equals(request.reuseRefreshTokens()),
                 request.postLogoutRedirectUris() == null ? List.of() : request.postLogoutRedirectUris(),
-                Boolean.TRUE.equals(request.requireConsent()), Boolean.TRUE.equals(request.mfaRequired()));
+                Boolean.TRUE.equals(request.requireConsent()), Boolean.TRUE.equals(request.mfaRequired()),
+                jwkSetUrl == null ? null : jwkSetUrl.toString(),
+                jwksParser.toJson(request.jwks()),
+                signingAlgorithm == null ? null : signingAlgorithm.getValue(),
+                request.tlsClientAuthSubjectDn(), Boolean.TRUE.equals(request.certificateBoundAccessTokens()));
     }
 
     /**
@@ -66,7 +79,14 @@ public class ClientDtoMapper {
                 registration.scopes(), registration.requireProofKey(), registration.audiences(),
                 registration.accessTokenTtl(), registration.refreshTokenTtl(), registration.accessTokenFormat(),
                 registration.reuseRefreshTokens(), registration.postLogoutRedirectUris(),
-                registration.requireConsent(), registration.mfaRequired());
+                registration.requireConsent(), registration.mfaRequired(),
+                registration.jwkSetUrl() == null ? null : URI.create(registration.jwkSetUrl()),
+                jwksParser.toObject(registration.jwks()),
+                registration.tokenEndpointSigningAlgorithm() == null
+                        ? null
+                        : ClientResponse.TokenEndpointAuthSigningAlgorithmEnum
+                                .fromValue(registration.tokenEndpointSigningAlgorithm()),
+                registration.tlsClientAuthSubjectDn(), registration.certificateBoundAccessTokens());
     }
 
     /**

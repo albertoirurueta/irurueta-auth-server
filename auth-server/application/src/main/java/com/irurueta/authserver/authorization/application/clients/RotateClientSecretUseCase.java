@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Use case that replaces the secret of a confidential client with a new generated one.
+ * Use case that replaces the secret of a client that authenticates with a client secret with a new generated one.
  */
 @Service
 @Transactional
@@ -46,13 +46,14 @@ public class RotateClientSecretUseCase {
      * @param clientId public identifier of the client.
      * @return the new clear-text secret, shown only this once.
      * @throws ClientNotFoundException  if the client is not registered.
-     * @throws IllegalArgumentException if the client is public and so has no secret.
+     * @throws IllegalArgumentException if the client has no {@code client_secret_*} authentication method
+     *                                  and so has no secret.
      */
     public String execute(final String clientId) {
         final var registration = clientRegistrationRepository.findByClientId(clientId)
                 .orElseThrow(() -> new ClientNotFoundException(clientId));
-        if (!registration.confidential()) {
-            throw new IllegalArgumentException("Client '" + clientId + "' is public and has no secret");
+        if (!registration.usesClientSecret()) {
+            throw new IllegalArgumentException("Client '" + clientId + "' does not authenticate with a secret");
         }
         final var secret = clientSecretGenerator.generate();
         clientRegistrationRepository.updateSecret(clientId, passwordHasher.encode(secret));

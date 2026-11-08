@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~         http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!-- tag::implicit-demo-page[] -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Legacy implicit flow demo</title>
+</head>
+<body>
+<main>
+  <h1>Legacy implicit flow demo</h1>
+  <p><strong>Demo only, never enable it in production.</strong> The implicit grant was removed from OAuth 2.1: the
+    access token travels in the URL fragment and can leak through the browser history, extensions or scripts. Use the
+    authorization code flow with PKCE instead.</p>
+  <p><button id="sign-in" type="button" data-client-id="legacy-implicit-spa" data-scope="documents.read">Sign in
+    with the implicit flow</button></p>
+  <p id="status" role="status"></p>
+  <pre id="claims" hidden></pre>
+</main>
+<script src="legacy-implicit.js"></script>
+</body>
+</html>
+<!-- end::implicit-demo-page[] -->

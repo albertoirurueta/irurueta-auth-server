@@ -18,6 +18,8 @@ package com.irurueta.authserver.authorization.infrastructure.persistence.clients
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
@@ -29,6 +31,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 
@@ -54,6 +57,9 @@ class RegisteredClientMapperTest {
 
     /** Lifetime of refresh tokens used by the tests. */
     private static final Duration REFRESH_TTL = Duration.ofHours(8);
+
+    /** Public JWK set used by the tests. */
+    private static final String JWKS = "{\"keys\":[{\"kty\":\"oct-test\"}]}";
 
     /** Mapper under test. */
     private final RegisteredClientMapper mapper = new RegisteredClientMapper();
@@ -107,7 +113,7 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration("spa", "Single-page application", false, List.of("none"),
                 List.of("authorization_code"), List.of("http://localhost:3000/callback"), List.of("openid"), true,
                 List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL, ClientRegistration.FORMAT_REFERENCE, true,
-                List.of(), false, false);
+                List.of(), false, false, null, null, null, null, false);
 
         final var found = mapper.toRegistration(mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, null));
 
@@ -198,7 +204,8 @@ class RegisteredClientMapperTest {
         return new ClientRegistration(CLIENT_ID, "Backend for Frontend", true, List.of("client_secret_basic"),
                 List.of("authorization_code", "refresh_token"), List.of("http://localhost:8080/login/oauth2/code/bff"),
                 List.of("openid", "profile"), true, List.of(AUDIENCE), ACCESS_TTL, REFRESH_TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false);
     }
 
     /**
@@ -210,7 +217,8 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
                 base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
                 base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
-                base.reuseRefreshTokens(), List.of("http://localhost:8080/b", "http://localhost:8080/a"), false, false);
+                base.reuseRefreshTokens(), List.of("http://localhost:8080/b", "http://localhost:8080/a"), false, false,
+                null, null, null, null, false);
 
         final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
 
@@ -228,7 +236,7 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
                 base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
                 base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
-                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), true, false);
+                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), true, false, null, null, null, null, false);
 
         final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
 
@@ -247,7 +255,7 @@ class RegisteredClientMapperTest {
         final var registration = new ClientRegistration(base.clientId(), base.name(), base.confidential(),
                 base.authMethods(), base.grantTypes(), base.redirectUris(), base.scopes(), base.requireProofKey(),
                 base.audiences(), base.accessTokenTtl(), base.refreshTokenTtl(), base.accessTokenFormat(),
-                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), false, true);
+                base.reuseRefreshTokens(), base.postLogoutRedirectUris(), false, true, null, null, null, null, false);
 
         final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, encoded());
 
@@ -263,5 +271,82 @@ class RegisteredClientMapperTest {
     @Test
     void mfaRequiredOf_whenSettingIsAbsent_returnsFalse() {
         assertFalse(mapper.mfaRequiredOf(ClientSettings.builder().build()));
+    }
+
+    /**
+     * Verifies that the key, algorithm, certificate subject and certificate-bound settings are mapped both ways.
+     */
+    @Test
+    void toRegisteredClient_whenAuthenticationSettingsAreGiven_mapsThemBothWays() {
+        final var registration = withAuthSettings("https://client.example.test/jwks.json", JWKS, "ES256", "CN=client");
+
+        final var client = mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, null);
+
+        assertEquals("https://client.example.test/jwks.json", client.getClientSettings().getJwkSetUrl());
+        assertEquals(SignatureAlgorithm.ES256,
+                client.getClientSettings().getTokenEndpointAuthenticationSigningAlgorithm());
+        assertEquals("CN=client", client.getClientSettings().getX509CertificateSubjectDN());
+        assertEquals(JWKS, client.getClientSettings().getSetting(RegisteredClientMapper.JWKS_SETTING));
+        assertTrue(client.getTokenSettings().isX509CertificateBoundAccessTokens());
+        assertEquals(registration.jwkSetUrl(), mapper.toRegistration(client).jwkSetUrl());
+        assertEquals(registration.jwks(), mapper.toRegistration(client).jwks());
+        assertEquals("ES256", mapper.toRegistration(client).tokenEndpointSigningAlgorithm());
+        assertEquals("CN=client", mapper.toRegistration(client).tlsClientAuthSubjectDn());
+        assertTrue(mapper.toRegistration(client).certificateBoundAccessTokens());
+    }
+
+    /**
+     * Verifies that a registration without the settings maps to a client that has none of them.
+     */
+    @Test
+    void toRegisteredClient_whenAuthenticationSettingsAreAbsent_leavesThemUnset() {
+        final var client = mapper.toRegisteredClient(confidential(), ROW_ID, ISSUED_AT, encoded());
+        final var registration = mapper.toRegistration(client);
+
+        assertNull(client.getClientSettings().getJwkSetUrl());
+        assertNull(client.getClientSettings().getSetting(RegisteredClientMapper.JWKS_SETTING));
+        assertFalse(client.getTokenSettings().isX509CertificateBoundAccessTokens());
+        assertNull(registration.jwkSetUrl());
+        assertNull(registration.jwks());
+        assertNull(registration.tokenEndpointSigningAlgorithm());
+        assertNull(registration.tlsClientAuthSubjectDn());
+        assertFalse(registration.certificateBoundAccessTokens());
+    }
+
+    /**
+     * Verifies that an algorithm that is not a JWS signature algorithm is refused.
+     */
+    @Test
+    void toRegisteredClient_whenSigningAlgorithmIsUnknown_throwsIllegalArgumentException() {
+        final var registration = withAuthSettings(null, JWKS, "NOPE", null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> mapper.toRegisteredClient(registration, ROW_ID, ISSUED_AT, null));
+    }
+
+    /**
+     * Verifies that a missing or blank JWK set setting reads as {@code null}.
+     */
+    @Test
+    void jwksOf_whenSettingIsAbsentOrBlank_returnsNull() {
+        assertNull(mapper.jwksOf(ClientSettings.builder().build()));
+        assertNull(mapper.jwksOf(ClientSettings.builder().setting(RegisteredClientMapper.JWKS_SETTING, " ").build()));
+    }
+
+    /**
+     * Builds a {@code private_key_jwt} registration with the given key settings.
+     *
+     * @param jwkSetUrl the JWK set URL, or {@code null}.
+     * @param jwks      the JWK set, or {@code null}.
+     * @param algorithm the signing algorithm, or {@code null}.
+     * @param subjectDn the TLS subject DN, or {@code null}.
+     * @return the registration.
+     */
+    private static ClientRegistration withAuthSettings(
+            final String jwkSetUrl, final String jwks, final String algorithm, final String subjectDn) {
+        return new ClientRegistration("service", "Service", true, List.of("private_key_jwt"),
+                List.of("client_credentials"), List.of(), List.of("documents.read"), false, List.of(AUDIENCE),
+                ACCESS_TTL, REFRESH_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                jwkSetUrl, jwks, algorithm, subjectDn, true);
     }
 }

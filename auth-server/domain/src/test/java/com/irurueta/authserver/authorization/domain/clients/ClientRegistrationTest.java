@@ -68,7 +68,7 @@ class ClientRegistrationTest {
         assertThrows(IllegalArgumentException.class, () -> create(CLIENT_ID, null, true, true, List.of(), TTL, TTL));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL, "", false, List.of(), false,
-                false));
+                false, null, null, null, null, false));
     }
 
     /**
@@ -81,10 +81,12 @@ class ClientRegistrationTest {
 
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true, null,
                 List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), withNull, true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false));
     }
 
     /**
@@ -111,6 +113,116 @@ class ClientRegistrationTest {
     }
 
     /**
+     * Verifies that a public client whose only grant type is implicit may skip PKCE.
+     */
+    @Test
+    void constructor_whenOnlyGrantIsImplicit_allowsPublicClientWithoutPkce() {
+        final var client = implicit(false, false, List.of("implicit"), true);
+
+        assertFalse(client.requireProofKey());
+        assertEquals(List.of("implicit"), client.grantTypes());
+    }
+
+    /**
+     * Verifies that the PKCE exemption does not extend to a client with other grants next to implicit.
+     */
+    @Test
+    void constructor_whenImplicitIsMixedWithOtherGrantAndNoPkce_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> implicit(false, false, List.of("implicit", "authorization_code"), true));
+    }
+
+    /**
+     * Verifies that an implicit client cannot require consent.
+     */
+    @Test
+    void constructor_whenImplicitRequiresConsent_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> implicit(true, false, List.of("implicit"), true));
+    }
+
+    /**
+     * Verifies that an implicit client cannot have refresh tokens.
+     */
+    @Test
+    void constructor_whenImplicitHasRefreshToken_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> implicit(false, false, List.of("implicit", "refresh_token"), true));
+    }
+
+    /**
+     * Verifies that an implicit client cannot be confidential.
+     */
+    @Test
+    void constructor_whenImplicitIsConfidential_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> implicit(false, true, List.of("implicit"), true));
+    }
+
+    /**
+     * Verifies that a tls_client_auth client needs a subject DN.
+     */
+    @Test
+    void constructor_whenTlsClientAuthHasNoSubjectDn_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> authClient("tls_client_auth", null, null, null));
+        assertEquals("CN=client",
+                authClient("tls_client_auth", null, null, "CN=client").tlsClientAuthSubjectDn());
+    }
+
+    /**
+     * Verifies that private_key_jwt and self_signed_tls_client_auth need a JWK set or a JWK set URL.
+     */
+    @Test
+    void constructor_whenKeyBasedMethodHasNoKeys_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> authClient("private_key_jwt", null, null, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> authClient("self_signed_tls_client_auth", null, null, null));
+        assertEquals("{\"keys\":[]}", authClient("self_signed_tls_client_auth", null, "{\"keys\":[]}", null).jwks());
+        assertEquals("https://c.example.test/jwks",
+                authClient("self_signed_tls_client_auth", "https://c.example.test/jwks", null, null).jwkSetUrl());
+    }
+
+    /**
+     * Verifies that a blank optional text is rejected.
+     */
+    @Test
+    void constructor_whenOptionalTextIsBlank_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> authClient("client_secret_basic", " ", null, null));
+        assertThrows(IllegalArgumentException.class, () -> authClient("client_secret_basic", null, "", null));
+    }
+
+    /**
+     * Verifies which authentication methods count as using a client secret.
+     */
+    @Test
+    void usesClientSecret_whenMethodsVary_matchesClientSecretMethodsOnly() {
+        assertTrue(authClient("client_secret_basic", null, null, null).usesClientSecret());
+        assertTrue(authClient("client_secret_post", null, null, null).usesClientSecret());
+        assertFalse(authClient("none", null, null, null).usesClientSecret());
+        assertFalse(authClient("private_key_jwt", "https://c.example.test/jwks", null, null).usesClientSecret());
+    }
+
+    /**
+     * Verifies that a private_key_jwt client with registered keys needs the algorithm its assertions are signed with.
+     */
+    @Test
+    void constructor_whenPrivateKeyJwtHasJwksAndNoAlgorithm_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> authClient("private_key_jwt", null, "{\"keys\":[]}", null));
+        assertEquals("ES256", new ClientRegistration(CLIENT_ID, "Name", true, List.of("private_key_jwt"),
+                List.of("client_credentials"), List.of(), List.of("api"), true, List.of(), TTL, TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false, null, "{\"keys\":[]}",
+                "ES256", null, false).tokenEndpointSigningAlgorithm());
+    }
+
+    /**
+     * Verifies that only a client with the implicit grant type reports using it.
+     */
+    @Test
+    void usesImplicit_whenGrantTypesVary_matchesImplicitOnly() {
+        assertTrue(implicit(false, false, List.of("implicit"), true).usesImplicit());
+        assertFalse(authClient("client_secret_basic", null, null, null).usesImplicit());
+    }
+
+    /**
      * Creates a registration.
      *
      * @param id           client id.
@@ -127,7 +239,8 @@ class ClientRegistrationTest {
             final List<String> audiences, final Duration access, final Duration refresh) {
         return new ClientRegistration(id, name, confidential, List.of("none"), List.of("authorization_code"),
                 List.of("http://localhost/cb"), List.of("openid"), pkce, audiences, access, refresh,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false);
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false);
     }
 
     /**
@@ -138,7 +251,7 @@ class ClientRegistrationTest {
         final var uris = new ArrayList<>(List.of("https://app.example.test/"));
         final var registration = new ClientRegistration(CLIENT_ID, "Name", true, List.of(), List.of(), List.of(),
                 List.of(), true, List.of(), TTL, TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, uris, false,
-                false);
+                false, null, null, null, null, false);
         uris.clear();
         final var withNull = new ArrayList<String>();
         withNull.add(null);
@@ -146,10 +259,11 @@ class ClientRegistrationTest {
         assertEquals(List.of("https://app.example.test/"), registration.postLogoutRedirectUris());
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, null, false, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, null, false, false, null, null, null, null, false));
         assertThrows(IllegalArgumentException.class, () -> new ClientRegistration(CLIENT_ID, "Name", true,
                 List.of(), List.of(), List.of(), List.of(), true, List.of(), TTL, TTL,
-                ClientRegistration.FORMAT_SELF_CONTAINED, false, withNull, false, false));
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, withNull, false, false,
+                null, null, null, null, false));
     }
 
     /**
@@ -160,9 +274,43 @@ class ClientRegistrationTest {
         final var optional = create(CLIENT_ID, "Name", true, true, List.of(), TTL, TTL);
         final var required = new ClientRegistration(CLIENT_ID, "Name", true, List.of("none"),
                 List.of("authorization_code"), List.of("http://localhost/cb"), List.of("openid"), true, List.of(), TTL,
-                TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, true);
+                TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, true,
+                null, null, null, null, false);
 
         assertFalse(optional.mfaRequired());
         assertTrue(required.mfaRequired());
+    }
+
+    /**
+     * Creates an implicit-flow registration.
+     *
+     * @param consent      whether consent is required.
+     * @param confidential whether the client is confidential.
+     * @param grantTypes   the grant types.
+     * @param noPkce       {@code true} to not require PKCE.
+     * @return the registration.
+     */
+    private static ClientRegistration implicit(
+            final boolean consent, final boolean confidential, final List<String> grantTypes, final boolean noPkce) {
+        return new ClientRegistration(CLIENT_ID, "Name", confidential,
+                List.of(confidential ? "client_secret_basic" : "none"), grantTypes, List.of("http://localhost/cb"), List.of("openid"), !noPkce, List.of(), TTL, TTL,
+                ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), consent, false,
+                null, null, null, null, false);
+    }
+
+    /**
+     * Creates a registration with one authentication method and the given key settings.
+     *
+     * @param method     the authentication method.
+     * @param jwkSetUrl  the JWK set URL, or {@code null}.
+     * @param jwks       the JWK set, or {@code null}.
+     * @param subjectDn  the TLS subject DN, or {@code null}.
+     * @return the registration.
+     */
+    private static ClientRegistration authClient(
+            final String method, final String jwkSetUrl, final String jwks, final String subjectDn) {
+        return new ClientRegistration(CLIENT_ID, "Name", true, List.of(method), List.of("client_credentials"),
+                List.of(), List.of("api"), true, List.of(), TTL, TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                List.of(), false, false, jwkSetUrl, jwks, null, subjectDn, false);
     }
 }

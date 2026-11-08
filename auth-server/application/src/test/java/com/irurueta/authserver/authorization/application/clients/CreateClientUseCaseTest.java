@@ -24,10 +24,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.List;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientAlreadyExistsException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.clients.ImplicitClientRefusedException;
 import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,12 @@ class CreateClientUseCaseTest {
 
     /** Redirect URI of the default clients built by the tests. */
     private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
+    /** Token lifetime of the implicit client. */
+    private static final Duration IMPLICIT_TTL = Duration.ofMinutes(15);
+
+    /** Access token lifetime of the key-based client. */
+    private static final Duration ACCESS_TTL = Duration.ofMinutes(5);
 
     /** Generated secret returned by the mocked generator. */
     private static final String SECRET = "generated-secret";
@@ -112,6 +120,36 @@ class CreateClientUseCaseTest {
     }
 
     /**
+     * Verifies that a confidential client without a {@code client_secret_*} method gets and stores no secret.
+     */
+    @Test
+    void execute_whenClientUsesPrivateKeyJwtOnly_generatesNoSecret() {
+        final var service = privateKeyJwtClient();
+        when(clientRegistrationRepository.findByClientId(service.clientId())).thenReturn(Optional.empty());
+
+        final var created = useCase.execute(service);
+
+        assertNull(created.clientSecret());
+        assertEquals(service, created.registration());
+        verify(clientRegistrationRepository).save(service, null);
+        verify(clientSecretGenerator, never()).generate();
+        verify(passwordHasher, never()).encode(any());
+    }
+
+    /**
+     * Verifies that a client with the implicit grant is refused before anything is looked up or stored.
+     */
+    @Test
+    void execute_whenClientUsesImplicit_throwsImplicitClientRefusedException() {
+        final var client = implicitClient();
+
+        assertThrows(ImplicitClientRefusedException.class, () -> useCase.execute(client));
+
+        verify(clientRegistrationRepository, never()).findByClientId(any());
+        verify(clientRegistrationRepository, never()).save(any(), any());
+    }
+
+    /**
      * Builds the default {@code bff} client with a test redirect URI.
      *
      * @return the client.
@@ -128,5 +166,29 @@ class CreateClientUseCaseTest {
     private static ClientRegistration spaPublic() {
         return DefaultClientDefinitions.spaPublic(List.of(TEST_REDIRECT_URI),
                 DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+    }
+
+    /**
+     * Builds a confidential client that authenticates with {@code private_key_jwt} only.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration privateKeyJwtClient() {
+        return new ClientRegistration("service", "Service", true, List.of("private_key_jwt"),
+                List.of("client_credentials"), List.of(), List.of("documents.read"), false, List.of(),
+                ACCESS_TTL, Duration.ofDays(1), ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                List.of(), false, false, "https://client.example.test/jwks.json", null, null, null, false);
+    }
+
+    /**
+     * Builds a public client with the legacy implicit grant, as the legacy demo seeds it.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration implicitClient() {
+        return new ClientRegistration("legacy-implicit-spa", "Legacy", false, List.of("none"), List.of("implicit"),
+                List.of(TEST_REDIRECT_URI), List.of("documents.read"), false, List.of(), IMPLICIT_TTL,
+                IMPLICIT_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false);
     }
 }

@@ -1,0 +1,70 @@
+= Implicit flow (legacy demo) and PAR
+
+NOTE: This documentation was generated with the assistance of AI. Please report any inaccuracies.
+
+The implicit grant (`response_type=token`) is removed from OAuth 2.1 because the access token travels in the URL
+fragment and the browser history. The default server therefore answers it with `unsupported_response_type`, for every
+client.
+
+== The opt-in legacy-implicit profile
+
+With the `legacy-implicit` Spring profile (a demo that must never be enabled in production) one client,
+`legacy-implicit-spa`, may use it. The client is seeded from these settings:
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application-legacy-implicit.yml[tag=legacy-implicit-config]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/LegacyImplicitProtocolChainCustomizer.java[tag=implicit-chain]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/LegacyImplicitAuthorizationRequestConverter.java[tag=implicit-converter]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/LegacyImplicitAuthenticationProvider.java[tag=implicit-provider]
+----
+
+The provider needs an exact registered redirect URI and a `state`, applies the multi-factor policy, issues a short-lived
+token restricted to one audience and scope, and never a refresh token. The client has no consent step and no PKCE (a
+registration whose only grant type is `implicit` is exempt from the public-client PKCE rule).
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/implicit/LegacyImplicitResponseHandler.java[tag=implicit-response-handler]
+----
+
+The response is a `302` to `redirect_uri#access_token=...&token_type=Bearer&expires_in=...&state=...` with
+`Cache-Control: no-store` and `Referrer-Policy: no-referrer`. An error after the client and redirect URI are validated
+is returned as `#error=...&state=...`; before that the request is rejected without a redirect. Every other response (the
+authorization code) is delegated to the framework's handler unchanged.
+
+== Demo page
+
+`/legacy-implicit/` is served only under the profile. It builds the request with a random `state`, reads the fragment,
+checks the `state`, clears the fragment with `history.replaceState` and shows the token's claims.
+
+[source,html]
+----
+include::example$auth-server/api/web/src/main/resources/legacy-implicit/index.html[tag=implicit-demo-page]
+----
+
+== Pushed authorization requests (PAR)
+
+`authserver.par.enabled` (default `false`) enables `/oauth2/par` (RFC 9126). It is a property, not a profile.
+
+[source,yaml]
+----
+include::example$auth-server/boot/src/main/resources/application.yml[tag=par-config]
+----
+
+[source,java]
+----
+include::example$auth-server/api/web/src/main/java/com/irurueta/authserver/authorization/api/web/par/ParConfiguration.java[tag=par-chain]
+----

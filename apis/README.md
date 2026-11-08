@@ -37,6 +37,7 @@ apis/
 | `auth-server/web-pages/auth-server-pages-v1.yaml` | `auth-server/api/web` | `com.irurueta.authserver.authorization.api.web.pages.v1.generated.{api,model}` | `LoginController`, `ConsentController`, `LogoutController`, `PasskeysPageController`, `PhonePageController`, `IdentitiesPageController`, `OttPagesController`, `DeviceVerificationController`, `DevSmsInboxController` (dev profile only) |
 | `bff/rest-server/bff-api-v1.yaml` | `bff/api/web` | `com.irurueta.authserver.bff.api.web.v1.generated.{api,model}` | `UserController`, `BffLoginController`, `DocumentsController` |
 | `github/rest-server/github-api-v1.yaml` (a client, see below) | `auth-server/infrastructure/github` | `com.irurueta.authserver.authorization.infrastructure.github.v1.generated.{api,model}` | called by `GitHubVerifiedEmailLookup` |
+| `resource-server/rest-server/resource-server-api-v1.yaml` (a client, see below) | `service-client/infrastructure/resourceserver` | `com.irurueta.authserver.serviceclient.infrastructure.resourceserver.v1.generated.{api,model}` | called by `RestDocumentGateway`, `RestOnBehalfOfDocumentGateway` |
 
 ### HTML pages
 
@@ -72,6 +73,12 @@ GitHub's API) and `auth-server/infrastructure/github` generates a `java` / `rest
 domain port `VerifiedEmailLookup` (`GitHubVerifiedEmailLookup`, which turns every failure into "no verified address"),
 its base URI is taken at run time from the GitHub registration's user-info URI, and since no application of this
 repository serves it, no `OpenApiDriftIT` compares it.
+
+The `service-client` application does the same for the resource server: `service-client/infrastructure/resourceserver`
+generates a `java` / `restclient` client from `resource-server/rest-server/resource-server-api-v1.yaml` into
+`com.irurueta.authserver.serviceclient.infrastructure.resourceserver.v1.generated.{api,model}`, behind the domain ports
+`DocumentGateway` and `OnBehalfOfDocumentGateway` (`RestDocumentGateway`, `RestOnBehalfOfDocumentGateway`), which translate every failure into
+`DocumentAccessException`; `service-client` serves no endpoint of its own, so it has no contract and no `OpenApiDriftIT`.
 
 ### What is not in a contract
 

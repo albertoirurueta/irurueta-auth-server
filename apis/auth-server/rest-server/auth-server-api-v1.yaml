@@ -732,7 +732,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreatedClientResponse'
         '400':
-          description: Invalid definition
+          description: Invalid definition, including a jwks that holds a private key (invalid-jwks)
           content:
             application/problem+json:
               schema:
@@ -1288,12 +1288,20 @@ components:
           default: false
         authMethods:
           type: array
-          description: Client authentication methods, for example client_secret_basic or none.
+          description: >-
+            Client authentication methods. Accepted values: client_secret_basic, client_secret_post, none,
+            private_key_jwt (needs jwks or jwkSetUrl), tls_client_auth (needs tlsClientAuthSubjectDn) and
+            self_signed_tls_client_auth (needs jwks or jwkSetUrl). Only a client with a client_secret_* method is
+            given a generated secret.
           items:
             type: string
         grantTypes:
           type: array
-          description: Allowed grant types, for example authorization_code or refresh_token.
+          description: >-
+            Allowed grant types. Accepted values: authorization_code, refresh_token, client_credentials,
+            urn:ietf:params:oauth:grant-type:device_code and urn:ietf:params:oauth:grant-type:token-exchange. The
+            legacy implicit grant is refused here (400): only the demo client seeded under the opt-in
+            legacy-implicit profile has it, and it may appear in a response for that client.
           items:
             type: string
         redirectUris:
@@ -1351,6 +1359,35 @@ components:
             Whether every user who signs in through this client must complete a second factor, whatever their
             account setting. Defaults to false.
           default: false
+        # tag::clients-auth-settings[]
+        jwkSetUrl:
+          type: string
+          format: uri
+          description: >-
+            URL of the client's public JWK set, used to verify private_key_jwt assertions and self-signed
+            certificates. Absent means none.
+        jwks:
+          type: object
+          description: >-
+            The client's public JWK set (an object with a keys array), alternative to jwkSetUrl. Only public keys
+            are accepted: a key with private material is refused with 400 invalid-jwks. Absent means none.
+          additionalProperties: true
+        tokenEndpointAuthSigningAlgorithm:
+          type: string
+          description: JWS algorithm a client signs its private_key_jwt assertions with.
+          enum: [ RS256, RS384, RS512, ES256, ES384, ES512, PS256, PS384, PS512 ]
+        tlsClientAuthSubjectDn:
+          type: string
+          description: >-
+            Expected subject distinguished name of the certificate of a tls_client_auth client, for example
+            CN=client,O=Example. Required by tls_client_auth.
+        certificateBoundAccessTokens:
+          type: boolean
+          description: >-
+            Whether the access tokens issued to the client are bound to its mutual TLS certificate (cnf x5t#S256).
+            Defaults to false.
+          default: false
+        # end::clients-auth-settings[]
     ClientResponse:
       type: object
       description: A registered client, without any secret
@@ -1371,6 +1408,7 @@ components:
         - postLogoutRedirectUris
         - requireConsent
         - mfaRequired
+        - certificateBoundAccessTokens
       properties:
         clientId:
           type: string
@@ -1434,6 +1472,26 @@ components:
         mfaRequired:
           type: boolean
           description: Whether every user who signs in through this client must complete a second factor.
+        # tag::clients-auth-settings-response[]
+        jwkSetUrl:
+          type: string
+          format: uri
+          description: URL of the client's public JWK set, when it has one.
+        jwks:
+          type: object
+          description: The client's registered public JWK set, when it has one.
+          additionalProperties: true
+        tokenEndpointAuthSigningAlgorithm:
+          type: string
+          description: JWS algorithm a client signs its private_key_jwt assertions with.
+          enum: [ RS256, RS384, RS512, ES256, ES384, ES512, PS256, PS384, PS512 ]
+        tlsClientAuthSubjectDn:
+          type: string
+          description: Expected subject distinguished name of the certificate of a tls_client_auth client.
+        certificateBoundAccessTokens:
+          type: boolean
+          description: Whether the access tokens issued to the client are bound to its mutual TLS certificate.
+        # end::clients-auth-settings-response[]
     CreatedClientResponse:
       type: object
       description: The created client; the secret is shown only once

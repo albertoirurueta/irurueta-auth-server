@@ -22,10 +22,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.List;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
 import com.irurueta.authserver.authorization.domain.clients.ClientNotFoundException;
 import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.clients.ImplicitClientRefusedException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +43,9 @@ class UpdateClientUseCaseTest {
 
     /** Redirect URI of the default clients built by the tests. */
     private static final String TEST_REDIRECT_URI = "https://app.example.test/callback";
+
+    /** Token lifetime of the implicit client. */
+    private static final Duration IMPLICIT_TTL = Duration.ofMinutes(15);
 
     /** Port that stores the clients. */
     @Mock
@@ -77,11 +82,36 @@ class UpdateClientUseCaseTest {
     }
 
     /**
+     * Verifies that a client with the implicit grant is refused before anything is looked up or stored.
+     */
+    @Test
+    void execute_whenClientUsesImplicit_throwsImplicitClientRefusedException() {
+        final var client = implicitClient();
+
+        assertThrows(ImplicitClientRefusedException.class, () -> useCase.execute(client));
+
+        verify(clientRegistrationRepository, never()).findByClientId(any());
+        verify(clientRegistrationRepository, never()).save(any(), any());
+    }
+
+    /**
      * Builds the default {@code bff} client with a test redirect URI.
      *
      * @return the client.
      */
     private static ClientRegistration bff() {
         return DefaultClientDefinitions.bff(List.of(TEST_REDIRECT_URI), DefaultClientDefinitions.DEFAULT_API_AUDIENCE);
+    }
+
+    /**
+     * Builds a public client with the legacy implicit grant, as the legacy demo seeds it.
+     *
+     * @return the client.
+     */
+    private static ClientRegistration implicitClient() {
+        return new ClientRegistration("legacy-implicit-spa", "Legacy", false, List.of("none"), List.of("implicit"),
+                List.of(TEST_REDIRECT_URI), List.of("documents.read"), false, List.of(), IMPLICIT_TTL,
+                IMPLICIT_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false, List.of(), false, false,
+                null, null, null, null, false);
     }
 }

@@ -118,6 +118,22 @@ ones. See xref:clients.adoc[].
 |`authserver.tokens.cleanup.abandoned-after`
 |`P1D`
 |Age after which an authorization that never got a token is deleted.
+
+|`authserver.client-assertion.max-lifetime`, `authserver.client-assertion.cleanup.cron`
+|`PT5M`, `0 30 * * * *`
+|Longest accepted lifetime of a client assertion and the schedule that purges used `jti` records. See xref:client-credentials.adoc[].
+
+|`authserver.mtls.trusted-authorities`
+|empty
+|PEM files of the authorities trusted for `tls_client_auth`; none means the method is refused.
+
+|`authserver.par.enabled`
+|`false`
+|Enables the pushed authorization request endpoint. See xref:legacy-implicit.adoc[].
+
+|`authserver.legacy-implicit.*`
+|profile `legacy-implicit` only
+|Client, redirect URI, scopes, audience and token lifetime of the legacy implicit demo; never enable in production.
 |===
 
 == Build gates

@@ -39,6 +39,9 @@ public final class DefaultClientDefinitions {
     /** Audience of the resource server. */
     public static final String RESOURCE_SERVER_AUDIENCE = "resource-server";
 
+    /** Grant type URN of the OAuth 2.0 token exchange (RFC 8693) that a client needs to exchange tokens. */
+    public static final String TOKEN_EXCHANGE_GRANT = "urn:ietf:params:oauth:grant-type:token-exchange";
+
     /** Default audience of the authorization server's own REST API ({@code authserver.api.audience}). */
     public static final String DEFAULT_API_AUDIENCE = "auth-server";
 
@@ -82,7 +85,7 @@ public final class DefaultClientDefinitions {
                 List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
                 redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
                 REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
-                postLogoutRedirectUris, true, false);
+                postLogoutRedirectUris, true, false, null, null, null, null, false);
     }
 
     /**
@@ -111,7 +114,7 @@ public final class DefaultClientDefinitions {
                 List.of("none"), List.of("authorization_code", "refresh_token"),
                 redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
                 REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
-                postLogoutRedirectUris, false, false);
+                postLogoutRedirectUris, false, false, null, null, null, null, false);
     }
     // end::clients-seed[]
 }
