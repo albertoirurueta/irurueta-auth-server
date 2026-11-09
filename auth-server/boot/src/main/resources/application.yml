@@ -104,8 +104,9 @@ authserver:
       max-tracked-keys: 10000
     # end::account-rate-limit-config[]
   # tag::keys-config[]
+  # Signing keys. These values are the only defaults: the code reads them without fallbacks of its own.
   keys:
-    # Clock skew tolerated by the consumers of the tokens (the default of SigningKeyRetention).
+    # Clock skew tolerated by the consumers of the tokens.
     clock-skew: PT60S
     # How long the published key set is cached before it is read again.
     jwks-cache-ttl: PT30S

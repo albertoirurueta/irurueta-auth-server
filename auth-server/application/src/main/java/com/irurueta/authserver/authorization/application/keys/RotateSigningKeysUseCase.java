@@ -52,8 +52,8 @@ public class RotateSigningKeysUseCase {
     /** Source of the current time. */
     private final Clock clock;
 
-    /** How long a key signs before it is replaced ({@code authserver.keys.rotation-interval}, default 30 days). */
-    @Value("${authserver.keys.rotation-interval:P30D}")
+    /** How long a key signs before it is replaced ({@code authserver.keys.rotation-interval}, application.yml). */
+    @Value("${authserver.keys.rotation-interval}")
     private final Duration rotationInterval;
 
     /** Decides how long a retired key stays published. */

@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 // tag::keys-rotation-job[]
 /**
  * Periodically applies the key lifecycle. The schedule is the cron expression {@code authserver.keys.rotation.cron}
- * (default: every hour); the use case itself only changes keys that are due.
+ * (set in {@code application.yml}); the use case itself only changes keys that are due.
  */
 @Component
 @RequiredArgsConstructor
@@ -35,7 +35,7 @@ public class SigningKeyRotationJob {
     /**
      * Rotates the keys.
      */
-    @Scheduled(cron = "${authserver.keys.rotation.cron:0 0 * * * *}")
+    @Scheduled(cron = "${authserver.keys.rotation.cron}")
     public void run() {
         signingKeyRotator.rotate();
     }
