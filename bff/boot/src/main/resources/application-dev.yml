@@ -15,9 +15,11 @@
 # Development profile: the PostgreSQL comes from the root compose.yaml through spring-boot-docker-compose, which also
 # supplies the datasource connection details (host, port, user, password). Compose always names the database of the
 # service (authserver), so BffDevDatabase redirects the connection to the bff database the init script creates.
+# tag::setup-bff-dev-compose[]
 spring:
   docker:
     compose:
       enabled: true
       file: ../../compose.yaml
       lifecycle-management: start_and_stop
+# end::setup-bff-dev-compose[]

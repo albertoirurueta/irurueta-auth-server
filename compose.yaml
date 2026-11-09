@@ -15,6 +15,7 @@
 # Local development services. DEV ONLY: the credentials below are throwaway values for a local container
 # and must never be reused anywhere else.
 services:
+  # tag::setup-compose-postgres[]
   postgres:
     image: postgres:18
     environment:
@@ -30,9 +31,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  # end::setup-compose-postgres[]
 
+  # tag::setup-compose-mailpit[]
   mailpit:
     image: axllent/mailpit
     ports:
       - "1025:1025" # SMTP
       - "8025:8025" # web UI
+  # end::setup-compose-mailpit[]

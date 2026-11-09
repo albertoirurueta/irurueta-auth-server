@@ -19,8 +19,8 @@ nav:
   - modules/ROOT/nav.adoc
 ext:
   collector:
-    # dir is relative to the repository root (the worktree), not to docs/. Only src/** is scanned, so target/ and
-    # node_modules/ never reach the site.
+    # dir is relative to the repository root (the worktree), not to docs/. Only src/** is scanned (plus pom.xml for the
+    # modules whose pom has tagged regions), so target/ and node_modules/ never reach the site.
     # One scan per module (its directory from the repository root), so a new module needs a new scan here.
     # Copies each module's sources into the example$ family so the guide can include tagged regions, for example
     # include::irurueta-auth-server::example$auth-server/api/web/src/main/java/...[tag=security-chains]
@@ -32,7 +32,7 @@ ext:
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/application
         - dir: auth-server/infrastructure/persistence
-          files: 'src/**'
+          files: '{pom.xml,src/**}'
           into: modules/ROOT/examples/auth-server/infrastructure/persistence
         - dir: auth-server/infrastructure/keys
           files: 'src/**'
@@ -47,10 +47,10 @@ ext:
           files: 'src/**'
           into: modules/ROOT/examples/auth-server/infrastructure/github
         - dir: auth-server/api/web
-          files: 'src/**'
+          files: '{pom.xml,src/**}'
           into: modules/ROOT/examples/auth-server/api/web
         - dir: auth-server/boot
-          files: 'src/**'
+          files: '{pom.xml,src/**}'
           into: modules/ROOT/examples/auth-server/boot
         - dir: bff/domain
           files: 'src/**'
@@ -59,13 +59,13 @@ ext:
           files: 'src/**'
           into: modules/ROOT/examples/bff/application
         - dir: bff/infrastructure/session
-          files: 'src/**'
+          files: '{pom.xml,src/**}'
           into: modules/ROOT/examples/bff/infrastructure/session
         - dir: bff/infrastructure/resourceserver
           files: 'src/**'
           into: modules/ROOT/examples/bff/infrastructure/resourceserver
         - dir: bff/api/web
-          files: 'src/**'
+          files: '{pom.xml,src/**}'
           into: modules/ROOT/examples/bff/api/web
         - dir: bff/boot
           files: 'src/**'
@@ -80,7 +80,7 @@ ext:
           files: 'src/**'
           into: modules/ROOT/examples/resource-server/infrastructure/memory
         - dir: resource-server/api/web
-          files: 'src/**'
+          files: '{pom.xml,src/**}'
           into: modules/ROOT/examples/resource-server/api/web
         - dir: resource-server/boot
           files: 'src/**'
@@ -111,6 +111,13 @@ ext:
         # '~+' is the repository root; a plain '.' would mean the docs/ start path
         - dir: '~+'
           files: '{pom.xml,compose.yaml}'
+          into: modules/ROOT/examples
+        # the CI workflows, so the guide can include tagged regions of them, for example
+        # include::irurueta-auth-server::example$.github/workflows/build.yml[tag=...]
+        # Finding: the Collector globs with fast-glob (dot: false), which skips dot-directories only for wildcards;
+        # a literal '.github' segment in the pattern matches, so no extra option is needed (verified).
+        - dir: '~+'
+          files: '.github/workflows/{build,docs}.yml'
           into: modules/ROOT/examples
 asciidoc:
   attributes:
