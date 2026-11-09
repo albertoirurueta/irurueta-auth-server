@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+// tag::keys-cache-refresh[]
 /**
  * Drops every cached JWK set when the signing keys rotate, so the next token or JWKS request sees the new keys
  * without waiting for the cache to expire. It listens to an application event, so no web adapter needs to know
@@ -44,3 +45,4 @@ public class JwkCacheRefreshListener {
         caches.forEach(CachedJwkSet::refresh);
     }
 }
+// end::keys-cache-refresh[]

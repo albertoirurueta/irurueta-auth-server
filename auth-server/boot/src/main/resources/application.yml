@@ -94,6 +94,7 @@ authserver:
     allowed-origins: ${AUTHSERVER_PASSKEYS_ALLOWED_ORIGINS:http://localhost:9000}
   # end::passkeys-config[]
   account:
+    # tag::account-rate-limit-config[]
     # Limits of the unauthenticated /api/account endpoints, per client address and per e-mail address.
     rate-limit:
       enabled: true
@@ -101,6 +102,24 @@ authserver:
       per-client: 20
       per-email: 5
       max-tracked-keys: 10000
+    # end::account-rate-limit-config[]
+  # tag::keys-config[]
+  keys:
+    # Clock skew tolerated by the consumers of the tokens (the default of SigningKeyRetention).
+    clock-skew: PT60S
+    # How long the published key set is cached before it is read again.
+    jwks-cache-ttl: PT30S
+    # Minimum time a retired key stays published so that tokens signed with it can still be verified.
+    retention: PT2H
+    # How long a key signs before it is replaced.
+    rotation-interval: P30D
+    rotation:
+      # Schedule of the rotation job (every hour); the job only changes keys that are due.
+      cron: "0 0 * * * *"
+    # encryption.password and encryption.salt (hex) protect the private keys at rest. They have no value here: they
+    # come only from AUTHSERVER_KEYS_ENCRYPTION_PASSWORD and AUTHSERVER_KEYS_ENCRYPTION_SALT (the dev profile
+    # generates its own).
+  # end::keys-config[]
   ott:
     # tag::ott-config[]
     # Digits of the e-mail / SMS code, how long a code and a magic link stay valid, and how many wrong codes are

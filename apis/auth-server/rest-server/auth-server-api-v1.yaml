@@ -529,7 +529,6 @@ paths:
         '429':
           $ref: '#/components/responses/TooManyRequests'
   # end::phone-api-contract[]
-  # tag::clients-api[]
   # tag::identities-api-contract[]
   /api/account/identities:
     get:
@@ -690,6 +689,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   # end::certificates-api-contract[]
+  # tag::clients-api[]
   /api/admin/clients:
     get:
       tags: [ Clients ]

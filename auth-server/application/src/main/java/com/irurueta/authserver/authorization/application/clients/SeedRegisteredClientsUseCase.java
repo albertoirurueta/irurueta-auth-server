@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+// tag::clients-seeding[]
 /**
  * Use case that registers the configured clients (built from {@link DefaultClientDefinitions}) that are missing. It
  * is idempotent: a client that already exists is left untouched, including its secret.
@@ -73,3 +74,4 @@ public class SeedRegisteredClientsUseCase {
         return new SeedResult(created, skipped);
     }
 }
+// end::clients-seeding[]

@@ -31,6 +31,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+// tag::clients-seeding[]
 /**
  * Seeds the configured default clients at startup. The run is idempotent: clients that already exist are left
  * alone. Only the clients whose redirect URIs are configured in {@link ClientSeedProperties} are seeded, so a
@@ -81,3 +82,4 @@ public class ClientSeeder implements ApplicationRunner {
         }
     }
 }
+// end::clients-seeding[]

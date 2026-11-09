@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::totp-enroll-use-case[]
 /**
  * Use case that starts the enrolment of an authenticator app: it generates a secret, stores it encrypted and
  * unconfirmed (replacing any earlier unconfirmed one) and returns the {@code otpauth://} URI to show as a QR code.
@@ -71,3 +72,4 @@ public class EnrollTotpUseCase {
         return TotpUri.build(mfaProperties.totpIssuer(), username, secret);
     }
 }
+// end::totp-enroll-use-case[]

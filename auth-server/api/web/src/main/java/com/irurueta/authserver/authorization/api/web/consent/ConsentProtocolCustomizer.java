@@ -21,6 +21,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.stereotype.Component;
 
+// tag::consent-protocol-customizer[]
 /**
  * Points the authorization endpoint at the custom consent page instead of the framework's generated one.
  */
@@ -33,3 +34,4 @@ public class ConsentProtocolCustomizer implements ProtocolChainCustomizer {
         server.authorizationEndpoint(endpoint -> endpoint.consentPage(ConsentController.CONSENT_PATH));
     }
 }
+// end::consent-protocol-customizer[]

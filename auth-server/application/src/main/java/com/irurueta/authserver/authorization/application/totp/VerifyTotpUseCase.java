@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::totp-verify[]
 /**
  * Use case that verifies a TOTP code presented as a second factor: ±1 step window, no replay of a step already used,
  * lockout after repeated failures, and an audit event either way.
@@ -94,3 +95,4 @@ public class VerifyTotpUseCase {
         return accepted;
     }
 }
+// end::totp-verify[]

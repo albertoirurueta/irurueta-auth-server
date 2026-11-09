@@ -23,6 +23,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  # tag::bff-config[]
   session:
     jdbc:
       # The schema is owned by Flyway (V300), never created by Spring Session.
@@ -46,6 +47,7 @@ spring:
         provider:
           auth-server:
             issuer-uri: ${AUTH_ISSUER:http://localhost:9000}
+  # end::bff-config[]
 
 server:
   port: 8080

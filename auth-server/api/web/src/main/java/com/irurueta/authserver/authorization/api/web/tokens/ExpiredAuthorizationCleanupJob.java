@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+// tag::tokens-cleanup-job[]
 /**
  * Periodically deletes the expired and the abandoned authorizations. The schedule is the cron expression
  * {@code authserver.tokens.cleanup.cron} (default: every hour). Scheduling is enabled by the feature-neutral
@@ -44,3 +45,4 @@ public class ExpiredAuthorizationCleanupJob {
         log.debug("Deleted {} expired or abandoned authorizations", deleted);
     }
 }
+// end::tokens-cleanup-job[]

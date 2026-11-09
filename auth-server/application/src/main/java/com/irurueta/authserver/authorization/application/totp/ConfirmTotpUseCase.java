@@ -30,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::totp-confirm-use-case[]
 /**
  * Use case that finishes the enrolment of an authenticator app with the first code it shows. The step of that code is
  * stored so it cannot be replayed, the credential is confirmed and the recovery codes are generated.
@@ -95,3 +96,4 @@ public class ConfirmTotpUseCase {
         return Optional.of(generateRecoveryCodesUseCase.execute(userId));
     }
 }
+// end::totp-confirm-use-case[]

@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+// tag::keys-rotation-job[]
 /**
  * Periodically applies the key lifecycle. The schedule is the cron expression {@code authserver.keys.rotation.cron}
  * (default: every hour); the use case itself only changes keys that are due.
@@ -39,3 +40,4 @@ public class SigningKeyRotationJob {
         signingKeyRotator.rotate();
     }
 }
+// end::keys-rotation-job[]

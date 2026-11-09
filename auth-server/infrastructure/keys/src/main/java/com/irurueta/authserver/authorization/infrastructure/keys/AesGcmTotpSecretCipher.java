@@ -21,6 +21,7 @@ import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.stereotype.Component;
 
+// tag::totp-secret-cipher[]
 /**
  * {@link TotpSecretCipher} that encrypts TOTP secrets with AES-256 in GCM mode. Its key is derived from the
  * key-encryption passphrase with a salt of its own ({@link PurposeKeyDerivation}, purpose {@value #PURPOSE}), so it
@@ -60,3 +61,4 @@ public class AesGcmTotpSecretCipher implements TotpSecretCipher {
         }
     }
 }
+// end::totp-secret-cipher[]

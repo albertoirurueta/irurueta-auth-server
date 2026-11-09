@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+// tag::account-controller[]
 /**
  * Self-service account endpoints: registration, e-mail verification, password change and password reset. The paths,
  * status codes and bodies are those of the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml},
@@ -154,3 +155,4 @@ public class AccountController implements AccountApi {
         return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
     }
 }
+// end::account-controller[]

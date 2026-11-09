@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+// tag::keys-admin-controller[]
 /**
  * Administration of the signing keys, as the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml}
  * describes it through the generated {@link SigningKeysApi}. Only the public half of each key is ever returned.
@@ -62,3 +63,4 @@ public class SigningKeyAdminController implements SigningKeysApi {
         return listSigningKeys();
     }
 }
+// end::keys-admin-controller[]

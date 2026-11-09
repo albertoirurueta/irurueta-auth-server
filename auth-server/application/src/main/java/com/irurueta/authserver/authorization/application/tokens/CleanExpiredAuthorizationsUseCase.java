@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::tokens-cleanup[]
 /**
  * Use case that deletes the authorizations whose tokens have all expired, and the abandoned ones: authorization or
  * consent requests that never got a token and are older than a threshold.
@@ -57,3 +58,4 @@ public class CleanExpiredAuthorizationsUseCase {
                 + userAuthorizationRepository.deleteAbandoned(now.minus(abandonedAfter));
     }
 }
+// end::tokens-cleanup[]

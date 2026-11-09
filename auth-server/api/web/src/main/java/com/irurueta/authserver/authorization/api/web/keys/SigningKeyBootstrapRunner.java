@@ -21,6 +21,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+// tag::keys-bootstrap[]
 /**
  * Creates the first active and next keys at startup, so the server can sign tokens before the first scheduled
  * rotation.
@@ -42,3 +43,4 @@ public class SigningKeyBootstrapRunner implements ApplicationRunner {
         signingKeyRotator.rotate();
     }
 }
+// end::keys-bootstrap[]
