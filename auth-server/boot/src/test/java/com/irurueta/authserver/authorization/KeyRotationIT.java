@@ -118,6 +118,7 @@ class KeyRotationIT {
         assertFalse(body.contains("\"d\""), "private exponent is never published");
     }
 
+    // tag::keys-rotation-it[]
     /**
      * Verifies that a token signed before a rotation validates while its key is retired and published, and stops
      * validating once the key is removed, and that new tokens are signed with the new active key.
@@ -154,6 +155,7 @@ class KeyRotationIT {
         assertTrue(publishedKids().contains(nextKid), "a freshly retired key stays published");
         assertThrows(BadJwtException.class, () -> decode(oldToken));
     }
+    // end::keys-rotation-it[]
 
     /**
      * Verifies that a retired key stays published for longer than the configured two-hour retention, because the

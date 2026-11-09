@@ -45,13 +45,13 @@ public class DatabaseJwkSourceConfiguration {
      * @param published use case that finds the keys to publish.
      * @param mapper    maps the keys onto JSON Web Keys.
      * @param clock     source of the current time.
-     * @param ttl       how long the set is kept ({@code authserver.keys.jwks-cache-ttl}, default 30 seconds).
+     * @param ttl       how long the set is kept ({@code authserver.keys.jwks-cache-ttl} in {@code application.yml}).
      * @return the cache; call {@link CachedJwkSet#refresh()} after a rotation.
      */
     @Bean
     public CachedJwkSet publishedJwkSet(
             final PublishedSigningKeysUseCase published, final SigningKeyJwkMapper mapper, final Clock clock,
-            @Value("${authserver.keys.jwks-cache-ttl:PT30S}") final Duration ttl) {
+            @Value("${authserver.keys.jwks-cache-ttl}") final Duration ttl) {
         return new CachedJwkSet(() -> mapper.toPublicJwkSet(published.execute()), ttl, clock);
     }
 
@@ -61,13 +61,13 @@ public class DatabaseJwkSourceConfiguration {
      * @param active use case that finds the active key.
      * @param mapper maps the key onto a JSON Web Key, decrypting its private half.
      * @param clock  source of the current time.
-     * @param ttl    how long the set is kept ({@code authserver.keys.jwks-cache-ttl}, default 30 seconds).
+     * @param ttl    how long the set is kept ({@code authserver.keys.jwks-cache-ttl} in {@code application.yml}).
      * @return the cache; call {@link CachedJwkSet#refresh()} after a rotation.
      */
     @Bean
     public CachedJwkSet signingJwkSet(
             final ActiveSigningKeyUseCase active, final SigningKeyJwkMapper mapper, final Clock clock,
-            @Value("${authserver.keys.jwks-cache-ttl:PT30S}") final Duration ttl) {
+            @Value("${authserver.keys.jwks-cache-ttl}") final Duration ttl) {
         return new CachedJwkSet(() -> mapper.toSigningJwkSet(active.execute()), ttl, clock);
     }
 

@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+// tag::bff-return-to-validator[]
 /**
  * Decides whether a {@code returnTo} value asked by the browser is a safe place to send it back to after the login.
  * An open redirect would let a crafted link bounce a freshly signed-in user to a hostile site, so only a relative
@@ -89,3 +90,4 @@ public class ReturnToValidator {
         return returnTo.substring(0, end);
     }
 }
+// end::bff-return-to-validator[]

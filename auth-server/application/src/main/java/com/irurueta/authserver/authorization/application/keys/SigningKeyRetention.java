@@ -37,12 +37,12 @@ public class SigningKeyRetention {
     /** Port that reports the lifetimes of the tokens the clients obtain. */
     private final SignedTokenLifetimes signedTokenLifetimes;
 
-    /** Minimum retention ({@code authserver.keys.retention}, default 2 hours). */
-    @Value("${authserver.keys.retention:PT2H}")
+    /** Minimum retention ({@code authserver.keys.retention}, set in {@code application.yml}). */
+    @Value("${authserver.keys.retention}")
     private final Duration configuredRetention;
 
-    /** Clock skew tolerated by the token consumers ({@code authserver.keys.clock-skew}, default 60 seconds). */
-    @Value("${authserver.keys.clock-skew:PT60S}")
+    /** Clock skew tolerated by the token consumers ({@code authserver.keys.clock-skew} in {@code application.yml}). */
+    @Value("${authserver.keys.clock-skew}")
     private final Duration clockSkew;
 
     // tag::keys-retention[]

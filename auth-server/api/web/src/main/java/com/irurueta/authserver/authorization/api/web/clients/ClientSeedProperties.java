@@ -19,6 +19,7 @@ package com.irurueta.authserver.authorization.api.web.clients;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+// tag::clients-seeding[]
 /**
  * Configuration of the seeding of the default clients ({@code authserver.clients.*}).
  *
@@ -85,3 +86,4 @@ public record ClientSeedProperties(String bffSecret, SeededClient bff, SeededCli
         }
     }
 }
+// end::clients-seeding[]

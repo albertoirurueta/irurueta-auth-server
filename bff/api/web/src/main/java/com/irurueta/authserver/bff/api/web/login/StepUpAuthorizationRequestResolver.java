@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.util.StringUtils;
 
+// tag::bff-step-up-resolver[]
 /**
  * Adds the step-up values that {@link BffLoginController} kept in the session to the authorization request built by the
  * delegate, as the OpenID Connect {@code acr_values} and {@code max_age} parameters, and forgets them, so they apply to
@@ -82,3 +83,4 @@ public class StepUpAuthorizationRequestResolver implements OAuth2AuthorizationRe
                 .build();
     }
 }
+// end::bff-step-up-resolver[]

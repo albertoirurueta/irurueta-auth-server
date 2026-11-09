@@ -101,6 +101,7 @@ class LoginPageIT {
                 new Object[] {new DisabledException("x"), "This account is disabled."});
     }
 
+    // tag::login-page-it[]
     /**
      * Verifies that the page uses the layout and renders the password form, with the autocomplete hints and the CSRF
      * token.
@@ -118,6 +119,7 @@ class LoginPageIT {
                 .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(not(containsString("role=\"alert\""))));
     }
+    // end::login-page-it[]
 
     /**
      * Verifies that a post without the CSRF token is forbidden.

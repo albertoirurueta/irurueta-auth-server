@@ -16,6 +16,7 @@
 
 package com.irurueta.authserver.authorization.api.web.login;
 
+// tag::login-method-fragment[]
 /**
  * Extension point that lets an authentication method contribute a Thymeleaf fragment to the login page.
  * The login template renders one fragment per bean, sorted by {@link #order()}.
@@ -52,3 +53,4 @@ public interface LoginMethodFragment {
         return templateName() + " :: " + fragmentName();
     }
 }
+// end::login-method-fragment[]

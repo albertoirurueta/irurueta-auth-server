@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+// tag::keys-token-lifetimes[]
 /**
  * {@link SignedTokenLifetimes} over the registered clients: the longest of the ID-token lifetime and the access-token
  * lifetimes of the clients that receive self-contained (signed) access tokens. Reference access tokens are opaque and
@@ -50,3 +51,4 @@ public class RegisteredClientTokenLifetimes implements SignedTokenLifetimes {
         return Stream.concat(Stream.of(ID_TOKEN_TTL), accessTokens).max(Duration::compareTo).orElseThrow();
     }
 }
+// end::keys-token-lifetimes[]

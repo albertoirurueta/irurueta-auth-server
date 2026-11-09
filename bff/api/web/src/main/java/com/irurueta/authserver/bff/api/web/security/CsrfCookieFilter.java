@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+// tag::bff-csrf-cookie-filter[]
 /**
  * Makes the CSRF token reach the single page application. Spring Security loads the token lazily, so the
  * {@code XSRF-TOKEN} cookie would only be written when something reads the token; this filter reads it on every
@@ -43,3 +44,4 @@ final class CsrfCookieFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+// end::bff-csrf-cookie-filter[]

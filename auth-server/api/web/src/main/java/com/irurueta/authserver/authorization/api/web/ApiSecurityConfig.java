@@ -64,11 +64,13 @@ public class ApiSecurityConfig {
     /** Path pattern of the REST API. */
     public static final String API_PATTERN = "/api/**";
 
+    // tag::api-admin-scope[]
     /** Path pattern of the administration API. */
     public static final String ADMIN_PATTERN = "/api/admin/**";
 
     /** Scope that grants access to the administration API; a role alone never does. */
     public static final String ADMIN_SCOPE_AUTHORITY = "SCOPE_admin";
+    // end::api-admin-scope[]
 
     /** Property that holds the audience a token must carry to call the API. */
     public static final String API_AUDIENCE_PROPERTY = "authserver.api.audience";
@@ -128,8 +130,10 @@ public class ApiSecurityConfig {
         final var decoder = NimbusJwtDecoder.withJwkSource(jwkSource).jwsAlgorithm(SignatureAlgorithm.RS256).build();
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(List.<OAuth2TokenValidator<Jwt>>of(
                 JwtValidators.createDefaultWithIssuer(issuer),
+                // tag::api-admin-scope[]
                 new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
                         audiences -> audiences != null && audiences.contains(audience)),
+                // end::api-admin-scope[]
                 ApiSecurityConfig::rejectPurposeBoundToken)));
         return decoder;
     }

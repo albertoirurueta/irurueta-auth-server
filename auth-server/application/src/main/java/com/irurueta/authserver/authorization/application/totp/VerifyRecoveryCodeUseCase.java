@@ -33,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::totp-verify-recovery-code[]
 /**
  * Use case that accepts a recovery code as a second factor. A code works once. Every stored code is checked, with no
  * early exit, so the time taken does not reveal which one matched; failures count towards the lockout. A user without
@@ -105,3 +106,4 @@ public class VerifyRecoveryCodeUseCase {
         return false;
     }
 }
+// end::totp-verify-recovery-code[]

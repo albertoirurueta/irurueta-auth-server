@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+// tag::consent-model-mapper[]
 /**
  * Builds the {@link ConsentPageModel} from the registered client, the requested scopes and the scopes granted
  * earlier. Scope descriptions come from {@code messages.properties} ({@code consent.scope.<name>}); a scope without
@@ -84,3 +85,4 @@ public class ConsentPageModelMapper {
         return new ScopeView(scope, messageSource.getMessage(SCOPE_MESSAGE_PREFIX + scope, null, scope, locale));
     }
 }
+// end::consent-model-mapper[]

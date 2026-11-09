@@ -25,6 +25,7 @@ import java.util.OptionalLong;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+// tag::totp-algorithm[]
 /**
  * The time-based one-time password algorithm of RFC 6238 over HMAC-SHA1, with the parameters every authenticator
  * application supports: 30 second steps and 6 digits. It is pure and holds no state.
@@ -132,3 +133,4 @@ public class TotpAlgorithm {
         return matchingStep(secret, code, now, lastUsedStep).isPresent();
     }
 }
+// end::totp-algorithm[]

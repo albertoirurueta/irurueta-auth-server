@@ -180,6 +180,7 @@ class ConsentPageIT {
                 .andExpect(header().string("Location", containsString("state=" + STATE)));
     }
 
+    // tag::consent-page-it[]
     /**
      * Verifies that approving the scope returns the authorization code.
      *
@@ -192,4 +193,5 @@ class ConsentPageIT {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", containsString(AuthServerFixtures.REDIRECT_URI + "?code=")));
     }
+    // end::consent-page-it[]
 }

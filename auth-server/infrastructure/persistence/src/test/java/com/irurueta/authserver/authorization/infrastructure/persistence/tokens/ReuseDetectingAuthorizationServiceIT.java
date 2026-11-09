@@ -85,6 +85,7 @@ class ReuseDetectingAuthorizationServiceIT {
         jdbcClient.sql("DELETE FROM oauth2_authorization").update();
     }
 
+    // tag::tokens-reuse-detection-it[]
     /**
      * Verifies that rotating a refresh token records the old hash, that the new token keeps working, and that
      * presenting the old one revokes the authorization.
@@ -107,6 +108,7 @@ class ReuseDetectingAuthorizationServiceIT {
         assertNull(service.findById(original.getId()));
         assertNull(service.findByToken(newToken.getTokenValue(), OAuth2TokenType.REFRESH_TOKEN));
     }
+    // end::tokens-reuse-detection-it[]
 
     /**
      * Verifies that saving an authorization without rotating its refresh token records nothing.

@@ -20,6 +20,7 @@ import static com.irurueta.authserver.authorization.domain.Preconditions.require
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+// tag::totp-uri[]
 /**
  * Builds the {@code otpauth://} URI that authenticator applications read from a QR code to enrol a secret.
  */
@@ -62,3 +63,4 @@ public final class TotpUri {
         return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }
+// end::totp-uri[]

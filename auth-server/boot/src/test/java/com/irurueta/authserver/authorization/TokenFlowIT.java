@@ -159,6 +159,7 @@ class TokenFlowIT {
         assertEquals(1, authorizationCount(user.username()));
     }
 
+    // tag::tokens-reuse-it[]
     /**
      * Verifies that presenting a rotated refresh token again fails and revokes the whole authorization, so the
      * legitimate new refresh token stops working too.
@@ -178,6 +179,7 @@ class TokenFlowIT {
         assertEquals(0, authorizationCount(user.username()));
         refresh(client, current).andExpectBadRequest();
     }
+    // end::tokens-reuse-it[]
 
     /**
      * Verifies that a revoked access token is introspected as inactive.

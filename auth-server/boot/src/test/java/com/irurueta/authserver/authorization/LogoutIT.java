@@ -115,6 +115,7 @@ class LogoutIT {
                 .andExpect(content().string(containsString("name=\"_csrf\"")));
     }
 
+    // tag::logout-it[]
     /**
      * Verifies that posting to the logout endpoint invalidates the session and returns to the login page.
      *
@@ -128,6 +129,7 @@ class LogoutIT {
 
         assertTrue(session.isInvalid());
     }
+    // end::logout-it[]
 
     /**
      * Verifies that a logout without the CSRF token is refused and keeps the session.

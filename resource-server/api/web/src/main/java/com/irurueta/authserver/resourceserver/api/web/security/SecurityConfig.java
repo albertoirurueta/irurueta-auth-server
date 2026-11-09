@@ -191,11 +191,13 @@ public class SecurityConfig {
      * @param stepUp requires a recent strong authentication to delete.
      */
     private static void authorize(final HttpSecurity http, final StepUpAuthorizationManager stepUp) {
+        // tag::resource-server-authorize[]
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/actuator/health/**", OpenApiConfig.API_DOCS_PATH + "/**").permitAll()
                 .requestMatchers(HttpMethod.GET, DocumentController.PATH).hasAuthority(READ_AUTHORITY)
                 .requestMatchers(HttpMethod.DELETE, DOCUMENT_PATH).access(stepUp)
                 .anyRequest().authenticated());
+        // end::resource-server-authorize[]
     }
 
     /**

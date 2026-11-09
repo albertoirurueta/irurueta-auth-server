@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// tag::account-change-password[]
 /**
  * Use case that lets a signed-in user choose a new password. Every token of the user is revoked afterwards, in the
  * same transaction as the password update, so a failed revocation never leaves the new password with the old tokens.
@@ -77,3 +78,4 @@ public class ChangePasswordUseCase {
         revokeUserAuthorizationsUseCase.execute(account.username());
     }
 }
+// end::account-change-password[]
