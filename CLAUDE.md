@@ -686,8 +686,11 @@ comment syntax follows the file type: `// tag::x[]` in Java, `-- tag::x[]` in SQ
 `<!-- tag::x[] -->` in HTML/XML. Antora includes them with
 `include::irurueta-auth-server::example$<module-path>/src/...[tag=x]`, where `<module-path>` is the module's directory
 from the repository root (for example `auth-server/api/web`). The Antora Collector copies each module's `src/**`
-(plus the root `pom.xml` and `compose.yaml`) into the `example$` family; `docs/antora.yml` holds one scan per module,
-so a new module needs a new scan there.
+(plus the module's own `pom.xml` for the modules whose scan says `'{pom.xml,src/**}'`, the root `pom.xml` and
+`compose.yaml`, and the `build.yml` and `docs.yml` workflows under `.github/workflows/`) into the `example$` family, so
+a pom is included as `example$<module-path>/pom.xml[tag=x]`, `compose.yaml` as `example$compose.yaml[tag=x]` and a
+workflow as `example$.github/workflows/build.yml[tag=x]`; `docs/antora.yml` holds one scan per module, so a new module
+needs a new scan there, with `'{pom.xml,src/**}'` when its pom carries tagged regions.
 
 ## Testing
 

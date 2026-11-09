@@ -33,6 +33,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # tag::setup-ci-build-job[]
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -85,3 +86,4 @@ jobs:
             **/target/spotbugsXml.xml
           if-no-files-found: ignore
           retention-days: 14
+  # end::setup-ci-build-job[]

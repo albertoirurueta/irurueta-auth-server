@@ -38,6 +38,7 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>auth-server-application</artifactId>
     </dependency>
+    <!-- tag::setup-auth-server-api-web-starters[] -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
@@ -65,6 +66,7 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
+    <!-- end::setup-auth-server-api-web-starters[] -->
     <dependency>
       <!-- passkeys (WebAuthn): WebAuthnConfigurer support, filters and the WebAuthn4J based operations; brings
            webauthn4j-core transitively at the version Spring Security 7.1 was built against -->

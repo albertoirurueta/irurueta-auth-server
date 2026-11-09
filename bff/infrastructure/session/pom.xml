@@ -30,6 +30,7 @@
   <description>Session persistence adapter of the BFF: the HTTP session (and with it the OAuth2 tokens of the user) stored in PostgreSQL by Spring Session JDBC, its hardened cookie and the Flyway migration of its schema.</description>
 
   <dependencies>
+    <!-- tag::setup-bff-session-starters[] -->
     <!-- HTTP session store: Spring Session JDBC (spring-session-jdbc comes in through the Boot starter, which also
          auto-configures it from the spring.session.* properties) on the bff database -->
     <dependency>
@@ -53,6 +54,7 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- end::setup-bff-session-starters[] -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

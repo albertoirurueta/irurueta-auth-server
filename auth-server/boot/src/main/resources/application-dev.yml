@@ -14,17 +14,26 @@
 
 # Development profile: services come from the root compose.yaml through spring-boot-docker-compose, which also
 # supplies the datasource connection details (PostgreSQL).
+# The mail relay alone is included with tags=setup-auth-server-dev-spring;setup-auth-server-dev-mail: the
+# setup-auth-server-dev-spring region holds only the parent key, so the compose settings stay out of it.
+# tag::setup-auth-server-dev-compose[]
+# tag::setup-auth-server-dev-spring[]
 spring:
+# end::setup-auth-server-dev-spring[]
   docker:
     compose:
       enabled: true
       file: ../../compose.yaml
       lifecycle-management: start_and_stop
+# end::setup-auth-server-dev-compose[]
+# tag::setup-auth-server-dev-mail[]
   mail:
     host: localhost
     port: 1025
+# end::setup-auth-server-dev-mail[]
 
 # Local redirect URIs of the default clients: the BFF on port 8080 and a single-page application on port 3000.
+# tag::setup-auth-server-dev-seed[]
 authserver:
   clients:
     bff:
@@ -33,3 +42,4 @@ authserver:
     spa-public:
       redirect-uris: http://localhost:3000/callback
       post-logout-redirect-uris: http://localhost:3000/
+# end::setup-auth-server-dev-seed[]

@@ -142,6 +142,7 @@ public class DevDataInitializer implements ApplicationRunner {
         if (exists) {
             return;
         }
+        // tag::setup-demo-user[]
         final var password = generateSecret();
         final var id = UUID.randomUUID();
         jdbc.sql("INSERT INTO users (id, username) VALUES (?, ?)").params(id, DEMO_USERNAME).update();
@@ -149,6 +150,7 @@ public class DevDataInitializer implements ApplicationRunner {
                 .params(id, "ROLE_USER").update();
         jdbc.sql("INSERT INTO user_passwords (user_id, encoded_password) VALUES (?, ?)")
                 .params(id, encoder.encode(password)).update();
+        // end::setup-demo-user[]
         log.warn("DEV ONLY, never use outside local development: created demo user '{}' with generated password: {}",
                 DEMO_USERNAME, password);
     }
