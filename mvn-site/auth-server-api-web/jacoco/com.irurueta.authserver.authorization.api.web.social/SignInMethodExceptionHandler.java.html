@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SignInMethodExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">SignInMethodExceptionHandler.java</span></div><h1>SignInMethodExceptionHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.social;
+
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException;
+import com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler;
+import com.irurueta.authserver.authorization.domain.social.LastSignInMethodException;
+import java.net.URI;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+/**
+ * Base of the exception handlers of the APIs that remove a sign-in method of the account (the linked identities, the
+ * bound certificates): both refuse to remove the last way to sign in and both need a recent multi-factor sign-in, so
+ * both answer those failures the same way. The step-up challenge is the one the rest of the account API gives
+ * ({@link MfaExceptionHandler}), so a client handles the same {@code 401} everywhere. Each subclass is the
+ * {@code @RestControllerAdvice} of its own API and names the base of its problem types.
+ */
+public abstract class SignInMethodExceptionHandler extends ProblemJsonExceptionHandler {
+
+    /** Base of the problem type URNs of the API, for example {@code urn:problem:identity:}. */
+    private final String typeBase;
+
+    /** Builds the step-up challenge. */
+    private final MfaExceptionHandler mfaExceptionHandler;
+
+    /**
+     * Creates the handler.
+     *
+     * @param typeBase            base of the problem type URNs of the API.
+     * @param mfaExceptionHandler builds the step-up challenge.
+     */
+<span class="fc" id="L49">    protected SignInMethodExceptionHandler(final String typeBase, final MfaExceptionHandler mfaExceptionHandler) {</span>
+<span class="fc" id="L50">        this.typeBase = typeBase;</span>
+<span class="fc" id="L51">        this.mfaExceptionHandler = mfaExceptionHandler;</span>
+<span class="fc" id="L52">    }</span>
+
+    /**
+     * Answers a sign-in method that is the last way to sign in to the account.
+     *
+     * @param exception the failure.
+     * @return the {@code 409} problem detail.
+     */
+    @ExceptionHandler(LastSignInMethodException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleLastSignInMethod(final LastSignInMethodException exception) {
+<span class="fc" id="L62">        return respond(HttpStatus.CONFLICT, &quot;last-sign-in-method&quot;, &quot;Last sign-in method&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a token whose sign-in is not recent or strong enough: {@code 401} with the RFC 9470 challenge.
+     *
+     * @param exception the failure.
+     * @return the {@code 401} problem detail with the {@code WWW-Authenticate} challenge.
+     */
+    @ExceptionHandler(InsufficientUserAuthenticationException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInsufficientUserAuthentication(
+            final InsufficientUserAuthenticationException exception) {
+<span class="fc" id="L74">        return mfaExceptionHandler.handleInsufficientUserAuthentication(exception);</span>
+    }
+
+    /**
+     * Builds a problem response whose type is below the base of the API.
+     *
+     * @param status HTTP status.
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the response.
+     */
+    protected ResponseEntity&lt;ProblemDetail&gt; respond(
+            final HttpStatus status, final String type, final String title, final String detail) {
+<span class="fc" id="L88">        final var problem = ProblemDetail.forStatusAndDetail(status, detail);</span>
+<span class="fc" id="L89">        problem.setType(URI.create(typeBase + type));</span>
+<span class="fc" id="L90">        problem.setTitle(title);</span>
+<span class="fc" id="L91">        return problemResponse(problem);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

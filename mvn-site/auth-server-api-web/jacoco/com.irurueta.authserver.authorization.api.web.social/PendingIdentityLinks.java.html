@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PendingIdentityLinks.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">PendingIdentityLinks.java</span></div><h1>PendingIdentityLinks.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.social;
+
+import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+// tag::social-pending-link[]
+/**
+ * Keeps the link marker ({@link PendingIdentityLink}) of the explicit link flow: the identities page records it in the
+ * session before sending the browser to the provider, and the user services consume it when the provider sends the
+ * user back. The marker is used once and only within {@link #LIFETIME}, only for the provider it names and only while
+ * the session is still signed in as the account that asked; otherwise the sign-in goes on as an ordinary one. When
+ * the marker is consumed, the authentication of the session is kept in a request attribute, so the success handler can
+ * put it back: linking never switches the session to another principal.
+ */
+@Component
+@RequiredArgsConstructor
+public class PendingIdentityLinks {
+
+    /** How long a link marker stays usable. */
+<span class="fc" id="L47">    public static final Duration LIFETIME = Duration.ofMinutes(5);</span>
+
+    /** Session attribute of the marker. */
+<span class="fc" id="L50">    static final String SESSION_ATTRIBUTE = PendingIdentityLinks.class.getName() + &quot;.PENDING&quot;;</span>
+
+    /** Request attribute of the authentication the session had when the marker was consumed. */
+<span class="fc" id="L53">    static final String LINKED_ATTRIBUTE = PendingIdentityLinks.class.getName() + &quot;.LINKED&quot;;</span>
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Records that the next sign-in with a provider links its identity to the signed-in account.
+     *
+     * @param session  the session of the signed-in user.
+     * @param provider the provider of the identity to link.
+     * @param userId   identifier of the signed-in account.
+     * @param username name of the signed-in account.
+     */
+    public void begin(final HttpSession session, final IdentityProvider provider, final UUID userId,
+                      final String username) {
+<span class="fc" id="L68">        session.setAttribute(SESSION_ATTRIBUTE,</span>
+<span class="fc" id="L69">                new PendingIdentityLink(provider.id(), userId, username, clock.instant().plus(LIFETIME)));</span>
+<span class="fc" id="L70">    }</span>
+
+    /**
+     * Consumes the marker of the current request, if it is usable for a sign-in with a provider. The marker is removed
+     * whether or not it is usable.
+     *
+     * @param provider the provider the user just signed in with.
+     * @return the marker, or empty when there is none, it expired, it names another provider or the session is no
+     *         longer signed in as the account that asked.
+     */
+    public Optional&lt;PendingIdentityLink&gt; consume(final IdentityProvider provider) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (!(RequestContextHolder.getRequestAttributes() instanceof final ServletRequestAttributes attributes)) {</span>
+<span class="fc" id="L82">            return Optional.empty();</span>
+        }
+<span class="fc" id="L84">        final var request = attributes.getRequest();</span>
+<span class="fc" id="L85">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L86" title="All 4 branches covered.">        if (session == null || !(session.getAttribute(SESSION_ATTRIBUTE) instanceof final PendingIdentityLink link)) {</span>
+<span class="fc" id="L87">            return Optional.empty();</span>
+        }
+<span class="fc" id="L89">        session.removeAttribute(SESSION_ATTRIBUTE);</span>
+<span class="fc" id="L90">        final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L91" title="All 4 branches covered.">        if (!provider.id().equals(link.providerId()) || clock.instant().isAfter(link.expiresAt())</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">                || !MfaAuthorizationManager.isUser(current) || !link.username().equals(current.getName())) {</span>
+<span class="fc" id="L93">            return Optional.empty();</span>
+        }
+<span class="fc" id="L95">        request.setAttribute(LINKED_ATTRIBUTE, current);</span>
+<span class="fc" id="L96">        return Optional.of(link);</span>
+    }
+
+    /**
+     * Finds the authentication a request had when it linked an identity.
+     *
+     * @param request the request of the provider's answer.
+     * @return the authentication to keep, or empty when the request was not a link.
+     */
+    public Optional&lt;Authentication&gt; linkedBy(final HttpServletRequest request) {
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        return request.getAttribute(LINKED_ATTRIBUTE) instanceof final Authentication authentication</span>
+<span class="fc" id="L107">                ? Optional.of(authentication) : Optional.empty();</span>
+    }
+}
+// end::social-pending-link[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

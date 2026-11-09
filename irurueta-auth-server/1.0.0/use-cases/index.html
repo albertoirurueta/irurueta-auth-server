@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Use cases :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/index.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Use cases</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The pages in this section walk through each OAuth 2.0 / OpenID Connect flow the example implements, step by step.
+Each page names the actors and the clients involved, what must be configured first, the endpoints, the tokens and
+claims it returns and the tests that exercise it, and shows the exchange as Mermaid sequence diagrams (with a
+flowchart where the flow branches). Each one links to the official specification and to the matching page of the
+<a href="https://www.irurueta.com/backend/oauth/index.html">OAuth Reference</a> in the Irurueta Docs site, which explains the protocol itself; these pages
+explain how this example implements it.</p>
+</div>
+<div class="paragraph">
+<p>A <strong>use case</strong> here is a protocol flow, not one of the <code>*UseCase</code> classes of the <code>application</code> modules: one flow
+usually runs several of them.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_which_flow_for_which_client"><a class="anchor" href="#_which_flow_for_which_client"></a>Which flow for which client</h2>
+<div class="sectionbody">
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["Who needs a token?"]) --> User{"Is a user present?"}
+  User -- "yes" --> Browser{"Does the client run in a browser?"}
+  Browser -- "yes, behind a backend" --> BFF["Authorization code + PKCE through the BFF"]
+  Browser -- "yes, JavaScript only" --> SPA["Authorization code + PKCE, public client"]
+  Browser -- "no keyboard or browser" --> Device["Device authorization grant"]
+  User -- "no, a service" --> Own{"Acting for itself?"}
+  Own -- "yes" --> CC["Client credentials"]
+  Own -- "no, on behalf of a user" --> TE["Token exchange"]</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_flows"><a class="anchor" href="#_flows"></a>Flows</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 40%;">
+<col style="width: 30%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Use case</th>
+<th class="tableblock halign-left valign-top">Specification</th>
+<th class="tableblock halign-left valign-top">OAuth Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="authorization-code-bff.html" class="xref page">Authorization code + PKCE through the BFF</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.1">RFC 6749 §4.1</a>, <a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/authorization-code-and-pkce.html">Authorization Code &amp; PKCE</a>,
+<a href="https://www.irurueta.com/backend/oauth/browser-based-apps.html">Browser-Based Apps</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="authorization-code-public-spa.html" class="xref page">Authorization code + PKCE for a public client</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.1">RFC 6749 §4.1</a>, <a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/browser-based-apps.html">Browser-Based Apps</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6238">RFC 6238</a>, <a href="https://www.w3.org/TR/webauthn-3/">WebAuthn</a>,
+<a href="https://www.rfc-editor.org/rfc/rfc8176">RFC 8176</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/authentication-methods-2fa-and-passwordless.html">Authentication Methods: Passwordless &amp; 2FA</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="step-up.html" class="xref page">Step-up authentication</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc9470">RFC 9470</a>,
+<a href="https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest">OIDC Core §3.1.2.1</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/authentication-methods-2fa-and-passwordless.html">Authentication Methods: Passwordless &amp; 2FA</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="social-login-federation.html" class="xref page">Social login and identity brokering</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/social-login-and-federation.html">Social Login &amp; Federation</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="openid-connect.html" class="xref page">OpenID Connect: ID token, UserInfo, discovery and JWKS</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://openid.net/specs/openid-connect-core-1_0.html">OIDC Core</a>,
+<a href="https://openid.net/specs/openid-connect-discovery-1_0.html">OIDC Discovery</a>,
+<a href="https://www.rfc-editor.org/rfc/rfc8414">RFC 8414</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/openid-connect.html">OpenID Connect</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="refresh-token-rotation.html" class="xref page">Refresh token rotation and reuse detection</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6749#section-6">RFC 6749 §6</a>, <a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/access-and-refresh-tokens.html">Access &amp; Refresh Tokens</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="logout.html" class="xref page">Logout</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html">OIDC RP-Initiated Logout</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/logout-and-session-management.html">Logout &amp; Session Management</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="pushed-authorization-requests.html" class="xref page">Pushed authorization requests</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc9126">RFC 9126</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/par-jar-and-hardened-profiles.html">PAR, JAR &amp; Hardened Profiles</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="legacy-implicit.html" class="xref page">Legacy implicit flow (demo only)</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.2">RFC 6749 §4.2</a>, <a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/legacy-implicit-and-password-grants.html">Legacy Grants: Implicit &amp; Password</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="client-credentials.html" class="xref page">Client credentials</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.4">RFC 6749 §4.4</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/client-credentials-and-client-authentication.html">Client Credentials &amp; Client Authentication</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="client-authentication.html" class="xref page">Client authentication</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc7523">RFC 7523</a>, <a href="https://www.rfc-editor.org/rfc/rfc8705">RFC 8705</a>,
+<a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">OIDC Core §9</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/client-credentials-and-client-authentication.html">Client Credentials &amp; Client Authentication</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="sender-constrained-tokens.html" class="xref page">Sender-constrained tokens: DPoP and mTLS</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc9449">RFC 9449</a>, <a href="https://www.rfc-editor.org/rfc/rfc8705#section-3">RFC 8705 §3</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/sender-constrained-tokens-dpop-and-mtls.html">Sender-Constrained Tokens: DPoP &amp; mTLS</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="token-exchange.html" class="xref page">Token exchange</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc8693">RFC 8693</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/token-exchange-and-assertion-grants.html">Token Exchange &amp; Assertion Grants</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="device-authorization.html" class="xref page">Device authorization grant</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc8628">RFC 8628</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/device-authorization-grant.html">Device Authorization Grant</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="dynamic-client-registration.html" class="xref page">Dynamic client registration</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://openid.net/specs/openid-connect-registration-1_0.html">OIDC Dynamic Registration</a>,
+<a href="https://www.rfc-editor.org/rfc/rfc7591">RFC 7591</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/discovery-metadata-and-client-registration.html">Discovery, Metadata &amp; Client Registration</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="resource-server-token-validation.html" class="xref page">Token validation at the resource server</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.rfc-editor.org/rfc/rfc6750">RFC 6750</a>, <a href="https://www.rfc-editor.org/rfc/rfc7662">RFC 7662</a>,
+<a href="https://www.rfc-editor.org/rfc/rfc7009">RFC 7009</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://www.irurueta.com/backend/oauth/opaque-tokens-introspection-and-revocation.html">Opaque Tokens, Introspection &amp; Revocation</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The password, passkey, one-time code, social and certificate sign-ins are not OAuth grants: they are how the user
+authenticates inside the authorization code flow, between the authorization request and the code being issued, and
+are described together in <a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a>. The feature pages (for example
+<a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a> or <a href="../x509.html" class="xref page">X.509 client certificates</a>) describe how each piece is built.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

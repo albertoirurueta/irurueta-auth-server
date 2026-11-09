@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Client authentication :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Services and devices</li>
+    <li><a href="client-authentication.html">Client authentication</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/client-authentication.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Client authentication</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A confidential client proves its identity at the token endpoint (and at the introspection, revocation and PAR
+endpoints) with one of the methods it is registered for. This server supports a shared secret (<code>client_secret_basic</code>,
+also <code>client_secret_post</code>), a signed JWT assertion (<code>private_key_jwt</code>) and mutual TLS with a certificate issued by a
+trusted authority (<code>tls_client_auth</code>) or a self-signed one (<code>self_signed_tls_client_auth</code>). Spring Authorization Server
+provides the methods; this repository adds a replay store and lifetime cap for assertions, registered JWK sets, and the
+PKIX trust decision for mutual TLS.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: a confidential client (here <code>service-client</code>), <code>auth-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: any client registered through <code>POST /api/admin/clients</code> with <code>authMethods</code> set. Only a client with a
+<code>client_secret_*</code> method gets a generated secret.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>private_key_jwt</code>: <code>jwks</code> (public keys only, else <code>400 invalid-jwks</code>) or <code>jwkSetUrl</code>, and
+<code>tokenEndpointAuthSigningAlgorithm</code>; <code>authserver.client-assertion.max-lifetime</code> (default <code>PT5M</code>).</p>
+</li>
+<li>
+<p><code>tls_client_auth</code>: <code>tlsClientAuthSubjectDn</code>; <code>authserver.mtls.trusted-authorities</code> (empty by default, which refuses
+the method); the TLS connector of the server (<code>authserver.x509.enabled=true</code> and <code>authserver.x509.port</code>).</p>
+</li>
+<li>
+<p><code>self_signed_tls_client_auth</code>: <code>jwks</code> holding the certificate&#8217;s public key, or <code>jwkSetUrl</code>; the same TLS connector.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>POST /oauth2/token</code> (and the other client-authenticated protocol endpoints:
+<code>/oauth2/introspect</code>, <code>/oauth2/revoke</code>, <code>/oauth2/par</code>), on the TLS port for the mutual TLS methods.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client sends a token request. Spring Authorization Server&#8217;s client authentication filter tries its converters in
+turn: HTTP Basic header (<code>client_secret_basic</code>), <code>client_secret</code> form parameter (<code>client_secret_post</code>),
+<code>client_assertion</code> plus <code>client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer</code>
+(<code>private_key_jwt</code> and <code>client_secret_jwt</code>), or a TLS client certificate on the connection (mutual TLS methods).</p>
+</li>
+<li>
+<p>The client is loaded by <code>client_id</code> and the method used must be one it is registered for, else <code>401 invalid_client</code>.</p>
+</li>
+<li>
+<p><code>ClientAuthProtocolChainCustomizer</code> (a <code>ProtocolChainCustomizer</code>, order 3, declared by <code>ClientAuthConfiguration</code>)
+replaces two pieces of the framework providers, with no edit of <code>SecurityConfig</code>:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>on <code>JwtClientAssertionAuthenticationProvider</code> it sets <code>RegisteredJwksClientAssertionDecoderFactory</code> as the JWT decoder
+factory;</p>
+</li>
+<li>
+<p>on <code>X509ClientCertificateAuthenticationProvider</code> it sets <code>ClientCertificateVerifier</code> as the certificate verifier.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p><strong>client_secret_basic</strong>: the secret is compared with the stored hash. <code>service-client</code> sends it from
+<code>SERVICE_CLIENT_SECRET</code>.</p>
+</li>
+<li>
+<p><strong>private_key_jwt</strong>:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p><code>RegisteredJwksClientAssertionDecoderFactory</code> builds (and caches with Caffeine) a decoder per client. With a registered
+JWK set (client setting <code>settings.client.jwks</code>) it verifies the signature with those keys and the registered
+algorithm; otherwise it falls back to the framework&#8217;s <code>JwtClientAssertionDecoderFactory</code>, which reads <code>jwkSetUrl</code>.</p>
+</li>
+<li>
+<p>The framework&#8217;s default validators check <code>iss</code> and <code>sub</code> (the client id), <code>aud</code> (the server) and the timestamps.</p>
+</li>
+<li>
+<p><code>ReplayRejectingJwtValidator</code> then requires <code>jti</code>, <code>iat</code> and <code>exp</code>, refuses an <code>iat</code> in the future, refuses a lifetime
+(<code>exp - iat</code>) above <code>authserver.client-assertion.max-lifetime</code>, and registers <code>(client_id, jti)</code> through
+<code>RegisterClientAssertionUseCase</code> and the port <code>ClientAssertionReplayRegistry</code> (<code>JdbcClientAssertionReplayRegistry</code>,
+table <code>client_assertion_jtis</code>, <code>INSERT &#8230;&#8203; ON CONFLICT DO NOTHING</code>). A second use of the same <code>jti</code> is
+<code>401 invalid_client</code>.</p>
+</li>
+<li>
+<p><code>ClientAssertionCleanupJob</code> deletes expired rows on <code>authserver.client-assertion.cleanup.cron</code> (default
+<code>0 30 * * * *</code>).</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p><strong>tls_client_auth</strong>: <code>ClientCertificateVerifier</code> validates the presented chain by PKIX against the anchors read from
+<code>authserver.mtls.trusted-authorities</code> (<code>MtlsTrustAnchors</code>, revocation checking off), refuses a leaf that is itself an
+anchor, then compares the leaf&#8217;s subject DN with the registered <code>tlsClientAuthSubjectDn</code>. The TLS port accepts any
+chain (<code>AnyClientCertificateTrustManager</code>), so this check is the trust decision.</p>
+</li>
+<li>
+<p><strong>self_signed_tls_client_auth</strong>: the leaf must be self-issued and its public key must equal a key of the registered JWK
+set; otherwise the framework&#8217;s provider is asked, which pins it through <code>jwkSetUrl</code> (<code>x5c</code>).</p>
+</li>
+<li>
+<p>Every failure answers <code>401</code> with <code>error=invalid_client</code>. On success the token request continues with its grant.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Installs {@code private_key_jwt} with replay protection and the mutual-TLS client authentication in the protocol
+ * chain: the framework's assertion provider decodes with {@link RegisteredJwksClientAssertionDecoderFactory}, and its
+ * certificate provider verifies with {@link ClientCertificateVerifier}. The server metadata (the OpenID provider
+ * configuration and the OAuth 2.0 authorization server metadata) also advertises {@code mtls_endpoint_aliases}.
+ */
+@RequiredArgsConstructor
+public class ClientAuthProtocolChainCustomizer implements ProtocolChainCustomizer {
+
+    /** Order of the customizer: after the multi-factor, step-up and device ones. */
+    public static final int ORDER = 3;
+
+    /** Creates the decoders of the client assertions. */
+    private final RegisteredJwksClientAssertionDecoderFactory decoderFactory;
+
+    /** Verifies the client certificates. */
+    private final ClientCertificateVerifier certificateVerifier;
+
+    /** Builds the {@code mtls_endpoint_aliases} claim. */
+    private final MtlsEndpointAliases endpointAliases;
+
+    /**
+     * Customizes the client authentication and the metadata.
+     *
+     * @param server configurer of the authorization server.
+     */
+    @Override
+    public void customize(final OAuth2AuthorizationServerConfigurer server) {
+        server.clientAuthentication(client -&gt; client.authenticationProviders(this::configure));
+        server.authorizationServerMetadataEndpoint(metadata -&gt; metadata.authorizationServerMetadataCustomizer(
+                builder -&gt; endpointAliases.contribute(builder::claim)));
+        server.oidc(oidc -&gt; oidc.providerConfigurationEndpoint(configuration -&gt;
+                configuration.providerConfigurationCustomizer(builder -&gt; endpointAliases.contribute(builder::claim))));
+    }
+
+    /**
+     * Sets the decoder factory and the certificate verifier on the framework's providers.
+     *
+     * @param providers the providers of the client authentication.
+     */
+    private void configure(final List&lt;AuthenticationProvider&gt; providers) {
+        for (final var provider : providers) {
+            if (provider instanceof JwtClientAssertionAuthenticationProvider assertions) {
+                assertions.setJwtDecoderFactory(decoderFactory);
+            } else if (provider instanceof X509ClientCertificateAuthenticationProvider certificates) {
+                certificates.setCertificateVerifier(certificateVerifier);
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Validates what the framework's default assertion validators leave out: the assertion must carry a {@code jti}, an
+ * {@code iat} no later than now (within the same clock skew the framework's timestamp validator allows) and an
+ * {@code exp} no more than the configured maximum lifetime after it, so a future {@code iat} cannot stretch the
+ * window, and its {@code jti} must not
+ * have been used before by the same client (RFC 7523, section 3). The use is recorded last, only for an assertion
+ * that passed the other checks, so a refused assertion never consumes its identifier. The record is made through
+ * {@link RegisterClientAssertionUseCase}, so the replay protection is shared by every instance of the server.
+ */
+@RequiredArgsConstructor
+public class ReplayRejectingJwtValidator implements OAuth2TokenValidator&lt;Jwt&gt; {
+
+    /** Description of the failures. */
+    private static final String DESCRIPTION_PREFIX = "The client assertion ";
+
+    /** Clock skew tolerated for {@code iat}, the default of the framework's {@code JwtTimestampValidator}. */
+    private static final Duration CLOCK_SKEW = Duration.ofSeconds(60);
+
+    /** Remembers the assertions that were accepted. */
+    private final RegisterClientAssertionUseCase registerClientAssertion;
+
+    /** Settings of the client assertions, for the longest lifetime. */
+    private final ClientAssertionProperties properties;
+
+    /** Source of the current instant. */
+    private final Clock clock;
+
+    /**
+     * Checks the assertion and records its use.
+     *
+     * @param jwt the assertion, already verified for signature, issuer, subject, audience and expiry.
+     * @return success, or a failure when the {@code jti}, {@code iat} or {@code exp} is missing, {@code iat} is in
+     *         the future, the lifetime is
+     *         longer than allowed or the {@code jti} was already used.
+     */
+    @Override
+    public OAuth2TokenValidatorResult validate(final Jwt jwt) {
+        if (!StringUtils.hasText(jwt.getId())) {
+            return failure("must have a jti");
+        }
+        final var issuedAt = jwt.getIssuedAt();
+        final var expiresAt = jwt.getExpiresAt();
+        if (issuedAt == null) {
+            return failure("must have an iat");
+        }
+        if (expiresAt == null) {
+            return failure("must have an exp");
+        }
+        if (issuedAt.isAfter(clock.instant().plus(CLOCK_SKEW))) {
+            return failure("is issued in the future");
+        }
+        final var maxLifetime = properties.maxLifetime();
+        if (Duration.between(issuedAt, expiresAt).compareTo(maxLifetime) &gt; 0) {
+            return failure("lives longer than " + maxLifetime);
+        }
+        final var clientId = jwt.getSubject();
+        if (!StringUtils.hasText(clientId)) {
+            return failure("must have a sub");
+        }
+        if (!registerClientAssertion.execute(new ClientAssertionUse(clientId, jwt.getId(), expiresAt))) {
+            return failure("was already used");
+        }
+        return OAuth2TokenValidatorResult.success();
+    }
+
+    /**
+     * Builds a failure.
+     *
+     * @param reason what is wrong with the assertion.
+     * @return the failed result.
+     */
+    private static OAuth2TokenValidatorResult failure(final String reason) {
+        return OAuth2TokenValidatorResult.failure(
+                new OAuth2Error(OAuth2ErrorCodes.INVALID_CLIENT, DESCRIPTION_PREFIX + reason, null));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- One row per client assertion (private_key_jwt) already accepted, so the same assertion cannot be presented twice
+-- (RFC 7523 section 3 allows an authorization server to refuse a replayed jti). A row is useful only until the
+-- assertion expires and is purged afterwards.
+CREATE TABLE client_assertion_jtis
+(
+    client_id  varchar(100)             NOT NULL,
+    jti        varchar(255)             NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    PRIMARY KEY (client_id, jti)
+);
+
+CREATE INDEX ix_client_assertion_jtis_expires_at ON client_assertion_jtis (expires_at);</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_choosing_and_validating_the_method"><a class="anchor" href="#_choosing_and_validating_the_method"></a>Choosing and validating the method</h3>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  R[Token request] --> Q{"What does it carry?"}
+  Q -- "Basic header" --> SB["client_secret_basic: compare secret hash"]
+  Q -- "client_assertion" --> PK["private_key_jwt"]
+  Q -- "TLS client certificate" --> CM{"Registered method?"}
+  PK --> K{"Registered jwks?"}
+  K -- Yes --> K1[Verify with registered keys and algorithm]
+  K -- No --> K2["Verify with jwkSetUrl (framework factory)"]
+  K1 --> V["Default checks: iss, sub, aud, exp"]
+  K2 --> V
+  V --> RP{"jti and iat present, lifetime within max-lifetime?"}
+  RP -- No --> X["401 invalid_client"]
+  RP -- Yes --> J{"(client_id, jti) new?"}
+  J -- No --> X
+  J -- Yes --> OK[Client authenticated]
+  CM -- tls_client_auth --> T{"Trusted authorities configured?"}
+  T -- No --> X
+  T -- Yes --> P{"PKIX path valid and subject DN matches?"}
+  P -- No --> X
+  P -- Yes --> OK
+  CM -- self_signed_tls_client_auth --> S{"Self-issued and key in registered jwks?"}
+  S -- Yes --> OK
+  S -- No --> F{"Framework pins it through jwkSetUrl?"}
+  F -- Yes --> OK
+  F -- No --> X
+  SB -- match --> OK
+  SB -- mismatch --> X</div></div>
+</div>
+<div class="sect2">
+<h3 id="_a_private_key_jwt_token_request"><a class="anchor" href="#_a_private_key_jwt_token_request"></a>A private_key_jwt token request</h3>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant S as service-client
+  participant A as auth-server
+  participant D as RegisteredJwksClientAssertionDecoderFactory
+  participant V as ReplayRejectingJwtValidator
+  participant DB as client_assertion_jtis
+  S->>S: sign assertion iss=sub=client_id, aud, jti, iat, exp with private key
+  S->>A: POST /oauth2/token grant_type=client_credentials, client_assertion_type, client_assertion
+  A->>A: load client, check private_key_jwt is registered
+  A->>D: decoder for client
+  D-->>A: decoder over registered jwks or jwkSetUrl
+  A->>A: verify signature and default claims
+  A->>V: validate assertion
+  V->>V: require jti, iat, exp and exp minus iat within max-lifetime
+  V->>DB: INSERT client_id, jti, expires ON CONFLICT DO NOTHING
+  alt row inserted
+    DB-->>V: new
+    V-->>A: valid
+    A-->>S: 200 access token
+  else jti already used
+    DB-->>V: conflict
+    V-->>A: invalid_client
+    A-->>S: 401 invalid_client
+  end</div></div>
+<div class="paragraph">
+<p>On the client side, <code>service-client</code> with <code>SERVICE_CLIENT_AUTH_METHOD=private_key_jwt</code> reads an unencrypted PKCS#8 PEM key
+from <code>SERVICE_CLIENT_PRIVATE_KEY</code> or <code>service-client.auth.key.private-key-path</code>; <code>PrivateKeyJwkResolver</code> hands it to
+Spring Security&#8217;s <code>NimbusJwtClientAuthenticationParametersConverter</code>, which <code>TokenEndpointClients</code> adds to the token
+request. For the mutual TLS methods <code>SERVICE_CLIENT_SSL_BUNDLE</code> names a <code>spring.ssl.bundle.*</code> entry with the client
+certificate (<code>SslRequestFactories</code>).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Reads the key and builds its JWK.
+     *
+     * @param registration the registration the assertion is for, which is not needed to choose the key.
+     * @return the signing JWK.
+     * @throws IllegalStateException if no key is configured or it cannot be read as an unencrypted PKCS#8 RSA key.
+     */
+    @Override
+    public JWK apply(final ClientRegistration registration) {
+        final var pem = readPem();
+        if (pem.contains(PKCS1_HEADER)) {
+            throw new IllegalStateException("The private key must be PKCS#8 (BEGIN PRIVATE KEY), not PKCS#1");
+        }
+        try {
+            final var der = Base64.getDecoder().decode(pem.replaceAll(PEM_MARKER, "").replaceAll("\\s", ""));
+            final var factory = KeyFactory.getInstance("RSA");
+            if (!(factory.generatePrivate(new PKCS8EncodedKeySpec(der)) instanceof RSAPrivateCrtKey privateKey)) {
+                throw new IllegalStateException("The private key is not an RSA private key with CRT parameters");
+            }
+            final var publicKey = (RSAPublicKey) factory.generatePublic(
+                    new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));
+            return new RSAKey.Builder(publicKey)
+                    .privateKey(privateKey)
+                    .keyUse(KeyUse.SIGNATURE)
+                    .algorithm(JWSAlgorithm.RS256)
+                    .keyID(properties.keyId())
+                    .build();
+        } catch (final IllegalArgumentException | GeneralSecurityException e) {
+            throw new IllegalStateException("The private key is not a valid unencrypted PKCS#8 RSA key", e);
+        }
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Client authentication does not change the token contents by itself: the client gets the token of its grant (for
+example the one in <a href="client-credentials.html" class="xref page">Client credentials</a>). Two exceptions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>a <code>tls_client_auth</code> or <code>self_signed_tls_client_auth</code> client registered with <code>certificateBoundAccessTokens: true</code> gets
+<code>cnf.x5t#S256</code> (the SHA-256 thumbprint of its certificate) in its access token;</p>
+</li>
+<li>
+<p>the assertion itself is never stored, only its <code>(client_id, jti)</code> and expiry.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code>: <code>ClientAuthenticationIT</code> covers a correct and a wrong secret, <code>private_key_jwt</code> with registered JWKs
+and with a <code>jwkSetUrl</code>, a replayed assertion and one that lives too long (both <code>invalid_client</code>), <code>tls_client_auth</code>
+with a trusted and an untrusted authority, <code>self_signed_tls_client_auth</code> with a registered and an unregistered key, and
+the certificate thumbprint in a bound token.</p>
+</li>
+<li>
+<p><code>auth-server/infrastructure/persistence</code>: <code>JdbcClientAssertionReplayRegistryIT</code>.</p>
+</li>
+<li>
+<p><code>e2e-tests</code>: <code>ClientCredentialsEndToEndIT</code> runs <code>service-client</code> with each of the four methods.</p>
+</li>
+<li>
+<p><code>service-client/infrastructure/resourceserver</code>: <code>ResourceServerAdapterIT</code>
+(<code>listDocuments_whenMethodIsPrivateKeyJwt_sendsAnAssertionSignedWithTheConfiguredKey</code>).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-2.3">RFC 6749 §2.3, Client Authentication</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7523#section-2.2">RFC 7523 §2.2, JWT for client authentication</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc7523#section-3">§3, JWT format and processing requirements</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">OpenID Connect Core §9, Client Authentication</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8705#section-2.1">RFC 8705 §2.1, PKI mutual-TLS method</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc8705#section-2.2">§2.2, self-signed certificate mutual-TLS method</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9700#section-2.5">RFC 9700 §2.5, Client Authentication</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/client-credentials-and-client-authentication.html">Client Credentials &amp; Client Authentication</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/sender-constrained-tokens-dpop-and-mtls.html">Sender-Constrained Tokens: DPoP &amp; mTLS</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/jwt-and-jose.html">JWT &amp; JOSE</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../client-credentials.html" class="xref page">Client credentials and service-to-service calls</a> (feature page)</p>
+</li>
+<li>
+<p><a href="../x509.html" class="xref page">X.509 client certificates</a> (the TLS port and its trust manager)</p>
+</li>
+<li>
+<p><a href="client-credentials.html" class="xref page">Client credentials</a></p>
+</li>
+<li>
+<p><a href="sender-constrained-tokens.html" class="xref page">Sender-constrained tokens</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

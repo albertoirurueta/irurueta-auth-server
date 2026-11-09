@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TestPki.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:test-support</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.testsupport</a> &gt; <span class="el_source">TestPki.java</span></div><h1>TestPki.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.testsupport;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
+/**
+ * A small public key infrastructure generated at run time for the tests of TLS client authentication: a certificate
+ * authority, and server and client certificates it signs, each kept in a PKCS#12 key store inside one temporary
+ * directory that {@link #close()} deletes. It drives {@code keytool} (see {@link Keytool}); nothing is ever kept in
+ * the repository.
+ */
+public final class TestPki implements AutoCloseable {
+
+    /** Alias of the authority's key. */
+    private static final String CA_ALIAS = &quot;ca&quot;;
+
+    /** Alias of the key of an issued entity. */
+    private static final String ENTITY_ALIAS = &quot;entity&quot;;
+
+    /** Type of the key stores. */
+    private static final String KEY_STORE_TYPE = &quot;PKCS12&quot;;
+
+    /** Number of random bytes of the password of the key stores. */
+    private static final int PASSWORD_BYTES = 16;
+
+    /** Days the issued certificates are valid. */
+    private static final String VALIDITY_DAYS = &quot;2&quot;;
+
+    /** The {@code keytool} option that names a key store. */
+    private static final String KEYSTORE = &quot;-keystore&quot;;
+
+    /** The {@code keytool} option that names the file with a key store password. */
+    private static final String STORE_PASSWORD_FILE = &quot;-storepass:file&quot;;
+
+    /** The {@code keytool} option that names the alias of an entry. */
+    private static final String ALIAS = &quot;-alias&quot;;
+
+    /** The {@code keytool} option that names the input file. */
+    private static final String INPUT = &quot;-file&quot;;
+
+    /** Source of the password. */
+<span class="nc" id="L71">    private static final SecureRandom RANDOM = new SecureRandom();</span>
+
+    /** Temporary directory that holds every file. */
+    private final Path directory;
+
+    /** Password of every key store. */
+    private final String password;
+
+    /** File that holds {@link #password}. */
+    private final Path passwordFile;
+
+    /** Key store of the authority. */
+    private final Path authorityKeyStore;
+
+    /** Certificate of the authority. */
+    private final X509Certificate authority;
+
+    /** Path of the authority's certificate in PEM. */
+    private final Path authorityPem;
+
+    /** Number of entities issued, to name their files. */
+    private int issued;
+
+    /**
+     * Describes an infrastructure whose files already exist.
+     *
+     * @param directory temporary directory that holds every file.
+     * @param password  password of every key store.
+     * @param authority certificate of the authority.
+     */
+<span class="nc" id="L101">    private TestPki(final Path directory, final String password, final X509Certificate authority) {</span>
+<span class="nc" id="L102">        this.directory = directory;</span>
+<span class="nc" id="L103">        this.password = password;</span>
+<span class="nc" id="L104">        passwordFile = directory.resolve(&quot;password&quot;);</span>
+<span class="nc" id="L105">        authorityKeyStore = directory.resolve(&quot;ca.p12&quot;);</span>
+<span class="nc" id="L106">        authorityPem = directory.resolve(&quot;ca.pem&quot;);</span>
+<span class="nc" id="L107">        this.authority = authority;</span>
+<span class="nc" id="L108">    }</span>
+
+    /**
+     * Creates the infrastructure with a new certificate authority.
+     *
+     * @param authorityName common name of the authority.
+     * @return the infrastructure; the caller closes it.
+     */
+    public static TestPki create(final String authorityName) {
+<span class="nc" id="L117">        final var bytes = new byte[PASSWORD_BYTES];</span>
+<span class="nc" id="L118">        RANDOM.nextBytes(bytes);</span>
+<span class="nc" id="L119">        final var password = HexFormat.of().formatHex(bytes);</span>
+<span class="nc" id="L120">        Path directory = null;</span>
+        try {
+<span class="nc" id="L122">            directory = Files.createTempDirectory(&quot;test-pki&quot;);</span>
+<span class="nc" id="L123">            Files.writeString(directory.resolve(&quot;password&quot;), password);</span>
+<span class="nc" id="L124">            final var keyStore = directory.resolve(&quot;ca.p12&quot;);</span>
+<span class="nc" id="L125">            final var passwordFile = directory.resolve(&quot;password&quot;).toString();</span>
+<span class="nc" id="L126">            Keytool.run(List.of(&quot;-genkeypair&quot;, ALIAS, CA_ALIAS, &quot;-keyalg&quot;, &quot;EC&quot;, &quot;-groupname&quot;, &quot;secp256r1&quot;,</span>
+                    &quot;-validity&quot;, VALIDITY_DAYS, &quot;-dname&quot;, &quot;CN=&quot; + authorityName, &quot;-ext&quot;, &quot;bc:c&quot;,
+<span class="nc" id="L128">                    &quot;-storetype&quot;, KEY_STORE_TYPE, KEYSTORE, keyStore.toString(), STORE_PASSWORD_FILE, passwordFile));</span>
+<span class="nc" id="L129">            final var pem = directory.resolve(&quot;ca.pem&quot;);</span>
+<span class="nc" id="L130">            Keytool.run(List.of(&quot;-exportcert&quot;, ALIAS, CA_ALIAS, &quot;-rfc&quot;, KEYSTORE, keyStore.toString(),</span>
+<span class="nc" id="L131">                    STORE_PASSWORD_FILE, passwordFile, &quot;-file&quot;, pem.toString()));</span>
+<span class="nc" id="L132">            return new TestPki(directory, password, readCertificate(pem));</span>
+<span class="nc" id="L133">        } catch (final IOException | GeneralSecurityException e) {</span>
+<span class="nc" id="L134">            Keytool.delete(directory);</span>
+<span class="nc" id="L135">            throw new IllegalStateException(&quot;Cannot create the test infrastructure&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Issues the certificate of a TLS server, valid for {@code localhost} and the loopback address.
+     *
+     * @param commonName common name of the subject.
+     * @return the server's key store and certificate.
+     */
+    public Identity issueServer(final String commonName) {
+<span class="nc" id="L146">        return issue(commonName, List.of(&quot;-ext&quot;, &quot;san=dns:localhost,ip:127.0.0.1&quot;, &quot;-ext&quot;, &quot;eku=serverAuth&quot;));</span>
+    }
+
+    /**
+     * Issues the certificate of a client, signed by the authority.
+     *
+     * @param commonName common name of the subject.
+     * @return the client's key store and certificate.
+     */
+    public Identity issueClient(final String commonName) {
+<span class="nc" id="L156">        return issue(commonName, List.of(&quot;-ext&quot;, &quot;eku=clientAuth&quot;));</span>
+    }
+
+    /**
+     * Gives the TLS context of a client that presents a certificate and trusts the authority.
+     *
+     * @param client the client's identity, {@code null} for a client with no certificate.
+     * @return the context.
+     */
+    public SSLContext clientContext(final Identity client) {
+        try {
+<span class="nc" id="L167">            final var trust = KeyStore.getInstance(KEY_STORE_TYPE);</span>
+<span class="nc" id="L168">            trust.load(null, null);</span>
+<span class="nc" id="L169">            trust.setCertificateEntry(CA_ALIAS, authority);</span>
+<span class="nc" id="L170">            final var trustManagers = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());</span>
+<span class="nc" id="L171">            trustManagers.init(trust);</span>
+<span class="nc" id="L172">            final var context = SSLContext.getInstance(&quot;TLS&quot;);</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            if (client == null) {</span>
+<span class="nc" id="L174">                context.init(null, trustManagers.getTrustManagers(), null);</span>
+            } else {
+<span class="nc" id="L176">                final var keys = KeyStore.getInstance(KEY_STORE_TYPE);</span>
+<span class="nc" id="L177">                try (InputStream in = Files.newInputStream(client.keyStore())) {</span>
+<span class="nc" id="L178">                    keys.load(in, client.password().toCharArray());</span>
+                }
+<span class="nc" id="L180">                final var keyManagers = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());</span>
+<span class="nc" id="L181">                keyManagers.init(keys, client.password().toCharArray());</span>
+<span class="nc" id="L182">                context.init(keyManagers.getKeyManagers(), trustManagers.getTrustManagers(), null);</span>
+            }
+<span class="nc" id="L184">            return context;</span>
+<span class="nc" id="L185">        } catch (final IOException e) {</span>
+<span class="nc" id="L186">            throw new UncheckedIOException(&quot;Cannot read the test key store&quot;, e);</span>
+<span class="nc" id="L187">        } catch (final GeneralSecurityException e) {</span>
+<span class="nc" id="L188">            throw new IllegalStateException(&quot;Cannot build the test TLS context&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Gives the identity of a client with a self-signed certificate that expired days ago.
+     *
+     * @param commonName common name of the subject.
+     * @return the client's key store and certificate.
+     */
+    public Identity issueExpiredClient(final String commonName) {
+<span class="nc" id="L199">        final var name = nextName();</span>
+<span class="nc" id="L200">        final var keyStore = directory.resolve(name + &quot;.p12&quot;);</span>
+        try {
+<span class="nc" id="L202">            Keytool.run(List.of(&quot;-genkeypair&quot;, ALIAS, ENTITY_ALIAS, &quot;-keyalg&quot;, &quot;EC&quot;, &quot;-groupname&quot;, &quot;secp256r1&quot;,</span>
+                    &quot;-startdate&quot;, &quot;-5d&quot;, &quot;-validity&quot;, VALIDITY_DAYS, &quot;-dname&quot;, &quot;CN=&quot; + commonName,
+<span class="nc" id="L204">                    &quot;-storetype&quot;, KEY_STORE_TYPE, KEYSTORE, keyStore.toString(),</span>
+<span class="nc" id="L205">                    STORE_PASSWORD_FILE, passwordFile.toString()));</span>
+<span class="nc" id="L206">            return identityOf(keyStore);</span>
+<span class="nc" id="L207">        } catch (final IOException | GeneralSecurityException e) {</span>
+<span class="nc" id="L208">            throw new IllegalStateException(&quot;Cannot issue the expired test certificate&quot;, e);</span>
+        }
+    }
+
+    @Override
+    public void close() {
+<span class="nc" id="L214">        Keytool.delete(directory);</span>
+<span class="nc" id="L215">    }</span>
+
+    /**
+     * Issues an entity signed by the authority.
+     *
+     * @param commonName common name of the subject.
+     * @param extensions the {@code keytool} extension options the certificate gets.
+     * @return the entity's key store and certificate.
+     */
+    private Identity issue(final String commonName, final List&lt;String&gt; extensions) {
+<span class="nc" id="L225">        final var name = nextName();</span>
+<span class="nc" id="L226">        final var keyStore = directory.resolve(name + &quot;.p12&quot;);</span>
+<span class="nc" id="L227">        final var request = directory.resolve(name + &quot;.csr&quot;);</span>
+<span class="nc" id="L228">        final var reply = directory.resolve(name + &quot;.pem&quot;);</span>
+        try {
+<span class="nc" id="L230">            Keytool.run(List.of(&quot;-genkeypair&quot;, ALIAS, ENTITY_ALIAS, &quot;-keyalg&quot;, &quot;EC&quot;, &quot;-groupname&quot;, &quot;secp256r1&quot;,</span>
+                    &quot;-validity&quot;, VALIDITY_DAYS, &quot;-dname&quot;, &quot;CN=&quot; + commonName, &quot;-storetype&quot;, KEY_STORE_TYPE,
+<span class="nc" id="L232">                    KEYSTORE, keyStore.toString(), STORE_PASSWORD_FILE, passwordFile.toString()));</span>
+<span class="nc" id="L233">            Keytool.run(List.of(&quot;-certreq&quot;, ALIAS, ENTITY_ALIAS, KEYSTORE, keyStore.toString(),</span>
+<span class="nc" id="L234">                    STORE_PASSWORD_FILE, passwordFile.toString(), &quot;-file&quot;, request.toString()));</span>
+<span class="nc" id="L235">            return identityOf(sign(keyStore, request, reply, extensions));</span>
+<span class="nc" id="L236">        } catch (final IOException | GeneralSecurityException e) {</span>
+<span class="nc" id="L237">            throw new IllegalStateException(&quot;Cannot issue the test certificate&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Has the authority sign a request and installs the answer in the entity's key store.
+     *
+     * @param keyStore   key store of the entity.
+     * @param request    certificate request of the entity.
+     * @param reply      file the signed certificate is written to.
+     * @param extensions the {@code keytool} extension options the certificate gets.
+     * @return the entity's key store.
+     * @throws IOException if {@code keytool} fails.
+     */
+    private Path sign(final Path keyStore, final Path request, final Path reply, final List&lt;String&gt; extensions)
+            throws IOException {
+<span class="nc" id="L253">        final var gencert = new ArrayList&lt;&gt;(List.of(&quot;-gencert&quot;, ALIAS, CA_ALIAS, &quot;-rfc&quot;, &quot;-validity&quot;, VALIDITY_DAYS,</span>
+<span class="nc" id="L254">                KEYSTORE, authorityKeyStore.toString(), STORE_PASSWORD_FILE, passwordFile.toString(),</span>
+<span class="nc" id="L255">                &quot;-infile&quot;, request.toString(), &quot;-outfile&quot;, reply.toString()));</span>
+<span class="nc" id="L256">        gencert.addAll(extensions);</span>
+<span class="nc" id="L257">        Keytool.run(gencert);</span>
+<span class="nc" id="L258">        Keytool.run(List.of(&quot;-importcert&quot;, ALIAS, CA_ALIAS, INPUT, authorityPem.toString(), KEYSTORE,</span>
+<span class="nc" id="L259">                keyStore.toString(), STORE_PASSWORD_FILE, passwordFile.toString(), &quot;-noprompt&quot;));</span>
+<span class="nc" id="L260">        Keytool.run(List.of(&quot;-importcert&quot;, ALIAS, ENTITY_ALIAS, INPUT, reply.toString(), KEYSTORE,</span>
+<span class="nc" id="L261">                keyStore.toString(), STORE_PASSWORD_FILE, passwordFile.toString()));</span>
+<span class="nc" id="L262">        return keyStore;</span>
+    }
+
+    /**
+     * Reads an identity from its key store.
+     *
+     * @param keyStore the key store.
+     * @return the identity.
+     * @throws IOException              if the key store cannot be read.
+     * @throws GeneralSecurityException if the key store cannot be loaded.
+     */
+    private Identity identityOf(final Path keyStore) throws IOException, GeneralSecurityException {
+<span class="nc" id="L274">        final var store = KeyStore.getInstance(KEY_STORE_TYPE);</span>
+<span class="nc" id="L275">        try (InputStream in = Files.newInputStream(keyStore)) {</span>
+<span class="nc" id="L276">            store.load(in, password.toCharArray());</span>
+        }
+<span class="nc" id="L278">        return new Identity(keyStore, password,</span>
+<span class="nc" id="L279">                TestCertificates.of((X509Certificate) store.getCertificate(ENTITY_ALIAS)));</span>
+    }
+
+    /**
+     * Names the files of the next entity.
+     *
+     * @return the name.
+     */
+    private String nextName() {
+<span class="nc" id="L288">        issued++;</span>
+<span class="nc" id="L289">        return &quot;entity-&quot; + issued;</span>
+    }
+
+    /**
+     * Reads a PEM certificate.
+     *
+     * @param pem the file.
+     * @return the certificate.
+     * @throws IOException              if the file cannot be read.
+     * @throws GeneralSecurityException if it is not a certificate.
+     */
+    private static X509Certificate readCertificate(final Path pem) throws IOException, GeneralSecurityException {
+<span class="nc" id="L301">        try (InputStream in = Files.newInputStream(pem)) {</span>
+<span class="nc" id="L302">            return (X509Certificate) CertificateFactory.getInstance(&quot;X.509&quot;).generateCertificate(in);</span>
+        }
+    }
+
+    /**
+     * An identity of the infrastructure.
+     *
+     * @param keyStore    PKCS#12 key store with the private key and the certificate chain.
+     * @param password    password of the key store.
+     * @param certificate the certificate of the identity, with its PEM text and fingerprint.
+     */
+<span class="nc" id="L313">    public record Identity(Path keyStore, String password, TestCertificates.GeneratedCertificate certificate) {</span>
+
+        @Override
+        public String toString() {
+<span class="nc" id="L317">            return &quot;Identity[keyStore=&quot; + keyStore + &quot;]&quot;;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

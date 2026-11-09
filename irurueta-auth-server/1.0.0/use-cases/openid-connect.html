@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>OpenID Connect sign-in :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="openid-connect.html">OpenID Connect sign-in</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/openid-connect.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">OpenID Connect sign-in</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>OpenID Connect adds an identity layer to the authorization code flow: a client that asks for the <code>openid</code> scope gets an
+ID token that tells it who signed in, how and when, and may call the UserInfo endpoint for profile claims. <code>auth-server</code>
+enables OpenID Connect on its protocol chain (<code>server.oidc(&#8230;&#8203;)</code> in <code>SecurityConfig.authorizationServerSecurityFilterChain</code>),
+publishes its metadata at the OpenID Connect discovery and RFC 8414 endpoints, and signs every token with RSA keys that
+are persisted in PostgreSQL and rotated, publishing the public halves at the JWKS endpoint. Custom claims (<code>roles</code>,
+<code>tenant</code>, <code>aud</code>, <code>amr</code>, <code>acr</code>, <code>auth_time</code>, <code>idp</code>) are added by <code>IssuedTokenClaims</code> and the <code>JwtClaimsContributor</code> beans.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_at_a_glance"><a class="anchor" href="#_at_a_glance"></a>At a glance</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Item</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Actors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User and browser, a relying party (in this repository the <code>bff</code>, through Spring Security&#8217;s <code>oauth2Login</code>),
+<code>auth-server</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clients</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Any client with the <code>openid</code> scope: the seeded <code>bff</code> and <code>spa-public</code> both have it. The device grant&#8217;s <code>device-client</code>
+has none (Spring Authorization Server refuses <code>openid</code> in device requests).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Preconditions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The issuer is <code>spring.security.oauth2.authorizationserver.issuer</code> (<code>AUTHSERVER_ISSUER_URL</code>, default
+<code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code>). Signing keys need the key-encryption secret (<code>authserver.keys.encryption.password</code> and
+<code>.salt</code>, generated per machine by <code>DevKeyEncryptionSecret</code> under the <code>dev</code> profile). Nothing else to enable.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /.well-known/openid-configuration</code> (OpenID Connect Discovery), <code>GET /.well-known/oauth-authorization-server</code>
+(RFC 8414), <code>GET /oauth2/jwks</code>, <code>GET /oauth2/authorize</code>, <code>POST /oauth2/token</code>, <code>GET</code> or <code>POST /userinfo</code>,
+<code>/connect/logout</code> (see <a href="logout.html" class="xref page">Logout</a>) and, when enabled, <code>/connect/register</code> (see
+<a href="dynamic-client-registration.html" class="xref page">Dynamic client registration</a>).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The relying party reads <code>/.well-known/openid-configuration</code> (public, no session needed). It names the <code>issuer</code>, the
+authorization, token, JWKS, UserInfo and end-session endpoints, the supported scopes, response types, client
+authentication methods and signing algorithms. Feature customizers add to it, for example
+<code>ClientAuthProtocolChainCustomizer</code> adds <code>mtls_endpoint_aliases</code> when <code>authserver.x509.port</code> is set, and
+<code>registration_endpoint</code> appears only with dynamic registration enabled.</p>
+</li>
+<li>
+<p>It redirects the browser to <code>/oauth2/authorize</code> with <code>response_type=code</code>, <code>scope=openid &#8230;&#8203;</code>, <code>state</code>, <code>nonce</code> and a
+PKCE challenge (see <a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a>). It may add <code>acr_values</code> and <code>max_age</code>, which
+<code>StepUpAuthorizationRequestConverter</code> reads (see <a href="step-up.html" class="xref page">Step-up authentication</a>).</p>
+</li>
+<li>
+<p>The user signs in and, if needed, proves a second factor and consents. Each method grants a <code>FACTOR_*</code> authority,
+which later becomes <code>amr</code> and <code>acr</code>.</p>
+</li>
+<li>
+<p>The relying party exchanges the code at <code>/oauth2/token</code> and receives an access token, a refresh token (confidential
+clients) and an ID token.</p>
+</li>
+<li>
+<p>When Spring Authorization Server encodes each JWT, <code>RolesTenantAudienceTokenCustomizer</code> calls <code>IssuedTokenClaims</code>,
+which adds <code>roles</code>, <code>tenant</code> and <code>aud</code> to access tokens only, then runs every <code>JwtClaimsContributor</code> on access and ID
+tokens: <code>MfaClaimsContributor</code> (<code>amr</code>, <code>acr</code>, and <code>auth_time</code> on access tokens), <code>IdpClaimsContributor</code> (<code>idp</code> after a
+social sign-in) and <code>TokenExchangeAudienceContributor</code> (exchanged tokens only). The <code>JwtEncoder</code> signs with the
+<code>ACTIVE</code> key of <code>signing_keys</code>.</p>
+</li>
+<li>
+<p>The relying party fetches <code>/oauth2/jwks</code> and verifies the ID token signature, <code>iss</code>, <code>aud</code> (its client id), <code>exp</code> and
+<code>nonce</code>. The key set (<code>DatabaseJwkSourceConfiguration</code>) contains the <code>ACTIVE</code> and <code>NEXT</code> keys and every <code>RETIRED</code> key
+still within its effective retention, cached for <code>authserver.keys.jwks-cache-ttl</code> (default <code>PT30S</code>), so a token
+signed before a rotation keeps validating.</p>
+</li>
+<li>
+<p>Optionally, it calls <code>/userinfo</code> with the access token as a bearer token. The framework checks the token and its
+<code>openid</code> scope and <code>UserInfoMapper</code> (registered by <code>UserInfoConfiguration</code> through a <code>ProtocolChainCustomizer</code>) builds
+the answer from the user&#8217;s account, limited to the granted scopes.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant RP as Relying party
+  participant B as Browser
+  participant A as auth-server
+  participant DB as signing_keys
+  RP->>A: GET /.well-known/openid-configuration
+  A-->>RP: issuer and endpoint metadata
+  RP-->>B: 302 to /oauth2/authorize scope=openid with nonce and PKCE
+  B->>A: sign in, second factor and consent as needed
+  A-->>B: 302 to redirect_uri with code
+  B->>RP: code and state
+  RP->>A: POST /oauth2/token
+  A->>DB: sign with the ACTIVE key
+  A-->>RP: access_token, refresh_token, id_token
+  RP->>A: GET /oauth2/jwks
+  A->>DB: ACTIVE, NEXT and retained RETIRED public keys
+  A-->>RP: JWK set
+  Note over RP: verify id_token signature, iss, aud, exp and nonce
+  RP->>A: GET /userinfo with Bearer access token
+  A-->>RP: sub and the claims the granted scopes allow</div></div>
+<div class="paragraph">
+<p>What the UserInfo endpoint returns depends on the granted scopes:</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["GET /userinfo"]) --> Token{"Valid bearer token with openid scope?"}
+  Token -- "no bearer token" --> Login["302 to /login"]
+  Token -- "invalid token" --> Unauth["401"]
+  Token -- "yes" --> Sub["sub"]
+  Sub --> Profile{"profile granted?"}
+  Profile -- "yes" --> P["preferred_username, roles, tenant"]
+  Profile -- "no" --> Email
+  P --> Email{"email granted and address known?"}
+  Email -- "yes" --> E["email, email_verified"]
+  Email -- "no" --> Done(["answer"])
+  E --> Done</div></div>
+<div class="paragraph">
+<p>The UserInfo mapping:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Builds the OpenID Connect UserInfo response from the account of the user, limited to the granted scopes: the
+ * {@code sub} claim always; {@code preferred_username}, {@code roles} and {@code tenant} with the {@code profile}
+ * scope; {@code email} and {@code email_verified} with the {@code email} scope.
+ */
+@Component
+@RequiredArgsConstructor
+public class UserInfoMapper implements Function&lt;OidcUserInfoAuthenticationContext, OidcUserInfo&gt; {
+
+    /** Scope that grants the profile claims. */
+    public static final String PROFILE_SCOPE = "profile";
+
+    /** Scope that grants the e-mail claims. */
+    public static final String EMAIL_SCOPE = "email";
+
+    /** Finds the account of the user. */
+    private final FindUserAccountUseCase findUserAccountUseCase;
+
+    @Override
+    public OidcUserInfo apply(final OidcUserInfoAuthenticationContext context) {
+        final var username = context.getAuthorization().getPrincipalName();
+        final var scopes = context.getAccessToken().getScopes();
+        final var claims = new HashMap&lt;String, Object&gt;();
+        claims.put(StandardClaimNames.SUB, username);
+        findUserAccountUseCase.execute(username).ifPresent(account -&gt; {
+            if (scopes.contains(PROFILE_SCOPE)) {
+                claims.put(StandardClaimNames.PREFERRED_USERNAME, account.username());
+                claims.put(IssuedTokenClaims.ROLES_CLAIM, account.authorities());
+                claims.put(IssuedTokenClaims.TENANT_CLAIM, account.tenant());
+            }
+            if (scopes.contains(EMAIL_SCOPE) &amp;&amp; account.email() != null) {
+                claims.put(StandardClaimNames.EMAIL, account.email());
+                claims.put(StandardClaimNames.EMAIL_VERIFIED, account.emailVerified());
+            }
+        });
+        return new OidcUserInfo(claims);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>amr</code> / <code>acr</code> / <code>auth_time</code> contributor:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds to the access and ID tokens how the user authenticated: {@code amr} (the RFC 8176 values of the factors really
+ * presented, plus {@code mfa} when there are at least two), {@code acr} (the class of the authentication, see
+ * {@link AuthenticationContextClass}) and {@code auth_time} (the epoch second the primary factor was presented, a
+ * number per OIDC; access tokens only, because the framework sets it on ID tokens). Every value comes from the
+ * {@link FactorTimeline}, which reads the {@link org.springframework.security.core.authority.FactorGrantedAuthority}
+ * instances of the principal: authorities of an unknown factor and of a remembered (trusted) device are ignored, so a
+ * browser that skipped the second factor gets {@code amr [pwd]} and the password class. A token with no counted factor
+ * (for example of the client credentials grant) gets none of the claims.
+ */
+@Component
+@Order(MfaClaimsContributor.ORDER)
+@RequiredArgsConstructor
+public class MfaClaimsContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the built-in claims and the default contributors. */
+    public static final int ORDER = 100;
+
+    /** RFC 8176 {@code amr} value that tells that more than one factor was used. */
+    public static final String MULTI_FACTOR_AMR_VALUE = "mfa";
+
+    /** Reads the counted factors of the principal and their instants. */
+    private final FactorTimeline factorTimeline;
+
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        final var principal = context.getPrincipal();
+        if (principal == null) {
+            return;
+        }
+        final var authTime = factorTimeline.authTime(principal);
+        if (authTime.isEmpty()) {
+            return;
+        }
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var amr = new ArrayList&lt;String&gt;(factorTimeline.amrValues(principal));
+        final var multiFactor = factorTimeline.isMultiFactor(principal);
+        if (multiFactor) {
+            amr.add(MULTI_FACTOR_AMR_VALUE);
+        }
+        claims.put(IdTokenClaimNames.AMR, amr);
+        claims.put(IdTokenClaimNames.ACR,
+                multiFactor ? AuthenticationContextClass.MULTI_FACTOR : AuthenticationContextClass.PASSWORD);
+        // the framework sets auth_time itself on ID tokens (as a date it expects to read back on refresh)
+        if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+            claims.put(IdTokenClaimNames.AUTH_TIME, authTime.get().getEpochSecond());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Claim</th>
+<th class="tableblock halign-left valign-top">ID token</th>
+<th class="tableblock halign-left valign-top">Access token (JWT)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>iss</code>, <code>sub</code>, <code>iat</code>, <code>exp</code>, <code>jti</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes; <code>sub</code> is the local username for every sign-in method; lifetime fixed by the framework at 30 minutes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes; lifetime from the client (10 minutes for the seeded clients)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>aud</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The client id</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The client&#8217;s <code>audiences</code> setting (<code>resource-server</code> and <code>auth-server</code> for the seeded clients), else the client id</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>azp</code>, <code>nonce</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set by the framework (<code>nonce</code> when the request sent one)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sid</code>, <code>auth_time</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set by the framework from the session</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth_time</code> by <code>MfaClaimsContributor</code>: epoch second of the primary factor</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>scope</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The granted scopes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>roles</code>, <code>tenant</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No (they are in UserInfo with <code>profile</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes, for user grants; never for <code>client_credentials</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>amr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RFC 8176 values of the factors presented (<code>pwd</code>, <code>otp</code>, <code>sms</code>, <code>hwk</code>, <code>fed</code>, &#8230;&#8203;), plus <code>mfa</code> for a multi-factor sign-in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Same</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>acr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>urn:irurueta:acr:pwd</code> or <code>urn:irurueta:acr:mfa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Same</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>idp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">After a social sign-in (<code>IdpClaimsContributor</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Same</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>UserInfo answers <code>sub</code> always, <code>preferred_username</code>, <code>roles</code> and <code>tenant</code> with <code>profile</code>, <code>email</code> and
+<code>email_verified</code> with <code>email</code>. The seeded clients do not have the <code>email</code> scope, so they get no e-mail claims.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code> <code>AuthorizationCodePkceIT</code>: the access and ID tokens validate against <code>/oauth2/jwks</code>; the ID token&#8217;s
+<code>sub</code>, <code>aud</code>, <code>nonce</code> and <code>iss</code> are checked.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>SecurityIT</code> and <code>SecurityConfigIT</code>: <code>/.well-known/openid-configuration</code> and <code>/oauth2/jwks</code> are
+public and the issuer is the configured one.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>TokenFlowIT</code>: access token claims (<code>aud</code>, <code>roles</code>, <code>tenant</code>, <code>scope</code>), UserInfo with <code>profile</code>
+and <code>email</code>, and UserInfo refused without or with an invalid token.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>KeyRotationIT</code>: the key set in each state of the rotation lifecycle, and a token signed before a
+rotation stays valid until its key is removed.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>StepUpIT</code>: <code>acr_values</code> and <code>max_age</code> on the authorization request.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>ParIT</code>: the discovery metadata advertises the PAR endpoint only when it is enabled.</p>
+</li>
+<li>
+<p><code>e2e-tests</code> <code>PasskeyEndToEndIT</code>: <code>amr</code> reports <code>hwk</code> alone, or <code>pwd</code>, <code>hwk</code> and <code>mfa</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core 1.0</a>, in particular
+<a href="https://openid.net/specs/openid-connect-core-1_0.html#IDToken">§2 ID Token</a>,
+<a href="https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest">§3.1.2.1 Authentication Request</a> and
+<a href="https://openid.net/specs/openid-connect-core-1_0.html#UserInfo">§5.3 UserInfo Endpoint</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-discovery-1_0.html">OpenID Connect Discovery 1.0</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8414">RFC 8414: OAuth 2.0 Authorization Server Metadata</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7517">RFC 7517: JSON Web Key</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7519">RFC 7519: JSON Web Token</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8176">RFC 8176: Authentication Method Reference Values</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/openid-connect.html">OpenID Connect</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/id-tokens-vs-access-tokens.html">ID Tokens vs Access Tokens</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/discovery-metadata-and-client-registration.html">Discovery, Metadata &amp; Client Registration</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/jwt-and-jose.html">JWT &amp; JOSE</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/scopes-claims-and-permissions.html">Scopes, Claims &amp; Permissions</a></p>
+</li>
+<li>
+<p><a href="../tokens-and-keys.html" class="xref page">Tokens and signing keys</a></p>
+</li>
+<li>
+<p><a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a></p>
+</li>
+<li>
+<p><a href="../social-login.html" class="xref page">Social login (identity brokering)</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+<li>
+<p><a href="step-up.html" class="xref page">Step-up authentication</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

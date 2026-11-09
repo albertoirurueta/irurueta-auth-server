@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MfaProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.mfa</a> &gt; <span class="el_source">MfaProperties.java</span></div><h1>MfaProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.mfa;
+
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+// tag::mfa-properties[]
+/**
+ * Multi-factor settings, bound once from {@code authserver.mfa.*} and injected wherever one of them is needed (the use
+ * cases of this module and the step-up guard of the API). A value left out takes its default; an invalid one stops the
+ * application at startup.
+ *
+ * @param maxFailedAttempts     consecutive failed second-factor attempts that lock the second factor (default 5).
+ * @param lockout               how long the second factor stays locked (default 15 minutes).
+ * @param trustedDeviceValidity how long a device stays trusted (default 30 days).
+ * @param totpIssuer            issuer shown by the authenticator app (default {@code Irurueta Auth Server}).
+ * @param stepUpMaxAge          how recent the multi-factor sign-in of a bearer token must be to remove or reset a
+ *                              second factor through the API (default 5 minutes).
+ */
+@ConfigurationProperties(&quot;authserver.mfa&quot;)
+public record MfaProperties(
+        @DefaultValue(&quot;5&quot;) int maxFailedAttempts,
+        @DefaultValue(&quot;PT15M&quot;) Duration lockout,
+        @DefaultValue(&quot;P30D&quot;) Duration trustedDeviceValidity,
+        @DefaultValue(&quot;Irurueta Auth Server&quot;) String totpIssuer,
+        @DefaultValue(&quot;PT5M&quot;) Duration stepUpMaxAge) {
+
+    /**
+     * Validates the settings.
+     *
+     * @throws IllegalArgumentException if {@code maxFailedAttempts} is less than one, a duration is missing or not
+     *                                  positive, or the issuer is blank.
+     */
+<span class="fc" id="L50">    public MfaProperties {</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (maxFailedAttempts &lt; 1) {</span>
+<span class="fc" id="L52">            throw new IllegalArgumentException(&quot;authserver.mfa.max-failed-attempts must be at least 1&quot;);</span>
+        }
+<span class="fc" id="L54">        requirePositive(lockout, &quot;lockout&quot;);</span>
+<span class="fc" id="L55">        requirePositive(trustedDeviceValidity, &quot;trusted-device-validity&quot;);</span>
+<span class="fc" id="L56">        requirePositive(stepUpMaxAge, &quot;step-up-max-age&quot;);</span>
+<span class="fc bfc" id="L57" title="All 4 branches covered.">        if (totpIssuer == null || totpIssuer.isBlank()) {</span>
+<span class="fc" id="L58">            throw new IllegalArgumentException(&quot;authserver.mfa.totp-issuer must not be blank&quot;);</span>
+        }
+<span class="fc" id="L60">    }</span>
+
+    /**
+     * Rejects a missing or non-positive duration.
+     *
+     * @param value the duration.
+     * @param key   the key of the setting, below {@code authserver.mfa}.
+     * @throws IllegalArgumentException if the duration is missing, zero or negative.
+     */
+    private static void requirePositive(final Duration value, final String key) {
+<span class="fc bfc" id="L70" title="All 6 branches covered.">        if (value == null || value.isZero() || value.isNegative()) {</span>
+<span class="fc" id="L71">            throw new IllegalArgumentException(&quot;authserver.mfa.&quot; + key + &quot; must be positive&quot;);</span>
+        }
+<span class="fc" id="L73">    }</span>
+}
+// end::mfa-properties[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

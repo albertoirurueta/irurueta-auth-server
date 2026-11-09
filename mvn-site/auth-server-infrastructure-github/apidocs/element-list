@@ -1,0 +1,5 @@
+com.irurueta.authserver.authorization.infrastructure.github
+com.irurueta.authserver.authorization.infrastructure.github.v1.generated
+com.irurueta.authserver.authorization.infrastructure.github.v1.generated.api
+com.irurueta.authserver.authorization.infrastructure.github.v1.generated.auth
+com.irurueta.authserver.authorization.infrastructure.github.v1.generated.model

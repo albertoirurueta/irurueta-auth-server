@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceVerificationErrorHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">DeviceVerificationErrorHandler.java</span></div><h1>DeviceVerificationErrorHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import com.irurueta.authserver.authorization.api.web.mfa.ReauthenticationRequiredException;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorRequiredException;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.DefaultRedirectStrategy;
+import org.springframework.security.web.RedirectStrategy;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+
+/**
+ * Error handler of the device verification endpoint. A user who owes a second factor goes where the authorization
+ * endpoint sends them (the {@code secondFactorHandler}); too many attempts are answered {@code 429} with a
+ * {@code Retry-After} header; any other failure (an unknown, expired or already used code, a denied consent) sends the
+ * browser back to the verification page with {@code ?error}, which says nothing about the reason, so a code cannot be
+ * told apart from a wrong one. Installing a handler replaces the framework's, which only answers {@code 400}.
+ */
+@RequiredArgsConstructor
+public class DeviceVerificationErrorHandler implements AuthenticationFailureHandler {
+
+    /** Name of the parameter that tells the verification page that the previous attempt failed. */
+    static final String ERROR_PARAMETER = &quot;error&quot;;
+
+    /** Strategy that redirects, honouring the context path. */
+    private final RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
+
+    /** Handler of the failures that send the user to the second-factor page or to a new sign-in. */
+    private final AuthenticationFailureHandler secondFactorHandler;
+
+    /** Path of the verification page. */
+    private final String verificationPath;
+
+    /**
+     * Handles a failed verification request.
+     *
+     * @param request   the request.
+     * @param response  the response.
+     * @param exception why the request failed.
+     * @throws IOException      if the response cannot be written.
+     * @throws ServletException if the second-factor handler fails.
+     */
+    @Override
+    public void onAuthenticationFailure(final HttpServletRequest request, final HttpServletResponse response,
+            final AuthenticationException exception) throws IOException, ServletException {
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (exception instanceof DeviceVerificationRateLimitedException limited) {</span>
+<span class="fc" id="L67">            response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(retryAfterSeconds(limited)));</span>
+<span class="fc" id="L68">            response.sendError(HttpStatus.TOO_MANY_REQUESTS.value(), limited.getError().getDescription());</span>
+<span class="fc" id="L69">            return;</span>
+        }
+<span class="fc bfc" id="L71" title="All 4 branches covered.">        if (exception instanceof SecondFactorRequiredException</span>
+                || exception instanceof ReauthenticationRequiredException) {
+<span class="fc" id="L73">            secondFactorHandler.onAuthenticationFailure(request, response, exception);</span>
+<span class="fc" id="L74">            return;</span>
+        }
+<span class="fc" id="L76">        redirectStrategy.sendRedirect(request, response, verificationPath + &quot;?&quot; + ERROR_PARAMETER);</span>
+<span class="fc" id="L77">    }</span>
+
+    /**
+     * Rounds the wait up to whole seconds, at least one.
+     *
+     * @param exception the failure.
+     * @return the seconds to wait.
+     */
+    private static long retryAfterSeconds(final DeviceVerificationRateLimitedException exception) {
+<span class="fc" id="L86">        final var wait = exception.retryAfter();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        final var seconds = wait.toSeconds() + (wait.toNanosPart() &gt; 0 ? 1 : 0);</span>
+<span class="fc" id="L88">        return Math.max(1, seconds);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

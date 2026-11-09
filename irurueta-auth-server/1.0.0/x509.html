@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>X.509 client certificates :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="x509.html">X.509 client certificates</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/x509.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">X.509 client certificates</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A user can sign in with a client certificate from the button the login page shows, which posts to <code>POST /login/x509</code>
+with the CSRF token (a Spring Security filter endpoint, so it is not in the pages contract). A <code>GET</code> of that path never
+signs anybody in, and a post without the token is refused before the certificate is looked at, so a page of another
+site cannot make a browser sign in with the certificate it holds. The feature is off unless <code>authserver.x509.enabled</code>
+is true. A certificate is bound to an account by its SHA-256 fingerprint (never committed, never generated by the
+build: tests and the <code>dev</code> profile create theirs at run time with <code>keytool</code>).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_settings"><a class="anchor" href="#_settings"></a>Settings</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  x509:
+    # Sign in with a client certificate, off unless enabled is true: the login page shows a button that posts to
+    # POST /login/x509 with the CSRF token (a GET of that path never signs in). A certificate is bound to an account by
+    # its SHA-256 fingerprint. Two transports, both off by default: a certificate a trusted reverse proxy forwards in a
+    # header (forwarded-header, honoured only for a request that comes from one of trusted-proxies, addresses or CIDR
+    # ranges), and a dedicated TLS port that requests a client certificate (port, with the server certificate in
+    # key-store; the password comes from the environment, AUTHSERVER_X509_KEY_STORE_PASSWORD). With only the TLS port the
+    # button posts to that port of the same host, so the main port must be https too (SameSite cookies are not sent
+    # from an http page to an https one) or the login page must be opened on the TLS port.
+    # trusted-proxies is compared with the client address the server sees after Spring Boot's handling of the forwarded
+    # headers, which is the direct network peer only with server.forward-headers-strategy: none; native and framework
+    # replace it with a value from X-Forwarded-For, which a client can forge, so the server refuses to start with a
+    # forwarded-header and any strategy but none (also when the strategy is unset on a detected cloud platform, where
+    # it defaults to native). Under the dev profile a self-signed server certificate is generated at the first start
+    # under ~/.irurueta-auth-server/. amr is the value the tokens report: sc (smart card) or hwk (a key held in
+    # hardware).
+    enabled: ${AUTHSERVER_X509_ENABLED:false}
+    forwarded-header: ${AUTHSERVER_X509_FORWARDED_HEADER:}
+    trusted-proxies: ${AUTHSERVER_X509_TRUSTED_PROXIES:}
+    port: ${AUTHSERVER_X509_PORT:0}
+    key-store: ${AUTHSERVER_X509_KEY_STORE:}
+    amr: ${AUTHSERVER_X509_AMR:sc}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Configuration of the sign-in with a client certificate ({@code authserver.x509.*}). It is off by default.
+ *
+ * @param enabled           whether the sign-in with a client certificate exists at all (default {@code false}).
+ * @param forwardedHeader   name of the request header in which a trusted reverse proxy forwards the client certificate
+ *                          it verified (PEM, URL-encoded as {@code $ssl_client_escaped_cert} of nginx does, or the
+ *                          base64 of the DER form); empty (the default) turns the forwarded transport off.
+ * @param trustedProxies    addresses or CIDR ranges of the proxies that may forward a certificate; required when the
+ *                          header is set, and a request from any other address never has its header read.
+ * @param port              port of the dedicated TLS connector that requests a client certificate; {@code 0} (the
+ *                          default) turns the direct transport off.
+ * @param amr               RFC 8176 {@code amr} value the factor reports: {@code sc} (smart card, the default) or
+ *                          {@code hwk} (a hardware-bound key).
+ * @param keyStore          path of the key store with the server certificate of the dedicated port; with the
+ *                          {@code dev} profile and none configured, a self-signed one is generated at the first start
+ *                          under {@code ~/.irurueta-auth-server/}.
+ * @param keyStorePassword  password of the key store (and of its key), from the environment, never from a file.
+ * @param keyStoreType      type of the key store (default {@code PKCS12}).
+ */
+@ConfigurationProperties(prefix = "authserver.x509")
+public record X509Properties(
+        @DefaultValue("false") boolean enabled,
+        @DefaultValue("") String forwardedHeader,
+        @DefaultValue List&lt;String&gt; trustedProxies,
+        @DefaultValue("0") int port,
+        @DefaultValue("sc") String amr,
+        @DefaultValue("") String keyStore,
+        @DefaultValue("") String keyStorePassword,
+        @DefaultValue("PKCS12") String keyStoreType) {
+
+    /** {@code amr} value of a smart card. */
+    public static final String AMR_SMART_CARD = "sc";
+
+    /** {@code amr} value of a key held in hardware. */
+    public static final String AMR_HARDWARE_KEY = "hwk";
+
+    /** Highest TCP port. */
+    private static final int MAX_PORT = 65_535;
+
+    /**
+     * Validates the configuration and copies the list.
+     *
+     * @throws IllegalArgumentException if the port is out of range, the {@code amr} value is not {@code sc} or
+     *                                  {@code hwk}, a trusted proxy is not an address or a range, or a forwarded
+     *                                  header is set without any trusted proxy.
+     */
+    public X509Properties {
+        trustedProxies = List.copyOf(trustedProxies);
+        if (port &lt; 0 || port &gt; MAX_PORT) {
+            throw new IllegalArgumentException("port must be between 0 and " + MAX_PORT);
+        }
+        if (!AMR_SMART_CARD.equals(amr) &amp;&amp; !AMR_HARDWARE_KEY.equals(amr)) {
+            throw new IllegalArgumentException("amr must be " + AMR_SMART_CARD + " or " + AMR_HARDWARE_KEY);
+        }
+        trustedProxies.forEach(IpAddressMatcher::new);
+        if (StringUtils.hasText(forwardedHeader) &amp;&amp; trustedProxies.isEmpty()) {
+            throw new IllegalArgumentException("a forwarded header needs at least one trusted proxy");
+        }
+    }
+
+    /**
+     * Tells whether the certificate may arrive in a header.
+     *
+     * @return {@code true} when a header name is configured.
+     */
+    public boolean forwardedEnabled() {
+        return StringUtils.hasText(forwardedHeader);
+    }
+
+    /**
+     * Tells whether the dedicated TLS connector is requested.
+     *
+     * @return {@code true} when a port is configured.
+     */
+    public boolean tlsEnabled() {
+        return port &gt; 0;
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_mapping_a_certificate_to_a_user"><a class="anchor" href="#_mapping_a_certificate_to_a_user"></a>Mapping a certificate to a user</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The extractor returns the fingerprint as the principal (an expired or not yet valid certificate yields an unreadable
+one), and the user details service maps it to an account through the mapping table and the account-status check.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- One row per client certificate bound to a user. The certificate is recognised by the SHA-256 fingerprint of its DER
+-- encoding (lower case hexadecimal), which is unique: one certificate belongs to one account. The subject DN is kept
+-- only to tell the bindings apart.
+CREATE TABLE x509_certificates
+(
+    id                 uuid                     NOT NULL,
+    user_id            uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    fingerprint_sha256 char(64)                 NOT NULL,
+    subject_dn         varchar(1000)            NOT NULL,
+    created_at         timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_x509_certificates_fingerprint UNIQUE (fingerprint_sha256),
+    CONSTRAINT ck_x509_certificates_fingerprint_shape CHECK (fingerprint_sha256 ~ '^[0-9a-f]{64}$')
+);
+
+CREATE INDEX ix_x509_certificates_user_id ON x509_certificates (user_id);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Loads the account a client certificate is bound to. The principal of the pre-authenticated token is the fingerprint
+ * the {@link CertificatePrincipalExtractor} took, which {@link ResolveCertificateLoginUseCase} maps to the account;
+ * the account is then loaded through a {@link UserDetailsService} that refuses a disabled, locked or expired one, as
+ * the other sign-in methods do.
+ */
+@RequiredArgsConstructor
+public class X509UserDetailsService implements AuthenticationUserDetailsService&lt;PreAuthenticatedAuthenticationToken&gt; {
+
+    /** Finds the account a certificate is bound to. */
+    private final ResolveCertificateLoginUseCase resolveCertificateLoginUseCase;
+
+    /** Loads the account, refusing one that cannot sign in. */
+    private final UserDetailsService userDetailsService;
+
+    /**
+     * Loads the account of a certificate.
+     *
+     * @param token the token whose principal is the fingerprint of the certificate.
+     * @return the account.
+     * @throws UsernameNotFoundException if the certificate is not bound to any account.
+     * @throws org.springframework.security.authentication.AccountStatusException if the account cannot sign in.
+     */
+    @Override
+    public UserDetails loadUserDetails(final PreAuthenticatedAuthenticationToken token)
+            throws UsernameNotFoundException {
+        final var account = resolveCertificateLoginUseCase.execute(String.valueOf(token.getPrincipal()))
+                .orElseThrow(() -&gt; new UsernameNotFoundException("The certificate is not bound to an account"));
+        return userDetailsService.loadUserByUsername(account.username());
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="binding"><a class="anchor" href="#binding"></a>Binding certificates through the account API</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A user binds and unbinds certificates with the bearer-protected account API: <code>GET /api/account/certificates</code> lists
+them, <code>POST /api/account/certificates</code> binds the PEM certificate of its JSON body (only the public certificate, within
+its validity period; a value that carries a private key is refused without being parsed) and
+<code>DELETE /api/account/certificates/{id}</code> unbinds one. Binding and unbinding change how the account signs in, so both
+call <code>StepUpGuard</code> first, as unlinking an identity does. Unbinding is refused (<code>409 last-sign-in-method</code>) when the
+certificate is the last way to sign in, counted under the same per-account lock as unlinking an identity (see
+<a href="social-login.html" class="xref page">Social login</a>). The API exists whether or not the sign-in with a certificate is enabled.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /api/account/certificates:
+    get:
+      tags: [ Certificates ]
+      operationId: listCertificates
+      summary: Lists the bound certificates
+      description: &gt;-
+        Lists the X.509 client certificates bound to the authenticated account, oldest first, never anything of another
+        account. A bound certificate signs the account in on POST /login/x509 when authserver.x509.enabled is true.
+      responses:
+        '200':
+          description: The bound certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The bound certificates, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Certificate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [ Certificates ]
+      operationId: bindCertificate
+      summary: Binds a certificate
+      description: &gt;-
+        Binds the X.509 certificate of the request, in PEM form, to the authenticated account, so it can sign in with
+        it. Only the public certificate is sent, never its private key. The certificate is recognised by the SHA-256
+        fingerprint of its DER form, never by its subject; it must be within its validity period. Binding a certificate
+        the account already has answers the existing binding. While the account has a confirmed second factor, the
+        bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindCertificateRequest'
+      responses:
+        '201':
+          description: The certificate is bound (or was already bound to the account)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Certificate'
+        '400':
+          description: &gt;-
+            The request is invalid, or the value is not a single PEM X.509 certificate within its validity period
+            (problem type urn:problem:certificate:invalid-certificate)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '409':
+          description: &gt;-
+            The certificate is bound to another account (problem type urn:problem:certificate:certificate-already-bound)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/account/certificates/{id}:
+    delete:
+      tags: [ Certificates ]
+      operationId: unbindCertificate
+      summary: Unbinds a certificate
+      description: &gt;-
+        The certificate can no longer be used to sign in. A certificate of another account is never touched and is
+        answered as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470). The last way to sign in to the account is never removed: a
+        certificate is refused while the account has neither a password nor a linked identity, a passkey or another
+        certificate.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of the binding.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Certificate unbound
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: &gt;-
+            No such certificate for the authenticated account (problem type
+            urn:problem:certificate:certificate-not-found)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: &gt;-
+            The certificate is the last way to sign in to the account (problem type
+            urn:problem:certificate:last-sign-in-method)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Manages the client certificates bound to the authenticated account (the operations of the contract). Binding and
+ * unbinding change how the account signs in, so both call {@link StepUpGuard} first, as unlinking an identity does.
+ * The controller exists whether or not the sign-in with a certificate is enabled, so certificates can be bound before
+ * it is turned on.
+ */
+@RestController
+@RequiredArgsConstructor
+public class CertificateController implements CertificatesApi {
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the certificates of an account. */
+    private final ListCertificatesUseCase listCertificatesUseCase;
+
+    /** Binds a certificate. */
+    private final BindCertificateUseCase bindCertificateUseCase;
+
+    /** Unbinds a certificate. */
+    private final UnbindCertificateUseCase unbindCertificateUseCase;
+
+    /** Requires a recent multi-factor sign-in before a certificate is bound or unbound. */
+    private final StepUpGuard stepUpGuard;
+
+    /** Reads the certificate of a bind request. */
+    private final PemCertificateReader pemCertificateReader;
+
+    /** Maps the bindings onto the contract's DTOs. */
+    private final CertificateDtoMapper certificateDtoMapper;
+
+    /**
+     * Lists the certificates bound to the authenticated account.
+     *
+     * @return {@code 200 OK} with the certificates, possibly none.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;Certificate&gt;&gt; listCertificates() {
+        final var account = currentAccountResolver.resolve();
+        return ResponseEntity.ok(certificateDtoMapper.toResponses(listCertificatesUseCase.execute(account.id())));
+    }
+
+    /**
+     * Binds a certificate to the authenticated account.
+     *
+     * @param request the PEM certificate.
+     * @return {@code 201 Created} with the binding.
+     * @throws InvalidCertificateException if the value is not a usable certificate.
+     * @throws com.irurueta.authserver.authorization.domain.x509.CertificateAlreadyBoundException
+     *         if the certificate is bound to another account.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException
+     *         if the account has a confirmed second factor and the token does not show a recent multi-factor
+     *         sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Certificate&gt; bindCertificate(final BindCertificateRequest request) {
+        final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
+        final var certificate = pemCertificateReader.read(request.certificate());
+        final var binding = bindCertificateUseCase.execute(account.id(), account.username(),
+                certificate.fingerprintSha256(), certificate.subjectDn());
+        return ResponseEntity.status(HttpStatus.CREATED).body(certificateDtoMapper.toResponse(binding));
+    }
+
+    /**
+     * Unbinds a certificate of the authenticated account.
+     *
+     * @param id identifier of the binding.
+     * @return {@code 204 No Content}.
+     * @throws com.irurueta.authserver.authorization.domain.x509.CertificateNotFoundException
+     *         if the account has no such certificate.
+     * @throws com.irurueta.authserver.authorization.domain.social.LastSignInMethodException
+     *         if the certificate is the last way the account can sign in.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException
+     *         if the account has a confirmed second factor and the token does not show a recent multi-factor
+     *         sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; unbindCertificate(final UUID id) {
+        final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
+        unbindCertificateUseCase.execute(account.id(), account.username(), id);
+        return ResponseEntity.noContent().build();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The fingerprint is computed by the same code the sign-in uses, so the binding matches the certificate the browser
+presents later.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Reads the certificate sent to bind it to an account: exactly one X.509 certificate in PEM form, within its validity
+ * period, with a subject. A value that carries a private key is refused without being parsed: only the public
+ * certificate is ever sent. The fingerprint is computed exactly as {@link CertificatePrincipalExtractor} computes it at
+ * sign-in, so the binding matches the certificate the browser presents later.
+ */
+@Component
+public class PemCertificateReader {
+
+    /** Longest subject the {@code x509_certificates} table keeps. */
+    static final int MAX_SUBJECT_LENGTH = 1000;
+
+    /** Type of the certificates. */
+    private static final String CERTIFICATE_TYPE = "X.509";
+
+    /** Marker of a PEM private key, of any algorithm. */
+    private static final String PRIVATE_KEY_MARKER = "PRIVATE KEY";
+
+    /** Computes the fingerprint the sign-in looks up. */
+    private final CertificatePrincipalExtractor fingerprints = new CertificatePrincipalExtractor();
+
+    /**
+     * Reads a certificate.
+     *
+     * @param pem the certificate in PEM form.
+     * @return its fingerprint and subject.
+     * @throws InvalidCertificateException if the value carries a private key, is not exactly one X.509 certificate, is
+     *                                     outside its validity period or has no usable subject.
+     */
+    public PresentedCertificate read(final String pem) {
+        if (pem == null || pem.contains(PRIVATE_KEY_MARKER)) {
+            throw new InvalidCertificateException("Only a public certificate may be sent");
+        }
+        final var certificate = parse(pem);
+        try {
+            certificate.checkValidity();
+        } catch (final CertificateExpiredException | CertificateNotYetValidException e) {
+            throw new InvalidCertificateException("The certificate is not within its validity period", e);
+        }
+        final var subject = certificate.getSubjectX500Principal().getName();
+        if (subject.isBlank() || subject.length() &gt; MAX_SUBJECT_LENGTH) {
+            throw new InvalidCertificateException("The certificate has no usable subject");
+        }
+        try {
+            return new PresentedCertificate(fingerprints.fingerprintOf(certificate.getEncoded()), subject);
+        } catch (final CertificateEncodingException e) {
+            throw new InvalidCertificateException("The certificate cannot be encoded", e);
+        }
+    }
+
+    /**
+     * Parses exactly one X.509 certificate.
+     *
+     * @param pem the PEM text.
+     * @return the certificate.
+     * @throws InvalidCertificateException if the text is not exactly one X.509 certificate.
+     */
+    private static X509Certificate parse(final String pem) {
+        try {
+            final var certificates = CertificateFactory.getInstance(CERTIFICATE_TYPE)
+                    .generateCertificates(new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII)));
+            if (certificates.size() != 1
+                    || !(certificates.iterator().next() instanceof final X509Certificate certificate)) {
+                throw new InvalidCertificateException("Exactly one X.509 certificate must be sent");
+            }
+            return certificate;
+        } catch (final CertificateException e) {
+            throw new InvalidCertificateException("The value is not a PEM X.509 certificate", e);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that unbinds a client certificate from an account and audits it. Like unlinking an identity, it refuses to
+ * remove the last way to sign in, counted under the lock of {@link LockSignInMethodsUseCase} so that concurrent
+ * removals of the same account are serialized.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class UnbindCertificateUseCase {
+
+    /** Port that stores the bindings. */
+    private final CertificateBindingRepository certificateBindingRepository;
+
+    /** Locks and counts the sign-in methods of the account. */
+    private final LockSignInMethodsUseCase lockSignInMethodsUseCase;
+
+    /** Rules of removing a sign-in method. */
+    private final FederatedLinkingPolicy federatedLinkingPolicy;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    /**
+     * Unbinds a certificate; a certificate of another account is never touched.
+     *
+     * @param userId   identifier of the account.
+     * @param username name of the account, for the audit log.
+     * @param id       identifier of the binding.
+     * @throws CertificateNotFoundException if the account has no such binding.
+     * @throws LastSignInMethodException    if the certificate is the last way the account can sign in.
+     */
+    public void execute(final UUID userId, final String username, final UUID id) {
+        final var methods = lockSignInMethodsUseCase.execute(userId);
+        if (certificateBindingRepository.findByUser(userId).stream().noneMatch(binding -&gt; binding.id().equals(id))) {
+            throw new CertificateNotFoundException("The account has no certificate " + id);
+        }
+        if (!federatedLinkingPolicy.mayUnlink(methods.withoutCertificate())) {
+            throw new LastSignInMethodException("The certificate is the last way to sign in to the account");
+        }
+        if (!certificateBindingRepository.delete(id, userId)) {
+            throw new CertificateNotFoundException("The account has no certificate " + id);
+        }
+        recordSecurityEventUseCase.execute(SecurityEventType.CERTIFICATE_UNBOUND, userId, username, id.toString());
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_factor_and_chain"><a class="anchor" href="#_factor_and_chain"></a>Factor and chain</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>FACTOR_X509</code> is a strong primary factor whose <code>amr</code> value is <code>sc</code> (smart card) or <code>hwk</code> (hardware-bound key), from
+<code>authserver.x509.amr</code>. It lets the user in without a second factor, but it is not multi-factor alone (a certificate is
+possession of a key, and the server cannot tell whether a PIN protected it): a certificate-only session gets the
+password <code>acr</code>, so a step-up (<code>acr_values</code> for the multi-factor class, or the account API&#8217;s <code>StepUpGuard</code>) asks for a
+second factor (see <a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the certificate factor.
+     *
+     * @param properties settings of the sign-in with a certificate, which choose the reported {@code amr} value.
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor x509AuthenticationFactor(final X509Properties properties) {
+        return new AuthenticationFactor(ID, properties.amr(), AUTHORITY, FactorStrength.PRIMARY_STRONG);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds the sign-in with a client certificate to the login/UI chain through {@code http.x509(...)}. The filter only
+ * looks at {@code POST /login/x509}, the form of {@link X509LoginMethodFragment} on the login page, which carries the
+ * CSRF token like every other form of the chain; the CSRF filter runs before the X.509 one, so a cross-site page can
+ * never make a browser sign in with its certificate. The form posts to the TLS port that requests a certificate (or
+ * to the proxy that forwards one); every other request of the chain is untouched, and {@code GET /login/x509} is not
+ * a sign-in at all (it is not opened, so it ends with the chain's catch-all rule). A certificate that is bound to an
+ * account signs it in and resumes the interrupted request, anything else goes back to the login page. The path is
+ * open to everybody, because it is where the certificate is checked. When a proxy may forward the certificate,
+ * {@link ForwardedCertificateFilter} runs first. Once the chain is configured, the success handler gets the chain's
+ * session authentication strategy, the one the form login uses.
+ */
+@RequiredArgsConstructor
+public class X509ChainCustomizer implements LoginChainCustomizer {
+
+    /** Order of the customizer: after the social login one. */
+    public static final int ORDER = 6;
+
+    /** Path of the sign-in with a certificate, which is served by the security filter. */
+    public static final String LOGIN_PATH = "/login/x509";
+
+    /** Where a failed sign-in goes. */
+    static final String FAILURE_URL = "/login?error";
+
+    /** The filter that authenticates the certificate. */
+    private final X509LoginFilter filter;
+
+    /** Takes the principal of the certificate. */
+    private final X509PrincipalExtractor principalExtractor;
+
+    /** Loads the account of the certificate. */
+    private final AuthenticationUserDetailsService&lt;PreAuthenticatedAuthenticationToken&gt; userDetailsService;
+
+    /** The filter that reads a forwarded certificate, or {@code null} when the transport is off. */
+    private final ForwardedCertificateFilter forwardedFilter;
+
+    /** Completes the sign-in. */
+    private final X509AuthenticationSuccessHandler successHandler;
+
+    /**
+     * Customizes the login/UI chain.
+     *
+     * @param http security builder of the chain.
+     */
+    @Override
+    public void customize(final HttpSecurity http) {
+        final var loginRequest = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, LOGIN_PATH);
+        http.authorizeHttpRequests(authorize -&gt; authorize.requestMatchers(loginRequest).permitAll());
+        prepare(filter, loginRequest, http);
+        if (forwardedFilter != null) {
+            http.addFilterBefore(forwardedFilter, X509AuthenticationFilter.class);
+        }
+        http.x509(x509 -&gt; x509
+                .x509AuthenticationFilter(filter)
+                .x509PrincipalExtractor(principalExtractor)
+                .authenticationUserDetailsService(userDetailsService));
+        http.with(new SessionStrategyConfigurer(successHandler));
+    }
+
+    /**
+     * Sets up the filter, which the {@code x509} configurer takes as it is.
+     *
+     * @param loginFilter  the filter.
+     * @param loginRequest matcher of the sign-in requests.
+     * @param http         security builder of the chain, whose authentication manager the filter uses once built.
+     */
+    private void prepare(final X509LoginFilter loginFilter, final RequestMatcher loginRequest,
+            final HttpSecurity http) {
+        loginFilter.setPrincipalExtractor(principalExtractor);
+        loginFilter.setRequiresAuthenticationRequestMatcher(loginRequest);
+        loginFilter.setMfaEnabled(true);
+        loginFilter.setAuthenticationSuccessHandler(successHandler);
+        loginFilter.setAuthenticationFailureHandler(
+                (request, response, exception) -&gt; response.sendRedirect(request.getContextPath() + FAILURE_URL));
+        // the chain's manager only exists once the chain is built, so it is read when a request arrives
+        loginFilter.setAuthenticationManager(authentication -&gt;
+                http.getSharedObject(AuthenticationManager.class)
+                        .authenticate(authentication));
+    }
+
+    /**
+     * Hands the session authentication strategy of the chain to the success handler. The strategy is a shared object
+     * of the chain that only exists once every configurer has been initialised (the CSRF configurer adds its
+     * {@code CsrfAuthenticationStrategy} to the session management one), so it is read in {@code configure}, as the
+     * form login does for its own filter. Package-private so its test can drive it.
+     */
+    @RequiredArgsConstructor
+    static final class SessionStrategyConfigurer
+            extends AbstractHttpConfigurer&lt;SessionStrategyConfigurer, HttpSecurity&gt; {
+
+        /** The handler that gets the strategy. */
+        private final X509AuthenticationSuccessHandler handler;
+
+        /**
+         * Sets the shared strategy, when the chain has one, on the handler.
+         *
+         * @param http security builder of the chain.
+         */
+        @Override
+        public void configure(final HttpSecurity http) {
+            final var strategy = http.getSharedObject(SessionAuthenticationStrategy.class);
+            if (strategy != null) {
+                handler.setSessionAuthenticationStrategy(strategy);
+            }
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Completes a sign-in with a client certificate. The framework's authentication is a
+ * {@code PreAuthenticatedAuthenticationToken}, which the stored authorizations cannot serialize and whose factor
+ * authority is a plain one; this handler replaces it by the ordinary authentication of the account, with the
+ * authorities the account and the session already had and the certificate factor stamped with the clock (which is what
+ * {@code auth_time} and {@code max_age} are measured with), changes the session id and renews the CSRF token as the
+ * other sign-in methods do, saves the security context and resumes the interrupted request.
+ */
+@RequiredArgsConstructor
+public class X509AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    /** Adds the factor authority. */
+    private final FactorGrantor factorGrantor;
+
+    /** Saves the security context, in the request and in the session. */
+    private final SecurityContextRepository securityContextRepository;
+
+    /** Resumes the interrupted request. */
+    private final AuthenticationSuccessHandler delegate;
+
+    /** Holder of the security context of the thread. */
+    private final SecurityContextHolderStrategy holderStrategy = SecurityContextHolder.getContextHolderStrategy();
+
+    /** Strategy that changes the session id and renews the CSRF token, set once the chain is built. */
+    @Setter
+    private SessionAuthenticationStrategy sessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy();
+
+    /**
+     * Replaces the authentication, grants the factor and continues.
+     *
+     * @param request        the request.
+     * @param response       the response.
+     * @param authentication the authentication the framework produced.
+     * @throws IOException      if the redirect fails.
+     * @throws ServletException if the redirect fails.
+     */
+    @Override
+    public void onAuthenticationSuccess(final HttpServletRequest request, final HttpServletResponse response,
+            final Authentication authentication) throws IOException, ServletException {
+        final var authorities = authentication.getAuthorities().stream()
+                .filter(authority -&gt; authority instanceof FactorGrantedAuthority
+                        || !FactorGrantedAuthority.X509_AUTHORITY.equals(authority.getAuthority()))
+                .&lt;GrantedAuthority&gt;map(authority -&gt; authority)
+                .toList();
+        final var signedIn = factorGrantor.grant(
+                UsernamePasswordAuthenticationToken.authenticated(authentication.getPrincipal(), null, authorities),
+                FactorGrantedAuthority.X509_AUTHORITY);
+        sessionAuthenticationStrategy.onAuthentication(signedIn, request, response);
+        final var context = holderStrategy.createEmptyContext();
+        context.setAuthentication(signedIn);
+        holderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
+        delegate.onAuthenticationSuccess(request, response, signedIn);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_button_on_the_login_page"><a class="anchor" href="#_the_button_on_the_login_page"></a>The button on the login page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>X509LoginMethodFragment</code> is a <code>LoginMethodFragment</code> (order 260, after the social providers): a form with one button
+whose action depends on the transport. With a proxy that forwards the certificate it is the relative path. With only the
+dedicated TLS port, a page served on any other port posts to <code><a href="https://&lt;same" class="bare">https://&lt;same</a> host&gt;:&lt;port&gt;/login/x509</code>, the one port that
+asks for a certificate; a page served on the TLS port itself posts to the relative path. Cookies belong to a host, not
+to a port, so the session and its CSRF token are valid on both ports, but browsers count <code>http</code> and <code>https</code> as
+different sites and do not send a <code>SameSite</code> cookie on a post from one to the other: serve the main port over <code>https</code>
+too, or open the login page on the TLS port (as the development setup does, whose main port is plain <code>http</code>). The login
+page has no <code>form-action</code> directive in its Content Security Policy, so the post to the other port is not blocked.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Contributes the sign-in with a client certificate to the login page: a form with one button that posts, with the
+ * CSRF token, to {@code POST /login/x509}. The template reads {@link #action()} through this bean, because where the
+ * form posts depends on the transport:
+ * &lt;ul&gt;
+ *     &lt;li&gt;with a proxy that forwards the certificate, the proxy fronts the whole application, so the form posts to the
+ *     relative path, on the origin of the page;&lt;/li&gt;
+ *     &lt;li&gt;with only the dedicated TLS port, the certificate is requested by that port alone, so a page served on any
+ *     other port posts to the same host on that port over {@code https}; a page already served on that port posts to
+ *     the relative path.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * The session cookie and the CSRF token stay valid on the other port (cookies belong to a host, not to a port), but a
+ * browser only sends a cookie with a {@code SameSite} restriction on a post between pages of the same site, and it
+ * counts {@code http} and {@code https} as different sites: the main port must be served over {@code https} too, or
+ * the login page must be opened on the TLS port. The bean only exists while the sign-in with a certificate is enabled.
+ */
+public class X509LoginMethodFragment implements LoginMethodFragment {
+
+    /** Position of the certificate sign-in in the login page: after the social one, before the one-time tokens. */
+    public static final int ORDER = 260;
+
+    /** Scheme of the dedicated TLS port. */
+    private static final String HTTPS = "https";
+
+    /** Settings, which tell the transports and the TLS port. */
+    private final X509Properties properties;
+
+    /**
+     * Creates the fragment.
+     *
+     * @param properties settings of the sign-in with a certificate.
+     */
+    public X509LoginMethodFragment(final X509Properties properties) {
+        this.properties = properties;
+    }
+
+    /**
+     * Gets the template that holds the fragment.
+     *
+     * @return {@code login-x509}.
+     */
+    @Override
+    public String templateName() {
+        return "login-x509";
+    }
+
+    /**
+     * Gets the fragment of the template.
+     *
+     * @return {@code login}.
+     */
+    @Override
+    public String fragmentName() {
+        return "login";
+    }
+
+    /**
+     * Gets the position of the fragment.
+     *
+     * @return {@link #ORDER}.
+     */
+    @Override
+    public int order() {
+        return ORDER;
+    }
+
+    /**
+     * Gets the address the form of the page being rendered posts to.
+     *
+     * @return the address of the sign-in request for the current request; the relative path when there is none.
+     */
+    public String action() {
+        if (RequestContextHolder.getRequestAttributes() instanceof final ServletRequestAttributes attributes) {
+            return action(attributes.getRequest());
+        }
+        return X509ChainCustomizer.LOGIN_PATH;
+    }
+
+    /**
+     * Gets the address the form of a page posts to.
+     *
+     * @param request the request of the page.
+     * @return the relative path (with the context path) when a proxy forwards the certificate, when there is no TLS
+     *         port or when the page is served on it; otherwise the absolute address on the TLS port of the same host.
+     */
+    public String action(final HttpServletRequest request) {
+        final var path = request.getContextPath() + X509ChainCustomizer.LOGIN_PATH;
+        if (properties.forwardedEnabled() || !properties.tlsEnabled()
+                || request.getLocalPort() == properties.port()) {
+            return path;
+        }
+        return UriComponentsBuilder.newInstance().scheme(HTTPS).host(request.getServerName())
+                .port(properties.port()).path(path).toUriString();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;form th:fragment="login" class="x509-login" method="post" th:action="${@x509LoginMethodFragment.action()}"&gt;
+  &lt;h2 th:text="#{x509.login.heading}"&gt;Sign in with a certificate&lt;/h2&gt;
+  &lt;p th:text="#{x509.login.hint}"&gt;Your browser or smart card will ask which certificate to present.&lt;/p&gt;
+  &lt;button type="submit" th:text="#{x509.login.button}"&gt;Use my certificate&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_two_transports_one_extractor"><a class="anchor" href="#_two_transports_one_extractor"></a>Two transports, one extractor</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A reverse proxy can forward the certificate in a header. The filter reads it only for a request from one of
+<code>trusted-proxies</code>, parses it and sets the servlet request attribute the framework filter reads, so a spoofed header
+from anyone else is ignored.</p>
+</div>
+<div class="paragraph">
+<p>The address compared with <code>trusted-proxies</code> is <code>getRemoteAddr()</code>, the address left once Spring Boot has handled the
+forwarded headers. Only with <code>server.forward-headers-strategy: none</code> is that the direct network peer. With <code>framework</code>,
+Spring&#8217;s <code>ForwardedHeaderFilter</code> replaces it with the first <code>X-Forwarded-For</code> value, which any client can send (naming
+a trusted proxy there would make a forged certificate header look trusted); with <code>native</code>, Tomcat&#8217;s <code>RemoteIpValve</code>
+replaces it with the client the proxies report, so the proxy itself is never seen. A strategy that is not set defaults
+to <code>native</code> on a cloud platform Spring Boot detects. <code>X509ForwardedHeadersGuard</code> therefore stops the startup when a
+<code>forwarded-header</code> is configured with any strategy but <code>none</code> (an empty <code>trusted-proxies</code> is already refused by
+<code>X509Properties</code>). The proxy may still send <code>X-Forwarded-*</code> headers; the authorization server does not use them, so
+its public URLs (the issuer) must be configured explicitly.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Refuses to start when a certificate may be forwarded in a header while the server rewrites the address of its
+ * clients from the forwarded headers.
+ *
+ * &lt;p&gt;{@link ForwardedCertificateFilter} trusts a forwarded certificate only from the addresses of
+ * {@code authserver.x509.trusted-proxies}, and it reads the address with {@code getRemoteAddr()}, which is the address
+ * left once Spring Boot's forwarded-header handling has run. With {@code server.forward-headers-strategy=framework},
+ * Spring's {@code ForwardedHeaderFilter} replaces it with the first value of {@code X-Forwarded-For} (or
+ * {@code Forwarded}), which any client can send: naming a trusted proxy there would make a forged certificate header
+ * look trusted. With {@code native}, Tomcat's {@code RemoteIpValve} replaces it with the client the proxies report,
+ * so the address of the proxy itself is never seen and the check is made against an address that came from a header.
+ * The same happens without the property on a cloud platform that Spring Boot detects, where {@code native} is the
+ * default. Only with {@code none} is the address the direct network peer, which no header can change, so that is the
+ * one combination allowed. The proxy is still free to send {@code X-Forwarded-*} headers; they are just not used.
+ */
+public final class X509ForwardedHeadersGuard {
+
+    /** Property of Spring Boot that selects how the forwarded headers are handled. */
+    static final String STRATEGY_PROPERTY = "server.forward-headers-strategy";
+
+    /** Value of the strategy that leaves the address of the client alone. */
+    private static final String NONE = "none";
+
+    /** Value of the strategy of the servlet container. */
+    private static final String NATIVE = "native";
+
+    /** Value of the strategy of Spring's filter. */
+    private static final String FRAMEWORK = "framework";
+
+    /** Environment of the application, with the forwarded-header strategy. */
+    private final Environment environment;
+
+    /**
+     * Checks the configuration.
+     *
+     * @param properties  settings of the sign-in with a certificate.
+     * @param environment environment of the application, with the forwarded-header strategy.
+     * @throws IllegalStateException if the forwarded certificate header is enabled and the strategy (configured or
+     *                               deduced from the cloud platform) rewrites the address of the client.
+     */
+    public X509ForwardedHeadersGuard(final X509Properties properties, final Environment environment) {
+        this.environment = environment;
+        if (properties.forwardedEnabled() &amp;&amp; rewritesClientAddress()) {
+            throw new IllegalStateException("authserver.x509.forwarded-header needs " + STRATEGY_PROPERTY + "=" + NONE
+                    + ": with any other strategy the address checked against authserver.x509.trusted-proxies comes "
+                    + "from a forwarded header that a client can choose");
+        }
+    }
+
+    /**
+     * Tells whether the server replaces the address of its clients with one taken from the forwarded headers.
+     *
+     * @return {@code true} for the {@code native} and {@code framework} strategies, and without a strategy when the
+     *         detected cloud platform uses the forwarded headers.
+     */
+    public boolean rewritesClientAddress() {
+        final var strategy = environment.getProperty(STRATEGY_PROPERTY, "").strip().toLowerCase(Locale.ROOT);
+        return switch (strategy) {
+            case NATIVE, FRAMEWORK -&gt; true;
+            case NONE -&gt; false;
+            default -&gt; {
+                final var platform = CloudPlatform.getActive(environment);
+                yield platform != null &amp;&amp; platform.isUsingForwardHeaders();
+            }
+        };
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Reads the client certificate a reverse proxy that terminates TLS forwards in a header and leaves it where the
+ * servlet container leaves a certificate of its own, in the {@code jakarta.servlet.request.X509Certificate} request
+ * attribute, so the same X.509 filter and principal extractor serve both transports.
+ *
+ * &lt;p&gt;A header is only ever read when the request comes from one of the configured trusted proxies: anybody else could
+ * send any certificate. The address checked is {@code getRemoteAddr()}, which is the address left after Spring's or
+ * Tomcat's handling of the forwarded headers; only with {@code server.forward-headers-strategy=none} is it the direct
+ * network peer, because the {@code native} and {@code framework} strategies replace it with a value taken from
+ * {@code X-Forwarded-For}, which a client can choose. {@link X509ForwardedHeadersGuard} therefore refuses to start
+ * with this transport and any strategy that rewrites the address. The header of any other request is ignored, and so
+ * is one that is too long or does not hold a certificate. The proxy is responsible for verifying the certificate (the
+ * chain, the dates, the revocation) and for overwriting or removing a header of the same name sent by the client; the
+ * server only binds the certificate it is handed by its fingerprint. The filter only looks at the sign-in request
+ * ({@code POST /login/x509}).
+ */
+@Slf4j
+public class ForwardedCertificateFilter extends OncePerRequestFilter {
+
+    /** Name of the request attribute the servlet container, and the X.509 filter, use for the certificates. */
+    static final String CERTIFICATE_ATTRIBUTE = "jakarta.servlet.request.X509Certificate";
+
+    /** Longest header value that is parsed, in characters (a certificate is a few kilobytes). */
+    static final int MAX_HEADER_LENGTH = 16_384;
+
+    /** Type of the certificates. */
+    private static final String CERTIFICATE_TYPE = "X.509";
+
+    /** Lines that frame a PEM certificate, and any white space. */
+    private static final Pattern PEM_NOISE = Pattern.compile("-----(BEGIN|END) CERTIFICATE-----|\\s");
+
+    /** Name of the header the certificate comes in. */
+    private final String headerName;
+
+    /** Matchers of the addresses of the trusted proxies. */
+    private final List&lt;IpAddressMatcher&gt; trustedProxies;
+
+    /** Matcher of the requests the filter looks at. */
+    private final RequestMatcher loginRequests;
+
+    /**
+     * Creates the filter.
+     *
+     * @param properties settings of the sign-in with a certificate: the header and the trusted proxies.
+     */
+    public ForwardedCertificateFilter(final X509Properties properties) {
+        headerName = properties.forwardedHeader();
+        trustedProxies = properties.trustedProxies().stream().map(IpAddressMatcher::new).toList();
+        loginRequests = PathPatternRequestMatcher.withDefaults()
+                .matcher(HttpMethod.POST, X509ChainCustomizer.LOGIN_PATH);
+    }
+
+    /**
+     * Sets the certificate attribute when a trusted proxy forwarded a valid certificate.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @param chain    the rest of the chain.
+     * @throws ServletException if the chain fails.
+     * @throws IOException      if the chain fails.
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain chain) throws ServletException, IOException {
+        final var header = request.getHeader(headerName);
+        if (header != null &amp;&amp; loginRequests.matches(request)) {
+            if (isTrusted(request.getRemoteAddr())) {
+                parse(header).ifPresent(certificate -&gt; request.setAttribute(CERTIFICATE_ATTRIBUTE,
+                        new X509Certificate[] {certificate}));
+            } else {
+                log.warn("Ignored a forwarded client certificate from an untrusted address");
+            }
+        }
+        chain.doFilter(request, response);
+    }
+
+    /**
+     * Tells whether an address belongs to a trusted proxy.
+     *
+     * @param address the address of the client of the request, as the container reports it; may be {@code null}.
+     * @return {@code true} when a trusted proxy matches it.
+     */
+    private boolean isTrusted(final String address) {
+        return StringUtils.hasText(address) &amp;&amp; trustedProxies.stream().anyMatch(proxy -&gt; proxy.matches(address));
+    }
+
+    /**
+     * Parses the certificate of a header value.
+     *
+     * @param value the value: the URL-encoded PEM, the PEM or the base64 of the DER form.
+     * @return the certificate, or empty when the value is too long or is not a certificate.
+     */
+    private static Optional&lt;X509Certificate&gt; parse(final String value) {
+        if (value.length() &gt; MAX_HEADER_LENGTH) {
+            log.debug("Ignored a forwarded client certificate that is too long");
+            return Optional.empty();
+        }
+        try {
+            final var base64 = PEM_NOISE.matcher(UriUtils.decode(value, StandardCharsets.UTF_8)).replaceAll("");
+            final var der = Base64.getDecoder().decode(base64);
+            final var certificate = CertificateFactory.getInstance(CERTIFICATE_TYPE)
+                    .generateCertificate(new ByteArrayInputStream(der));
+            return certificate instanceof X509Certificate x509 ? Optional.of(x509) : Optional.empty();
+        } catch (final CertificateException | IllegalArgumentException e) {
+            log.debug("Ignored a forwarded client certificate that cannot be read", e);
+            return Optional.empty();
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively an extra TLS connector (<code>authserver.x509.port</code>) requests a client certificate. Its trust manager
+advertises no certificate authority and accepts any chain, because the JVM default would advertise only its own CAs and a
+client holding a certificate from a private CA would never offer it. The identity is the bound fingerprint and the
+validity period, not the chain, and there is no CRL or OCSP check.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds the dedicated TLS port that requests a client certificate, when {@code authserver.x509.port} is set. The main
+ * port is left as it is, so the rest of the application never asks a browser for a certificate. The connector
+ * &lt;em&gt;requests&lt;/em&gt; a certificate without requiring one and without validating it against a CA
+ * ({@code optionalNoCA}): the TLS handshake proves that the client holds the private key, and what identifies the
+ * client is the fingerprint of the certificate, which has to be bound to an account. The servlet container leaves the
+ * certificate in the request attribute that the X.509 filter reads. The connector's trust manager
+ * ({@link AnyClientCertificateTrustManager}) advertises no certificate authority: without it the handshake lists the
+ * authorities of the JVM's default trust store, and a client offers only a certificate issued by a listed authority,
+ * so the certificate of a private authority would never be presented.
+ */
+@RequiredArgsConstructor
+public class X509TlsConnectorCustomizer implements WebServerFactoryCustomizer&lt;TomcatServletWebServerFactory&gt; {
+
+    /** Value of the certificate verification that asks for a certificate but does not validate it. */
+    static final String CERTIFICATE_VERIFICATION = "optionalNoCA";
+
+    /** Scheme of the connector. */
+    private static final String SCHEME = "https";
+
+    /** Settings of the sign-in with a certificate. */
+    private final X509Properties properties;
+
+    /** Finds the key store with the server certificate. */
+    private final X509TlsKeyStoreResolver keyStoreResolver;
+
+    /**
+     * Adds the connector to the server, when the port is configured.
+     *
+     * @param factory the factory of the embedded Tomcat.
+     */
+    @Override
+    public void customize(final TomcatServletWebServerFactory factory) {
+        if (properties.tlsEnabled()) {
+            factory.addAdditionalConnectors(connector(keyStoreResolver.resolve()));
+        }
+    }
+
+    /**
+     * Builds the connector.
+     *
+     * @param keyStore the key store with the server certificate.
+     * @return the connector.
+     */
+    Connector connector(final X509TlsKeyStore keyStore) {
+        final var connector = new Connector(Http11NioProtocol.class.getName());
+        connector.setScheme(SCHEME);
+        connector.setSecure(true);
+        connector.setPort(properties.port());
+        final var protocol = (AbstractHttp11Protocol&lt;?&gt;) connector.getProtocolHandler();
+        protocol.setSSLEnabled(true);
+        final var host = new SSLHostConfig();
+        host.setCertificateVerification(CERTIFICATE_VERIFICATION);
+        host.setTrustManagerClassName(AnyClientCertificateTrustManager.class.getName());
+        final var certificate = new SSLHostConfigCertificate(host, SSLHostConfigCertificate.Type.UNDEFINED);
+        certificate.setCertificateKeystoreFile(keyStore.location().toString());
+        certificate.setCertificateKeystorePassword(keyStore.password());
+        certificate.setCertificateKeystoreType(keyStore.type());
+        host.addCertificate(certificate);
+        protocol.addSslHostConfig(host);
+        return connector;
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

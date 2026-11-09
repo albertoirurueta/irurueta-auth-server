@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttRateLimitProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttRateLimitProperties.java</span></div><h1>OttRateLimitProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+/**
+ * Configuration of the rate limiting of the one-time token endpoints ({@code authserver.ott.rate-limit.*}): the
+ * requests for a token ({@code POST /ott/generate}, the phone enrolment) and the submissions of a token or a code
+ * ({@code POST /login/ott}, {@code POST /login/second-factor/ott}, the phone verification).
+ *
+ * @param enabled                   whether requests are limited at all (default {@code true}).
+ * @param window                    length of the fixed window the requests are counted in (default 15 minutes).
+ * @param generationPerClient       tokens one client address may request in a window (default 20).
+ * @param generationPerIdentifier   tokens that may be requested for one identifier in a window (default 5).
+ * @param verificationPerClient     submissions one client address may make in a window (default 30).
+ * @param verificationPerIdentifier submissions that may name one identifier in a window (default 10).
+ * @param maxTrackedKeys            keys tracked at most per kind of limit; the oldest is forgotten first, so the memory
+ *                                  used stays bounded (default 10 000).
+ */
+@ConfigurationProperties(prefix = &quot;authserver.ott.rate-limit&quot;)
+public record OttRateLimitProperties(
+        @DefaultValue(&quot;true&quot;) boolean enabled,
+        @DefaultValue(&quot;PT15M&quot;) Duration window,
+        @DefaultValue(&quot;20&quot;) int generationPerClient,
+        @DefaultValue(&quot;5&quot;) int generationPerIdentifier,
+        @DefaultValue(&quot;30&quot;) int verificationPerClient,
+        @DefaultValue(&quot;10&quot;) int verificationPerIdentifier,
+        @DefaultValue(&quot;10000&quot;) int maxTrackedKeys) {
+
+    /**
+     * Validates the configuration.
+     *
+     * @throws IllegalArgumentException if the window is not positive, or a limit or the number of tracked keys is
+     *                                  not positive.
+     */
+<span class="fc" id="L52">    public OttRateLimitProperties {</span>
+<span class="fc bfc" id="L53" title="All 6 branches covered.">        if (window == null || window.isZero() || window.isNegative()) {</span>
+<span class="fc" id="L54">            throw new IllegalArgumentException(&quot;window must be positive&quot;);</span>
+        }
+<span class="fc bfc" id="L56" title="All 10 branches covered.">        if (generationPerClient &lt; 1 || generationPerIdentifier &lt; 1 || verificationPerClient &lt; 1</span>
+                || verificationPerIdentifier &lt; 1 || maxTrackedKeys &lt; 1) {
+<span class="fc" id="L58">            throw new IllegalArgumentException(&quot;limits and maxTrackedKeys must be positive&quot;);</span>
+        }
+<span class="fc" id="L60">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionStrategyPostProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.passkeys</a> &gt; <span class="el_source">SessionStrategyPostProcessor.java</span></div><h1>SessionStrategyPostProcessor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.passkeys;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.config.ObjectPostProcessor;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.security.web.webauthn.authentication.WebAuthnAuthenticationFilter;
+
+/**
+ * Hands the session authentication strategy of the chain to the WebAuthn filter. {@code WebAuthnConfigurer} leaves
+ * its filter with the do-nothing strategy, so a passkey sign-in would keep the session id of the visitor (session
+ * fixation) and the CSRF token it was rendered with. The chain's strategy changes the id and renews the token, as the
+ * one of the form login does. The strategy is a shared object that only exists once every configurer has been
+ * initialised, and the configurer post-processes its filter while it is configured, so it is read then.
+ */
+@RequiredArgsConstructor
+public class SessionStrategyPostProcessor implements ObjectPostProcessor&lt;WebAuthnAuthenticationFilter&gt; {
+
+    /** Security builder of the chain, whose shared strategy is read. */
+    private final HttpSecurity http;
+
+    /**
+     * Sets the shared strategy, when the chain has one, on the filter.
+     *
+     * @param filter the filter the configurer built.
+     * @param &lt;O&gt;    type of the filter.
+     * @return the same filter.
+     */
+    @Override
+    public &lt;O extends WebAuthnAuthenticationFilter&gt; O postProcess(final O filter) {
+<span class="fc" id="L47">        final var strategy = http.getSharedObject(SessionAuthenticationStrategy.class);</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (strategy != null) {</span>
+<span class="fc" id="L49">            filter.setSessionAuthenticationStrategy(strategy);</span>
+        }
+<span class="fc" id="L51">        return filter;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

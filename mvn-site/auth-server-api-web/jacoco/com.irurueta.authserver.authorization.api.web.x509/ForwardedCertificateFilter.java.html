@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ForwardedCertificateFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">ForwardedCertificateFilter.java</span></div><h1>ForwardedCertificateFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UriUtils;
+
+// tag::x509-forwarded-filter[]
+/**
+ * Reads the client certificate a reverse proxy that terminates TLS forwards in a header and leaves it where the
+ * servlet container leaves a certificate of its own, in the {@code jakarta.servlet.request.X509Certificate} request
+ * attribute, so the same X.509 filter and principal extractor serve both transports.
+ *
+ * &lt;p&gt;A header is only ever read when the request comes from one of the configured trusted proxies: anybody else could
+ * send any certificate. The address checked is {@code getRemoteAddr()}, which is the address left after Spring's or
+ * Tomcat's handling of the forwarded headers; only with {@code server.forward-headers-strategy=none} is it the direct
+ * network peer, because the {@code native} and {@code framework} strategies replace it with a value taken from
+ * {@code X-Forwarded-For}, which a client can choose. {@link X509ForwardedHeadersGuard} therefore refuses to start
+ * with this transport and any strategy that rewrites the address. The header of any other request is ignored, and so
+ * is one that is too long or does not hold a certificate. The proxy is responsible for verifying the certificate (the
+ * chain, the dates, the revocation) and for overwriting or removing a header of the same name sent by the client; the
+ * server only binds the certificate it is handed by its fingerprint. The filter only looks at the sign-in request
+ * ({@code POST /login/x509}).
+ */
+<span class="fc" id="L58">@Slf4j</span>
+public class ForwardedCertificateFilter extends OncePerRequestFilter {
+
+    /** Name of the request attribute the servlet container, and the X.509 filter, use for the certificates. */
+    static final String CERTIFICATE_ATTRIBUTE = &quot;jakarta.servlet.request.X509Certificate&quot;;
+
+    /** Longest header value that is parsed, in characters (a certificate is a few kilobytes). */
+    static final int MAX_HEADER_LENGTH = 16_384;
+
+    /** Type of the certificates. */
+    private static final String CERTIFICATE_TYPE = &quot;X.509&quot;;
+
+    /** Lines that frame a PEM certificate, and any white space. */
+<span class="fc" id="L71">    private static final Pattern PEM_NOISE = Pattern.compile(&quot;-----(BEGIN|END) CERTIFICATE-----|\\s&quot;);</span>
+
+    /** Name of the header the certificate comes in. */
+    private final String headerName;
+
+    /** Matchers of the addresses of the trusted proxies. */
+    private final List&lt;IpAddressMatcher&gt; trustedProxies;
+
+    /** Matcher of the requests the filter looks at. */
+    private final RequestMatcher loginRequests;
+
+    /**
+     * Creates the filter.
+     *
+     * @param properties settings of the sign-in with a certificate: the header and the trusted proxies.
+     */
+<span class="fc" id="L87">    public ForwardedCertificateFilter(final X509Properties properties) {</span>
+<span class="fc" id="L88">        headerName = properties.forwardedHeader();</span>
+<span class="fc" id="L89">        trustedProxies = properties.trustedProxies().stream().map(IpAddressMatcher::new).toList();</span>
+<span class="fc" id="L90">        loginRequests = PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L91">                .matcher(HttpMethod.POST, X509ChainCustomizer.LOGIN_PATH);</span>
+<span class="fc" id="L92">    }</span>
+
+    /**
+     * Sets the certificate attribute when a trusted proxy forwarded a valid certificate.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @param chain    the rest of the chain.
+     * @throws ServletException if the chain fails.
+     * @throws IOException      if the chain fails.
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain chain) throws ServletException, IOException {
+<span class="fc" id="L106">        final var header = request.getHeader(headerName);</span>
+<span class="fc bfc" id="L107" title="All 4 branches covered.">        if (header != null &amp;&amp; loginRequests.matches(request)) {</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">            if (isTrusted(request.getRemoteAddr())) {</span>
+<span class="fc" id="L109">                parse(header).ifPresent(certificate -&gt; request.setAttribute(CERTIFICATE_ATTRIBUTE,</span>
+                        new X509Certificate[] {certificate}));
+            } else {
+<span class="fc" id="L112">                log.warn(&quot;Ignored a forwarded client certificate from an untrusted address&quot;);</span>
+            }
+        }
+<span class="fc" id="L115">        chain.doFilter(request, response);</span>
+<span class="fc" id="L116">    }</span>
+
+    /**
+     * Tells whether an address belongs to a trusted proxy.
+     *
+     * @param address the address of the client of the request, as the container reports it; may be {@code null}.
+     * @return {@code true} when a trusted proxy matches it.
+     */
+    private boolean isTrusted(final String address) {
+<span class="fc bfc" id="L125" title="All 4 branches covered.">        return StringUtils.hasText(address) &amp;&amp; trustedProxies.stream().anyMatch(proxy -&gt; proxy.matches(address));</span>
+    }
+
+    /**
+     * Parses the certificate of a header value.
+     *
+     * @param value the value: the URL-encoded PEM, the PEM or the base64 of the DER form.
+     * @return the certificate, or empty when the value is too long or is not a certificate.
+     */
+    private static Optional&lt;X509Certificate&gt; parse(final String value) {
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (value.length() &gt; MAX_HEADER_LENGTH) {</span>
+<span class="fc" id="L136">            log.debug(&quot;Ignored a forwarded client certificate that is too long&quot;);</span>
+<span class="fc" id="L137">            return Optional.empty();</span>
+        }
+        try {
+<span class="fc" id="L140">            final var base64 = PEM_NOISE.matcher(UriUtils.decode(value, StandardCharsets.UTF_8)).replaceAll(&quot;&quot;);</span>
+<span class="fc" id="L141">            final var der = Base64.getDecoder().decode(base64);</span>
+<span class="fc" id="L142">            final var certificate = CertificateFactory.getInstance(CERTIFICATE_TYPE)</span>
+<span class="fc" id="L143">                    .generateCertificate(new ByteArrayInputStream(der));</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">            return certificate instanceof X509Certificate x509 ? Optional.of(x509) : Optional.empty();</span>
+<span class="fc" id="L145">        } catch (final CertificateException | IllegalArgumentException e) {</span>
+<span class="fc" id="L146">            log.debug(&quot;Ignored a forwarded client certificate that cannot be read&quot;, e);</span>
+<span class="fc" id="L147">            return Optional.empty();</span>
+        }
+    }
+}
+// end::x509-forwarded-filter[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

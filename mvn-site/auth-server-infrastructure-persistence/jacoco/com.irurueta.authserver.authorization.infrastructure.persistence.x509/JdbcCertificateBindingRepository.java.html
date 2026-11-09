@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcCertificateBindingRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.x509</a> &gt; <span class="el_source">JdbcCertificateBindingRepository.java</span></div><h1>JdbcCertificateBindingRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.infrastructure.persistence.x509;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.x509.CertificateBinding;
+import com.irurueta.authserver.authorization.domain.x509.CertificateBindingRepository;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link CertificateBindingRepository} over the {@code x509_certificates} table. It joins the transaction of its
+ * caller.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcCertificateBindingRepository implements CertificateBindingRepository {
+
+    /** Columns selected for every query. */
+    private static final String COLUMNS = &quot;id, user_id, fingerprint_sha256, subject_dn, created_at&quot;;
+
+    /** Query returning the binding of a certificate. */
+    private static final String FIND_BY_FINGERPRINT = &quot;SELECT &quot; + COLUMNS
+            + &quot; FROM x509_certificates WHERE fingerprint_sha256 = ?&quot;;
+
+    /** Query returning the bindings of an account, oldest first. */
+    private static final String FIND_BY_USER = &quot;SELECT &quot; + COLUMNS
+            + &quot; FROM x509_certificates WHERE user_id = ? ORDER BY created_at, id&quot;;
+
+    /** Statement storing a binding. */
+    private static final String INSERT = &quot;&quot;&quot;
+            INSERT INTO x509_certificates (id, user_id, fingerprint_sha256, subject_dn, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            &quot;&quot;&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps a row to a binding. */
+    private final CertificateBindingRowMapper certificateBindingRowMapper;
+
+    @Override
+    public Optional&lt;CertificateBinding&gt; findByFingerprintSha256(final String fingerprintSha256) {
+<span class="fc" id="L62">        return jdbcClient.sql(FIND_BY_FINGERPRINT).param(fingerprintSha256).query(certificateBindingRowMapper)</span>
+<span class="fc" id="L63">                .optional();</span>
+    }
+
+    @Override
+    public List&lt;CertificateBinding&gt; findByUser(final UUID userId) {
+<span class="fc" id="L68">        return jdbcClient.sql(FIND_BY_USER).param(userId).query(certificateBindingRowMapper).list();</span>
+    }
+
+    @Override
+    public CertificateBinding save(final CertificateBinding binding) {
+<span class="fc" id="L73">        jdbcClient.sql(INSERT)</span>
+<span class="fc" id="L74">                .params(binding.id(), binding.userId(), binding.fingerprintSha256(), binding.subjectDn(),</span>
+<span class="fc" id="L75">                        toTimestamp(binding.createdAt()))</span>
+<span class="fc" id="L76">                .update();</span>
+<span class="fc" id="L77">        return binding;</span>
+    }
+
+    @Override
+    public boolean delete(final UUID id, final UUID userId) {
+<span class="fc" id="L82">        return jdbcClient.sql(&quot;DELETE FROM x509_certificates WHERE id = ? AND user_id = ?&quot;).params(id, userId)</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">                .update() &gt; 0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

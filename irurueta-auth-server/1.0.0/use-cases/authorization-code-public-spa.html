@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Authorization code with PKCE for a public client :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/authorization-code-public-spa.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Authorization code with PKCE for a public client</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>spa-public</code> is the registration a browser-only application (a single page application that talks to the authorization
+server itself, with no backend) would use. It is a public client: it has no secret, authenticates with <code>none</code>, and
+PKCE is the only thing that binds the authorization code to the application that asked for it. The repository ships
+the <strong>registration</strong> only: there is no single page application for <code>spa-public</code> in this repository (the SPA it ships
+is served by the <code>bff</code> and uses the confidential <code>bff</code> client, see <a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a>). The
+<code>dev</code> profile seeds <code>spa-public</code> with the redirect URI <code><a href="http://localhost:3000/callback" class="bare">http://localhost:3000/callback</a></code>, where nothing of this
+repository runs. The flow below is what Spring Authorization Server does for such a client, with the settings this
+repository gives it.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_at_a_glance"><a class="anchor" href="#_at_a_glance"></a>At a glance</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Item</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Actors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User, browser running a third-party SPA (not part of this repository), <code>auth-server</code>, <code>resource-server</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spa-public</code> (<code>DefaultClientDefinitions.spaPublic</code>): public, <code>none</code>, grants <code>authorization_code</code> and <code>refresh_token</code>,
+PKCE required, no consent, scopes <code>openid</code>, <code>profile</code>, <code>documents.read</code>, <code>documents.delete</code>, audiences
+<code>resource-server</code> and <code>auth-server</code>, access token 10 minutes, self-contained (JWT).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Preconditions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ClientSeeder</code> seeds the client only when <code>authserver.clients.spa-public.redirect-uris</code> (<code>AUTHSERVER_SPA_REDIRECT_URIS</code>)
+is set; <code>authserver.clients.spa-public.post-logout-redirect-uris</code> (<code>AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS</code>) is
+optional. The <code>dev</code> profile (<code>application-dev.yml</code>) sets <code><a href="http://localhost:3000/callback" class="bare">http://localhost:3000/callback</a></code> and <code><a href="http://localhost:3000/" class="bare">http://localhost:3000/</a></code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /oauth2/authorize</code>, <code>/login</code>, <code>/login/second-factor</code> when owed, <code>POST /oauth2/token</code>, <code>GET /oauth2/jwks</code>,
+<code>GET /userinfo</code>, <code>GET /.well-known/openid-configuration</code>; then <code>GET /api/documents</code> on the resource server.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The domain model enforces PKCE for public clients: <code>ClientRegistration</code> refuses a non-confidential client with
+<code>requireProofKey</code> false (<code>a public client must require PKCE</code>), except a client whose only grant type is <code>implicit</code>,
+which only the legacy demo seeder creates (see <a href="../legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a>).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Defines the {@code bff} client: confidential, {@code client_secret_basic}, authorization code with PKCE and
+     * refresh tokens, with refresh token rotation on. It requires the end-user's consent to the requested scopes.
+     *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List&lt;String&gt; redirectUris, final String apiAudience) {
+        return bff(redirectUris, apiAudience, List.of());
+    }
+
+    /**
+     * Defines the {@code bff} client with the URIs it may be sent to after an OpenID Connect RP-initiated logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration bff(final List&lt;String&gt; redirectUris, final String apiAudience,
+                                         final List&lt;String&gt; postLogoutRedirectUris) {
+        return new ClientRegistration(BFF_CLIENT_ID, "Backend for Frontend", true,
+                List.of("client_secret_basic"), List.of("authorization_code", "refresh_token"),
+                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, true, false, null, null, null, null, false);
+    }
+
+    /**
+     * Defines the {@code spa-public} client: public, authorization code with PKCE, no client authentication.
+     *
+     * @param redirectUris redirect URIs of the deployment.
+     * @param apiAudience  audience of the authorization server's own API.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List&lt;String&gt; redirectUris, final String apiAudience) {
+        return spaPublic(redirectUris, apiAudience, List.of());
+    }
+
+    /**
+     * Defines the {@code spa-public} client with the URIs it may be sent to after an OpenID Connect RP-initiated
+     * logout.
+     *
+     * @param redirectUris           redirect URIs of the deployment.
+     * @param apiAudience            audience of the authorization server's own API.
+     * @param postLogoutRedirectUris post-logout redirect URIs of the deployment; none when empty.
+     * @return the client.
+     */
+    public static ClientRegistration spaPublic(final List&lt;String&gt; redirectUris, final String apiAudience,
+                                               final List&lt;String&gt; postLogoutRedirectUris) {
+        return new ClientRegistration(SPA_PUBLIC_CLIENT_ID, "Single-page application", false,
+                List.of("none"), List.of("authorization_code", "refresh_token"),
+                redirectUris, SCOPES, true, List.of(RESOURCE_SERVER_AUDIENCE, apiAudience), ACCESS_TOKEN_TTL,
+                REFRESH_TOKEN_TTL, ClientRegistration.FORMAT_SELF_CONTAINED, false,
+                postLogoutRedirectUris, false, false, null, null, null, null, false);
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The SPA generates a random <code>code_verifier</code>, derives <code>code_challenge</code> with S256, and keeps the verifier, a <code>state</code>
+and a <code>nonce</code> in the browser.</p>
+</li>
+<li>
+<p>It navigates to <code>GET /oauth2/authorize?response_type=code&amp;client_id=spa-public&amp;redirect_uri=&#8230;&#8203;&amp;scope=openid
+documents.read&amp;state=&#8230;&#8203;&amp;nonce=&#8230;&#8203;&amp;code_challenge=&#8230;&#8203;&amp;code_challenge_method=S256</code>. The redirect URI must match a
+registered one exactly. A request without <code>code_challenge</code> is refused, because the client has <code>requireProofKey</code> true.</p>
+</li>
+<li>
+<p>The protocol chain sends the browser to <code>/login</code>; the user signs in with any offered method and, if the MFA policy
+asks for it, completes <code>/login/second-factor</code> (see <a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a>).</p>
+</li>
+<li>
+<p><code>spa-public</code> has <code>requireConsent</code> false, so there is no consent page: the server redirects to the redirect URI with
+<code>code</code> and <code>state</code>.</p>
+</li>
+<li>
+<p>The SPA checks <code>state</code> and posts <code>grant_type=authorization_code</code>, <code>code</code>, <code>redirect_uri</code>, <code>client_id=spa-public</code> and
+<code>code_verifier</code> to <code>/oauth2/token</code>. Spring Authorization Server authenticates the public client through the PKCE
+verifier and answers with an access token and an ID token.</p>
+</li>
+<li>
+<p>The SPA validates the ID token (signature from <code>/oauth2/jwks</code>, <code>iss</code>, <code>aud</code>, <code>nonce</code>) and calls the resource server
+with the access token as a bearer token.</p>
+</li>
+<li>
+<p>When the access token expires the SPA runs the flow again: the server still has the user&#8217;s session, so the user
+normally does not see the login page again.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser SPA
+  participant A as auth-server
+  participant R as resource-server
+  Note over B: code_verifier, state and nonce generated in the browser
+  B->>A: GET /oauth2/authorize client_id=spa-public with code_challenge S256
+  A-->>B: 302 to /login
+  B->>A: POST /login
+  A-->>B: 302 back to /oauth2/authorize
+  B->>A: GET /oauth2/authorize
+  Note over A: requireConsent is false, no consent page
+  A-->>B: 302 to redirect_uri with code and state
+  B->>A: POST /oauth2/token with code, client_id and code_verifier
+  A-->>B: access_token and id_token, no refresh_token
+  B->>R: GET /api/documents with Bearer access token
+  R-->>B: 200 documents</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["GET /oauth2/authorize client_id=spa-public"]) --> Pkce{"code_challenge present?"}
+  Pkce -- "no" --> Error["Error, no code issued"]
+  Pkce -- "yes" --> Uri{"redirect_uri registered?"}
+  Uri -- "no" --> Error
+  Uri -- "yes" --> Signed{"Signed in and MFA satisfied?"}
+  Signed -- "no" --> Login["/login and /login/second-factor"]
+  Login --> Code
+  Signed -- "yes" --> Code["302 with code, no consent page"]
+  Code --> Token{"code_verifier matches the challenge?"}
+  Token -- "yes" --> Tokens["access_token and id_token"]
+  Token -- "no" --> Grant["400 invalid_grant"]</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Access token</strong>: the same JWT as for <code>bff</code> (<code>sub</code>, <code>aud</code> <code>resource-server</code> and <code>auth-server</code>, <code>scope</code>, <code>roles</code>,
+<code>tenant</code>, <code>amr</code>, <code>acr</code>, <code>auth_time</code>), 10 minutes.</p>
+</li>
+<li>
+<p><strong>ID token</strong>: <code>sub</code>, <code>aud</code> <code>spa-public</code>, <code>azp</code>, <code>nonce</code>, <code>amr</code>, <code>acr</code> (see <a href="openid-connect.html" class="xref page">OpenID Connect sign-in</a>).</p>
+</li>
+<li>
+<p><strong>No refresh token</strong>. The registration lists the <code>refresh_token</code> grant, but Spring Authorization Server&#8217;s
+<code>OAuth2RefreshTokenGenerator</code> does not issue a refresh token to a public client in the authorization code grant, and
+this repository does not replace that generator. Refresh token rotation (<a href="refresh-token-rotation.html" class="xref page">Refresh token rotation and reuse detection</a>)
+therefore applies to <code>bff</code>, not to <code>spa-public</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_limits_of_this_repository"><a class="anchor" href="#_limits_of_this_repository"></a>Limits of this repository</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>No application uses <code>spa-public</code>, and no test runs the full code flow with it; the seeding is tested, and the public
+client path of the authorization endpoint is tested with clients registered by the tests.</p>
+</li>
+<li>
+<p>No CORS configuration exists in <code>auth-server</code>, so a script served from another origin (such as
+<code><a href="http://localhost:3000" class="bare">http://localhost:3000</a></code>) cannot read the answers of <code>/oauth2/token</code> or <code>/userinfo</code> from the browser. A real SPA on
+another origin would need CORS on those endpoints.</p>
+</li>
+<li>
+<p>Tokens held by browser JavaScript are exposed to any script injected into the page. The Browser-Based Apps BCP
+recommends the BFF pattern instead, which is why the shipped SPA uses the <code>bff</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code> <code>ConsentPageIT</code>: a public client (<code>none</code>, PKCE required) goes through the authorization endpoint
+with an S256 challenge up to the code (consent is on for that test client).</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>DevDataInitializerIT</code>: the <code>dev</code> profile seeds <code>spa-public</code>.</p>
+</li>
+<li>
+<p><code>auth-server/api/web</code> <code>ClientSeederTest</code> and <code>auth-server/application</code> <code>SeedRegisteredClientsUseCaseTest</code>,
+<code>DefaultClientDefinitionsTest</code>: the client is seeded only when configured, with the expected settings.</p>
+</li>
+<li>
+<p><code>e2e-tests</code> <code>LegacyImplicitEndToEndIT</code>: an implicit (<code>response_type=token</code>) request made as <code>spa-public</code> is refused.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>ImplicitRejectedIT</code>: the default server answers <code>response_type=token</code> with
+<code>unsupported_response_type</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.1">RFC 6749 §4.1: Authorization Code Grant</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-2.1">RFC 6749 §2.1: Client Types</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636: Proof Key for Code Exchange</a></p>
+</li>
+<li>
+<p><a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/">The OAuth 2.1 Authorization Framework (draft)</a></p>
+</li>
+<li>
+<p><a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-browser-based-apps/">OAuth 2.0 for Browser-Based Applications (draft)</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/authorization-code-and-pkce.html">Authorization Code &amp; PKCE</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/browser-based-apps.html">Browser-Based Apps</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../clients.html" class="xref page">Registered clients</a></p>
+</li>
+<li>
+<p><a href="../login-and-bff.html" class="xref page">Login pages and the BFF</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

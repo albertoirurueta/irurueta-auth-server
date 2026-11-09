@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReplayRejectingJwtValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.clientauth</a> &gt; <span class="el_source">ReplayRejectingJwtValidator.java</span></div><h1>ReplayRejectingJwtValidator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.clientauth;
+
+import com.irurueta.authserver.authorization.application.clientauth.ClientAssertionProperties;
+import com.irurueta.authserver.authorization.application.clientauth.RegisterClientAssertionUseCase;
+import com.irurueta.authserver.authorization.domain.clientauth.ClientAssertionUse;
+import java.time.Clock;
+import java.time.Duration;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.util.StringUtils;
+
+// tag::clientauth-replay-validator[]
+/**
+ * Validates what the framework's default assertion validators leave out: the assertion must carry a {@code jti}, an
+ * {@code iat} no later than now (within the same clock skew the framework's timestamp validator allows) and an
+ * {@code exp} no more than the configured maximum lifetime after it, so a future {@code iat} cannot stretch the
+ * window, and its {@code jti} must not
+ * have been used before by the same client (RFC 7523, section 3). The use is recorded last, only for an assertion
+ * that passed the other checks, so a refused assertion never consumes its identifier. The record is made through
+ * {@link RegisterClientAssertionUseCase}, so the replay protection is shared by every instance of the server.
+ */
+@RequiredArgsConstructor
+public class ReplayRejectingJwtValidator implements OAuth2TokenValidator&lt;Jwt&gt; {
+
+    /** Description of the failures. */
+    private static final String DESCRIPTION_PREFIX = &quot;The client assertion &quot;;
+
+    /** Clock skew tolerated for {@code iat}, the default of the framework's {@code JwtTimestampValidator}. */
+<span class="fc" id="L48">    private static final Duration CLOCK_SKEW = Duration.ofSeconds(60);</span>
+
+    /** Remembers the assertions that were accepted. */
+    private final RegisterClientAssertionUseCase registerClientAssertion;
+
+    /** Settings of the client assertions, for the longest lifetime. */
+    private final ClientAssertionProperties properties;
+
+    /** Source of the current instant. */
+    private final Clock clock;
+
+    /**
+     * Checks the assertion and records its use.
+     *
+     * @param jwt the assertion, already verified for signature, issuer, subject, audience and expiry.
+     * @return success, or a failure when the {@code jti}, {@code iat} or {@code exp} is missing, {@code iat} is in
+     *         the future, the lifetime is
+     *         longer than allowed or the {@code jti} was already used.
+     */
+    @Override
+    public OAuth2TokenValidatorResult validate(final Jwt jwt) {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (!StringUtils.hasText(jwt.getId())) {</span>
+<span class="fc" id="L70">            return failure(&quot;must have a jti&quot;);</span>
+        }
+<span class="fc" id="L72">        final var issuedAt = jwt.getIssuedAt();</span>
+<span class="fc" id="L73">        final var expiresAt = jwt.getExpiresAt();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (issuedAt == null) {</span>
+<span class="fc" id="L75">            return failure(&quot;must have an iat&quot;);</span>
+        }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (expiresAt == null) {</span>
+<span class="fc" id="L78">            return failure(&quot;must have an exp&quot;);</span>
+        }
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (issuedAt.isAfter(clock.instant().plus(CLOCK_SKEW))) {</span>
+<span class="fc" id="L81">            return failure(&quot;is issued in the future&quot;);</span>
+        }
+<span class="fc" id="L83">        final var maxLifetime = properties.maxLifetime();</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (Duration.between(issuedAt, expiresAt).compareTo(maxLifetime) &gt; 0) {</span>
+<span class="fc" id="L85">            return failure(&quot;lives longer than &quot; + maxLifetime);</span>
+        }
+<span class="fc" id="L87">        final var clientId = jwt.getSubject();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (!StringUtils.hasText(clientId)) {</span>
+<span class="fc" id="L89">            return failure(&quot;must have a sub&quot;);</span>
+        }
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (!registerClientAssertion.execute(new ClientAssertionUse(clientId, jwt.getId(), expiresAt))) {</span>
+<span class="fc" id="L92">            return failure(&quot;was already used&quot;);</span>
+        }
+<span class="fc" id="L94">        return OAuth2TokenValidatorResult.success();</span>
+    }
+
+    /**
+     * Builds a failure.
+     *
+     * @param reason what is wrong with the assertion.
+     * @return the failed result.
+     */
+    private static OAuth2TokenValidatorResult failure(final String reason) {
+<span class="fc" id="L104">        return OAuth2TokenValidatorResult.failure(</span>
+                new OAuth2Error(OAuth2ErrorCodes.INVALID_CLIENT, DESCRIPTION_PREFIX + reason, null));
+    }
+}
+// end::clientauth-replay-validator[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

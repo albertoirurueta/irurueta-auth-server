@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Multi-factor authentication and step-up :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="mfa-and-step-up.html">Multi-factor authentication and step-up</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/mfa-and-step-up.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Multi-factor authentication and step-up</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The password is the first factor. A second factor (a TOTP code or a recovery code) is asked when a request needs it,
+and the tokens that come out of that sign-in say so, so a resource server, or this server&#8217;s own account API, can
+demand a recent multi-factor sign-in for sensitive operations (RFC 9470).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_when_a_second_factor_is_required"><a class="anchor" href="#_when_a_second_factor_is_required"></a>When a second factor is required</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A second factor is required when the client asks for it (its <code>mfaRequired</code> setting, read through
+<code>IsClientMfaRequiredUseCase</code> and the client port, so only the persistence adapter knows how it is stored), when an administrator forced it
+on the account (<code>users.mfa_required</code>) or when the user has confirmed a second factor: a factor the user enrolled
+protects every sign-in, whatever the client. The administrator flag stays separate, so removing the last second factor
+lifts the requirement only when no administrator set it. "Has a confirmed second factor" asks every
+<code>SecondFactorEnrolmentQuery</code> bean (TOTP&#8217;s is <code>IsTotpEnabledUseCase</code>, and the passkeys' is <code>HasConfirmedPasskeyUseCase</code>, see <a href="passkeys.html" class="xref page">Passkeys (WebAuthn)</a>), so a later second factor joins by declaring its
+own.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that tells whether the account of a user requires a second factor, whatever the client being served: when
+ * an administrator forced it ({@code users.mfa_required}) or when the user has confirmed a second factor (asked to
+ * {@link HasConfirmedSecondFactorUseCase}), since a factor the user enrolled must protect every sign-in. The two
+ * stay separate: removing the last second factor lifts the second, never the first.
+ */
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class IsUserMfaRequiredUseCase {
+
+    /** Port that provides the user accounts. */
+    private final UserAccountRepository userAccountRepository;
+
+    /** Port that stores the per-user multi-factor settings. */
+    private final UserMfaSettingsRepository userMfaSettingsRepository;
+
+    /** Use case that tells whether the user has confirmed a second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /**
+     * Tells whether an account requires a second factor.
+     *
+     * @param username name the user signs in with.
+     * @return {@code true} when the account exists and either an administrator requires it or the user has a
+     *         confirmed second factor; {@code false} otherwise, or when the account does not exist.
+     */
+    public boolean execute(final String username) {
+        return userAccountRepository.findByUsername(username)
+                .map(UserAccount::id)
+                .map(id -&gt; userMfaSettingsRepository.isRequired(id) || hasConfirmedSecondFactorUseCase.execute(id))
+                .orElse(false);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that tells whether a client makes multi-factor authentication mandatory for every user signing in through
+ * it ({@link ClientRegistration#mfaRequired()}). How the flag is stored is the business of the client port's adapter
+ * alone.
+ */
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class IsClientMfaRequiredUseCase {
+
+    /** Port that stores the clients. */
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    /**
+     * Tells whether a client requires a second factor.
+     *
+     * @param clientId public identifier of the client, or {@code null} when the request names none.
+     * @return {@code true} when the client is registered and requires it; {@code false} otherwise.
+     */
+    public boolean execute(final String clientId) {
+        return clientId != null &amp;&amp; clientRegistrationRepository.findByClientId(clientId)
+                .map(ClientRegistration::mfaRequired)
+                .orElse(false);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The sign-in policy (<code>MfaPolicy</code>) is satisfied by a strong primary factor alone, or by the password plus a second
+factor or a remembered (trusted) device; see <a href="#trusted-devices">Trusted devices and configuration</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_second_factor_page"><a class="anchor" href="#_second_factor_page"></a>Second-factor page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A user who signed in with a password and whose request needs a second factor is sent to <code>GET /login/second-factor</code>.
+The page is defined by the contract <code>apis/auth-server/web-pages/auth-server-pages-v1.yaml</code>;
+<code>SecondFactorController</code> implements the generated interface and renders <code>second-factor.html</code>, which shows the form of
+every <code>SecondFactorFragment</code> bean (see <code>LoginMethodFragment</code> in <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>). A fragment that depends on
+the signed-in user (an enrolment form, a warning) adds its data through <code>modelAttributes</code>. A factor is added by
+declaring its own fragment and filter, never by editing the page.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /login/second-factor:
+    get:
+      tags: [ Second factor page ]
+      operationId: secondFactorPage
+      summary: Renders the second-factor page
+      description: &gt;-
+        Renders the page a user who has signed in with a password is sent to when the request needs a second factor
+        (each SecondFactorFragment bean contributes the form of one second factor, with the data it needs for the
+        signed-in user). A user without a confirmed authenticator app gets its enrolment form instead: a new pending
+        secret as a QR code and an otpauth URI, and the field of the first code. A user with one gets the forms of its
+        code and of a recovery code, with a warning when three or fewer recovery codes are left. The forms post to the
+        security chain (for the TOTP code, a recovery code or the enrolment code, POST /login/second-factor/totp),
+        never to this operation; once the factor is verified the browser resumes the request that was interrupted
+        (after an enrolment, it first goes to the recovery codes page). A request without a signed-in session is
+        redirected to the sign-in page.
+      parameters:
+        - name: error
+          in: query
+          required: false
+          description: &gt;-
+            Present (its value is ignored, usually empty) when the previous attempt failed; the page then shows the
+            message of that failure, which never reveals whether the code was close.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The second-factor page.
+          content:
+            text/html:
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Extension point that lets a second factor contribute a Thymeleaf fragment to the second-factor page. The page
+ * template renders one fragment per bean, sorted by {@link #order()}, in the same way the login page renders the
+ * {@link com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment} beans. A fragment that depends on
+ * the signed-in user (an enrolment form, a warning) contributes its data through
+ * {@link #modelAttributes(Authentication)}.
+ */
+public interface SecondFactorFragment {
+
+    /**
+     * Gets the name of the template that holds the fragment.
+     *
+     * @return the template name.
+     */
+    String templateName();
+
+    /**
+     * Gets the name of the fragment inside the template.
+     *
+     * @return the fragment name.
+     */
+    String fragmentName();
+
+    /**
+     * Gets the position of the fragment in the page; lower values are rendered first.
+     *
+     * @return the order.
+     */
+    int order();
+
+    /**
+     * Gets the Thymeleaf fragment expression, such as {@code template :: fragment}.
+     *
+     * @return the fragment expression.
+     */
+    default String reference() {
+        return templateName() + " :: " + fragmentName();
+    }
+
+    /**
+     * Gets the model attributes the fragment needs for the signed-in user, added to the model of the page. Their
+     * names should start with the factor's own prefix (for example {@code totp}), since every fragment shares the
+     * model.
+     *
+     * @param authentication the authentication of the user the page is rendered for.
+     * @return the attributes; none by default.
+     */
+    default Map&lt;String, Object&gt; modelAttributes(final Authentication authentication) {
+        return Map.of();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Renders the second-factor page.
+     *
+     * @param error present (even if empty) when the previous attempt failed.
+     * @return the second-factor page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; secondFactorPage(final String error) {
+        final var model = new HashMap&lt;String, Object&gt;();
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        fragments.forEach(fragment -&gt; model.putAll(fragment.modelAttributes(authentication)));
+        model.put(FRAGMENTS_ATTRIBUTE, fragments);
+        if (error != null) {
+            model.put(ERROR_MESSAGE_ATTRIBUTE, lastFailureWasLockout() ? LOCKED_ERROR : GENERIC_ERROR);
+        }
+        return pageRenderer.render(VIEW_NAME, model);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"&gt;
+&lt;head&gt;
+  &lt;title th:text="#{secondFactor.title}"&gt;Second factor&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1 th:text="#{secondFactor.heading}"&gt;Verify it is you&lt;/h1&gt;
+  &lt;div th:if="${errorMessageKey != null}" role="alert" th:text="#{${errorMessageKey}}"&gt;The code is not valid.&lt;/div&gt;
+  &lt;section th:each="fragment : ${fragments}" class="second-factor-method"&gt;
+    &lt;!-- SecondFactorFragment.reference() is the single source of the "template :: fragment" expression --&gt;
+    &lt;div th:replace="~{__${fragment.reference()}__}"&gt;&lt;/div&gt;
+  &lt;/section&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_lockout"><a class="anchor" href="#_lockout"></a>Lockout</h3>
+<div class="paragraph">
+<p>Failed attempts are recorded through <code>SecondFactorAttemptRepository</code>; after <code>authserver.mfa.max-failed-attempts</code>
+consecutive failures the second factor is locked for <code>authserver.mfa.lockout</code>. Every verification (TOTP code, recovery
+code, enrolment code) starts with <code>CheckSecondFactorLockoutUseCase</code>, which reads the user&#8217;s attempt row <code>FOR UPDATE</code>
+inside the use case&#8217;s transaction: concurrent attempts of the same user run one after the other, so none of them can
+pass the check while another is about to count a failure.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that tells whether the second factor of a user is locked after too many failed attempts. It locks the
+ * user's attempt row until the end of the caller's transaction, so the verifications of the same user (each a
+ * transactional use case that starts with this check) run one at a time: none of them can pass the check while
+ * another one is about to count a failure.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class CheckSecondFactorLockoutUseCase {
+
+    /** Port that stores the failed-attempt counters. */
+    private final SecondFactorAttemptRepository secondFactorAttemptRepository;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Checks the lockout of a user.
+     *
+     * @param userId identifier of the user.
+     * @return {@code true} if the second factor is locked right now.
+     */
+    public boolean execute(final UUID userId) {
+        return secondFactorAttemptRepository.lockForUpdate(userId).isLocked(clock.instant());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /** Statement that creates the clean state of a user unless one exists, so there is always a row to lock. */
+    private static final String ENSURE_ATTEMPTS = """
+            INSERT INTO second_factor_attempts (user_id, failed_count) VALUES (?, 0)
+            ON CONFLICT (user_id) DO NOTHING
+            """;
+
+    /**
+     * Query returning the state of a user and locking its row until the end of the transaction: a concurrent
+     * verification of the same user waits here until the first one commits.
+     */
+    private static final String LOCK_ATTEMPTS = """
+            SELECT failed_count, locked_until FROM second_factor_attempts WHERE user_id = ? FOR UPDATE
+            """;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Single-statement upsert that counts one failure and sets the lock when the maximum is reached. A lock that
+     * has already ended restarts the counter at one. Concurrent failures serialize on the row, so none is lost.
+     */
+    private static final String RECORD_FAILURE = """
+            INSERT INTO second_factor_attempts AS t (user_id, failed_count, locked_until)
+            VALUES (:userId, 1, CASE WHEN 1 &gt;= :maxAttempts THEN :lockedUntil ELSE NULL END)
+            ON CONFLICT (user_id) DO UPDATE SET
+                failed_count = CASE WHEN t.locked_until IS NOT NULL AND t.locked_until &lt;= :now
+                                    THEN 1 ELSE t.failed_count + 1 END,
+                locked_until = CASE
+                    WHEN (CASE WHEN t.locked_until IS NOT NULL AND t.locked_until &lt;= :now
+                               THEN 1 ELSE t.failed_count + 1 END) &gt;= :maxAttempts THEN :lockedUntil
+                    WHEN t.locked_until &lt;= :now THEN NULL
+                    ELSE t.locked_until END
+            RETURNING failed_count, locked_until
+            """;</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_totp_and_recovery_codes"><a class="anchor" href="#_totp_and_recovery_codes"></a>TOTP and recovery codes</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The code is verified by <code>TotpAuthenticationFilter</code> (<code>POST /login/second-factor/totp</code>) through
+<code>TotpAuthenticationProvider</code>; a recovery code is accepted in the same form and is consumed when used. Recovery codes
+only stand in for a confirmed second factor: they are generated (<code>GenerateRecoveryCodesUseCase</code>) and accepted
+(<code>VerifyRecoveryCodeUseCase</code>) only while the account has one, and an attempt without it fails and counts towards the
+lockout. On success the
+session id changes and the CSRF token is renewed, with the same session authentication strategy the form login uses
+(<code>TotpChainCustomizer</code> hands the chain&#8217;s shared strategy to the filter).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the verification request from the form and the authentication the user already holds, and keeps in the
+     * session the recovery codes an enrolment generates, until they are shown.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @return the authentication with the TOTP factor added.
+     * @throws AuthenticationException if nobody is signed in or the code is not accepted.
+     */
+    @Override
+    public Authentication attemptAuthentication(final HttpServletRequest request, final HttpServletResponse response)
+            throws AuthenticationException {
+        final var current = SecurityContextHolder.getContext().getAuthentication();
+        if (current == null || !current.isAuthenticated() || current instanceof AnonymousAuthenticationToken) {
+            throw new InsufficientAuthenticationException("The user has not signed in yet");
+        }
+        final var code = StringUtils.trimWhitespace(request.getParameter(CODE_PARAMETER));
+        final var verification = new TotpAuthenticationToken(current, code == null ? "" : code, kindOf(request));
+        final var verified = getAuthenticationManager().authenticate(verification);
+        if (!verification.issuedRecoveryCodes().isEmpty()) {
+            pendingRecoveryCodes.save(request, verification.issuedRecoveryCodes());
+        }
+        return verified;
+    }
+
+    /**
+     * Remembers the device when the user asked for it, then saves the authentication and resumes the request.
+     *
+     * @param request    the request.
+     * @param response   the response.
+     * @param chain      the rest of the chain.
+     * @param authResult the verified authentication.
+     * @throws IOException      if the redirect cannot be sent.
+     * @throws ServletException if the success handler fails.
+     */
+    @Override
+    protected void successfulAuthentication(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain chain, final Authentication authResult) throws IOException, ServletException {
+        if (request.getParameter(REMEMBER_PARAMETER) != null) {
+            final var created = createTrustedDeviceUseCase.execute(userResolver.userIdOf(authResult.getName()),
+                    authResult.getName(), userAgentSummary(request));
+            cookieWriter.write(response, created);
+        }
+        super.successfulAuthentication(request, response, chain, authResult);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Verifies the code.
+     *
+     * @param authentication the {@link TotpAuthenticationToken} to verify.
+     * @return the authentication the user already holds with the TOTP factor added.
+     * @throws AuthenticationException if the code is wrong, the second factor is locked or the account is unknown.
+     */
+    @Override
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
+        final var request = (TotpAuthenticationToken) authentication;
+        final var primary = request.primary();
+        final var username = primary.getName();
+        final var userId = userResolver.userIdOf(username);
+        final boolean accepted;
+        try {
+            accepted = totpCodeVerifier.verify(request, userId, username);
+        } catch (final SecondFactorLockedException e) {
+            throw new LockedException("The second factor is locked", e);
+        } catch (final TotpNotEnrolledException | TotpAlreadyEnabledException e) {
+            throw new BadCredentialsException("No enrolment is waiting to be confirmed", e);
+        }
+        if (!accepted) {
+            throw new BadCredentialsException("The code is not valid");
+        }
+        return factorGrantor.grant(primary, TotpFactor.AUTHORITY);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Hands the session authentication strategy of the chain to the TOTP filter. The strategy is a shared object of
+     * the chain that only exists once every configurer has been initialised (the CSRF configurer adds its
+     * {@code CsrfAuthenticationStrategy} to the session management one), so it is read in {@link #configure}, as the
+     * form login does for its own filter. Package-private so its test can drive it.
+     */
+    @RequiredArgsConstructor
+    static final class SessionStrategyConfigurer
+            extends AbstractHttpConfigurer&lt;SessionStrategyConfigurer, HttpSecurity&gt; {
+
+        /** The filter that gets the strategy. */
+        private final TotpAuthenticationFilter filter;
+
+        /**
+         * Sets the shared strategy, when the chain has one, on the filter.
+         *
+         * @param http security builder of the chain.
+         */
+        @Override
+        public void configure(final HttpSecurity http) {
+            final var strategy = http.getSharedObject(SessionAuthenticationStrategy.class);
+            if (strategy != null) {
+                filter.setSessionAuthenticationStrategy(strategy);
+            }
+        }
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;div th:fragment="form" th:unless="${totpOffered == false}"&gt;
+  &lt;div th:if="${totpEnrolment}" class="totp-enrolment"&gt;
+    &lt;h2 th:text="#{totp.enrol.heading}"&gt;Set up an authenticator app&lt;/h2&gt;
+    &lt;p th:text="#{totp.enrol.instructions}"&gt;Scan this QR code with your authenticator app, then type the code it
+      shows.&lt;/p&gt;
+    &lt;img th:src="${totpQrCode}" th:alt="#{totp.enrol.qrAlt}" alt="QR code of the authenticator app" class="totp-qr"&gt;
+    &lt;p&gt;
+      &lt;span th:text="#{totp.enrol.manual}"&gt;Or add it by hand:&lt;/span&gt;
+      &lt;code class="totp-uri" th:text="${totpOtpauthUri}"&gt;otpauth://totp/...&lt;/code&gt;
+    &lt;/p&gt;
+    &lt;form method="post" th:action="@{/login/second-factor/totp}"&gt;
+      &lt;input type="hidden" name="enroll" value="true"&gt;
+      &lt;p&gt;
+        &lt;label for="totp-enrol-code" th:text="#{totp.code}"&gt;Authentication code&lt;/label&gt;
+        &lt;input type="text" id="totp-enrol-code" name="code" required autofocus inputmode="numeric"
+               pattern="[0-9 ]*" autocomplete="one-time-code"&gt;
+      &lt;/p&gt;
+      &lt;button type="submit" th:text="#{totp.enrol.submit}"&gt;Enable and continue&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+  &lt;div th:unless="${totpEnrolment}"&gt;
+    &lt;p th:if="${totpRecoveryCodesLow}" role="status" class="totp-codes-low"
+       th:text="#{totp.recoveryCodesLow(${totpRecoveryCodesLeft})}"&gt;Only 3 recovery codes are left.&lt;/p&gt;
+    &lt;form method="post" th:action="@{/login/second-factor/totp}"&gt;
+      &lt;p&gt;
+        &lt;label for="totp-code" th:text="#{totp.code}"&gt;Authentication code&lt;/label&gt;
+        &lt;input type="text" id="totp-code" name="code" required autofocus inputmode="numeric" pattern="[0-9 ]*"
+               autocomplete="one-time-code"&gt;
+      &lt;/p&gt;
+      &lt;p&gt;
+        &lt;label&gt;
+          &lt;input type="checkbox" name="rememberDevice"&gt;
+          &lt;span th:text="#{totp.remember}"&gt;Remember this device&lt;/span&gt;
+        &lt;/label&gt;
+      &lt;/p&gt;
+      &lt;button type="submit" th:text="#{totp.submit}"&gt;Verify&lt;/button&gt;
+    &lt;/form&gt;
+    &lt;p&gt;&lt;a href="#recovery-code" th:text="#{totp.useRecovery}"&gt;Use a recovery code&lt;/a&gt;&lt;/p&gt;
+    &lt;form id="recovery-code" class="recovery-code" method="post" th:action="@{/login/second-factor/totp}"&gt;
+      &lt;input type="hidden" name="recovery" value="true"&gt;
+      &lt;p&gt;
+        &lt;label for="recovery-code-input" th:text="#{totp.recoveryCode}"&gt;Recovery code&lt;/label&gt;
+        &lt;input type="text" id="recovery-code-input" name="code" required autocomplete="off"&gt;
+      &lt;/p&gt;
+      &lt;button type="submit" th:text="#{totp.submitRecovery}"&gt;Use recovery code&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The page warns, with the count, when <code>CountRecoveryCodesUseCase.LOW_THRESHOLD</code> (3) or fewer recovery codes are left:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">    &lt;p th:if="${totpRecoveryCodesLow}" role="status" class="totp-codes-low"
+       th:text="#{totp.recoveryCodesLow(${totpRecoveryCodesLeft})}"&gt;Only 3 recovery codes are left.&lt;/p&gt;</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_enrolment_during_the_sign_in"><a class="anchor" href="#_enrolment_during_the_sign_in"></a>Enrolment during the sign-in</h3>
+<div class="paragraph">
+<p>A user who must present a second factor but has none is not stuck: the TOTP fragment shows the enrolment form instead
+(a new pending secret as a QR code and as its <code>otpauth</code> URI). The QR code is a <code>data:</code> URI, which the pages'
+Content-Security-Policy allows for images. The first code is posted to the same filter with the <code>enroll</code> field;
+<code>ConfirmTotpAtSignInUseCase</code> confirms the app (a wrong code counts towards the lockout) and the code is the second
+factor of that sign-in. The browser then goes to <code>GET /login/second-factor/recovery-codes</code>, which shows the new
+recovery codes once (they are taken out of the session as the page renders) and whose Continue link resumes the
+interrupted authorization request.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Contributes the TOTP forms to the second-factor page, as every second factor does through the
+ * {@link SecondFactorFragment} extension point. What the fragment shows depends on the signed-in user:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;without a confirmed authenticator app but with another confirmed second factor (for example a passkey),
+ *       nothing: that factor completes the sign-in, so no secret is generated and no enrolment is offered;&lt;/li&gt;
+ *   &lt;li&gt;without any confirmed second factor, the enrolment form: a new secret is generated (replacing any pending
+ *       one), shown as a QR code and as its {@code otpauth} URI, and the first code confirms it;&lt;/li&gt;
+ *   &lt;li&gt;with one, the form of its code and the recovery-code form, plus a warning when
+ *       {@value CountRecoveryCodesUseCase#LOW_THRESHOLD} or fewer recovery codes are left.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+@RequiredArgsConstructor
+public class TotpSecondFactorFragment implements SecondFactorFragment {
+
+    /** Position of the TOTP forms in the second-factor page. */
+    public static final int ORDER = 100;
+
+    /** Model attribute telling the fragment to show anything at all. */
+    public static final String OFFERED_ATTRIBUTE = "totpOffered";
+
+    /** Model attribute telling the fragment to show the enrolment form. */
+    public static final String ENROLMENT_ATTRIBUTE = "totpEnrolment";
+
+    /** Model attribute with the {@code otpauth} URI of the enrolment. */
+    public static final String OTPAUTH_URI_ATTRIBUTE = "totpOtpauthUri";
+
+    /** Model attribute with the QR code of the enrolment, as a {@code data:} URI. */
+    public static final String QR_CODE_ATTRIBUTE = "totpQrCode";
+
+    /** Model attribute with the number of unused recovery codes. */
+    public static final String CODES_LEFT_ATTRIBUTE = "totpRecoveryCodesLeft";
+
+    /** Model attribute telling the fragment to warn that few recovery codes are left. */
+    public static final String CODES_LOW_ATTRIBUTE = "totpRecoveryCodesLow";
+
+    /** Resolves the identifier of the account of the signed-in user. */
+    private final SecondFactorUserResolver userResolver;
+
+    /** Tells whether the user has a confirmed authenticator app. */
+    private final IsTotpEnabledUseCase isTotpEnabledUseCase;
+
+    /** Tells whether the user has confirmed another second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /** Starts an enrolment. */
+    private final EnrollTotpUseCase enrollTotpUseCase;
+
+    /** Counts the unused recovery codes. */
+    private final CountRecoveryCodesUseCase countRecoveryCodesUseCase;
+
+    /** Renders the enrolment URI as a QR code. */
+    private final QrCodeRenderer qrCodeRenderer;
+
+    @Override
+    public String templateName() {
+        return "totp";
+    }
+
+    @Override
+    public String fragmentName() {
+        return "form";
+    }
+
+    @Override
+    public int order() {
+        return ORDER;
+    }
+
+    /**
+     * Supplies the enrolment (a new pending secret) to a user without any confirmed second factor, the number of
+     * recovery codes left to a user with a confirmed authenticator app, and hides the forms from a user whose only
+     * confirmed second factors are other ones.
+     *
+     * @param authentication the authentication of the user the page is rendered for.
+     * @return the model attributes; none when nobody is signed in.
+     */
+    @Override
+    public Map&lt;String, Object&gt; modelAttributes(final Authentication authentication) {
+        if (!MfaAuthorizationManager.isUser(authentication)) {
+            return Map.of();
+        }
+        final var username = authentication.getName();
+        final var userId = userResolver.userIdOf(username);
+        if (!isTotpEnabledUseCase.execute(userId)) {
+            if (hasConfirmedSecondFactorUseCase.execute(userId)) {
+                return Map.of(OFFERED_ATTRIBUTE, false);
+            }
+            final var otpauthUri = enrollTotpUseCase.execute(userId, username);
+            return Map.of(OFFERED_ATTRIBUTE, true, ENROLMENT_ATTRIBUTE, true, OTPAUTH_URI_ATTRIBUTE, otpauthUri,
+                    QR_CODE_ATTRIBUTE, qrCodeRenderer.render(otpauthUri));
+        }
+        final var left = countRecoveryCodesUseCase.execute(userId);
+        return Map.of(OFFERED_ATTRIBUTE, true, ENROLMENT_ATTRIBUTE, false, CODES_LEFT_ATTRIBUTE, left,
+                CODES_LOW_ATTRIBUTE, left &lt;= CountRecoveryCodesUseCase.LOW_THRESHOLD);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">  &lt;div th:if="${totpEnrolment}" class="totp-enrolment"&gt;
+    &lt;h2 th:text="#{totp.enrol.heading}"&gt;Set up an authenticator app&lt;/h2&gt;
+    &lt;p th:text="#{totp.enrol.instructions}"&gt;Scan this QR code with your authenticator app, then type the code it
+      shows.&lt;/p&gt;
+    &lt;img th:src="${totpQrCode}" th:alt="#{totp.enrol.qrAlt}" alt="QR code of the authenticator app" class="totp-qr"&gt;
+    &lt;p&gt;
+      &lt;span th:text="#{totp.enrol.manual}"&gt;Or add it by hand:&lt;/span&gt;
+      &lt;code class="totp-uri" th:text="${totpOtpauthUri}"&gt;otpauth://totp/...&lt;/code&gt;
+    &lt;/p&gt;
+    &lt;form method="post" th:action="@{/login/second-factor/totp}"&gt;
+      &lt;input type="hidden" name="enroll" value="true"&gt;
+      &lt;p&gt;
+        &lt;label for="totp-enrol-code" th:text="#{totp.code}"&gt;Authentication code&lt;/label&gt;
+        &lt;input type="text" id="totp-enrol-code" name="code" required autofocus inputmode="numeric"
+               pattern="[0-9 ]*" autocomplete="one-time-code"&gt;
+      &lt;/p&gt;
+      &lt;button type="submit" th:text="#{totp.enrol.submit}"&gt;Enable and continue&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Confirms the enrolment with the first code of the authenticator app.
+     *
+     * @param userId   identifier of the user.
+     * @param username name of the user, for the audit log.
+     * @param code     the code as typed.
+     * @return the clear-text recovery codes, to be shown once; empty when the code is wrong (the failure is counted).
+     * @throws SecondFactorLockedException if the second factor of the user is locked.
+     * @throws com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException    if no enrolment was
+     *                                                                                      started.
+     * @throws com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException if the enrolment was
+     *                                                                                      already confirmed.
+     */
+    public Optional&lt;List&lt;String&gt;&gt; execute(final UUID userId, final String username, final String code) {
+        if (checkSecondFactorLockoutUseCase.execute(userId)) {
+            throw new SecondFactorLockedException("The second factor is locked after too many failed attempts");
+        }
+        final var recoveryCodes = confirmTotpUseCase.tryConfirm(userId, code);
+        if (recoveryCodes.isPresent()) {
+            resetSecondFactorFailuresUseCase.execute(userId);
+            recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_SUCCESS, userId, username,
+                    "totp enrolment");
+        } else {
+            registerSecondFactorFailureUseCase.execute(userId, username);
+        }
+        return recoveryCodes;
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /login/second-factor/recovery-codes:
+    get:
+      tags: [ Recovery codes page ]
+      operationId: recoveryCodesPage
+      summary: Renders the recovery codes of a new authenticator app, once
+      description: &gt;-
+        Renders the recovery codes generated when the signed-in user enrolled an authenticator app on the
+        second-factor page, which redirects here after the enrolment code is accepted. The codes are kept in the
+        session only until this page is rendered, so a second request shows none. Its Continue link resumes the request
+        the sign-in interrupted (typically /oauth2/authorize), or goes to the root when there is none. A request
+        without a signed-in session is redirected to the sign-in page.
+      responses:
+        '200':
+          description: The recovery codes page.
+          content:
+            text/html:
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Serves the page that shows, once, the recovery codes generated when an authenticator app was enrolled during the
+ * sign-in, as the contract {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml} describes it through the
+ * generated {@link RecoveryCodesPageApi}. The codes are taken out of the session as the page is rendered, so a reload
+ * shows none; its "Continue" button resumes the request the sign-in interrupted (kept by the session request cache),
+ * or goes to the root when there is none.
+ */
+@Controller
+@RequiredArgsConstructor
+public class RecoveryCodesPageController implements RecoveryCodesPageApi {
+
+    /** Path of the page, taken from the contract. */
+    public static final String RECOVERY_CODES_PATH = PATH_RECOVERY_CODES_PAGE;
+
+    /** Name of the template. */
+    static final String VIEW_NAME = "recovery-codes";
+
+    /** Name of the model attribute that holds the codes. */
+    static final String CODES_ATTRIBUTE = "recoveryCodes";
+
+    /** Name of the model attribute that holds where the "Continue" button goes. */
+    static final String CONTINUE_ATTRIBUTE = "continueUrl";
+
+    /** Where the "Continue" button goes when no request is waiting to be resumed. */
+    static final String DEFAULT_CONTINUE_URL = "/";
+
+    /** Cache that keeps the interrupted request, shared with the form login and the second-factor entry point. */
+    private final RequestCache requestCache = new HttpSessionRequestCache();
+
+    /** Keeps the codes waiting to be shown. */
+    private final PendingRecoveryCodes pendingRecoveryCodes;
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy. */
+    private final HttpServletRequest request;
+
+    /** The current response, injected as a thread-bound proxy. */
+    private final HttpServletResponse response;
+
+    /**
+     * Renders the page and forgets the codes.
+     *
+     * @return the recovery codes page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; recoveryCodesPage() {
+        final var codes = pendingRecoveryCodes.take(request);
+        final var saved = requestCache.getRequest(request, response);
+        return pageRenderer.render(VIEW_NAME, Map.of(CODES_ATTRIBUTE, codes,
+                CONTINUE_ATTRIBUTE, saved == null ? DEFAULT_CONTINUE_URL : saved.getRedirectUrl()));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"&gt;
+&lt;head&gt;
+  &lt;title th:text="#{recoveryCodes.title}"&gt;Recovery codes&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1 th:text="#{recoveryCodes.heading}"&gt;Save your recovery codes&lt;/h1&gt;
+  &lt;th:block th:if="${!#lists.isEmpty(recoveryCodes)}"&gt;
+    &lt;p th:text="#{recoveryCodes.instructions}"&gt;Keep these codes somewhere safe. Each one signs you in once if you lose
+      your authenticator app. They will not be shown again.&lt;/p&gt;
+    &lt;ul class="recovery-codes"&gt;
+      &lt;li th:each="code : ${recoveryCodes}"&gt;&lt;code th:text="${code}"&gt;ABCDE12345&lt;/code&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/th:block&gt;
+  &lt;p th:if="${#lists.isEmpty(recoveryCodes)}" th:text="#{recoveryCodes.none}"&gt;The recovery codes have already been
+    shown.&lt;/p&gt;
+  &lt;p&gt;&lt;a id="continue" class="button" th:href="${continueUrl}" th:text="#{recoveryCodes.continue}"&gt;Continue&lt;/a&gt;&lt;/p&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Verifies that a user who must use a second factor but has none enrols an authenticator app on the second-factor
+     * page, sees the recovery codes exactly once and then resumes the authorization request, whose tokens report the
+     * second factor.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenUserMustEnrol_enrolsShowsTheRecoveryCodesOnceAndResumes() throws Exception {
+        final var user = getFixtures().createUser();
+        getFixtures().requireMfa(user, getTools());
+        final var userId = userAccounts.findByUsername(user.username()).orElseThrow().id();
+        final var client = getFixtures().createCodeClient();
+        final var session = new MockHttpSession();
+        final var verifier = newVerifier();
+        final var authorizeUri = signInForAuthorization(user, client, verifier, Map.of(), session);
+        expectSecondFactorPage(authorizeUri, session);
+
+        final var page = secondFactorPage(session);
+        assertTrue(page.contains(ENROL_FIELD) &amp;&amp; page.contains("otpauth://totp/")
+                &amp;&amp; page.contains("src=\"data:image/png;base64,"), "The page must offer the enrolment");
+
+        final var enrolled = postEnrolment(session, getTools().codeNow(userId, 0));
+        assertEquals(RecoveryCodesPageController.RECOVERY_CODES_PATH, enrolled.getResponse().getRedirectedUrl());
+
+        final var codesPage = getMockMvc().perform(get(RecoveryCodesPageController.RECOVERY_CODES_PATH)
+                .session(session)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertEquals(GenerateRecoveryCodesUseCase.CODE_COUNT, recoveryCodes.findUnused(userId).size());
+        assertEquals(GenerateRecoveryCodesUseCase.CODE_COUNT, codesPage.split("&lt;li&gt;&lt;code&gt;", -1).length - 1);
+        assertTrue(codesPage.contains("/oauth2/authorize?"), "The Continue link must resume the authorization");
+        getMockMvc().perform(get(RecoveryCodesPageController.RECOVERY_CODES_PATH).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("&lt;li&gt;&lt;code&gt;"))));
+
+        final var tokens = completeAuthorization(authorizeUri, client, verifier, session);
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR,
+                AuthServerFixtures.claimsOf(tokens.get("access_token").asString()).get(ACR).asString());
+    }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_enrollment_and_account_api"><a class="anchor" href="#_enrollment_and_account_api"></a>Enrollment and account API</h3>
+<div class="paragraph">
+<p>The user enrolls an authenticator and manages the recovery codes and trusted devices through the account API, defined
+in <code>apis/auth-server/rest-server/auth-server-api-v1.yaml</code>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Endpoint</th>
+<th class="tableblock halign-left valign-top">Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /api/account/totp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Starts the enrollment: returns the secret, the <code>otpauth://</code> URI and a QR code.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /api/account/totp/confirm</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Confirms the enrollment with a first code and returns the recovery codes (shown once).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DELETE /api/account/totp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disables TOTP, removes the recovery codes and revokes every trusted device. Needs a step-up.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /api/account/recovery-codes</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Generates a new set of recovery codes, invalidating the previous ones. Needs a confirmed authenticator app
+(otherwise <code>400</code>, problem type <code>urn:problem:mfa:totp-not-enrolled</code>) and a step-up.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /api/account/trusted-devices</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lists the devices that skip the second factor.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DELETE /api/account/trusted-devices/{id}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Revokes a trusted device. Needs a step-up.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /api/account/totp:
+    post:
+      tags: [ Totp ]
+      operationId: enrollTotp
+      summary: Starts the enrolment of an authenticator app
+      description: &gt;-
+        Generates a new shared secret for the authenticated account and answers the otpauth URI and its QR code. The
+        enrolment is pending until it is confirmed with a code; starting it again replaces a pending secret. Requires
+        a bearer token issued by this server.
+      responses:
+        '200':
+          description: Enrolment started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotpEnrollmentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: An authenticator app is already enabled for the account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags: [ Totp ]
+      operationId: disableTotp
+      summary: Disables the authenticator app
+      description: &gt;-
+        Removes the authenticator app and the recovery codes of the authenticated account and revokes every trusted
+        device of the account. Disabling a factor that is not enabled succeeds as well. While the account has a
+        confirmed second factor, the bearer token must show a recent multi-factor sign-in (step-up, RFC 9470).
+      responses:
+        '204':
+          description: The authenticator app is disabled
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+  /api/account/totp/confirm:
+    post:
+      tags: [ Totp ]
+      operationId: confirmTotp
+      summary: Confirms the enrolment of the authenticator app
+      description: &gt;-
+        Checks a code produced by the authenticator app against the pending secret, enables the factor and generates
+        a fresh set of recovery codes, shown only in this answer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmTotpRequest'
+      responses:
+        '200':
+          description: The authenticator app is enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          description: Invalid request, no enrolment in progress or wrong code
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: The authenticator app is already enabled
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/account/recovery-codes:
+    post:
+      tags: [ Recovery codes ]
+      operationId: generateRecoveryCodes
+      summary: Generates a new set of recovery codes
+      description: &gt;-
+        Replaces every existing recovery code of the authenticated account with a new set, shown only in this answer.
+        Recovery codes only stand in for a second factor, so the account must have a confirmed authenticator app;
+        the bearer token must also show a recent multi-factor sign-in (step-up, RFC 9470).
+      responses:
+        '200':
+          description: The new recovery codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          description: The account has no confirmed authenticator app (problem type urn:problem:mfa:totp-not-enrolled)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+  /api/account/trusted-devices:
+    get:
+      tags: [ Trusted devices ]
+      operationId: listTrustedDevices
+      summary: Lists the trusted devices
+      description: Lists the devices of the authenticated account that are still trusted, never anything of another account.
+      responses:
+        '200':
+          description: The trusted devices
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The trusted devices, possibly empty.
+                items:
+                  $ref: '#/components/schemas/TrustedDeviceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/trusted-devices/{id}:
+    delete:
+      tags: [ Trusted devices ]
+      operationId: revokeTrustedDevice
+      summary: Revokes a trusted device
+      description: &gt;-
+        The device is asked for the second factor again. A device of another account is never touched and is answered
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifier of the trusted device.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Device revoked
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: No such trusted device for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/account/passkeys:
+    get:
+      tags: [ Passkeys ]
+      operationId: listPasskeys
+      summary: Lists the passkeys
+      description: Lists the passkeys registered by the authenticated account, never anything of another account.
+      responses:
+        '200':
+          description: The passkeys
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The passkeys, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Passkey'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/account/passkeys/{id}:
+    patch:
+      tags: [ Passkeys ]
+      operationId: renamePasskey
+      summary: Renames a passkey
+      description: &gt;-
+        Changes the label that identifies the passkey in the list. A passkey of another account is never touched and
+        is answered as not found.
+      parameters:
+        - $ref: '#/components/parameters/PasskeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenamePasskeyRequest'
+      responses:
+        '200':
+          description: The renamed passkey
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passkey'
+        '400':
+          description: &gt;-
+            The identifier is not unpadded base64url (problem type invalid-parameter) or the label is blank or too
+            long once trimmed (problem type invalid-label)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such passkey for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags: [ Passkeys ]
+      operationId: deletePasskey
+      summary: Deletes a passkey
+      description: &gt;-
+        The passkey can no longer be used to sign in. A passkey of another account is never touched and is answered
+        as not found. While the account has a confirmed second factor, the bearer token must show a recent
+        multi-factor sign-in (step-up, RFC 9470). When the deletion leaves the account without any confirmed second
+        factor, every trusted device of the account is revoked too.
+      parameters:
+        - $ref: '#/components/parameters/PasskeyId'
+      responses:
+        '204':
+          description: Passkey deleted
+        '400':
+          description: The identifier is not unpadded base64url (problem type invalid-parameter)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/StepUpRequired'
+        '404':
+          description: No such passkey for the authenticated account
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">    TotpEnrollmentResponse:
+      type: object
+      description: The secret of a pending authenticator app enrolment, as a URI and as a QR code
+      required: [ otpauthUri, qrCode ]
+      properties:
+        otpauthUri:
+          type: string
+          description: The otpauth:// URI that carries the shared secret. Never logged.
+        qrCode:
+          type: string
+          description: The otpauth URI as a PNG QR code in a data URI (data:image/png;base64,...).
+    ConfirmTotpRequest:
+      type: object
+      description: A code produced by the authenticator app
+      required: [ code ]
+      properties:
+        code:
+          type: string
+          description: Six-digit one-time code shown by the authenticator app.
+          pattern: '^[0-9]{6}$'
+    RecoveryCodesResponse:
+      type: object
+      description: A set of recovery codes, shown only once
+      required: [ recoveryCodes, remaining ]
+      properties:
+        recoveryCodes:
+          type: array
+          description: The new codes in clear text, each usable once. Never logged and never shown again.
+          items:
+            type: string
+        remaining:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of unused recovery codes, which is the size of the new set.
+    TrustedDeviceResponse:
+      type: object
+      description: A browser on which the second factor is skipped until it expires
+      required: [ id, createdAt, expiresAt ]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the trusted device.
+        userAgentSummary:
+          type: string
+          description: Short description of the browser, taken from its user agent; absent when unknown.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the device was trusted.
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the device stops being trusted.</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Enrols, confirms and disables the authenticator app of the authenticated account. The paths, status codes and
+ * bodies are those of the contract {@code apis/auth-server/rest-server/auth-server-api-v1.yaml}, through the
+ * generated {@link TotpApi}; failures are answered by
+ * {@link com.irurueta.authserver.authorization.api.web.mfa.MfaExceptionHandler}. Answers that carry a secret are
+ * never cached. Disabling the app needs a recent multi-factor sign-in ({@link StepUpGuard}).
+ */
+@RestController
+@RequiredArgsConstructor
+public class TotpController implements TotpApi {
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Starts an enrolment. */
+    private final EnrollTotpUseCase enrollTotpUseCase;
+
+    /** Confirms an enrolment. */
+    private final ConfirmTotpUseCase confirmTotpUseCase;
+
+    /** Disables the authenticator app. */
+    private final DisableTotpUseCase disableTotpUseCase;
+
+    /** Requires a recent multi-factor sign-in before the second factor is removed. */
+    private final StepUpGuard stepUpGuard;
+
+    /** Renders the enrolment URI as a QR code. */
+    private final QrCodeRenderer qrCodeRenderer;
+
+    /** Maps the results onto the contract's DTOs. */
+    private final TotpDtoMapper totpDtoMapper;
+
+    /**
+     * Starts the enrolment of an authenticator app.
+     *
+     * @return {@code 200 OK} with the {@code otpauth} URI and its QR code.
+     */
+    @Override
+    public ResponseEntity&lt;TotpEnrollmentResponse&gt; enrollTotp() {
+        final var account = currentAccountResolver.resolve();
+        final var uri = enrollTotpUseCase.execute(account.id(), account.username());
+        return noStore(totpDtoMapper.toEnrollmentResponse(uri, qrCodeRenderer.render(uri)));
+    }
+
+    /**
+     * Confirms the enrolment with a code from the authenticator app.
+     *
+     * @param request the code.
+     * @return {@code 200 OK} with the recovery codes, shown only once.
+     */
+    @Override
+    public ResponseEntity&lt;RecoveryCodesResponse&gt; confirmTotp(final ConfirmTotpRequest request) {
+        final var account = currentAccountResolver.resolve();
+        return noStore(totpDtoMapper.toRecoveryCodesResponse(
+                confirmTotpUseCase.execute(account.id(), request.code())));
+    }
+
+    /**
+     * Disables the authenticator app, removes the recovery codes and revokes the trusted devices.
+     *
+     * @return {@code 204 No Content}.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException if the token
+     *         does not show a recent multi-factor sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; disableTotp() {
+        final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
+        disableTotpUseCase.execute(account.id(), account.username());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Answers a body that carries a secret, which must not be cached.
+     *
+     * @param body the body.
+     * @param &lt;T&gt;  type of the body.
+     * @return {@code 200 OK} with {@code Cache-Control: no-store}.
+     */
+    private static &lt;T&gt; ResponseEntity&lt;T&gt; noStore(final T body) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that removes the authenticator app of a user together with the recovery codes that went with it. Every
+ * trusted device of the user is revoked as well, since a device trusted to skip a second factor must not outlive it,
+ * and the removal is audited.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class DisableTotpUseCase {
+
+    /** Port that stores the TOTP credentials. */
+    private final TotpCredentialRepository totpCredentialRepository;
+
+    /** Port that stores the recovery codes. */
+    private final RecoveryCodeRepository recoveryCodeRepository;
+
+    /** Port that stores the trusted devices. */
+    private final TrustedDeviceRepository trustedDeviceRepository;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    /**
+     * Disables TOTP.
+     *
+     * @param userId   identifier of the user.
+     * @param username name of the user, for the audit log.
+     */
+    public void execute(final UUID userId, final String username) {
+        totpCredentialRepository.deleteByUser(userId);
+        recoveryCodeRepository.deleteByUser(userId);
+        final var revoked = trustedDeviceRepository.deleteByUser(userId);
+        recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, username,
+                "totp; trusted devices revoked: " + revoked);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_step_up_on_the_account_api"><a class="anchor" href="#_step_up_on_the_account_api"></a>Step-up on the account API</h3>
+<div class="paragraph">
+<p>Removing or resetting the second factor must not be possible with a stolen token or a session left open. While the
+account has a confirmed second factor, <code>StepUpGuard</code> (called first by those controllers; the <code>/api/**</code> security chain is
+unchanged) requires the bearer token to show a multi-factor sign-in (<code>acr</code> <code>urn:irurueta:acr:mfa</code>) whose <code>auth_time</code>
+is within <code>authserver.mfa.step-up-max-age</code>. Otherwise the answer is <code>401</code> with
+<code>WWW-Authenticate: Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa", max_age="300"</code>
+and a problem body: the client signs the user in again with those <code>acr_values</code> and <code>max_age</code> and retries. An account
+without a second factor cannot step up and is not asked to.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Guards the API operations that remove or reset a second factor (disabling the authenticator app, generating new
+ * recovery codes, revoking a trusted device): a stolen token, or a session left open, must not be enough to weaken the
+ * account. While the account has a confirmed second factor, the bearer token must show a multi-factor sign-in
+ * ({@code acr} {@value AuthenticationContextClass#MULTI_FACTOR}) whose {@code auth_time} is within
+ * {@code authserver.mfa.step-up-max-age}; otherwise an {@link InsufficientUserAuthenticationException} asks the client
+ * to step up (RFC 9470). An account without a second factor cannot step up, so it is not asked to. The controllers call
+ * it first; the {@code /api/**} chain itself is not changed.
+ */
+@Component
+@RequiredArgsConstructor
+public class StepUpGuard {
+
+    /** Tells whether the account has a confirmed second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /** Multi-factor settings, with the maximum age of the sign-in. */
+    private final MfaProperties mfaProperties;
+
+    /** Clock the age of the sign-in is measured with. */
+    private final Clock clock;
+
+    /**
+     * Requires a recent multi-factor sign-in from the bearer token of the current request.
+     *
+     * @param userId identifier of the account the operation acts on.
+     * @throws InsufficientUserAuthenticationException if the account has a confirmed second factor and the token does
+     *                                                 not show a recent enough multi-factor sign-in.
+     */
+    public void requireRecentMultiFactor(final UUID userId) {
+        if (!hasConfirmedSecondFactorUseCase.execute(userId)) {
+            return;
+        }
+        final var maxAge = mfaProperties.stepUpMaxAge();
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof JwtAuthenticationToken token)
+                || !isRecentMultiFactor(token.getToken(), maxAge)) {
+            throw new InsufficientUserAuthenticationException(AuthenticationContextClass.MULTI_FACTOR, maxAge);
+        }
+    }
+
+    /**
+     * Tells whether a token shows a multi-factor sign-in that is recent enough.
+     *
+     * @param jwt    the bearer token.
+     * @param maxAge maximum age of the sign-in.
+     * @return {@code true} when {@code acr} is the multi-factor class and {@code auth_time} is at most {@code maxAge}
+     *         old (and not in the future).
+     */
+    private boolean isRecentMultiFactor(final Jwt jwt, final Duration maxAge) {
+        if (!AuthenticationContextClass.MULTI_FACTOR.equals(jwt.getClaimAsString(IdTokenClaimNames.ACR))) {
+            return false;
+        }
+        final var authTime = jwt.getClaimAsInstant(IdTokenClaimNames.AUTH_TIME);
+        if (authTime == null) {
+            return false;
+        }
+        final var age = Duration.between(authTime, clock.instant());
+        return !age.isNegative() &amp;&amp; age.compareTo(maxAge) &lt;= 0;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Answers a token whose sign-in is not recent or strong enough: {@code 401} with the RFC 9470 challenge, which
+     * tells the client which {@code acr_values} and {@code max_age} to ask for when it signs the user in again.
+     *
+     * @param exception the failure.
+     * @return the {@code 401} problem detail with the {@code WWW-Authenticate} challenge.
+     */
+    @ExceptionHandler(InsufficientUserAuthenticationException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInsufficientUserAuthentication(
+            final InsufficientUserAuthenticationException exception) {
+        final var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
+        problem.setType(URI.create(TYPE_BASE + "insufficient-user-authentication"));
+        problem.setTitle("Step-up authentication required");
+        final var headers = new HttpHeaders();
+        headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"insufficient_user_authentication\", acr_values=\""
+                + exception.getAcrValues() + "\", max_age=\"" + exception.getMaxAge().toSeconds() + "\"");
+        return problemResponse(problem, headers);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">    StepUpRequired:
+      description: &gt;-
+        Missing or invalid bearer token (an RFC 6750 challenge and no body), or the account has a confirmed second
+        factor and the token does not show a multi-factor sign-in (acr urn:irurueta:acr:mfa) whose auth_time is within
+        authserver.mfa.step-up-max-age (default 5 minutes). The latter is answered as RFC 9470 describes, with
+        WWW-Authenticate Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa",
+        max_age="300" (the configured age in seconds) and a problem body; the client signs the user in again with
+        those acr_values and max_age and retries with the new token.
+      headers:
+        WWW-Authenticate:
+          $ref: '#/components/headers/WwwAuthenticate'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Verifies that removing or resetting the second factor of an account that has one needs a recent multi-factor
+     * sign-in: a password-only token and an old multi-factor one are answered with {@code 401} and the RFC 9470
+     * challenge, and nothing is removed.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void disableTotp_whenTokenShowsNoRecentMultiFactorSignIn_answersTheStepUpChallenge() throws Exception {
+        final var user = fixtures.createUser();
+        enableTotp(user);
+        final var device = trust(user, "Firefox on Linux");
+        final var old = jwt().jwt(token -&gt; token.subject(user.username())
+                .claim("acr", AuthenticationContextClass.MULTI_FACTOR)
+                .claim("auth_time", Instant.now().minusSeconds(OLD_SIGN_IN_SECONDS).getEpochSecond()));
+
+        for (final var token : List.&lt;RequestPostProcessor&gt;of(bearerOf(user), old)) {
+            mockMvc.perform(delete(TOTP_PATH).with(token))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(header().string("WWW-Authenticate", STEP_UP_CHALLENGE))
+                    .andExpect(jsonPath("$.type").value("urn:problem:mfa:insufficient-user-authentication"));
+        }
+        mockMvc.perform(post(RECOVERY_PATH).with(bearerOf(user)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", STEP_UP_CHALLENGE));
+        mockMvc.perform(delete(DEVICES_PATH + "/" + device).with(bearerOf(user)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", STEP_UP_CHALLENGE));
+
+        assertTrue(totpCredentials.findByUser(idOf(user)).orElseThrow().confirmed());
+        assertEquals(1, trustedDevices.findByUser(idOf(user), Instant.now()).size());
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="trusted-devices"><a class="anchor" href="#trusted-devices"></a>Trusted devices and configuration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>After a successful second factor the user may trust the device: a cookie lets later sign-ins skip the second factor
+until <code>authserver.mfa.trusted-device-validity</code> elapses, the device is revoked or the second factor is disabled. The
+cookie grants <code>FACTOR_TRUSTED_DEVICE</code>, a factor of strength <code>REMEMBERED</code>: it satisfies the sign-in policy, but it proves
+nothing about this sign-in, so the tokens report the password only (<code>amr [pwd]</code>, <code>acr urn:irurueta:acr:pwd</code>) and a
+step-up request (<code>acr_values</code> asking for the multi-factor class) still needs a real second factor. When the
+second-factor page is reached for such a step-up, the trusted-device filter lets the page render the TOTP form instead
+of resuming the request (which would only redirect back). Recognising a device changes the session id.</p>
+</div>
+<div class="paragraph">
+<p>The cookie (<code>__Host-TRUSTED-DEVICE</code>, <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Lax</code>) holds the random token signed with
+HMAC-SHA256, as <code>&lt;token&gt;.&lt;signature&gt;</code> (Base64url). <code>TrustedDeviceTokenSigner</code> is a domain port;
+<code>HmacTrustedDeviceTokenSigner</code> in <code>infrastructure/keys</code> implements it with a key derived from the key-encryption secret
+for this purpose only (<code>PurposeKeyDerivation</code>, see <a href="#purpose-keys">Keys derived per purpose</a>). <code>FindTrustedDeviceUseCase</code> checks the signature,
+in constant time, before the account or the device is looked up, so an unsigned or forged value is rejected at no
+database cost; only the SHA-256 hash of the token is stored. The cookie is only evaluated on the second-factor page
+(<code>GET /login/second-factor</code>), where every request that owes a second factor is sent: other requests are not looked
+into, so a user who never gets the factor is not looked up on every request.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Port that signs the value of the trusted-device cookie and checks that signature, so a value the server did not
+ * issue is rejected before anything is looked up. A signed value has the form {@code token.signature}.
+ */
+public interface TrustedDeviceTokenSigner {
+
+    /**
+     * Signs a token.
+     *
+     * @param token the raw token of a trusted device.
+     * @return the value to put in the cookie: the token, a dot and its signature.
+     */
+    String sign(String token);
+
+    /**
+     * Checks the signature of a cookie value, in constant time.
+     *
+     * @param signedValue the value presented by the browser, possibly {@code null} or malformed.
+     * @return the raw token when the value is well formed and its signature is valid; empty otherwise.
+     */
+    Optional&lt;String&gt; verify(String signedValue);
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * {@link TrustedDeviceTokenSigner} that signs the trusted-device cookie with HMAC-SHA256, under a key derived from the
+ * key-encryption secret for this purpose only ({@link PurposeKeyDerivation}). The value is
+ * {@code token.signature}, the signature Base64url encoded without padding; it is compared in constant time.
+ */
+@Component
+public class HmacTrustedDeviceTokenSigner implements TrustedDeviceTokenSigner {
+
+    /** Label of the purpose the key is derived for. */
+    public static final String PURPOSE = "trusted-device-cookie";
+
+    /** Separator between the token and its signature. */
+    private static final char SEPARATOR = '.';
+
+    /** Name of the MAC algorithm. */
+    private static final String ALGORITHM = "HmacSHA256";
+
+    /** The signing key. */
+    private final SecretKeySpec key;
+
+    /**
+     * Derives the signing key.
+     *
+     * @param derivation derives the key of a purpose from the key-encryption secret.
+     */
+    public HmacTrustedDeviceTokenSigner(final PurposeKeyDerivation derivation) {
+        key = new SecretKeySpec(derivation.keyFor(PURPOSE), ALGORITHM);
+    }
+
+    @Override
+    public String sign(final String token) {
+        return token + SEPARATOR + Base64.getUrlEncoder().withoutPadding().encodeToString(mac(token));
+    }
+
+    @Override
+    public Optional&lt;String&gt; verify(final String signedValue) {
+        if (!StringUtils.hasText(signedValue)) {
+            return Optional.empty();
+        }
+        final var separator = signedValue.lastIndexOf(SEPARATOR);
+        if (separator &lt;= 0 || separator == signedValue.length() - 1) {
+            return Optional.empty();
+        }
+        final var token = signedValue.substring(0, separator);
+        final byte[] presented;
+        try {
+            presented = Base64.getUrlDecoder().decode(signedValue.substring(separator + 1));
+        } catch (final IllegalArgumentException e) {
+            return Optional.empty();
+        }
+        return MessageDigest.isEqual(mac(token), presented) ? Optional.of(token) : Optional.empty();
+    }
+
+    /**
+     * Computes the signature of a token.
+     *
+     * @param token the token.
+     * @return the HMAC-SHA256 of its UTF-8 bytes.
+     */
+    private byte[] mac(final String token) {
+        try {
+            final var mac = Mac.getInstance(ALGORITHM);
+            mac.init(key);
+            return mac.doFinal(token.getBytes(StandardCharsets.UTF_8));
+        } catch (final GeneralSecurityException e) {
+            throw new IllegalStateException(ALGORITHM + " is not available", e);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that finds the usable (not revoked, not expired) trusted device of a user from the value of the cookie.
+ * The signature of the value is checked first, in constant time: a forged or unsigned value is rejected before the
+ * account or the device is looked up.
+ */
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class FindTrustedDeviceUseCase {
+
+    /** Port that checks the signature of the cookie value. */
+    private final TrustedDeviceTokenSigner trustedDeviceTokenSigner;
+
+    /** Port that provides the user accounts. */
+    private final UserAccountRepository userAccountRepository;
+
+    /** Port that stores the trusted devices. */
+    private final TrustedDeviceRepository trustedDeviceRepository;
+
+    /** Creator and hasher of the tokens. */
+    private final TrustedDeviceTokens trustedDeviceTokens;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Finds the device.
+     *
+     * @param username    name the user signed in with.
+     * @param cookieValue the signed value presented by the browser.
+     * @return the device, or empty if the signature is wrong, the account does not exist, or the token is unknown,
+     *         expired, revoked or belongs to another user.
+     */
+    public Optional&lt;TrustedDevice&gt; execute(final String username, final String cookieValue) {
+        return trustedDeviceTokenSigner.verify(cookieValue)
+                .flatMap(token -&gt; userAccountRepository.findByUsername(username)
+                        .flatMap(account -&gt; trustedDeviceRepository.findUsable(
+                                account.id(), trustedDeviceTokens.hash(token), clock.instant())
+                                .filter(device -&gt; account.id().equals(device.userId()))));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Registers the trusted device as an authentication factor of strength {@link FactorStrength#REMEMBERED}: together
+ * with the password it satisfies the sign-in policy, so a trusted browser is not asked for the code again, but it is
+ * never reported in {@code amr}, {@code acr} or {@code auth_time} and never satisfies a step-up request
+ * ({@code acr_values} asking for the multi-factor class, {@code max_age}), which still needs a real second factor.
+ */
+@Configuration(proxyBeanMethods = false)
+public class TrustedDeviceFactor {
+
+    /** Identifier of the factor. */
+    public static final String ID = "trusted-device";
+
+    /**
+     * Value the factor would have in {@code amr}. RFC 8176 has none for a remembered device, and the factor is never
+     * reported, so it is only a label.
+     */
+    public static final String AMR_VALUE = "trusted-device";
+
+    /** Authority granted by {@link TrustedDeviceFilter} when the browser presents a valid trusted-device cookie. */
+    public static final String AUTHORITY = "FACTOR_TRUSTED_DEVICE";
+
+    /**
+     * Declares the trusted-device factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor trustedDeviceAuthenticationFactor() {
+        return new AuthenticationFactor(ID, AMR_VALUE, AUTHORITY, FactorStrength.REMEMBERED);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Lets a browser that was trusted earlier skip the second factor of a sign-in. The cookie is only looked at where it
+ * matters: on the second-factor page ({@code GET /login/second-factor}), where every request that owes a second
+ * factor is sent. Every other request goes through untouched, so a user who never gets the factor is not looked up on
+ * each request. When a signed-in user that does not hold the {@link TrustedDeviceFactor} yet reaches that page with
+ * the {@code __Host-TRUSTED-DEVICE} cookie, and its signed value belongs to a device of that same user that has
+ * neither expired nor been revoked, the authentication of the session is replaced by one that also holds the factor
+ * authority (a remembered factor: it satisfies the sign-in policy but is never reported in the tokens), the session
+ * id is changed, the session is saved and the request that was interrupted is resumed instead of asking for a code.
+ * A forged or unsigned value is rejected by {@link FindTrustedDeviceUseCase} before anything is looked up. While a
+ * step-up is pending ({@link SecondFactorRequiredEntryPoint#isStepUpPending}) the cookie is ignored: a trusted
+ * device cannot satisfy it, so the page is rendered and asks for a real second factor.
+ */
+@RequiredArgsConstructor
+public class TrustedDeviceFilter extends OncePerRequestFilter {
+
+    /** Matches the request of the second-factor page. */
+    private final PathPatternRequestMatcher secondFactorPageMatcher =
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, SECOND_FACTOR_PATH);
+
+    /** Use case that finds the trusted device of a signed cookie value. */
+    private final FindTrustedDeviceUseCase findTrustedDeviceUseCase;
+
+    /** Adds the factor authority to an authentication. */
+    private final FactorGrantor factorGrantor;
+
+    /** Repository the upgraded security context is saved to. */
+    private final SecurityContextRepository securityContextRepository;
+
+    /** Handler that resumes the request that was interrupted. */
+    private final AuthenticationSuccessHandler resumeHandler;
+
+    /** Authority granted to a trusted device. */
+    private final String authority;
+
+    /**
+     * Upgrades the authentication and resumes the interrupted request when the second-factor page is requested with
+     * the cookie of a valid trusted device.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @param chain    the rest of the chain.
+     * @throws ServletException if the chain fails.
+     * @throws IOException      if the response cannot be written.
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain chain) throws ServletException, IOException {
+        if (!secondFactorPageMatcher.matches(request) || SecondFactorRequiredEntryPoint.isStepUpPending(request)) {
+            chain.doFilter(request, response);
+            return;
+        }
+        final var cookie = WebUtils.getCookie(request, TrustedDeviceCookieWriter.COOKIE_NAME);
+        final var current = SecurityContextHolder.getContext().getAuthentication();
+        if (cookie != null &amp;&amp; needsSecondFactor(current) &amp;&amp; isTrusted(current, cookie.getValue())) {
+            final var upgraded = factorGrantor.grant(current, authority);
+            final var context = SecurityContextHolder.getContextHolderStrategy().createEmptyContext();
+            context.setAuthentication(upgraded);
+            SecurityContextHolder.getContextHolderStrategy().setContext(context);
+            // a new level of authentication gets a new session id, against session fixation
+            if (request.getSession(false) != null) {
+                request.changeSessionId();
+            }
+            securityContextRepository.saveContext(context, request, response);
+            resumeHandler.onAuthenticationSuccess(request, response, upgraded);
+            return;
+        }
+        chain.doFilter(request, response);
+    }
+
+    /**
+     * Tells whether an authentication is a signed-in user that does not hold the trusted-device authority yet.
+     *
+     * @param authentication the authentication of the request, possibly {@code null}.
+     * @return {@code true} when a user is signed in and the trusted-device authority is missing.
+     */
+    private boolean needsSecondFactor(final Authentication authentication) {
+        return authentication != null &amp;&amp; authentication.isAuthenticated()
+                &amp;&amp; !(authentication instanceof AnonymousAuthenticationToken)
+                &amp;&amp; authentication.getAuthorities().stream()
+                .noneMatch(granted -&gt; authority.equals(granted.getAuthority()));
+    }
+
+    /**
+     * Tells whether a signed cookie value identifies a valid trusted device of the signed-in user.
+     *
+     * @param authentication the signed-in user.
+     * @param cookieValue    the signed value of the cookie.
+     * @return {@code true} when the signature is valid and the device exists and belongs to the user; the use case
+     *         only finds devices that have been neither revoked nor expired.
+     */
+    private boolean isTrusted(final Authentication authentication, final String cookieValue) {
+        return findTrustedDeviceUseCase.execute(authentication.getName(), cookieValue).isPresent();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Verifies that the device is remembered by the cookie and skips the second factor of a sign-in, while the tokens
+     * only report the password ({@code amr [pwd]}, password {@code acr}); that a request with {@code acr_values} for
+     * the multi-factor class still renders the TOTP form on the trusted browser (no redirect loop) and, once the code
+     * is posted, gets multi-factor tokens; and that the device is asked for the code again after it is revoked.
+     *
+     * @throws Exception if a request cannot be performed.
+     */
+    @Test
+    void secondFactor_whenDeviceIsTrusted_isSkippedUntilTheDeviceIsRevoked() throws Exception {
+        final var enrolled = getFixtures().createEnrolledUser(getTools());
+        final var client = getFixtures().createMfaCodeClient();
+
+        final var first = new MockHttpSession();
+        signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), first);
+        final var remembered = postSecondFactor(first, getTools().codeNow(enrolled.id(), 0), false, true);
+        final var cookie = remembered.getResponse().getCookie(TRUSTED_DEVICE_COOKIE);
+        assertNotNull(cookie, "The device cookie must be written");
+        assertTrue(cookie.isHttpOnly());
+        assertTrue(cookie.getSecure());
+        assertEquals(1, trustedDevices.findByUser(enrolled.id(), Instant.now()).size());
+
+        final var second = new MockHttpSession();
+        final var verifier = newVerifier();
+        final var secondUri = signInForAuthorization(enrolled.user(), client, verifier, Map.of(), second);
+        final var sessionId = second.getId();
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(second).cookie(cookie)
+                        .with(AbstractMfaFlow::sendsTheSessionCookie))
+                .andExpect(status().is3xxRedirection());
+        assertNotEquals(sessionId, second.getId(), "The session id must change when the device is recognised");
+        final var trusted = AuthServerFixtures.claimsOf(
+                completeAuthorization(secondUri, client, verifier, second).get("access_token").asString());
+        assertEquals(List.of(PasswordFactor.AMR_VALUE), strings(trusted.get(AMR)));
+        assertEquals(AuthenticationContextClass.PASSWORD, trusted.get(ACR).asString());
+
+        final var stepUpVerifier = newVerifier();
+        final var stepUpUri = AuthServerFixtures.authorizeUri(client, stepUpVerifier,
+                Map.of("acr_values", AuthenticationContextClass.MULTI_FACTOR));
+        expectSecondFactorPage(stepUpUri, second);
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(second).cookie(cookie))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"code\"")));
+        assertAccepted(postSecondFactor(second, getTools().codeNow(enrolled.id(), 1), false, false));
+        final var stepped = AuthServerFixtures.claimsOf(
+                completeAuthorization(stepUpUri, client, stepUpVerifier, second).get("access_token").asString());
+        assertEquals(AuthenticationContextClass.MULTI_FACTOR, stepped.get(ACR).asString());
+
+        final var device = trustedDevices.findByUser(enrolled.id(), Instant.now()).getFirst();
+        assertTrue(trustedDevices.revoke(enrolled.id(), device.id()));
+
+        final var third = new MockHttpSession();
+        signInForAuthorization(enrolled.user(), client, newVerifier(), Map.of(), third);
+        getMockMvc().perform(get(SECOND_FACTOR_PAGE).session(third).cookie(cookie)).andExpect(status().isOk());
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The settings are bound once into <code>MfaProperties</code> (<code>application</code> module), injected wherever one is needed; an invalid
+value (for example <code>max-failed-attempts</code> below 1, or a duration that is not positive) stops the application at
+startup.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Multi-factor settings, bound once from {@code authserver.mfa.*} and injected wherever one of them is needed (the use
+ * cases of this module and the step-up guard of the API). A value left out takes its default; an invalid one stops the
+ * application at startup.
+ *
+ * @param maxFailedAttempts     consecutive failed second-factor attempts that lock the second factor (default 5).
+ * @param lockout               how long the second factor stays locked (default 15 minutes).
+ * @param trustedDeviceValidity how long a device stays trusted (default 30 days).
+ * @param totpIssuer            issuer shown by the authenticator app (default {@code Irurueta Auth Server}).
+ * @param stepUpMaxAge          how recent the multi-factor sign-in of a bearer token must be to remove or reset a
+ *                              second factor through the API (default 5 minutes).
+ */
+@ConfigurationProperties("authserver.mfa")
+public record MfaProperties(
+        @DefaultValue("5") int maxFailedAttempts,
+        @DefaultValue("PT15M") Duration lockout,
+        @DefaultValue("P30D") Duration trustedDeviceValidity,
+        @DefaultValue("Irurueta Auth Server") String totpIssuer,
+        @DefaultValue("PT5M") Duration stepUpMaxAge) {
+
+    /**
+     * Validates the settings.
+     *
+     * @throws IllegalArgumentException if {@code maxFailedAttempts} is less than one, a duration is missing or not
+     *                                  positive, or the issuer is blank.
+     */
+    public MfaProperties {
+        if (maxFailedAttempts &lt; 1) {
+            throw new IllegalArgumentException("authserver.mfa.max-failed-attempts must be at least 1");
+        }
+        requirePositive(lockout, "lockout");
+        requirePositive(trustedDeviceValidity, "trusted-device-validity");
+        requirePositive(stepUpMaxAge, "step-up-max-age");
+        if (totpIssuer == null || totpIssuer.isBlank()) {
+            throw new IllegalArgumentException("authserver.mfa.totp-issuer must not be blank");
+        }
+    }
+
+    /**
+     * Rejects a missing or non-positive duration.
+     *
+     * @param value the duration.
+     * @param key   the key of the setting, below {@code authserver.mfa}.
+     * @throws IllegalArgumentException if the duration is missing, zero or negative.
+     */
+    private static void requirePositive(final Duration value, final String key) {
+        if (value == null || value.isZero() || value.isNegative()) {
+            throw new IllegalArgumentException("authserver.mfa." + key + " must be positive");
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 50.0001%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property (<code>authserver.mfa.*</code>)</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>max-failed-attempts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Consecutive failed attempts that lock the second factor.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>lockout</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">15 minutes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long the second factor stays locked.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>trusted-device-validity</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">30 days</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long a trusted device skips the second factor.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>totp-issuer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Irurueta Auth Server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Issuer shown by the authenticator app.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>step-up-max-age</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5 minutes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How recent the multi-factor sign-in of a bearer token must be to remove or reset a second factor through the API.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect2">
+<h3 id="purpose-keys"><a class="anchor" href="#purpose-keys"></a>Keys derived per purpose</h3>
+<div class="paragraph">
+<p>The TOTP secrets are encrypted at rest (<code>AesGcmTotpSecretCipher</code>, AES-256-GCM) and the trusted-device cookie is signed,
+both from the key-encryption secret (<code>authserver.keys.encryption.password</code> and <code>.salt</code>), but neither shares the key
+that protects the signing keys. <code>PurposeKeyDerivation</code> derives a salt per purpose (HMAC-SHA256 of the purpose label,
+<code>totp-secret</code> or <code>trusted-device-cookie</code>, keyed with the configured salt) and, for the cookie, a 256-bit key from the
+passphrase and that salt (PBKDF2-HMAC-SHA256). The signing-key cipher (<code>AesGcmKeyCipher</code>) keeps the configured salt, so
+the keys already stored still decrypt.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Derives, from the key-encryption secret ({@link KeyEncryptionProperties}), a distinct salt and key for each purpose
+ * other than the encryption of signing keys, so no two uses share a key: a key exposed or misused for one purpose
+ * says nothing about the others. The salt of a purpose is the HMAC-SHA256 of the purpose label keyed with the
+ * configured salt; its key is derived from the passphrase and that salt with PBKDF2-HMAC-SHA256. The signing-key
+ * cipher ({@link AesGcmKeyCipher}) keeps using the configured salt itself, so the keys already stored still decrypt.
+ */
+@Component
+@RequiredArgsConstructor
+public class PurposeKeyDerivation {
+
+    /** Algorithm that derives the salt of a purpose. */
+    private static final String SALT_ALGORITHM = "HmacSHA256";
+
+    /** Algorithm that derives the key of a purpose. */
+    private static final String KEY_ALGORITHM = "PBKDF2WithHmacSHA256";
+
+    /** PBKDF2 iterations; a key is derived once per purpose, when its bean is created. */
+    private static final int ITERATIONS = 100_000;
+
+    /** Size of a derived key in bits (AES-256 / HMAC-SHA256). */
+    private static final int KEY_BITS = 256;
+
+    /** The passphrase and the salt of the key-encryption secret. */
+    private final KeyEncryptionProperties properties;
+
+    /**
+     * Derives the salt of a purpose.
+     *
+     * @param purpose label of the purpose, for example {@code totp-secret}.
+     * @return the salt, hex encoded, as {@code Encryptors.stronger} expects it.
+     */
+    public String saltFor(final String purpose) {
+        try {
+            final var mac = Mac.getInstance(SALT_ALGORITHM);
+            mac.init(new SecretKeySpec(properties.salt().getBytes(StandardCharsets.UTF_8), SALT_ALGORITHM));
+            return HexFormat.of().formatHex(mac.doFinal(purpose.getBytes(StandardCharsets.UTF_8)));
+        } catch (final GeneralSecurityException e) {
+            throw new IllegalStateException("The salt of " + purpose + " cannot be derived", e);
+        }
+    }
+
+    /**
+     * Derives the key of a purpose.
+     *
+     * @param purpose label of the purpose, for example {@code trusted-device-cookie}.
+     * @return the 256-bit key.
+     */
+    public byte[] keyFor(final String purpose) {
+        final var spec = new PBEKeySpec(properties.password().toCharArray(),
+                HexFormat.of().parseHex(saltFor(purpose)), ITERATIONS, KEY_BITS);
+        try {
+            return SecretKeyFactory.getInstance(KEY_ALGORITHM).generateSecret(spec).getEncoded();
+        } catch (final GeneralSecurityException e) {
+            throw new IllegalStateException("The key of " + purpose + " cannot be derived", e);
+        } finally {
+            spec.clearPassword();
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_database"><a class="anchor" href="#_database"></a>Database</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Migrations <code>V400</code>-<code>V499</code> (issue #4); see <a href="data-model.html" class="xref page">Data model</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">ALTER TABLE users
+    ADD COLUMN mfa_required boolean NOT NULL DEFAULT FALSE;
+
+-- Audit trail. The user is kept as a nullable reference so events of failed logins for unknown names can be stored
+-- and so the trail outlives a deleted account.
+CREATE TABLE security_events
+(
+    id          uuid                     NOT NULL,
+    type        varchar(50)              NOT NULL,
+    user_id     uuid REFERENCES users (id) ON DELETE SET NULL,
+    username    varchar(100),
+    detail      varchar(500),
+    occurred_at timestamp with time zone NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_security_events_user_occurred_at ON security_events (user_id, occurred_at);
+
+CREATE TABLE second_factor_attempts
+(
+    user_id      uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    failed_count integer                  NOT NULL DEFAULT 0,
+    locked_until timestamp with time zone,
+    PRIMARY KEY (user_id)
+);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE totp_credentials
+(
+    user_id           uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    encrypted_secret  bytea                    NOT NULL,
+    confirmed         boolean                  NOT NULL DEFAULT FALSE,
+    last_used_step    bigint                   NOT NULL DEFAULT -1,
+    created_at        timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id)
+);
+
+CREATE TABLE recovery_codes
+(
+    id          uuid                     NOT NULL,
+    user_id     uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    hashed_code varchar(128)             NOT NULL,
+    used_at     timestamp with time zone,
+    created_at  timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_recovery_codes_user_id ON recovery_codes (user_id);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE trusted_devices
+(
+    id           uuid                     NOT NULL,
+    user_id      uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    hashed_token varchar(128)             NOT NULL,
+    user_agent   varchar(255),
+    expires_at   timestamp with time zone NOT NULL,
+    created_at   timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_trusted_devices_hashed_token UNIQUE (hashed_token)
+);
+
+CREATE INDEX ix_trusted_devices_user_id ON trusted_devices (user_id);
+CREATE INDEX ix_trusted_devices_expires_at ON trusted_devices (expires_at);</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_step_up"><a class="anchor" href="#_step_up"></a>Step-up</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A client asks for a recent multi-factor sign-in with the <code>acr_values</code> and <code>max_age</code> authorization request parameters.
+The tokens then carry <code>amr</code>, <code>acr</code> (<code>urn:irurueta:acr:mfa</code>) and <code>auth_time</code> (<code>MfaClaimsContributor</code>), and the
+resource server enforces the policy; see <a href="resource-server.html" class="xref page">Resource server</a>. Both the claims and the step-up checks read the
+factors through <code>FactorTimeline</code>: a remembered device never counts, and <code>auth_time</code> (and so <code>max_age</code>) is the time of
+the primary factor, not of a later second factor, so adding a code never makes an old sign-in look recent.</p>
+</div>
+<div class="paragraph">
+<p>Whether a sign-in is multi-factor is decided in one place, <code>MfaPolicy.isMultiFactor</code>, which <code>FactorTimeline</code> applies
+to the counted factors: two distinct factors, or one factor that proves a multi-factor authentication by itself (the
+<code>multiFactor</code> flag of <code>AuthenticationFactor</code>). So the <code>amr</code> <code>mfa</code> value, the <code>acr</code>, the step-up of the authorization
+endpoint and <code>StepUpGuard</code> (which reads the <code>acr</code> of the token) always agree.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Sign-in</th>
+<th class="tableblock halign-left valign-top">Satisfies the sign-in policy alone</th>
+<th class="tableblock halign-left valign-top">Multi-factor (<code>acr</code> <code>mfa</code>) alone</th>
+<th class="tableblock halign-left valign-top">Step-up needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Password, e-mail or SMS code, ordinary social sign-in (<code>PRIMARY</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">no</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">no</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">a second factor</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Passkey, X.509 certificate (<code>PRIMARY_STRONG</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">no</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">a second factor</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Social sign-in at a provider with <code>trust-mfa</code> that reported <code>mfa</code> (<code>FACTOR_FEDERATED_MFA</code>, <code>PRIMARY_STRONG</code> and
+multi-factor alone)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">nothing more (only a recent enough sign-in)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Any primary factor plus a second factor, or two distinct primary factors (for example a password, then a passkey in
+the same session, whose authorities Spring merges)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">nothing more (only a recent enough sign-in)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The same rule guards the session&#8217;s sensitive changes: the phone page (<code>PhoneSessionStepUp</code>) accepts a recent
+multi-factor session, so a trusted provider&#8217;s multi-factor sign-in may change the phone without a local second factor,
+as its bearer tokens may on the account API.</p>
+</div>
+<div class="paragraph">
+<p>A passkey or a certificate proves one thing, however strongly: user verification of a passkey is only preferred, so
+possession is all it proves for certain, and a certificate is possession of a key. They let the user in without a
+second factor but do not claim a multi-factor sign-in.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Reads, from the {@link FactorGrantedAuthority} instances of an authentication, the factors that prove something
+ * about it and when they were presented. It is the single place the claims ({@link MfaClaimsContributor}) and the
+ * step-up checks ({@link StepUpAuthorizationRequestConverter}) take {@code amr}, {@code acr} and {@code auth_time}
+ * from, so both always agree:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;only the factors of the {@link AuthenticationFactorRegistry} that {@link MfaPolicy#isReported} accepts count:
+ *       a remembered (trusted) device does not;&lt;/li&gt;
+ *   &lt;li&gt;the authentication is multi-factor when {@link MfaPolicy#isMultiFactor} says so: at least two distinct
+ *       factors count, or one counted factor proves a multi-factor authentication alone;&lt;/li&gt;
+ *   &lt;li&gt;{@code auth_time} is when the primary factor was presented (the earliest one when there are several), so a
+ *       second factor added later never makes the sign-in look newer; without a primary factor it is the earliest
+ *       counted factor.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+@RequiredArgsConstructor
+public class FactorTimeline {
+
+    /** Registry of the known factors. */
+    private final AuthenticationFactorRegistry factorRegistry;
+
+    /** Policy that tells which factors are reported and which are primary. */
+    private final MfaPolicy mfaPolicy;
+
+    /**
+     * Lists the factor authorities of an authentication that count, oldest first.
+     *
+     * @param authentication the authentication.
+     * @return the counted factor authorities, sorted by issue instant; empty when none.
+     */
+    public List&lt;FactorGrantedAuthority&gt; countedFactors(final Authentication authentication) {
+        return factorsMatching(authentication, mfaPolicy::isReported);
+    }
+
+    /**
+     * Lists the {@code amr} values of the counted factors, in the order they were presented, without duplicates.
+     *
+     * @param authentication the authentication.
+     * @return the values; empty when no factor counts.
+     */
+    public List&lt;String&gt; amrValues(final Authentication authentication) {
+        return countedFactors(authentication).stream()
+                .map(authority -&gt; factorRegistry.findByAuthority(authority.getAuthority()))
+                .flatMap(Optional::stream)
+                .map(AuthenticationFactor::amrValue)
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Tells whether an authentication is multi-factor, by {@link MfaPolicy#isMultiFactor} over its counted factors.
+     *
+     * @param authentication the authentication.
+     * @return {@code true} for a multi-factor authentication.
+     */
+    public boolean isMultiFactor(final Authentication authentication) {
+        return mfaPolicy.isMultiFactor(countedFactors(authentication).stream()
+                .map(authority -&gt; factorRegistry.findByAuthority(authority.getAuthority()))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet()));
+    }
+
+    /**
+     * Finds the instant of the authentication, the one {@code auth_time} reports and {@code max_age} is measured
+     * from.
+     *
+     * @param authentication the authentication.
+     * @return the issue instant of the earliest primary factor, or else of the earliest counted factor; empty when no
+     *         counted factor carries an instant.
+     */
+    public Optional&lt;Instant&gt; authTime(final Authentication authentication) {
+        return earliest(factorsMatching(authentication,
+                factor -&gt; mfaPolicy.isReported(factor) &amp;&amp; mfaPolicy.isPrimary(factor)))
+                .or(() -&gt; earliest(countedFactors(authentication)));
+    }
+
+    /**
+     * Lists the factor authorities of an authentication whose registered factor passes a test, oldest first.
+     *
+     * @param authentication the authentication.
+     * @param test           the test of the registered factor.
+     * @return the matching authorities.
+     */
+    private List&lt;FactorGrantedAuthority&gt; factorsMatching(final Authentication authentication,
+            final Predicate&lt;AuthenticationFactor&gt; test) {
+        return authentication.getAuthorities().stream()
+                .filter(FactorGrantedAuthority.class::isInstance)
+                .map(FactorGrantedAuthority.class::cast)
+                .filter(authority -&gt; factorRegistry.findByAuthority(authority.getAuthority()).filter(test).isPresent())
+                .sorted(Comparator.comparing(FactorGrantedAuthority::getIssuedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+    }
+
+    /**
+     * Finds the earliest issue instant of some factor authorities.
+     *
+     * @param factors the authorities.
+     * @return the earliest instant, or empty when none carries one.
+     */
+    private static Optional&lt;Instant&gt; earliest(final List&lt;FactorGrantedAuthority&gt; factors) {
+        return factors.stream().map(FactorGrantedAuthority::getIssuedAt).filter(Objects::nonNull)
+                .min(Comparator.naturalOrder());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Checks the step-up parameters of a request.
+     *
+     * @param request the request.
+     * @return always {@code null}: this converter only vetoes requests.
+     * @throws ReauthenticationRequiredException if {@code max_age} is exceeded.
+     * @throws SecondFactorRequiredException     if the requested {@code acr_values} are not reached.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+        final var user = SecurityContextHolder.getContext().getAuthentication();
+        if (!MfaAuthorizationManager.isUser(user)) {
+            return null;
+        }
+        final var authTime = factorTimeline.authTime(user);
+        if (authTime.isEmpty()) {
+            return null;
+        }
+        if (maxAgeExceeded(request.getParameter(MAX_AGE_PARAMETER), authTime.get())) {
+            throw new ReauthenticationRequiredException();
+        }
+        if (!acrReached(request.getParameter(ACR_VALUES_PARAMETER), factorTimeline.isMultiFactor(user))) {
+            throw SecondFactorRequiredException.forStepUp();
+        }
+        return null;
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds to the access and ID tokens how the user authenticated: {@code amr} (the RFC 8176 values of the factors really
+ * presented, plus {@code mfa} when there are at least two), {@code acr} (the class of the authentication, see
+ * {@link AuthenticationContextClass}) and {@code auth_time} (the epoch second the primary factor was presented, a
+ * number per OIDC; access tokens only, because the framework sets it on ID tokens). Every value comes from the
+ * {@link FactorTimeline}, which reads the {@link org.springframework.security.core.authority.FactorGrantedAuthority}
+ * instances of the principal: authorities of an unknown factor and of a remembered (trusted) device are ignored, so a
+ * browser that skipped the second factor gets {@code amr [pwd]} and the password class. A token with no counted factor
+ * (for example of the client credentials grant) gets none of the claims.
+ */
+@Component
+@Order(MfaClaimsContributor.ORDER)
+@RequiredArgsConstructor
+public class MfaClaimsContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the built-in claims and the default contributors. */
+    public static final int ORDER = 100;
+
+    /** RFC 8176 {@code amr} value that tells that more than one factor was used. */
+    public static final String MULTI_FACTOR_AMR_VALUE = "mfa";
+
+    /** Reads the counted factors of the principal and their instants. */
+    private final FactorTimeline factorTimeline;
+
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        final var principal = context.getPrincipal();
+        if (principal == null) {
+            return;
+        }
+        final var authTime = factorTimeline.authTime(principal);
+        if (authTime.isEmpty()) {
+            return;
+        }
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var amr = new ArrayList&lt;String&gt;(factorTimeline.amrValues(principal));
+        final var multiFactor = factorTimeline.isMultiFactor(principal);
+        if (multiFactor) {
+            amr.add(MULTI_FACTOR_AMR_VALUE);
+        }
+        claims.put(IdTokenClaimNames.AMR, amr);
+        claims.put(IdTokenClaimNames.ACR,
+                multiFactor ? AuthenticationContextClass.MULTI_FACTOR : AuthenticationContextClass.PASSWORD);
+        // the framework sets auth_time itself on ID tokens (as a date it expects to read back on refresh)
+        if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+            claims.put(IdTokenClaimNames.AUTH_TIME, authTime.get().getEpochSecond());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

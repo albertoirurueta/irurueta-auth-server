@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientRegistrationMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">ClientRegistrationMapper.java</span></div><h1>ClientRegistrationMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import java.util.List;
+import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
+import org.springframework.security.oauth2.core.oidc.OidcScopes;
+import org.springframework.stereotype.Component;
+
+// tag::social-client-registrations[]
+/**
+ * Maps the settings of the enabled providers onto the client registrations Spring Security's {@code oauth2Login}
+ * needs. The client secret of every registration comes from {@link SocialProperties} (so from the environment), and
+ * the Apple registration carries none: its secret is a JWT generated for each token request
+ * ({@link AppleClientSecretGenerator}).
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Google is an OpenID Connect provider with the framework's defaults;&lt;/li&gt;
+ *   &lt;li&gt;Microsoft Entra ID is registered &lt;em&gt;without&lt;/em&gt; an issuer: a multi-tenant application's tokens carry the
+ *   issuer of the tenant the user belongs to, so the framework's single issuer comparison would reject them all;
+ *   {@link EntraIssuerValidator} checks the issuer against the token's tenant instead;&lt;/li&gt;
+ *   &lt;li&gt;Apple is an OpenID Connect provider without a UserInfo endpoint, whose client authentication is the signed
+ *   secret posted with the other parameters;&lt;/li&gt;
+ *   &lt;li&gt;GitHub is plain OAuth 2.0 (no ID token): the user is read from its API, with the {@code user:email} scope the
+ *   verified primary address needs.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+<span class="fc" id="L48">public class ClientRegistrationMapper {</span>
+
+    /** Redirect URI template of every registration. */
+    public static final String REDIRECT_URI = &quot;{baseUrl}/login/oauth2/code/{registrationId}&quot;;
+
+    /** Base URL of Microsoft Entra ID. */
+    static final String ENTRA_BASE_URL = &quot;https://login.microsoftonline.com/&quot;;
+
+    /** Base URL of Sign in with Apple. */
+    static final String APPLE_BASE_URL = &quot;https://appleid.apple.com&quot;;
+
+    /** OAuth scope that lets GitHub's API list the e-mail addresses of the user. */
+    static final String GITHUB_EMAIL_SCOPE = &quot;user:email&quot;;
+
+    /** OAuth scope that lets GitHub's API read the profile of the user. */
+    static final String GITHUB_USER_SCOPE = &quot;read:user&quot;;
+
+    /** Scope Sign in with Apple uses to hand over the name of the user (it has no {@code profile} scope). */
+    static final String APPLE_NAME_SCOPE = &quot;name&quot;;
+
+    /** OIDC UserInfo endpoint of Microsoft. */
+    static final String MICROSOFT_USER_INFO_URI = &quot;https://graph.microsoft.com/oidc/userinfo&quot;;
+
+    /**
+     * Maps the enabled providers.
+     *
+     * @param properties settings of the providers.
+     * @return one registration per enabled provider, in the order of {@link IdentityProvider}; empty when none is
+     *         enabled.
+     */
+    public List&lt;ClientRegistration&gt; toRegistrations(final SocialProperties properties) {
+<span class="fc" id="L79">        return properties.enabledProviders().entrySet().stream()</span>
+<span class="fc" id="L80">                .map(entry -&gt; toRegistration(entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L81">                .toList();</span>
+    }
+
+    /**
+     * Maps one provider.
+     *
+     * @param provider the provider.
+     * @param settings its settings.
+     * @return the registration.
+     */
+    public ClientRegistration toRegistration(
+            final IdentityProvider provider, final SocialProperties.Provider settings) {
+<span class="fc bfc" id="L93" title="All 4 branches covered.">        return switch (provider) {</span>
+<span class="fc" id="L94">            case GOOGLE -&gt; CommonOAuth2Provider.GOOGLE.getBuilder(provider.id())</span>
+<span class="fc" id="L95">                    .clientId(settings.clientId())</span>
+<span class="fc" id="L96">                    .clientSecret(settings.clientSecret())</span>
+<span class="fc" id="L97">                    .build();</span>
+<span class="fc" id="L98">            case GITHUB -&gt; CommonOAuth2Provider.GITHUB.getBuilder(provider.id())</span>
+<span class="fc" id="L99">                    .clientId(settings.clientId())</span>
+<span class="fc" id="L100">                    .clientSecret(settings.clientSecret())</span>
+<span class="fc" id="L101">                    .scope(GITHUB_USER_SCOPE, GITHUB_EMAIL_SCOPE)</span>
+<span class="fc" id="L102">                    .build();</span>
+<span class="fc" id="L103">            case MICROSOFT -&gt; microsoft(settings);</span>
+<span class="fc" id="L104">            case APPLE -&gt; apple(settings);</span>
+        };
+    }
+
+    /**
+     * Builds the Microsoft Entra ID registration, without an issuer (see the class description).
+     *
+     * @param settings settings of the provider.
+     * @return the registration.
+     */
+    private static ClientRegistration microsoft(final SocialProperties.Provider settings) {
+<span class="fc" id="L115">        final var tenantUrl = ENTRA_BASE_URL + settings.tenant();</span>
+<span class="fc" id="L116">        return ClientRegistration.withRegistrationId(IdentityProvider.MICROSOFT.id())</span>
+<span class="fc" id="L117">                .clientName(&quot;Microsoft&quot;)</span>
+<span class="fc" id="L118">                .clientId(settings.clientId())</span>
+<span class="fc" id="L119">                .clientSecret(settings.clientSecret())</span>
+<span class="fc" id="L120">                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)</span>
+<span class="fc" id="L121">                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)</span>
+<span class="fc" id="L122">                .redirectUri(REDIRECT_URI)</span>
+<span class="fc" id="L123">                .scope(OidcScopes.OPENID, OidcScopes.PROFILE, OidcScopes.EMAIL)</span>
+<span class="fc" id="L124">                .authorizationUri(tenantUrl + &quot;/oauth2/v2.0/authorize&quot;)</span>
+<span class="fc" id="L125">                .tokenUri(tenantUrl + &quot;/oauth2/v2.0/token&quot;)</span>
+<span class="fc" id="L126">                .jwkSetUri(tenantUrl + &quot;/discovery/v2.0/keys&quot;)</span>
+<span class="fc" id="L127">                .userInfoUri(MICROSOFT_USER_INFO_URI)</span>
+<span class="fc" id="L128">                .userNameAttributeName(IdTokenClaimNames.SUB)</span>
+<span class="fc" id="L129">                .build();</span>
+    }
+
+    /**
+     * Builds the Sign in with Apple registration. Its client secret is empty here: the token request carries the
+     * signed JWT instead.
+     *
+     * @param settings settings of the provider.
+     * @return the registration.
+     */
+    private static ClientRegistration apple(final SocialProperties.Provider settings) {
+<span class="fc" id="L140">        return ClientRegistration.withRegistrationId(IdentityProvider.APPLE.id())</span>
+<span class="fc" id="L141">                .clientName(&quot;Apple&quot;)</span>
+<span class="fc" id="L142">                .clientId(settings.clientId())</span>
+<span class="fc" id="L143">                .clientSecret(&quot;&quot;)</span>
+<span class="fc" id="L144">                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)</span>
+<span class="fc" id="L145">                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)</span>
+<span class="fc" id="L146">                .redirectUri(REDIRECT_URI)</span>
+<span class="fc" id="L147">                .scope(OidcScopes.OPENID, APPLE_NAME_SCOPE, OidcScopes.EMAIL)</span>
+<span class="fc" id="L148">                .authorizationUri(APPLE_BASE_URL + &quot;/auth/authorize&quot;)</span>
+<span class="fc" id="L149">                .tokenUri(APPLE_BASE_URL + &quot;/auth/token&quot;)</span>
+<span class="fc" id="L150">                .jwkSetUri(APPLE_BASE_URL + &quot;/auth/keys&quot;)</span>
+<span class="fc" id="L151">                .issuerUri(APPLE_BASE_URL)</span>
+<span class="fc" id="L152">                .userNameAttributeName(IdTokenClaimNames.SUB)</span>
+<span class="fc" id="L153">                .build();</span>
+    }
+}
+// end::social-client-registrations[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

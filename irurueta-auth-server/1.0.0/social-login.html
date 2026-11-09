@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Social login (identity brokering) :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="social-login.html">Social login (identity brokering)</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/social-login.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Social login (identity brokering)</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The server can broker sign-in to Google, Microsoft Entra ID, Apple and GitHub through Spring Security&#8217;s
+<code>oauth2Login(&#8230;&#8203;)</code>. A provider is enabled only when its <code>client-id</code> has text, so nothing is configured until a
+deployment supplies the values; with none configured there is no social bean and the login chain is unchanged.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_providers_and_settings"><a class="anchor" href="#_providers_and_settings"></a>Providers and settings</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Every secret comes from an environment variable and none is kept in a file. <code>trust-mfa</code> is described in
+<a href="#factors">Factors and claims</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  social:
+    # Sign in with external providers (Google, Microsoft Entra ID, Apple, GitHub). A provider is enabled only when its
+    # client-id has text, so nothing is configured until a deployment supplies the values. Every secret comes from the
+    # environment and none is ever kept in a file. trust-mfa (default false) makes the provider's own multi-factor
+    # authentication count: the sign-in is then accepted without a second factor only when the provider reports mfa in
+    # its amr claim. Without it a federated sign-in is a primary factor and the second-factor flow applies.
+    providers:
+      google:
+        client-id: ${AUTHSERVER_SOCIAL_GOOGLE_CLIENT_ID:}
+        client-secret: ${AUTHSERVER_SOCIAL_GOOGLE_CLIENT_SECRET:}
+        trust-mfa: ${AUTHSERVER_SOCIAL_GOOGLE_TRUST_MFA:false}
+      microsoft:
+        client-id: ${AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_ID:}
+        client-secret: ${AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_SECRET:}
+        # common, organizations, consumers, a tenant id or a domain; allowed-tenants limits a multi-tenant sign-in
+        tenant: ${AUTHSERVER_SOCIAL_MICROSOFT_TENANT:common}
+        allowed-tenants: ${AUTHSERVER_SOCIAL_MICROSOFT_ALLOWED_TENANTS:}
+        trust-mfa: ${AUTHSERVER_SOCIAL_MICROSOFT_TRUST_MFA:false}
+      apple:
+        client-id: ${AUTHSERVER_SOCIAL_APPLE_CLIENT_ID:}
+        team-id: ${AUTHSERVER_SOCIAL_APPLE_TEAM_ID:}
+        key-id: ${AUTHSERVER_SOCIAL_APPLE_KEY_ID:}
+        # the PKCS#8 PEM text of the .p8 key Apple issued
+        private-key: ${AUTHSERVER_SOCIAL_APPLE_PRIVATE_KEY:}
+        client-secret-ttl: PT5M
+        trust-mfa: ${AUTHSERVER_SOCIAL_APPLE_TRUST_MFA:false}
+      github:
+        client-id: ${AUTHSERVER_SOCIAL_GITHUB_CLIENT_ID:}
+        client-secret: ${AUTHSERVER_SOCIAL_GITHUB_CLIENT_SECRET:}
+        trust-mfa: ${AUTHSERVER_SOCIAL_GITHUB_TRUST_MFA:false}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Settings of the sign-in with external providers, bound once from {@code authserver.social.*} and injected wherever
+ * one is needed; an invalid value stops the application at startup. A provider is enabled when its
+ * {@code client-id} has text: a blank one leaves the provider off, so the shipped {@code application.yml} can list all
+ * of them with the values of environment variables and nothing is enabled until a deployment supplies them. Secrets
+ * (the client secret, the Apple private key) are never kept in a committed file: they come from the environment only.
+ *
+ * &lt;p&gt;Whether a provider's own multi-factor authentication is trusted ({@code trust-mfa}) is per provider and off by
+ * default: the sign-in is then a primary factor and the normal second-factor flow applies.
+ *
+ * @param providers settings of each provider, by registration id ({@code google}, {@code microsoft}, {@code apple},
+ *                  {@code github}).
+ */
+@ConfigurationProperties("authserver.social")
+public record SocialProperties(Map&lt;String, Provider&gt; providers) {
+
+    /** Tenant value of Entra ID that accepts work, school and personal accounts of any tenant. */
+    public static final String COMMON_TENANT = "common";
+
+    /** Tenant value of Entra ID that accepts work and school accounts of any tenant. */
+    public static final String ORGANIZATIONS_TENANT = "organizations";
+
+    /** Tenant value of Entra ID that accepts personal accounts only. */
+    public static final String CONSUMERS_TENANT = "consumers";
+
+    /** Longest lifetime Apple accepts for a client secret: six months. */
+    public static final Duration MAX_APPLE_CLIENT_SECRET_TTL = Duration.ofDays(180);
+
+    /** Default lifetime of the client secret JWT sent to Apple. */
+    public static final Duration DEFAULT_APPLE_CLIENT_SECRET_TTL = Duration.ofMinutes(5);
+
+    /** Shape of a tenant id (a GUID): the issuer of a single-tenant token is built from it. */
+    private static final Pattern TENANT_ID_PATTERN = Pattern.compile(
+            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
+    /** Characters a tenant (a GUID or a domain name) may contain: it becomes part of a URL. */
+    private static final Pattern TENANT_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9.-]*");
+
+    /**
+     * Validates the settings and copies the map.
+     *
+     * @throws IllegalArgumentException if a key is not the registration id of a known provider, or an enabled provider
+     *                                  lacks a setting it needs or has an invalid one.
+     */
+    public SocialProperties {
+        final var copy = new LinkedHashMap&lt;String, Provider&gt;();
+        if (providers != null) {
+            providers.forEach((id, provider) -&gt; {
+                final var known = IdentityProvider.fromId(id).orElseThrow(() -&gt; new IllegalArgumentException(
+                        "authserver.social.providers." + id + " is not a known provider"));
+                if (provider != null) {
+                    validate(known, provider);
+                    copy.put(id, provider);
+                }
+            });
+        }
+        providers = Map.copyOf(copy);
+    }
+
+    /**
+     * Returns the enabled providers, in the order of {@link IdentityProvider}.
+     *
+     * @return the enabled providers and their settings; empty when none is configured.
+     */
+    public Map&lt;IdentityProvider, Provider&gt; enabledProviders() {
+        final var enabled = new EnumMap&lt;IdentityProvider, Provider&gt;(IdentityProvider.class);
+        providers.forEach((id, provider) -&gt; {
+            if (provider.enabled()) {
+                IdentityProvider.fromId(id).ifPresent(known -&gt; enabled.put(known, provider));
+            }
+        });
+        return enabled;
+    }
+
+    /**
+     * Returns the settings of an enabled provider.
+     *
+     * @param provider the provider.
+     * @return its settings, or an empty optional when it is not enabled.
+     */
+    public Optional&lt;Provider&gt; find(final IdentityProvider provider) {
+        return Optional.ofNullable(enabledProviders().get(provider));
+    }
+
+    /**
+     * Returns how far the multi-factor authentication of a provider is trusted.
+     *
+     * @param provider the provider.
+     * @return the trust setting; the provider is not trusted when it is not enabled.
+     */
+    public ProviderTrust trust(final IdentityProvider provider) {
+        return new ProviderTrust(provider, find(provider).map(Provider::trustMfa).orElse(false));
+    }
+
+    /**
+     * Checks the settings of a provider that is enabled.
+     *
+     * @param id       the provider.
+     * @param provider its settings.
+     */
+    private static void validate(final IdentityProvider id, final Provider provider) {
+        if (!provider.enabled()) {
+            return;
+        }
+        final var prefix = "authserver.social.providers." + id.id() + ".";
+        if (id == IdentityProvider.APPLE) {
+            require(provider.teamId(), prefix + "team-id");
+            require(provider.keyId(), prefix + "key-id");
+            require(provider.privateKey(), prefix + "private-key");
+            if (provider.clientSecretTtl().isNegative() || provider.clientSecretTtl().isZero()
+                    || provider.clientSecretTtl().compareTo(MAX_APPLE_CLIENT_SECRET_TTL) &gt; 0) {
+                throw new IllegalArgumentException(
+                        prefix + "client-secret-ttl must be positive and at most " + MAX_APPLE_CLIENT_SECRET_TTL);
+            }
+        } else {
+            require(provider.clientSecret(), prefix + "client-secret");
+        }
+        if (id == IdentityProvider.MICROSOFT) {
+            if (!TENANT_PATTERN.matcher(provider.tenant()).matches()) {
+                throw new IllegalArgumentException(prefix + "tenant is not a valid tenant");
+            }
+            if (provider.allowedTenants().stream().anyMatch(tenant -&gt; !TENANT_PATTERN.matcher(tenant).matches())) {
+                throw new IllegalArgumentException(prefix + "allowed-tenants holds a value that is not a valid tenant");
+            }
+        }
+    }
+
+    /**
+     * Requires a setting to have text.
+     *
+     * @param value value of the setting.
+     * @param name  full name of the setting, for the message.
+     */
+    private static void require(final String value, final String name) {
+        if (!StringUtils.hasText(value)) {
+            throw new IllegalArgumentException(name + " must not be blank when the provider is enabled");
+        }
+    }
+
+    /**
+     * Settings of one provider. Only the ones that apply to the provider are read: the client secret by Google,
+     * Microsoft and GitHub, the tenant settings by Microsoft and the key settings by Apple (whose client secret is a
+     * JWT signed with the private key).
+     *
+     * @param clientId        client id registered with the provider; blank leaves the provider disabled.
+     * @param clientSecret    client secret (Google, Microsoft, GitHub), supplied from the environment.
+     * @param trustMfa        whether the provider's {@code amr} claim is trusted to prove several factors (default
+     *                        {@code false}).
+     * @param tenant          Entra ID tenant: {@code common} (the default), {@code organizations},
+     *                        {@code consumers}, or a tenant id or domain.
+     * @param allowedTenants  tenant ids an Entra ID multi-tenant sign-in is limited to; empty accepts any tenant.
+     * @param teamId          Apple developer team id.
+     * @param keyId           id of the Apple key the client secret is signed with.
+     * @param privateKey      PKCS#8 PEM private key (ES256) Apple issued, supplied from the environment; a literal
+     *                        {@code \n} stands for a line break.
+     * @param clientSecretTtl lifetime of the client secret JWT sent to Apple (default five minutes, at most six
+     *                        months).
+     */
+    public record Provider(
+            String clientId,
+            String clientSecret,
+            boolean trustMfa,
+            @DefaultValue(COMMON_TENANT) String tenant,
+            List&lt;String&gt; allowedTenants,
+            String teamId,
+            String keyId,
+            String privateKey,
+            @DefaultValue("PT5M") Duration clientSecretTtl) {
+
+        /**
+         * Copies the tenants and fills the defaults of the unbound settings.
+         */
+        public Provider {
+            allowedTenants = allowedTenants == null ? List.of() : List.copyOf(allowedTenants);
+            tenant = StringUtils.hasText(tenant) ? tenant : COMMON_TENANT;
+            clientSecretTtl = clientSecretTtl == null ? DEFAULT_APPLE_CLIENT_SECRET_TTL : clientSecretTtl;
+        }
+
+        /**
+         * Returns the tenants an Entra ID sign-in is limited to: the configured list, else the tenant itself when it is
+         * a tenant id, else none, which means any tenant (a multi-tenant application, or a tenant given by domain
+         * name, whose tokens carry its id).
+         *
+         * @return the permitted tenant ids; empty accepts any tenant.
+         */
+        public List&lt;String&gt; permittedTenants() {
+            if (!allowedTenants.isEmpty()) {
+                return allowedTenants;
+            }
+            return TENANT_ID_PATTERN.matcher(tenant).matches() ? List.of(tenant) : List.of();
+        }
+
+        /**
+         * Tells whether the provider is enabled.
+         *
+         * @return {@code true} when the client id has text.
+         */
+        public boolean enabled() {
+            return StringUtils.hasText(clientId);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>ClientRegistrationMapper</code> builds the registrations: Google and GitHub from Spring&#8217;s <code>CommonOAuth2Provider</code>, Microsoft
+and Apple by hand.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Maps the settings of the enabled providers onto the client registrations Spring Security's {@code oauth2Login}
+ * needs. The client secret of every registration comes from {@link SocialProperties} (so from the environment), and
+ * the Apple registration carries none: its secret is a JWT generated for each token request
+ * ({@link AppleClientSecretGenerator}).
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Google is an OpenID Connect provider with the framework's defaults;&lt;/li&gt;
+ *   &lt;li&gt;Microsoft Entra ID is registered &lt;em&gt;without&lt;/em&gt; an issuer: a multi-tenant application's tokens carry the
+ *   issuer of the tenant the user belongs to, so the framework's single issuer comparison would reject them all;
+ *   {@link EntraIssuerValidator} checks the issuer against the token's tenant instead;&lt;/li&gt;
+ *   &lt;li&gt;Apple is an OpenID Connect provider without a UserInfo endpoint, whose client authentication is the signed
+ *   secret posted with the other parameters;&lt;/li&gt;
+ *   &lt;li&gt;GitHub is plain OAuth 2.0 (no ID token): the user is read from its API, with the {@code user:email} scope the
+ *   verified primary address needs.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+public class ClientRegistrationMapper {
+
+    /** Redirect URI template of every registration. */
+    public static final String REDIRECT_URI = "{baseUrl}/login/oauth2/code/{registrationId}";
+
+    /** Base URL of Microsoft Entra ID. */
+    static final String ENTRA_BASE_URL = "https://login.microsoftonline.com/";
+
+    /** Base URL of Sign in with Apple. */
+    static final String APPLE_BASE_URL = "https://appleid.apple.com";
+
+    /** OAuth scope that lets GitHub's API list the e-mail addresses of the user. */
+    static final String GITHUB_EMAIL_SCOPE = "user:email";
+
+    /** OAuth scope that lets GitHub's API read the profile of the user. */
+    static final String GITHUB_USER_SCOPE = "read:user";
+
+    /** Scope Sign in with Apple uses to hand over the name of the user (it has no {@code profile} scope). */
+    static final String APPLE_NAME_SCOPE = "name";
+
+    /** OIDC UserInfo endpoint of Microsoft. */
+    static final String MICROSOFT_USER_INFO_URI = "https://graph.microsoft.com/oidc/userinfo";
+
+    /**
+     * Maps the enabled providers.
+     *
+     * @param properties settings of the providers.
+     * @return one registration per enabled provider, in the order of {@link IdentityProvider}; empty when none is
+     *         enabled.
+     */
+    public List&lt;ClientRegistration&gt; toRegistrations(final SocialProperties properties) {
+        return properties.enabledProviders().entrySet().stream()
+                .map(entry -&gt; toRegistration(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    /**
+     * Maps one provider.
+     *
+     * @param provider the provider.
+     * @param settings its settings.
+     * @return the registration.
+     */
+    public ClientRegistration toRegistration(
+            final IdentityProvider provider, final SocialProperties.Provider settings) {
+        return switch (provider) {
+            case GOOGLE -&gt; CommonOAuth2Provider.GOOGLE.getBuilder(provider.id())
+                    .clientId(settings.clientId())
+                    .clientSecret(settings.clientSecret())
+                    .build();
+            case GITHUB -&gt; CommonOAuth2Provider.GITHUB.getBuilder(provider.id())
+                    .clientId(settings.clientId())
+                    .clientSecret(settings.clientSecret())
+                    .scope(GITHUB_USER_SCOPE, GITHUB_EMAIL_SCOPE)
+                    .build();
+            case MICROSOFT -&gt; microsoft(settings);
+            case APPLE -&gt; apple(settings);
+        };
+    }
+
+    /**
+     * Builds the Microsoft Entra ID registration, without an issuer (see the class description).
+     *
+     * @param settings settings of the provider.
+     * @return the registration.
+     */
+    private static ClientRegistration microsoft(final SocialProperties.Provider settings) {
+        final var tenantUrl = ENTRA_BASE_URL + settings.tenant();
+        return ClientRegistration.withRegistrationId(IdentityProvider.MICROSOFT.id())
+                .clientName("Microsoft")
+                .clientId(settings.clientId())
+                .clientSecret(settings.clientSecret())
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .redirectUri(REDIRECT_URI)
+                .scope(OidcScopes.OPENID, OidcScopes.PROFILE, OidcScopes.EMAIL)
+                .authorizationUri(tenantUrl + "/oauth2/v2.0/authorize")
+                .tokenUri(tenantUrl + "/oauth2/v2.0/token")
+                .jwkSetUri(tenantUrl + "/discovery/v2.0/keys")
+                .userInfoUri(MICROSOFT_USER_INFO_URI)
+                .userNameAttributeName(IdTokenClaimNames.SUB)
+                .build();
+    }
+
+    /**
+     * Builds the Sign in with Apple registration. Its client secret is empty here: the token request carries the
+     * signed JWT instead.
+     *
+     * @param settings settings of the provider.
+     * @return the registration.
+     */
+    private static ClientRegistration apple(final SocialProperties.Provider settings) {
+        return ClientRegistration.withRegistrationId(IdentityProvider.APPLE.id())
+                .clientName("Apple")
+                .clientId(settings.clientId())
+                .clientSecret("")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .redirectUri(REDIRECT_URI)
+                .scope(OidcScopes.OPENID, APPLE_NAME_SCOPE, OidcScopes.EMAIL)
+                .authorizationUri(APPLE_BASE_URL + "/auth/authorize")
+                .tokenUri(APPLE_BASE_URL + "/auth/token")
+                .jwkSetUri(APPLE_BASE_URL + "/auth/keys")
+                .issuerUri(APPLE_BASE_URL)
+                .userNameAttributeName(IdTokenClaimNames.SUB)
+                .build();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The chain customizer (<code>@Order(5)</code>) enables <code>oauth2Login</code> with the server&#8217;s own <code>/login</code> page, and a fragment adds the
+provider links below the password form.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Customizes the login/UI chain with the sign-in with external providers: {@code http.oauth2Login(...)} with the
+ * client registrations of the configured providers, the user services that resolve the local account, the success
+ * handler that grants the federated factor and, for Apple, the signed client secret and the form post callback.
+ *
+ * &lt;p&gt;The endpoints of the framework ({@code /oauth2/authorization/*} starts a sign-in, {@code /login/oauth2/code/*}
+ * receives the provider's answer) are public. The login page is the server's own, so the provider's page is never
+ * chosen automatically even when one provider is configured. Apple posts its answer to the callback from another site,
+ * so that one callback is exempt from CSRF protection (the {@code state} of the authorization request protects it) and
+ * the session cookie must be sent on a cross-site post (see the documentation of the social login). The same
+ * endpoints serve the explicit link flow of the identities page: the success and failure handlers tell a link apart.
+ */
+@RequiredArgsConstructor
+public class SocialChainCustomizer implements LoginChainCustomizer {
+
+    /** Order of the customizer: after the phone page one. */
+    public static final int ORDER = 5;
+
+    /** Pattern of the endpoints that start a sign-in. */
+    static final String AUTHORIZATION_PATTERN = "/oauth2/authorization/**";
+
+    /** Pattern of the endpoints that receive the provider's answer. */
+    static final String CALLBACK_PATTERN = "/login/oauth2/code/*";
+
+    /** Registrations of the configured providers. */
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    /** Resolves the account of an OpenID Connect sign-in. */
+    private final FederatedOidcUserService oidcUserService;
+
+    /** Resolves the account of an OAuth 2.0 sign-in. */
+    private final FederatedOAuth2UserService oauth2UserService;
+
+    /** Grants the federated factor and resumes the saved request, or completes a link. */
+    private final AuthenticationSuccessHandler successHandler;
+
+    /** Sends a refused link back to the identities page, any other failure to the login page. */
+    private final AuthenticationFailureHandler failureHandler;
+
+    /** Saves the security context of the sign-in. */
+    private final SecurityContextRepository securityContextRepository;
+
+    /** Exchanges the authorization code for tokens. */
+    private final OAuth2AccessTokenResponseClient&lt;OAuth2AuthorizationCodeGrantRequest&gt; tokenResponseClient;
+
+    /** Builds the authorization requests. */
+    private final OAuth2AuthorizationRequestResolver authorizationRequestResolver;
+
+    /** Whether Apple is configured, which posts its answer to the callback. */
+    private final boolean appleEnabled;
+
+    /**
+     * Customizes the login/UI chain.
+     *
+     * @param http security builder of the chain.
+     */
+    @Override
+    public void customize(final HttpSecurity http) {
+        http.authorizeHttpRequests(authorize -&gt; authorize
+                .requestMatchers(AUTHORIZATION_PATTERN, CALLBACK_PATTERN).permitAll());
+        if (appleEnabled) {
+            http.csrf(csrf -&gt; csrf.ignoringRequestMatchers(PathPatternRequestMatcher.withDefaults()
+                    .matcher(HttpMethod.POST, "/login/oauth2/code/" + IdentityProvider.APPLE.id())));
+        }
+        http.oauth2Login(login -&gt; login
+                .clientRegistrationRepository(clientRegistrationRepository)
+                .loginPage(LOGIN_PATH)
+                .securityContextRepository(securityContextRepository)
+                .successHandler(successHandler)
+                .failureHandler(failureHandler)
+                .authorizationEndpoint(endpoint -&gt; endpoint.authorizationRequestResolver(authorizationRequestResolver))
+                .tokenEndpoint(endpoint -&gt; endpoint.accessTokenResponseClient(tokenResponseClient))
+                .userInfoEndpoint(endpoint -&gt; endpoint
+                        .userService(oauth2UserService)
+                        .oidcUserService(oidcUserService)));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;div th:fragment="login" class="social-login"&gt;
+  &lt;h2 th:text="#{social.login.heading}"&gt;Or sign in with&lt;/h2&gt;
+  &lt;ul&gt;
+    &lt;li th:each="provider : ${@socialLoginMethodFragment.providers()}"&gt;
+      &lt;a th:href="@{/oauth2/authorization/{provider}(provider=${provider})}" th:attr="data-social-provider=${provider}"
+         th:text="#{${'social.login.' + provider}}"&gt;Sign in with a provider&lt;/a&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_linking_and_provisioning"><a class="anchor" href="#_linking_and_provisioning"></a>Linking and provisioning</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>ResolveFederatedLoginUseCase</code> finds the identity by provider and subject, otherwise links to an existing account by
+e-mail, otherwise provisions a new password-less account. An e-mail links only when the provider <strong>and</strong> the existing
+account have verified it; an unverified e-mail never links and never provisions over an existing account. GitHub&#8217;s
+verified primary e-mail is read from <code>/user/emails</code>; Entra&#8217;s e-mail counts as verified only with <code>email_verified</code> or
+<code>xms_edov</code>. A disabled account is refused inside the use case, before anything is linked, updated or audited, and the
+account is then loaded through the account-status check as well, so a disabled, locked or expired account is refused
+with the same <code>access_denied</code> as every other refusal.</p>
+</div>
+<div class="paragraph">
+<p>Two first sign-ins of the same person can arrive at once (two tabs, a double click). The use case starts by locking
+the identity (<code>FederatedIdentityRepository.lockSubject</code>, a PostgreSQL transaction-level advisory lock on provider and
+subject, released when the transaction ends), so the second one waits and then finds the link the first one stored,
+instead of failing on the unique constraint.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public void lockSubject(final IdentityProvider provider, final String subject) {
+        jdbcClient.sql(LOCK_SUBJECT).params(SUBJECT_LOCK_NAMESPACE, provider.id() + ":" + subject)
+                .query((rs, rowNum) -&gt; Boolean.TRUE).list();
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * The user service of the OpenID Connect providers (Google, Microsoft, Apple): the framework's service loads the user
+ * as it always does (the ID token, and the UserInfo endpoint where the provider has one), then the account is resolved
+ * (found, linked by verified e-mail or provisioned, and refused when it may not sign in) and the principal becomes the
+ * local one, named after the account.
+ */
+@RequiredArgsConstructor
+public class FederatedOidcUserService implements OAuth2UserService&lt;OidcUserRequest, OidcUser&gt; {
+
+    /** Message of the failure when the framework's service answers no user. */
+    private static final String MISSING_USER = "The provider's user is missing";
+
+    /** Message of the failure when the user has no subject. */
+    private static final String MISSING_SUBJECT = "The provider's subject is missing";
+
+    /** The framework's service, which loads the user the provider describes. */
+    private final OAuth2UserService&lt;OidcUserRequest, OidcUser&gt; delegate;
+
+    /** Resolves the local account. */
+    private final FederatedAccountResolver accountResolver;
+
+    /** Builds the local principal. */
+    private final FederatedUserMapper userMapper;
+
+    /**
+     * Loads the user of a sign-in.
+     *
+     * @param request the request, with the registration, the access token and the ID token.
+     * @return the local principal.
+     * @throws OAuth2AuthenticationException if the provider is unknown or the sign-in is refused.
+     */
+    @Override
+    public OidcUser loadUser(final OidcUserRequest request) throws OAuth2AuthenticationException {
+        final var provider = IdentityProvider.fromId(request.getClientRegistration().getRegistrationId())
+                .orElseThrow(() -&gt; new OAuth2AuthenticationException(
+                        new OAuth2Error(OAuth2ErrorCodes.INVALID_REQUEST, "Unknown provider", null)));
+        final var upstream = Objects.requireNonNull(delegate.loadUser(request), MISSING_USER);
+        final var subject = Objects.requireNonNull(upstream.getSubject(), MISSING_SUBJECT);
+        final var account = accountResolver.resolve(
+                provider, subject, upstream.getEmail(), userMapper.emailVerified(upstream));
+        return userMapper.toLocalUser(upstream, account.getUsername(), account.getAuthorities());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * The user service of the providers that are plain OAuth 2.0 (GitHub), which have no ID token: the framework's service
+ * reads the profile from the provider's API, the verified primary e-mail address is read from {@code /user/emails}
+ * (through the domain port {@link VerifiedEmailLookup}, implemented by the GitHub adapter of
+ * {@code infrastructure/github} with a client generated from the contract of that GitHub operation), the account is
+ * resolved (found, linked by verified e-mail or provisioned, and refused when it may not sign in) and the principal
+ * becomes the local one, named after the account. The stable subject is GitHub's numeric id, never the login name or
+ * the e-mail address, which the user can change.
+ */
+@RequiredArgsConstructor
+public class FederatedOAuth2UserService implements OAuth2UserService&lt;OAuth2UserRequest, OAuth2User&gt; {
+
+    /** Attributes of GitHub's profile that are kept in the session: scalars only. */
+    static final List&lt;String&gt; KEPT_ATTRIBUTES = List.of("id", "login", "name", "avatar_url");
+
+    /** Message of the failure when the framework's service answers no user. */
+    private static final String MISSING_USER = "The provider's user is missing";
+
+    /** The framework's service, which reads the profile. */
+    private final OAuth2UserService&lt;OAuth2UserRequest, OAuth2User&gt; delegate;
+
+    /** Reads the verified primary e-mail address. */
+    private final VerifiedEmailLookup verifiedEmailLookup;
+
+    /** Resolves the local account. */
+    private final FederatedAccountResolver accountResolver;
+
+    /** Builds the local principal. */
+    private final FederatedUserMapper userMapper;
+
+    /**
+     * Loads the user of a sign-in.
+     *
+     * @param request the request, with the registration and the access token.
+     * @return the local principal.
+     * @throws OAuth2AuthenticationException if the provider is not GitHub or the sign-in is refused.
+     */
+    @Override
+    public OAuth2User loadUser(final OAuth2UserRequest request) throws OAuth2AuthenticationException {
+        final var registration = request.getClientRegistration();
+        if (!IdentityProvider.GITHUB.id().equals(registration.getRegistrationId())) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error(OAuth2ErrorCodes.INVALID_REQUEST, "Unknown provider", null));
+        }
+        final var upstream = Objects.requireNonNull(delegate.loadUser(request), MISSING_USER);
+        final var email = verifiedEmailLookup.verifiedPrimaryEmail(
+                registration.getProviderDetails().getUserInfoEndpoint().getUri(),
+                request.getAccessToken().getTokenValue());
+        final var account = accountResolver.resolve(
+                IdentityProvider.GITHUB, upstream.getName(), email.orElse(null), email.isPresent());
+        return userMapper.toLocalUser(
+                upstream, KEPT_ATTRIBUTES, email.orElse(null), account.getUsername(), account.getAuthorities());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>GitHub&#8217;s API is another service, so it is called the way the BFF calls the resource server: through a client
+generated from a contract, behind a domain port. The port <code>VerifiedEmailLookup</code> (<code>domain.social</code>) is implemented by
+the <code>auth-server/infrastructure/github</code> adapter, whose <code>java</code> / <code>restclient</code> client is generated from
+<code>apis/github/rest-server/github-api-v1.yaml</code>, the one GitHub operation the server relies on. The base URI is the
+registration&#8217;s user-info URI without its trailing <code>/user</code>, so GitHub Enterprise (and the fake provider of the tests)
+is called where it is, and every failure means "no verified address", which refuses the sign-in.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /user/emails:
+    get:
+      tags: [ Users ]
+      operationId: listEmailsForAuthenticatedUser
+      summary: Lists the e-mail addresses of the authenticated user
+      description: &gt;-
+        Lists every e-mail address of the user the access token belongs to, each flagged as primary and as verified.
+        Needs the user:email scope. The authorization server only uses the address that is both primary and verified.
+      responses:
+        '200':
+          description: The e-mail addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The addresses, possibly empty.
+                items:
+                  $ref: '#/components/schemas/Email'
+        '304':
+          description: Not modified since the conditional request
+        '401':
+          description: The access token is missing, invalid or expired
+        '403':
+          description: The token lacks the user:email scope, or the rate limit was exceeded
+        '404':
+          description: The resource is not available to the token</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * {@link VerifiedEmailLookup} over GitHub's {@code GET /user/emails}, called through the client generated from
+ * {@code apis/github/rest-server/github-api-v1.yaml}. The {@code email} of GitHub's profile is whatever the user chose
+ * to show and is not verified, so the address is read from that endpoint, which flags each address as primary and
+ * verified.
+ *
+ * &lt;p&gt;The base URI of the API is the user-info URI of the registration without its trailing {@code /user} (by default
+ * {@code https://api.github.com}), so a GitHub Enterprise registration, or the fake provider of the tests, is called
+ * where it is. Every failure (GitHub unreachable, an error status, an unreadable body, a user-info URI of another
+ * shape) means "no verified address", which refuses the sign-in; it is logged without the token or anything of the
+ * user.
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class GitHubVerifiedEmailLookup implements VerifiedEmailLookup {
+
+    /** Path of the user endpoint below the base URI of GitHub's API. */
+    static final String USER_PATH = "/user";
+
+    /** Builds the generated client of each call. */
+    private final GitHubUsersApiFactory usersApiFactory;
+
+    /** Picks the verified primary address. */
+    private final GitHubEmailMapper emailMapper;
+
+    /**
+     * Finds the verified primary address.
+     *
+     * @param userInfoUri URI of GitHub's user endpoint, as the registration configures it.
+     * @param accessToken GitHub access token of the user.
+     * @return the address, or an empty optional when there is none or GitHub cannot tell.
+     */
+    @Override
+    public Optional&lt;String&gt; verifiedPrimaryEmail(final String userInfoUri, final String accessToken) {
+        final var basePath = basePathOf(userInfoUri);
+        if (basePath.isEmpty() || !StringUtils.hasText(accessToken)) {
+            log.warn("The e-mail addresses of a GitHub user cannot be read: no usable user-info URI or token");
+            return Optional.empty();
+        }
+        try {
+            return emailMapper.verifiedPrimary(
+                    usersApiFactory.create(basePath.get(), accessToken).listEmailsForAuthenticatedUser());
+        } catch (final RestClientException e) {
+            log.warn("The e-mail addresses of a GitHub user could not be read: {}", e.getClass().getSimpleName());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Derives the base URI of the API from the user-info URI.
+     *
+     * @param userInfoUri URI of the user endpoint, possibly {@code null}.
+     * @return the URI without its trailing {@code /user} (and slashes), or an empty optional when it does not end so.
+     */
+    private static Optional&lt;String&gt; basePathOf(final String userInfoUri) {
+        if (!StringUtils.hasText(userInfoUri)) {
+            return Optional.empty();
+        }
+        final var trimmed = userInfoUri.strip().replaceFirst("/+$", "");
+        if (!trimmed.endsWith(USER_PATH)) {
+            return Optional.empty();
+        }
+        final var basePath = trimmed.substring(0, trimmed.length() - USER_PATH.length());
+        return StringUtils.hasText(basePath) ? Optional.of(basePath) : Optional.empty();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Finds the local account of a sign-in with an external provider and refuses it unless that account may sign in.
+ *
+ * &lt;p&gt;The use case finds, links or provisions the account and refuses a disabled one before it links anything; the
+ * account is then loaded through the status-checking user service as well (the rules of
+ * {@code AccountStatusUserDetailsService}: a disabled, locked or expired account is refused, exactly as the password
+ * and passkey sign-ins refuse it). Every refusal is the same {@code access_denied} error, which the login chain turns
+ * into the generic failure of the login page, so the answer never says whether an account exists or why it was
+ * refused.
+ *
+ * &lt;p&gt;When the signed-in user asked to link this provider ({@link PendingIdentityLinks}), the identity is linked to
+ * that account through {@link LinkIdentityUseCase} instead: nothing is resolved by e-mail address or provisioned, and
+ * an identity that belongs to another account is refused with {@link #LINK_REFUSED}, which the failure handler sends
+ * back to the identities page.
+ */
+@RequiredArgsConstructor
+public class FederatedAccountResolver {
+
+    /** Error description of every refusal. */
+    static final String REFUSED = "The sign-in with the external provider was refused";
+
+    /** Error code of a refused link: the identity belongs to another account. */
+    public static final String LINK_REFUSED = "identity_link_refused";
+
+    /** Error description of a refused link. */
+    static final String LINK_REFUSED_DESCRIPTION = "The identity is linked to another account";
+
+    /** Use case that finds, links or provisions the account. */
+    private final ResolveFederatedLoginUseCase resolveFederatedLoginUseCase;
+
+    /** Loads the account, refusing one that may not sign in. */
+    private final UserDetailsService accountStatusUserDetailsService;
+
+    /** Use case that links an identity to the signed-in account. */
+    private final LinkIdentityUseCase linkIdentityUseCase;
+
+    /** The link markers of the explicit link flow. */
+    private final PendingIdentityLinks pendingIdentityLinks;
+
+    /**
+     * Resolves a sign-in.
+     *
+     * @param provider      the provider that authenticated the user.
+     * @param subject       the provider's stable identifier of the user.
+     * @param email         e-mail address the provider reported, or {@code null}.
+     * @param emailVerified whether the provider vouches for the address.
+     * @return the local account, which may sign in; for a link, the signed-in account.
+     * @throws OAuth2AuthenticationException if the sign-in is refused: the provider did not verify the address, the
+     *                                       address belongs to an unverified account, or the account is disabled,
+     *                                       locked or expired; or if a link is refused because the identity belongs to
+     *                                       another account.
+     */
+    public UserDetails resolve(
+            final IdentityProvider provider, final String subject, final String email, final boolean emailVerified) {
+        final var link = pendingIdentityLinks.consume(provider);
+        if (link.isPresent()) {
+            return link(link.get(), provider, subject, email);
+        }
+        try {
+            final var login = resolveFederatedLoginUseCase.execute(provider, subject, email, emailVerified);
+            return accountStatusUserDetailsService.loadUserByUsername(login.account().username());
+        } catch (final FederatedLoginRefusedException | AuthenticationException e) {
+            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED, REFUSED, null), e);
+        }
+    }
+
+    /**
+     * Links an identity to the signed-in account that asked for it.
+     *
+     * @param link     the link marker.
+     * @param provider the provider that authenticated the user.
+     * @param subject  the provider's stable identifier of the user.
+     * @param email    e-mail address the provider reported, or {@code null}.
+     * @return the signed-in account.
+     * @throws OAuth2AuthenticationException if the identity belongs to another account, or the account may no longer
+     *                                       sign in.
+     */
+    private UserDetails link(final PendingIdentityLink link, final IdentityProvider provider, final String subject,
+                             final String email) {
+        try {
+            linkIdentityUseCase.execute(link.userId(), link.username(), provider, subject, email);
+            return accountStatusUserDetailsService.loadUserByUsername(link.username());
+        } catch (final FederatedIdentityAlreadyLinkedException | AuthenticationException e) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error(LINK_REFUSED, LINK_REFUSED_DESCRIPTION, null), e);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A just-in-time account holds a random unknown password flagged as generated, so it does not count as a password
+sign-in method and the last-method rule (below) works.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- One row per identity of an external provider linked to a user. The provider's stable subject, never its e-mail
+-- address, finds the user, so (provider, subject) is unique: one external identity belongs to one account.
+CREATE TABLE federated_identities
+(
+    id            uuid                     NOT NULL,
+    user_id       uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    provider      varchar(32)              NOT NULL,
+    subject       varchar(255)             NOT NULL,
+    email         varchar(320),
+    linked_at     timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login_at timestamp with time zone,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_federated_identities_provider_subject UNIQUE (provider, subject),
+    CONSTRAINT ck_federated_identities_provider CHECK (provider IN ('google', 'microsoft', 'apple', 'github'))
+);
+
+CREATE INDEX ix_federated_identities_user_id ON federated_identities (user_id);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- Every account row carries a password hash. An account created by the first sign-in with an external provider gets
+-- the hash of a random secret nobody knows; this flag says so, so that such an account does not count as having a
+-- password sign-in method. Setting a password (registration, reset, change) clears it.
+ALTER TABLE user_passwords
+    ADD COLUMN generated boolean NOT NULL DEFAULT FALSE;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="link"><a class="anchor" href="#link"></a>Linking a provider to a signed-in account</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Linking by e-mail address only happens when both sides verified the address. A user whose provider address differs,
+or is not verified, links the provider explicitly after signing in to the existing account: the identities page,
+<code>GET /account/identities</code>, lists the linked identities and offers one button per configured provider. The button posts
+to <code>POST /account/identities/link</code>, which records a short-lived marker in the session (the provider, the account and an
+expiry five minutes later; it is used once) and sends the browser to the provider&#8217;s sign-in. Both are kept behind the
+multi-factor policy, like the passkeys and phone pages.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /account/identities:
+    get:
+      tags: [ Identities page ]
+      operationId: identitiesPage
+      summary: Renders the linked identities account page
+      description: &gt;-
+        Renders the page where the signed-in user sees the identities of external providers (Google, Microsoft, Apple,
+        GitHub) linked to the account and links another one: one button per configured provider, each a form that
+        posts to POST /account/identities/link with the CSRF token. Unlinking is done through the bearer-protected
+        REST API (DELETE /api/account/identities/{id}), which requires a recent multi-factor sign-in. Like the
+        passkeys page it needs a session that satisfies the multi-factor policy of the account. A request without a
+        signed-in session is redirected to the sign-in page.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: &gt;-
+            Outcome of the previous link attempt, so the page can tell it: linked (the identity is now linked),
+            already-linked (the identity belongs to another account, nothing changed) or unknown-provider (the
+            provider is not configured). Any other value is ignored.
+          schema:
+            type: string
+            maxLength: 40
+      responses:
+        '200':
+          description: The linked identities page.
+          content:
+            text/html:
+              schema:
+                type: string
+  /account/identities/link:
+    post:
+      tags: [ Identities page ]
+      operationId: linkIdentityPage
+      summary: Starts linking an identity of an external provider
+      description: &gt;-
+        Records, in the session, that the next sign-in with the provider is a link to the signed-in account (the
+        marker is short-lived and used once) and redirects to the provider's sign-in (/oauth2/authorization/{provider},
+        answered by Spring Security). When the provider sends the user back, the identity is linked to the signed-in
+        account instead of signing anybody in: the session keeps its user, and the browser returns to this page with
+        status linked, or already-linked when the identity belongs to another account. A provider that is not
+        configured redirects to the page with status unknown-provider.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ provider ]
+              properties:
+                provider:
+                  type: string
+                  maxLength: 20
+                  description: Registration id of the provider (google, microsoft, apple or github).
+      responses:
+        '303':
+          description: &gt;-
+            Redirects to the provider's sign-in, or to the identities page with status unknown-provider.
+          headers:
+            Location:
+              description: The provider's sign-in, or the identities page.
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Serves the account page of the linked identities and the form post that starts linking another one, as the contract
+ * {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml} describes them through the generated
+ * {@link IdentitiesPageApi}. The post records the link marker ({@link PendingIdentityLinks}) and redirects to the
+ * provider's sign-in; the provider's answer then links the identity to the signed-in account (see
+ * {@link FederatedAccountResolver}). The page exists whether or not a provider is configured; without one it lists the
+ * linked identities only. The chain keeps both behind the multi-factor policy ({@link IdentitiesPageChainCustomizer}).
+ */
+@Controller
+@RequiredArgsConstructor
+public class IdentitiesPageController implements IdentitiesPageApi {
+
+    /** Name of the template of the page. */
+    static final String VIEW_NAME = "account-identities";
+
+    /** Name of the model attribute that holds the linked identities. */
+    static final String IDENTITIES_ATTRIBUTE = "identities";
+
+    /** Name of the model attribute that holds the providers that can be linked. */
+    static final String PROVIDERS_ATTRIBUTE = "providers";
+
+    /** Name of the model attribute that holds the outcome of the previous link. */
+    static final String STATUS_ATTRIBUTE = "status";
+
+    /** Status of an identity that was linked. */
+    static final String LINKED = "linked";
+
+    /** Status of an identity that belongs to another account. */
+    static final String ALREADY_LINKED = "already-linked";
+
+    /** Status of a provider that is not configured. */
+    static final String UNKNOWN_PROVIDER = "unknown-provider";
+
+    /** Path that starts the sign-in with a provider, answered by Spring Security. */
+    static final String AUTHORIZATION_PATH = "/oauth2/authorization/";
+
+    /** The statuses the page tells; any other value of the parameter is ignored. */
+    private static final Set&lt;String&gt; STATUSES = Set.of(LINKED, ALREADY_LINKED, UNKNOWN_PROVIDER);
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the identities of an account. */
+    private final ListIdentitiesUseCase listIdentitiesUseCase;
+
+    /** Maps the identities onto the view model. */
+    private final IdentityViewMapper identityViewMapper;
+
+    /** Keeps the link markers. */
+    private final PendingIdentityLinks pendingIdentityLinks;
+
+    /** Registrations of the configured providers; absent while none is configured. */
+    private final ObjectProvider&lt;ClientRegistrationRepository&gt; clientRegistrations;
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy, which holds the session. */
+    private final HttpServletRequest request;
+
+    /**
+     * Renders the page.
+     *
+     * @param status outcome of the previous link, ignored when it is not one of the known ones.
+     * @return the page, never cached.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; identitiesPage(final String status) {
+        final var account = currentAccountResolver.resolve();
+        final var model = new HashMap&lt;String, Object&gt;();
+        model.put(IDENTITIES_ATTRIBUTE, identityViewMapper.toViews(listIdentitiesUseCase.execute(account.id())));
+        model.put(PROVIDERS_ATTRIBUTE, configuredProviders().stream().map(IdentityProvider::id).toList());
+        if (status != null &amp;&amp; STATUSES.contains(status)) {
+            model.put(STATUS_ATTRIBUTE, status);
+        }
+        final var page = pageRenderer.render(VIEW_NAME, model);
+        return ResponseEntity.status(page.getStatusCode())
+                .headers(page.getHeaders())
+                .cacheControl(CacheControl.noStore())
+                .body(page.getBody());
+    }
+
+    /**
+     * Records the link marker and sends the browser to the provider's sign-in.
+     *
+     * @param provider registration id of the provider.
+     * @return a redirect to the provider's sign-in, or to the page with {@code unknown-provider}.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; linkIdentityPage(final String provider) {
+        final var account = currentAccountResolver.resolve();
+        final var configured = IdentityProvider.fromId(provider).filter(configuredProviders()::contains);
+        if (configured.isEmpty()) {
+            return redirect(PATH_IDENTITIES_PAGE + "?" + STATUS_ATTRIBUTE + "=" + UNKNOWN_PROVIDER);
+        }
+        pendingIdentityLinks.begin(request.getSession(), configured.get(), account.id(), account.username());
+        return redirect(AUTHORIZATION_PATH + configured.get().id());
+    }
+
+    /**
+     * Lists the providers that are configured, in the order of {@link IdentityProvider}.
+     *
+     * @return the configured providers, possibly none.
+     */
+    private List&lt;IdentityProvider&gt; configuredProviders() {
+        return Optional.ofNullable(clientRegistrations.getIfAvailable())
+                .map(repository -&gt; Arrays.stream(IdentityProvider.values())
+                        .filter(candidate -&gt; repository.findByRegistrationId(candidate.id()) != null)
+                        .toList())
+                .orElseGet(List::of);
+    }
+
+    /**
+     * Answers a redirect that the browser follows with a GET.
+     *
+     * @param location the target, relative to the application.
+     * @return the redirect.
+     */
+    private ResponseEntity&lt;Void&gt; redirect(final String location) {
+        return ResponseEntity.status(HttpStatus.SEE_OTHER)
+                .header(HttpHeaders.LOCATION, request.getContextPath() + location)
+                .build();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">  &lt;section th:unless="${#lists.isEmpty(providers)}" class="identities-link"&gt;
+    &lt;h2 th:text="#{social.identities.add}"&gt;Link another account&lt;/h2&gt;
+    &lt;form th:each="provider : ${providers}" method="post" th:action="@{/account/identities/link}"&gt;
+      &lt;input type="hidden" name="provider" th:value="${provider}"&gt;
+      &lt;button type="submit" th:attr="data-link-provider=${provider}"
+              th:text="#{${'social.identities.link.' + provider}}"&gt;Link an account&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/section&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When the provider sends the user back, <code>FederatedAccountResolver</code> consumes the marker (same provider, not expired, and
+the session still signed in as the account that asked) and calls <code>LinkIdentityUseCase</code> for that account instead of
+resolving by e-mail or provisioning. The session keeps its principal: the success handler puts the authentication the
+session had back, grants no factor and returns to the page with <code>status=linked</code>. An identity already linked to another
+account is refused (<code>identity_link_refused</code>) and the failure handler returns to the page with <code>status=already-linked</code>;
+nothing changes and the session is still signed in.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Keeps the link marker ({@link PendingIdentityLink}) of the explicit link flow: the identities page records it in the
+ * session before sending the browser to the provider, and the user services consume it when the provider sends the
+ * user back. The marker is used once and only within {@link #LIFETIME}, only for the provider it names and only while
+ * the session is still signed in as the account that asked; otherwise the sign-in goes on as an ordinary one. When
+ * the marker is consumed, the authentication of the session is kept in a request attribute, so the success handler can
+ * put it back: linking never switches the session to another principal.
+ */
+@Component
+@RequiredArgsConstructor
+public class PendingIdentityLinks {
+
+    /** How long a link marker stays usable. */
+    public static final Duration LIFETIME = Duration.ofMinutes(5);
+
+    /** Session attribute of the marker. */
+    static final String SESSION_ATTRIBUTE = PendingIdentityLinks.class.getName() + ".PENDING";
+
+    /** Request attribute of the authentication the session had when the marker was consumed. */
+    static final String LINKED_ATTRIBUTE = PendingIdentityLinks.class.getName() + ".LINKED";
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Records that the next sign-in with a provider links its identity to the signed-in account.
+     *
+     * @param session  the session of the signed-in user.
+     * @param provider the provider of the identity to link.
+     * @param userId   identifier of the signed-in account.
+     * @param username name of the signed-in account.
+     */
+    public void begin(final HttpSession session, final IdentityProvider provider, final UUID userId,
+                      final String username) {
+        session.setAttribute(SESSION_ATTRIBUTE,
+                new PendingIdentityLink(provider.id(), userId, username, clock.instant().plus(LIFETIME)));
+    }
+
+    /**
+     * Consumes the marker of the current request, if it is usable for a sign-in with a provider. The marker is removed
+     * whether or not it is usable.
+     *
+     * @param provider the provider the user just signed in with.
+     * @return the marker, or empty when there is none, it expired, it names another provider or the session is no
+     *         longer signed in as the account that asked.
+     */
+    public Optional&lt;PendingIdentityLink&gt; consume(final IdentityProvider provider) {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof final ServletRequestAttributes attributes)) {
+            return Optional.empty();
+        }
+        final var request = attributes.getRequest();
+        final var session = request.getSession(false);
+        if (session == null || !(session.getAttribute(SESSION_ATTRIBUTE) instanceof final PendingIdentityLink link)) {
+            return Optional.empty();
+        }
+        session.removeAttribute(SESSION_ATTRIBUTE);
+        final var current = SecurityContextHolder.getContext().getAuthentication();
+        if (!provider.id().equals(link.providerId()) || clock.instant().isAfter(link.expiresAt())
+                || !MfaAuthorizationManager.isUser(current) || !link.username().equals(current.getName())) {
+            return Optional.empty();
+        }
+        request.setAttribute(LINKED_ATTRIBUTE, current);
+        return Optional.of(link);
+    }
+
+    /**
+     * Finds the authentication a request had when it linked an identity.
+     *
+     * @param request the request of the provider's answer.
+     * @return the authentication to keep, or empty when the request was not a link.
+     */
+    public Optional&lt;Authentication&gt; linkedBy(final HttpServletRequest request) {
+        return request.getAttribute(LINKED_ATTRIBUTE) instanceof final Authentication authentication
+                ? Optional.of(authentication) : Optional.empty();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The principal is stored with the authorization, so the Jackson mapper must allow its types.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the module of the OAuth 2.0 client and allows its types in the validator.
+     *
+     * @param validator builder of the polymorphic type validator of the authorization mapper.
+     * @return the configured module.
+     */
+    @Override
+    public JacksonModule module(final BasicPolymorphicTypeValidator.Builder validator) {
+        final var oauth2Client = new OAuth2ClientJacksonModule();
+        oauth2Client.configurePolymorphicTypeValidator(validator);
+        return oauth2Client;
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_microsoft_entra_id_multi_tenant"><a class="anchor" href="#_microsoft_entra_id_multi_tenant"></a>Microsoft Entra ID, multi-tenant</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>common</code> and <code>organizations</code> discovery issuer carries a <code>{tenantid}</code> placeholder, which the framework&#8217;s issuer
+check would reject, so the registration has no <code>issuerUri</code> and a validator checks that <code>iss</code> is
+<code>https://login.microsoftonline.com/{tid}/v2.0</code> for the token&#8217;s own <code>tid</code>, limited to <code>allowed-tenants</code> when given.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Validates the issuer of an ID token of Microsoft Entra ID in a multi-tenant application.
+ *
+ * &lt;p&gt;Such a token is issued by the tenant its user belongs to ({@code https://login.microsoftonline.com/{tid}/v2.0})
+ * while the discovery document of the {@code common} endpoint advertises a {@code {tenantid}} placeholder as the
+ * issuer, so the framework's check against one fixed issuer would reject every token. This validator takes the tenant
+ * from the token's own {@code tid} claim, requires the {@code iss} to be exactly that tenant's issuer, and, when a list
+ * is given, requires the tenant to be one of the permitted ones. The signature has already been verified against
+ * Entra's published keys by then, so the {@code tid} is the one Entra put in the token.
+ */
+public class EntraIssuerValidator implements OAuth2TokenValidator&lt;Jwt&gt; {
+
+    /** Claim that holds the id of the tenant the user belongs to. */
+    static final String TENANT_CLAIM = "tid";
+
+    /** Error code of a refused token. */
+    static final String INVALID_TOKEN = "invalid_id_token";
+
+    /** Tenants accepted; empty accepts any tenant. */
+    private final List&lt;String&gt; permittedTenants;
+
+    /**
+     * Creates the validator.
+     *
+     * @param permittedTenants ids of the tenants accepted, compared ignoring case; empty accepts any tenant.
+     */
+    public EntraIssuerValidator(final List&lt;String&gt; permittedTenants) {
+        this.permittedTenants = List.copyOf(permittedTenants);
+    }
+
+    /**
+     * Validates the issuer of a token.
+     *
+     * @param token the ID token, already decoded and signature-verified.
+     * @return a success, or a failure when the token has no tenant, its issuer is not the issuer of its tenant, or its
+     *         tenant is not permitted.
+     */
+    @Override
+    public OAuth2TokenValidatorResult validate(final Jwt token) {
+        final var tenant = token.getClaimAsString(TENANT_CLAIM);
+        final var issuer = token.getClaim("iss");
+        if (!StringUtils.hasText(tenant)) {
+            return failure("The ID token has no tenant");
+        }
+        if (issuer == null
+                || !(ClientRegistrationMapper.ENTRA_BASE_URL + tenant + "/v2.0").equals(issuer.toString())) {
+            return failure("The issuer of the ID token is not the issuer of its tenant");
+        }
+        if (!permittedTenants.isEmpty()
+                &amp;&amp; permittedTenants.stream().noneMatch(permitted -&gt; permitted.equalsIgnoreCase(tenant))) {
+            return failure("The tenant of the ID token is not permitted");
+        }
+        return OAuth2TokenValidatorResult.success();
+    }
+
+    /**
+     * Builds a failed result.
+     *
+     * @param description the reason.
+     * @return the result.
+     */
+    private static OAuth2TokenValidatorResult failure(final String description) {
+        return OAuth2TokenValidatorResult.failure(new OAuth2Error(INVALID_TOKEN, description, null));
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_apple"><a class="anchor" href="#_apple"></a>Apple</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Apple&#8217;s <code>client_secret</code> is an ES256 JWT that Apple accepts only when signed by the key registered in the developer
+account. It is therefore <strong>not</strong> signed with the server&#8217;s own <code>JwtEncoder</code>: a Nimbus signer uses the PKCS#8 key from the
+environment, and the result is cached for half of <code>client-secret-ttl</code>. Apple answers with <code>response_mode=form_post</code>, so
+its callback POST is the only CSRF exemption and a deployment needs <code>SameSite=None; Secure</code> session cookies.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Generates the client secret Sign in with Apple requires: a JWT signed with ES256 by the key Apple issued
+ * ({@code iss} the team id, {@code sub} the client id, {@code aud} {@code https://appleid.apple.com}, header
+ * {@code kid} the key id), valid for a short time. The token request of the framework asks for it each time, so the
+ * secret is cached and renewed when half of its lifetime has passed.
+ *
+ * &lt;p&gt;It does not use the {@code JwtEncoder} of the server's own signing keys: Apple verifies the secret with the key
+ * registered in its developer account, so only that key can sign it. It is a dedicated Nimbus signer over the Apple
+ * key supplied from the environment.
+ */
+public final class AppleClientSecretGenerator {
+
+    /** Audience Apple requires in the client secret. */
+    static final String AUDIENCE = "https://appleid.apple.com";
+
+    /** The secret is renewed when this fraction of its lifetime has passed. */
+    private static final int RENEWAL_DIVISOR = 2;
+
+    /** Client id registered with Apple (the services id). */
+    private final String clientId;
+
+    /** Apple developer team id. */
+    private final String teamId;
+
+    /** Id of the key that signs the secret. */
+    private final String keyId;
+
+    /** Lifetime of a secret. */
+    private final Duration ttl;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /** Signs with the Apple key. */
+    private final ECDSASigner signer;
+
+    /** Holds the current secret until it is half way through its life. */
+    private final Cache&lt;String, String&gt; cache;
+
+    /**
+     * Creates the generator.
+     *
+     * @param settings settings of the Apple provider.
+     * @param key      private key Apple issued.
+     * @param clock    source of the current time.
+     * @throws IllegalArgumentException if the key cannot sign with ES256.
+     */
+    public AppleClientSecretGenerator(
+            final SocialProperties.Provider settings, final ECPrivateKey key, final Clock clock) {
+        this.clientId = settings.clientId();
+        this.teamId = settings.teamId();
+        this.keyId = settings.keyId();
+        this.ttl = settings.clientSecretTtl();
+        this.clock = clock;
+        try {
+            this.signer = new ECDSASigner(key);
+        } catch (final JOSEException e) {
+            throw new IllegalArgumentException("The Apple key cannot sign with ES256", e);
+        }
+        this.cache = Caffeine.newBuilder()
+                .maximumSize(1)
+                .expireAfterWrite(ttl.dividedBy(RENEWAL_DIVISOR))
+                .ticker(() -&gt; TimeUnit.MILLISECONDS.toNanos(clock.millis()))
+                .build();
+    }
+
+    /**
+     * Gets the client id (the Services ID) the secrets are signed for, which is also the {@code client_id} of the
+     * token requests and of the authorization requests.
+     *
+     * @return the client id.
+     */
+    public String clientId() {
+        return clientId;
+    }
+
+    /**
+     * Returns a client secret that is valid now.
+     *
+     * @return the signed JWT.
+     */
+    public String generate() {
+        return cache.get(clientId, ignored -&gt; sign());
+    }
+
+    /**
+     * Signs a new secret.
+     *
+     * @return the serialized JWT.
+     */
+    private String sign() {
+        final var now = clock.instant();
+        final var claims = new JWTClaimsSet.Builder()
+                .issuer(teamId)
+                .subject(clientId)
+                .audience(AUDIENCE)
+                .issueTime(Date.from(now))
+                .expirationTime(Date.from(now.plus(ttl)))
+                .build();
+        final var jwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(keyId).type(JOSEObjectType.JWT).build(), claims);
+        try {
+            jwt.sign(signer);
+        } catch (final JOSEException e) {
+            throw new IllegalStateException("The Apple client secret cannot be signed", e);
+        }
+        return jwt.serialize();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Customizes the parameters of the token request of the authorization code grant: the request made for Apple's client
+ * id carries the signed JWT of {@link AppleClientSecretGenerator} as its {@code client_secret}, in place of the empty
+ * secret the registration holds. Requests of other registrations are left alone. It is the
+ * {@code parametersCustomizer} of the framework's token response client, which runs after the parameters are built.
+ */
+@RequiredArgsConstructor
+public class AppleTokenRequestCustomizer implements Consumer&lt;MultiValueMap&lt;String, String&gt;&gt; {
+
+    /** Client id of the Apple registration. */
+    private final String appleClientId;
+
+    /** Generates the client secret. */
+    private final AppleClientSecretGenerator secretGenerator;
+
+    /**
+     * Replaces the client secret of an Apple request.
+     *
+     * @param parameters the parameters of the token request.
+     */
+    @Override
+    public void accept(final MultiValueMap&lt;String, String&gt; parameters) {
+        if (appleClientId.equals(parameters.getFirst(OAuth2ParameterNames.CLIENT_ID))) {
+            parameters.set(OAuth2ParameterNames.CLIENT_SECRET, secretGenerator.generate());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="factors"><a class="anchor" href="#factors"></a>Factors and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Two factors, both with <code>amr</code> <code>fed</code>, are never held together: <code>FACTOR_FEDERATED</code> (a primary factor, so the normal
+second-factor and step-up flow applies) and <code>FACTOR_FEDERATED_MFA</code> (strong, and multi-factor alone). The strong one is
+chosen only when the provider has <code>trust-mfa: true</code> and its upstream <code>amr</code> contains <code>mfa</code>; the session then reaches the
+multi-factor <code>acr</code> and passes a step-up for it without a local second factor.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the federated factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor federatedAuthenticationFactor() {
+        return new AuthenticationFactor("federated", AMR_VALUE, AUTHORITY, FactorStrength.PRIMARY);
+    }
+
+    /**
+     * Declares the federated factor of a trusted provider that proved several factors.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor federatedStrongAuthenticationFactor() {
+        return new AuthenticationFactor("federated-mfa", AMR_VALUE, STRONG_AUTHORITY, FactorStrength.PRIMARY_STRONG,
+                true);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Decides which factor a federated sign-in proved: the strong one when the provider is trusted for its multi-factor
+ * authentication ({@code authserver.social.providers.&lt;id&gt;.trust-mfa}) and its upstream {@code amr} contains
+ * {@code mfa}, the ordinary one otherwise. An upstream claim the server was not told to trust is never believed.
+ */
+@RequiredArgsConstructor
+public class FederatedFactorSelector {
+
+    /** Settings of the providers, for the trust. */
+    private final SocialProperties properties;
+
+    /** Reads the upstream {@code amr}. */
+    private final FederatedUserMapper userMapper;
+
+    /**
+     * Selects the factor of a sign-in.
+     *
+     * @param token the authentication of the sign-in.
+     * @return {@link FederatedFactor#STRONG_AUTHORITY} or {@link FederatedFactor#AUTHORITY}.
+     */
+    public String authorityOf(final OAuth2AuthenticationToken token) {
+        return IdentityProvider.fromId(token.getAuthorizedClientRegistrationId())
+                .map(properties::trust)
+                .filter(trust -&gt; trust.isStrong(userMapper.upstreamAmr(Objects.requireNonNull(token.getPrincipal()))))
+                .map(trust -&gt; FederatedFactor.STRONG_AUTHORITY)
+                .orElse(FederatedFactor.AUTHORITY);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Success handler of the sign-in with an external provider. The framework's authentication carries no factor
+ * authority, so this handler grants the federated factor through {@link FactorGrantor} (the strong one when the
+ * provider is trusted, see {@link FederatedFactorSelector}), makes the result the current authentication, saves the
+ * security context again (the filter saved the first one before calling the handler), and then lets the usual handler
+ * resume the saved request, for example the {@code /oauth2/authorize} that sent the user to the login page.
+ *
+ * &lt;p&gt;When the answer of the provider completed a link ({@link PendingIdentityLinks#linkedBy}), nobody signs in: the
+ * authentication the session had before is put back and saved, no factor is granted, and the browser returns to the
+ * identities page with the status {@code linked}.
+ */
+@RequiredArgsConstructor
+public class FederatedAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    /** Query of the identities page after a link. */
+    static final String LINKED_STATUS = "?status=linked";
+
+    /** Adds the factor authority. */
+    private final FactorGrantor factorGrantor;
+
+    /** Chooses the factor. */
+    private final FederatedFactorSelector factorSelector;
+
+    /** Saves the security context, the same repository the sign-in filter uses. */
+    private final SecurityContextRepository securityContextRepository;
+
+    /** The handler that resumes the saved request. */
+    private final AuthenticationSuccessHandler delegate;
+
+    /** The link markers of the explicit link flow. */
+    private final PendingIdentityLinks pendingIdentityLinks;
+
+    /** Holder of the security context of the thread. */
+    private final SecurityContextHolderStrategy holderStrategy = SecurityContextHolder.getContextHolderStrategy();
+
+    /**
+     * Grants the factor and continues.
+     *
+     * @param request        the request.
+     * @param response       the response.
+     * @param authentication the authentication of the sign-in.
+     * @throws IOException if the redirect fails.
+     * @throws jakarta.servlet.ServletException if the redirect fails.
+     */
+    @Override
+    public void onAuthenticationSuccess(final HttpServletRequest request, final HttpServletResponse response,
+            final Authentication authentication) throws IOException, jakarta.servlet.ServletException {
+        final var linkedBy = pendingIdentityLinks.linkedBy(request);
+        if (linkedBy.isPresent()) {
+            save(linkedBy.get(), request, response);
+            response.sendRedirect(request.getContextPath() + IdentitiesPageApi.PATH_IDENTITIES_PAGE + LINKED_STATUS);
+            return;
+        }
+        if (authentication instanceof final OAuth2AuthenticationToken token) {
+            final var granted = factorGrantor.grant(token, factorSelector.authorityOf(token));
+            save(granted, request, response);
+            delegate.onAuthenticationSuccess(request, response, granted);
+            return;
+        }
+        delegate.onAuthenticationSuccess(request, response, authentication);
+    }
+
+    /**
+     * Makes an authentication the current one and saves it in the session.
+     *
+     * @param authentication the authentication.
+     * @param request        the request.
+     * @param response       the response.
+     */
+    private void save(final Authentication authentication, final HttpServletRequest request,
+                      final HttpServletResponse response) {
+        final var context = holderStrategy.createEmptyContext();
+        context.setAuthentication(authentication);
+        holderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The token&#8217;s <code>sub</code> is the local username, <code>idp</code> names the provider and, for the strong factor only, the upstream <code>amr</code>
+values are merged into <code>amr</code> after the <code>fed</code> and <code>mfa</code> the multi-factor contributor wrote (see
+<a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>); <code>IdpClaimsContributor</code> never sets <code>acr</code> itself.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds to the tokens of a user who signed in with an external provider the claim {@code idp} (the registration id of
+ * the provider). The {@code sub} is the local account's username, because the principal's name is (see
+ * {@link FederatedUserMapper}), so a token of a federated sign-in is indistinguishable from any other in what it says
+ * about the user.
+ *
+ * &lt;p&gt;When the provider is trusted for its multi-factor authentication and proved it (the strong factor,
+ * {@link FederatedFactor#STRONG_AUTHORITY}), the upstream {@code amr} values are added to the {@code amr} claim the
+ * {@link com.irurueta.authserver.authorization.api.web.mfa.MfaClaimsContributor} wrote (each value once, so the
+ * repeated ones of the factor and of the provider are listed once, and {@code mfa} is there exactly once). The
+ * {@code acr} is not set here: the strong factor is {@link
+ * com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor#multiFactor() multi-factor alone}, so the
+ * multi-factor contributor already wrote the multi-factor class, from the same rule the step-up checks use. The
+ * upstream {@code amr} of a provider that is not trusted is never copied: it would claim a strength the server did not
+ * accept.
+ */
+@Component
+@Order(IdpClaimsContributor.ORDER)
+@RequiredArgsConstructor
+public class IdpClaimsContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the multi-factor one, whose {@code amr} it extends. */
+    public static final int ORDER = 110;
+
+    /** Name of the claim that says which provider authenticated the user. */
+    public static final String IDP_CLAIM = "idp";
+
+    /** Reads the upstream {@code amr}. */
+    private final FederatedUserMapper userMapper;
+
+    /**
+     * Adds the claims.
+     *
+     * @param context the token context.
+     * @param claims  the claims, which this method extends.
+     */
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        if (!(context.getPrincipal() instanceof final OAuth2AuthenticationToken token)) {
+            return;
+        }
+        claims.put(IDP_CLAIM, token.getAuthorizedClientRegistrationId());
+        final var strong = token.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                .anyMatch(FederatedFactor.STRONG_AUTHORITY::equals);
+        if (!strong) {
+            return;
+        }
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var amr = new ArrayList&lt;String&gt;(existingAmr(claims));
+        final var upstream = userMapper.upstreamAmr(Objects.requireNonNull(token.getPrincipal()));
+        upstream.stream().filter(value -&gt; !amr.contains(value)).forEach(amr::add);
+        claims.put(IdTokenClaimNames.AMR, amr);
+    }
+
+    /**
+     * Reads the {@code amr} already in the claims.
+     *
+     * @param claims the claims.
+     * @return its values; empty when there is none.
+     */
+    private static List&lt;String&gt; existingAmr(final Map&lt;String, Object&gt; claims) {
+        return claims.get(IdTokenClaimNames.AMR) instanceof final List&lt;?&gt; values
+                ? values.stream().map(String::valueOf).distinct().toList() : List.of();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_account_api"><a class="anchor" href="#_account_api"></a>Account API</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A user lists the linked identities with <code>GET /api/account/identities</code> and unlinks one with
+<code>DELETE /api/account/identities/{id}</code>. Unlinking calls <code>StepUpGuard</code> and is refused (<code>409</code>) when it would remove the
+last sign-in method (password that is not generated, other identities, passkey, bound certificates). The methods are
+counted under a per-account lock (<code>LockSignInMethodsUseCase</code> over the <code>SignInMethodsLock</code> port, an advisory lock on the
+user id), which unbinding a certificate takes too, so two concurrent removals cannot each count the other&#8217;s method as
+the one that remains.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Use case that locks the sign-in methods of an account for the rest of the caller's transaction and counts them: a
+ * password its owner knows (not a generated one), the linked identities, a passkey and the bound certificates. Every
+ * use case that removes a sign-in method starts with it, so two concurrent removals of the same account are serialized
+ * and the second one counts what the first left. It only runs inside the caller's transaction, which holds the lock.
+ */
+@Service
+@Transactional(propagation = Propagation.MANDATORY)
+@RequiredArgsConstructor
+public class LockSignInMethodsUseCase {
+
+    /** Port that serializes the removals of an account. */
+    private final SignInMethodsLock signInMethodsLock;
+
+    /** Port that stores the links. */
+    private final FederatedIdentityRepository federatedIdentityRepository;
+
+    /** Port that remembers the accounts that only hold a generated password. */
+    private final GeneratedPasswordRepository generatedPasswordRepository;
+
+    /** Port that reads the passkeys. */
+    private final PasskeyRepository passkeyRepository;
+
+    /** Port that reads the bound certificates. */
+    private final CertificateBindingRepository certificateBindingRepository;
+
+    /**
+     * Locks the sign-in methods of an account and counts them.
+     *
+     * @param userId identifier of the account.
+     * @return the ways the account can sign in now, counted once the lock is held.
+     */
+    public SignInMethods execute(final UUID userId) {
+        signInMethodsLock.lock(userId);
+        return new SignInMethods(
+                !generatedPasswordRepository.isGenerated(userId),
+                federatedIdentityRepository.countByUser(userId),
+                passkeyRepository.existsForAccount(userId),
+                certificateBindingRepository.findByUser(userId).size());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">    Identity:
+      type: object
+      description: An identity of an external provider linked to the account
+      required: [ id, provider, linkedAt ]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the link.
+        provider:
+          type: string
+          enum: [ google, microsoft, apple, github ]
+          description: The provider that holds the identity.
+        email:
+          type: [ string, 'null' ]
+          description: E-mail address the provider reported when the identity was last used, if any.
+        linkedAt:
+          type: string
+          format: date-time
+          description: When the identity was linked to the account.
+        lastLoginAt:
+          type: [ string, 'null' ]
+          format: date-time
+          description: When the identity was last used to sign in, or null when it has not been used since it was linked.</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Manages the identities of external providers linked to the authenticated account (the operations of the contract).
+ * Linking one is not here: it happens when the user signs in with the provider (the verified e-mail address, or the
+ * provisioning of a new account), so the API lists and unlinks.
+ */
+@RestController
+@RequiredArgsConstructor
+public class IdentityController implements IdentitiesApi {
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the identities of an account. */
+    private final ListIdentitiesUseCase listIdentitiesUseCase;
+
+    /** Unlinks an identity. */
+    private final UnlinkIdentityUseCase unlinkIdentityUseCase;
+
+    /** Requires a recent multi-factor sign-in before an identity is unlinked. */
+    private final StepUpGuard stepUpGuard;
+
+    /** Maps the identities onto the contract's DTOs. */
+    private final IdentityDtoMapper identityDtoMapper;
+
+    /**
+     * Lists the identities linked to the authenticated account.
+     *
+     * @return {@code 200 OK} with the identities, possibly none.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;Identity&gt;&gt; listIdentities() {
+        final var account = currentAccountResolver.resolve();
+        return ResponseEntity.ok(identityDtoMapper.toResponses(listIdentitiesUseCase.execute(account.id())));
+    }
+
+    /**
+     * Unlinks an identity of the authenticated account.
+     *
+     * @param id identifier of the link.
+     * @return {@code 204 No Content}.
+     * @throws com.irurueta.authserver.authorization.domain.social.FederatedIdentityNotFoundException
+     *         if the account has no such identity.
+     * @throws com.irurueta.authserver.authorization.domain.social.LastSignInMethodException
+     *         if the identity is the last way the account can sign in.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException
+     *         if the account has a confirmed second factor and the token does not show a recent multi-factor
+     *         sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; unlinkIdentity(final UUID id) {
+        final var account = currentAccountResolver.resolve();
+        stepUpGuard.requireRecentMultiFactor(account.id());
+        unlinkIdentityUseCase.execute(account.id(), account.username(), id);
+        return ResponseEntity.noContent().build();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

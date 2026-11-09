@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttLinkAuthenticationProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttLinkAuthenticationProvider.java</span></div><h1>OttLinkAuthenticationProvider.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.ott.InvalidOneTimeTokenException;
+import org.springframework.security.authentication.ott.OneTimeTokenAuthentication;
+import org.springframework.security.authentication.ott.OneTimeTokenAuthenticationToken;
+import org.springframework.security.authentication.ott.OneTimeTokenService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+/**
+ * Confirms a magic link: consumes the token Spring's {@code JdbcOneTimeTokenService} stored and signs the user in with
+ * it. It does what Spring's own provider does, except that it also reads the purpose the link was requested for
+ * ({@link LinkTokenUsername}), which Spring's provider cannot because it would look the marked user name up as it is:
+ * &lt;ul&gt;
+ * &lt;li&gt;a link requested for a sign-in answers with the user's authentication plus {@code FACTOR_OTT};&lt;/li&gt;
+ * &lt;li&gt;a link requested as a second factor is refused unless the session that confirms it is the signed-in session of
+ * the same user, with a primary factor, and {@link OttSecondFactorChannels} allows the e-mail channel for that session
+ * (it did not sign the user in, and the user has no other confirmed second factor); it then answers with the
+ * second-factor authority of the e-mail channel, and Spring Security's authentication filter merges it with the
+ * factors the session holds.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * Links are delivered by e-mail only. The account is loaded through the user service of the chain, which refuses a
+ * disabled, locked or expired account.
+ */
+@RequiredArgsConstructor
+public class OttLinkAuthenticationProvider implements AuthenticationProvider {
+
+    /** Store of the link tokens. */
+    private final OneTimeTokenService oneTimeTokenService;
+
+    /** Loads the account, refusing one that cannot sign in. */
+    private final UserDetailsService userDetailsService;
+
+    /** Adds the factor authority to an authentication. */
+    private final FactorGrantor factorGrantor;
+
+    /** Rules about the session a second factor is presented in. */
+    private final PrimaryFactorSession primaryFactorSession;
+
+    /** Decides which channels may be the second factor of the user. */
+    private final OttSecondFactorChannels secondFactorChannels;
+
+    /**
+     * Consumes the token and builds the authentication.
+     *
+     * @param authentication the {@link OneTimeTokenAuthenticationToken} to confirm.
+     * @return the authentication of the user, with the factor of the purpose of the link.
+     * @throws AuthenticationException if the token is not valid, the account cannot sign in or a second-factor link
+     *                                 is confirmed outside the session of the user it was requested for.
+     */
+    @Override
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
+<span class="fc" id="L76">        final var consumed = oneTimeTokenService.consume((OneTimeTokenAuthenticationToken) authentication);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (consumed == null) {</span>
+<span class="fc" id="L78">            throw new InvalidOneTimeTokenException(&quot;Invalid token&quot;);</span>
+        }
+<span class="fc" id="L80">        final var secondFactor = LinkTokenUsername.isSecondFactor(consumed.getUsername());</span>
+<span class="fc" id="L81">        final var username = LinkTokenUsername.identifierOf(consumed.getUsername());</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (secondFactor) {</span>
+<span class="fc" id="L83">            requirePrimaryFactorSessionOf(username);</span>
+        }
+        try {
+<span class="fc" id="L86">            final var user = userDetailsService.loadUserByUsername(username);</span>
+<span class="fc" id="L87">            final var signedIn = new OneTimeTokenAuthentication(user, user.getAuthorities());</span>
+<span class="fc" id="L88">            signedIn.setDetails(authentication.getDetails());</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">            return factorGrantor.grant(signedIn, secondFactor ? OttFactors.EMAIL_SECOND_FACTOR_AUTHORITY</span>
+<span class="fc" id="L90">                    : OttFactors.EMAIL_AUTHORITY);</span>
+<span class="fc" id="L91">        } catch (final UsernameNotFoundException e) {</span>
+<span class="fc" id="L92">            throw new BadCredentialsException(&quot;Failed to authenticate the one-time token&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Tells which requests this provider confirms.
+     *
+     * @param authentication the type of the request.
+     * @return {@code true} for a {@link OneTimeTokenAuthenticationToken}.
+     */
+    @Override
+    public boolean supports(final Class&lt;?&gt; authentication) {
+<span class="fc" id="L104">        return OneTimeTokenAuthenticationToken.class.isAssignableFrom(authentication);</span>
+    }
+
+    /**
+     * Requires the current session to be the signed-in session of a user who still has to present a second factor.
+     *
+     * @param username the user the link was requested for.
+     * @throws BadCredentialsException if the session is another user's, holds no primary factor, or may not use the
+     *                                 e-mail channel the link was delivered by as its second factor.
+     */
+    private void requirePrimaryFactorSessionOf(final String username) {
+<span class="fc" id="L115">        final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L116" title="All 4 branches covered.">        if (!primaryFactorSession.holdsPrimaryFactor(current) || !username.equals(current.getName())</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">                || !secondFactorChannels.isAllowed(current, OttChannel.EMAIL)) {</span>
+<span class="fc" id="L118">            throw new BadCredentialsException(&quot;A second-factor link only works in the session it was requested in&quot;);</span>
+        }
+<span class="fc" id="L120">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

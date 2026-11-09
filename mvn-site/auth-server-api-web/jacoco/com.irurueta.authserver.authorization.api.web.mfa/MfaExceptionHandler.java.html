@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MfaExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">MfaExceptionHandler.java</span></div><h1>MfaExceptionHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import com.irurueta.authserver.authorization.api.web.ProblemJsonExceptionHandler;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.RecoveryCodesApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.TotpApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.TrustedDevicesApi;
+import com.irurueta.authserver.authorization.domain.totp.InvalidTotpCodeException;
+import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
+import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
+import java.net.URI;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/**
+ * Translates the failures of the authenticator app, recovery code and trusted device endpoints to RFC 9457 problem
+ * details, answered as {@code application/problem+json}. It is scoped to the generated interfaces of those
+ * endpoints, so it covers their controllers without depending on the packages they live in. Request validation
+ * failures are handled by the parent class. A missing step-up ({@link StepUpGuard}) is answered as RFC 9470 describes.
+ */
+@RestControllerAdvice(assignableTypes = {TotpApi.class, RecoveryCodesApi.class, TrustedDevicesApi.class})
+<span class="fc" id="L41">public class MfaExceptionHandler extends ProblemJsonExceptionHandler {</span>
+
+    /** Base of the problem type URNs. */
+    private static final String TYPE_BASE = &quot;urn:problem:mfa:&quot;;
+
+    /**
+     * Answers an enrolment of an authenticator app that is already enabled.
+     *
+     * @param exception the failure.
+     * @return the {@code 409} problem detail.
+     */
+    @ExceptionHandler(TotpAlreadyEnabledException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleAlreadyEnabled(final TotpAlreadyEnabledException exception) {
+<span class="fc" id="L54">        return respond(HttpStatus.CONFLICT, &quot;totp-already-enabled&quot;, &quot;Authenticator app already enabled&quot;,</span>
+<span class="fc" id="L55">                exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a confirmation without an enrolment in progress, or a request for recovery codes from an account
+     * without a confirmed authenticator app.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(TotpNotEnrolledException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleNotEnrolled(final TotpNotEnrolledException exception) {
+<span class="fc" id="L67">        return respond(HttpStatus.BAD_REQUEST, &quot;totp-not-enrolled&quot;, &quot;Authenticator app not enrolled&quot;,</span>
+<span class="fc" id="L68">                exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a wrong code.
+     *
+     * @param exception the failure.
+     * @return the {@code 400} problem detail.
+     */
+    @ExceptionHandler(InvalidTotpCodeException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInvalidCode(final InvalidTotpCodeException exception) {
+<span class="fc" id="L79">        return respond(HttpStatus.BAD_REQUEST, &quot;invalid-code&quot;, &quot;Invalid code&quot;, exception.getMessage());</span>
+    }
+
+    /**
+     * Answers a device the account does not have.
+     *
+     * @param exception the failure.
+     * @return the {@code 404} problem detail.
+     */
+    @ExceptionHandler(TrustedDeviceNotFoundException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleDeviceNotFound(final TrustedDeviceNotFoundException exception) {
+<span class="fc" id="L90">        return respond(HttpStatus.NOT_FOUND, &quot;trusted-device-not-found&quot;, &quot;Trusted device not found&quot;,</span>
+<span class="fc" id="L91">                exception.getMessage());</span>
+    }
+
+    // tag::mfa-step-up-challenge[]
+    /**
+     * Answers a token whose sign-in is not recent or strong enough: {@code 401} with the RFC 9470 challenge, which
+     * tells the client which {@code acr_values} and {@code max_age} to ask for when it signs the user in again.
+     *
+     * @param exception the failure.
+     * @return the {@code 401} problem detail with the {@code WWW-Authenticate} challenge.
+     */
+    @ExceptionHandler(InsufficientUserAuthenticationException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleInsufficientUserAuthentication(
+            final InsufficientUserAuthenticationException exception) {
+<span class="fc" id="L105">        final var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());</span>
+<span class="fc" id="L106">        problem.setType(URI.create(TYPE_BASE + &quot;insufficient-user-authentication&quot;));</span>
+<span class="fc" id="L107">        problem.setTitle(&quot;Step-up authentication required&quot;);</span>
+<span class="fc" id="L108">        final var headers = new HttpHeaders();</span>
+<span class="fc" id="L109">        headers.set(HttpHeaders.WWW_AUTHENTICATE, &quot;Bearer error=\&quot;insufficient_user_authentication\&quot;, acr_values=\&quot;&quot;</span>
+<span class="fc" id="L110">                + exception.getAcrValues() + &quot;\&quot;, max_age=\&quot;&quot; + exception.getMaxAge().toSeconds() + &quot;\&quot;&quot;);</span>
+<span class="fc" id="L111">        return problemResponse(problem, headers);</span>
+    }
+    // end::mfa-step-up-challenge[]
+
+    /**
+     * Builds a problem response.
+     *
+     * @param status HTTP status.
+     * @param type   last segment of the problem type.
+     * @param title  short summary.
+     * @param detail explanation.
+     * @return the response.
+     */
+    private static ResponseEntity&lt;ProblemDetail&gt; respond(
+            final HttpStatus status, final String type, final String title, final String detail) {
+<span class="fc" id="L126">        final var problem = ProblemDetail.forStatusAndDetail(status, detail);</span>
+<span class="fc" id="L127">        problem.setType(URI.create(TYPE_BASE + type));</span>
+<span class="fc" id="L128">        problem.setTitle(title);</span>
+<span class="fc" id="L129">        return problemResponse(problem);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

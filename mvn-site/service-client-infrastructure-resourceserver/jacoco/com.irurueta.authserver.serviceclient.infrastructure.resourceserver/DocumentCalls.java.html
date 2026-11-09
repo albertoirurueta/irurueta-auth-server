@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentCalls.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">DocumentCalls.java</span></div><h1>DocumentCalls.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import com.irurueta.authserver.serviceclient.domain.documents.Document;
+import com.irurueta.authserver.serviceclient.domain.documents.DocumentAccessException;
+import com.irurueta.authserver.serviceclient.infrastructure.resourceserver.v1.generated.api.DocumentsApi;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+
+/**
+ * Lists the documents through a generated client and translates every failure into a {@link
+ * DocumentAccessException}, so no HTTP, OAuth2 or JSON type escapes through the ports. Messages and logs never carry
+ * a token.
+ */
+<span class="fc" id="L36">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class DocumentCalls {
+
+    /** Maps the generated model onto the domain. */
+    private final DocumentMapper documentMapper;
+
+    // tag::service-client-gateway[]
+    /**
+     * Lists the documents the token behind the client may see.
+     *
+     * @param documentsApi the generated client, which sends the access token.
+     * @return the documents, empty when there are none.
+     * @throws DocumentAccessException if the token cannot be obtained, the resource server refuses it, cannot be
+     *                                 reached or answers something that is not a list of documents.
+     */
+    public List&lt;Document&gt; list(final DocumentsApi documentsApi) {
+        try {
+<span class="fc" id="L55">            final var documents = documentsApi.listDocuments();</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            return documents == null ? List.of() : documents.stream().map(documentMapper::toDomain).toList();</span>
+<span class="fc" id="L57">        } catch (final OAuth2AuthorizationException e) {</span>
+<span class="fc" id="L58">            log.warn(&quot;No access token for the resource server: {}&quot;, e.getError().getErrorCode());</span>
+<span class="fc" id="L59">            throw new DocumentAccessException(&quot;The access token could not be obtained&quot;, e);</span>
+<span class="fc" id="L60">        } catch (final RestClientResponseException e) {</span>
+<span class="fc" id="L61">            log.warn(&quot;The resource server answered {}&quot;, e.getStatusCode().value());</span>
+<span class="fc" id="L62">            throw new DocumentAccessException(&quot;The resource server answered &quot; + e.getStatusCode().value(), e);</span>
+<span class="fc" id="L63">        } catch (final RestClientException e) {</span>
+<span class="fc" id="L64">            log.warn(&quot;The resource server cannot be reached: {}&quot;, e.getClass().getSimpleName());</span>
+<span class="fc" id="L65">            throw new DocumentAccessException(&quot;The resource server is unavailable&quot;, e);</span>
+<span class="fc" id="L66">        } catch (final IllegalArgumentException e) {</span>
+<span class="fc" id="L67">            log.warn(&quot;The resource server answered an invalid document&quot;);</span>
+<span class="fc" id="L68">            throw new DocumentAccessException(&quot;The resource server answered an invalid document&quot;, e);</span>
+        }
+    }
+    // end::service-client-gateway[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

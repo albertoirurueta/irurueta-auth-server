@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserInfoMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.tokens</a> &gt; <span class="el_source">UserInfoMapper.java</span></div><h1>UserInfoMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.tokens;
+
+import com.irurueta.authserver.authorization.application.password.FindUserAccountUseCase;
+import java.util.HashMap;
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.StandardClaimNames;
+import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcUserInfoAuthenticationContext;
+import org.springframework.stereotype.Component;
+
+// tag::tokens-userinfo[]
+/**
+ * Builds the OpenID Connect UserInfo response from the account of the user, limited to the granted scopes: the
+ * {@code sub} claim always; {@code preferred_username}, {@code roles} and {@code tenant} with the {@code profile}
+ * scope; {@code email} and {@code email_verified} with the {@code email} scope.
+ */
+@Component
+@RequiredArgsConstructor
+public class UserInfoMapper implements Function&lt;OidcUserInfoAuthenticationContext, OidcUserInfo&gt; {
+
+    /** Scope that grants the profile claims. */
+    public static final String PROFILE_SCOPE = &quot;profile&quot;;
+
+    /** Scope that grants the e-mail claims. */
+    public static final String EMAIL_SCOPE = &quot;email&quot;;
+
+    /** Finds the account of the user. */
+    private final FindUserAccountUseCase findUserAccountUseCase;
+
+    @Override
+    public OidcUserInfo apply(final OidcUserInfoAuthenticationContext context) {
+<span class="fc" id="L49">        final var username = context.getAuthorization().getPrincipalName();</span>
+<span class="fc" id="L50">        final var scopes = context.getAccessToken().getScopes();</span>
+<span class="fc" id="L51">        final var claims = new HashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L52">        claims.put(StandardClaimNames.SUB, username);</span>
+<span class="fc" id="L53">        findUserAccountUseCase.execute(username).ifPresent(account -&gt; {</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">            if (scopes.contains(PROFILE_SCOPE)) {</span>
+<span class="fc" id="L55">                claims.put(StandardClaimNames.PREFERRED_USERNAME, account.username());</span>
+<span class="fc" id="L56">                claims.put(IssuedTokenClaims.ROLES_CLAIM, account.authorities());</span>
+<span class="fc" id="L57">                claims.put(IssuedTokenClaims.TENANT_CLAIM, account.tenant());</span>
+            }
+<span class="fc bfc" id="L59" title="All 4 branches covered.">            if (scopes.contains(EMAIL_SCOPE) &amp;&amp; account.email() != null) {</span>
+<span class="fc" id="L60">                claims.put(StandardClaimNames.EMAIL, account.email());</span>
+<span class="fc" id="L61">                claims.put(StandardClaimNames.EMAIL_VERIFIED, account.emailVerified());</span>
+            }
+<span class="fc" id="L63">        });</span>
+<span class="fc" id="L64">        return new OidcUserInfo(claims);</span>
+    }
+}
+// end::tokens-userinfo[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

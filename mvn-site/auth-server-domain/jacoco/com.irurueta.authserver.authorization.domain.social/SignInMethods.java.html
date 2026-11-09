@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SignInMethods.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.social</a> &gt; <span class="el_source">SignInMethods.java</span></div><h1>SignInMethods.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.social;
+
+/**
+ * The ways an account can sign in with. A use case that removes one asks for the methods without it
+ * ({@link #withoutFederatedIdentity()}, {@link #withoutCertificate()}) and refuses the removal when none is left.
+ *
+ * @param password                whether the account has a password its owner knows.
+ * @param federatedIdentities     number of linked external identities.
+ * @param passkey                 whether the account has a registered passkey.
+ * @param certificates            number of bound client certificates.
+ */
+<span class="fc" id="L27">public record SignInMethods(boolean password, long federatedIdentities, boolean passkey, long certificates) {</span>
+
+    /**
+     * Tells whether any way to sign in is left.
+     *
+     * @return {@code true} when there is a password, an identity, a passkey or a certificate.
+     */
+    public boolean any() {
+<span class="fc bfc" id="L35" title="All 8 branches covered.">        return password || federatedIdentities &gt; 0 || passkey || certificates &gt; 0;</span>
+    }
+
+    /**
+     * Counts the methods without one linked external identity.
+     *
+     * @return the methods once one identity is removed; the count never goes below zero.
+     */
+    public SignInMethods withoutFederatedIdentity() {
+<span class="fc" id="L44">        return new SignInMethods(password, Math.max(0, federatedIdentities - 1), passkey, certificates);</span>
+    }
+
+    /**
+     * Counts the methods without one bound client certificate.
+     *
+     * @return the methods once one certificate is unbound; the count never goes below zero.
+     */
+    public SignInMethods withoutCertificate() {
+<span class="fc" id="L53">        return new SignInMethods(password, federatedIdentities, passkey, Math.max(0, certificates - 1));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PhonePageController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">PhonePageController.java</span></div><h1>PhonePageController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.PhonePageApi;
+import com.irurueta.authserver.authorization.application.sms.ConfirmPhoneUseCase;
+import com.irurueta.authserver.authorization.application.sms.FindUserPhoneUseCase;
+import com.irurueta.authserver.authorization.application.sms.InvalidPhoneNumberException;
+import com.irurueta.authserver.authorization.application.sms.RemovePhoneUseCase;
+import com.irurueta.authserver.authorization.application.sms.SmsCountryNotAllowedException;
+import com.irurueta.authserver.authorization.application.sms.StartPhoneEnrolmentUseCase;
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+
+// tag::phone-page-controller[]
+/**
+ * Serves the phone account page and the session-protected form posts it uses, as the contract
+ * {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml} describes them through the generated
+ * {@link PhonePageApi}. A browser page has a session, not a bearer token, so it cannot call the REST API
+ * ({@code /api/account/phone}, which {@code ApiSecurityConfig} keeps bearer-only); the forms call the same use cases
+ * instead, with the same limits, and each answers by redirecting back to the page (post/redirect/get) with the outcome
+ * in the {@code status} parameter. The number is shown masked, as the REST API answers it.
+ */
+@Controller
+@RequiredArgsConstructor
+public class PhonePageController implements PhonePageApi {
+
+    /** Path of the page, taken from the contract. */
+    public static final String PHONE_PATH = PATH_PHONE_PAGE;
+
+    /** Name of the template of the page. */
+    static final String VIEW_NAME = &quot;account-phone&quot;;
+
+    /** Name of the model attribute that holds the masked verified number, absent when there is none. */
+    static final String PHONE_ATTRIBUTE = &quot;phone&quot;;
+
+    /** Name of the model attribute that holds the outcome of the previous post. */
+    static final String STATUS_ATTRIBUTE = &quot;status&quot;;
+
+    /** Status of a code that was requested. */
+    static final String PENDING = &quot;pending&quot;;
+
+    /** Status of a number that was verified. */
+    static final String VERIFIED = &quot;verified&quot;;
+
+    /** Status of a number that was removed. */
+    static final String REMOVED = &quot;removed&quot;;
+
+    /** Status of a number that is not valid. */
+    static final String INVALID_PHONE = &quot;invalid-phone&quot;;
+
+    /** Status of a number of a country SMS messages are not sent to. */
+    static final String COUNTRY_NOT_ALLOWED = &quot;country-not-allowed&quot;;
+
+    /** Status of a wrong code. */
+    static final String INVALID_CODE = &quot;invalid-code&quot;;
+
+    /** Status of a request over a limit. */
+    static final String RATE_LIMITED = &quot;rate-limited&quot;;
+
+    /** Status of an enrolment or a removal that needs a recent multi-factor sign-in. */
+    static final String STEP_UP_REQUIRED = &quot;step-up-required&quot;;
+
+    /** The statuses the page tells; any other value of the parameter is ignored. */
+<span class="fc" id="L89">    private static final Set&lt;String&gt; STATUSES = Set.of(PENDING, VERIFIED, REMOVED, INVALID_PHONE,</span>
+            COUNTRY_NOT_ALLOWED, INVALID_CODE, RATE_LIMITED, STEP_UP_REQUIRED);
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Finds the verified phone of the account. */
+    private final FindUserPhoneUseCase findUserPhoneUseCase;
+
+    /** Starts an enrolment. */
+    private final StartPhoneEnrolmentUseCase startPhoneEnrolmentUseCase;
+
+    /** Confirms an enrolment. */
+    private final ConfirmPhoneUseCase confirmPhoneUseCase;
+
+    /** Removes the phone. */
+    private final RemovePhoneUseCase removePhoneUseCase;
+
+    /** Requires a recent multi-factor sign-in before the phone is replaced or removed. */
+    private final PhoneSessionStepUp stepUp;
+
+    /** Limits the requests. */
+    private final OttRateLimiter rateLimiter;
+
+    /** Maps the phone onto its masked form. */
+    private final PhoneDtoMapper phoneDtoMapper;
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy, which tells the address of the client. */
+    private final HttpServletRequest request;
+
+    /**
+     * Renders the page.
+     *
+     * @param status outcome of the previous post, ignored when it is not one of the known ones.
+     * @return the page, never cached.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; phonePage(final String status) {
+<span class="fc" id="L130">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L131">        final var model = new HashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L132">        findUserPhoneUseCase.execute(account.id())</span>
+<span class="fc" id="L133">                .ifPresent(phone -&gt; model.put(PHONE_ATTRIBUTE, phoneDtoMapper.toResponse(phone).maskedNumber()));</span>
+<span class="fc bfc" id="L134" title="All 4 branches covered.">        if (status != null &amp;&amp; STATUSES.contains(status)) {</span>
+<span class="fc" id="L135">            model.put(STATUS_ATTRIBUTE, status);</span>
+        }
+<span class="fc" id="L137">        final var page = pageRenderer.render(VIEW_NAME, model);</span>
+<span class="fc" id="L138">        return ResponseEntity.status(page.getStatusCode())</span>
+<span class="fc" id="L139">                .headers(page.getHeaders())</span>
+<span class="fc" id="L140">                .cacheControl(CacheControl.noStore())</span>
+<span class="fc" id="L141">                .body(page.getBody());</span>
+    }
+
+    /**
+     * Sends the verification code to the number, when the session shows a recent enough multi-factor sign-in for an
+     * account that already has a confirmed second factor (the new number would replace the verified one).
+     *
+     * @param phone the number.
+     * @return a redirect to the page; the status is {@code pending} whether or not the number belongs to another
+     *         account.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; startPhoneEnrolmentPage(final String phone) {
+<span class="fc" id="L154">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (!stepUp.isSatisfied(account.id(), SecurityContextHolder.getContext().getAuthentication())) {</span>
+<span class="fc" id="L156">            return redirect(STEP_UP_REQUIRED);</span>
+        }
+        try {
+<span class="fc" id="L159">            rateLimiter.checkGeneration(request.getRemoteAddr(), PhoneController.ACCOUNT_KEY_PREFIX + account.id());</span>
+<span class="fc" id="L160">            startPhoneEnrolmentUseCase.execute(account.id(), phone);</span>
+<span class="fc" id="L161">            return redirect(PENDING);</span>
+<span class="fc" id="L162">        } catch (final OttRateLimitExceededException e) {</span>
+<span class="fc" id="L163">            return redirect(RATE_LIMITED);</span>
+<span class="fc" id="L164">        } catch (final InvalidPhoneNumberException e) {</span>
+<span class="fc" id="L165">            return redirect(INVALID_PHONE);</span>
+<span class="fc" id="L166">        } catch (final SmsCountryNotAllowedException e) {</span>
+<span class="fc" id="L167">            return redirect(COUNTRY_NOT_ALLOWED);</span>
+        }
+    }
+
+    /**
+     * Confirms the number with the code.
+     *
+     * @param code the code received by SMS.
+     * @return a redirect to the page, with the outcome.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; verifyPhonePage(final String code) {
+<span class="fc" id="L179">        final var account = currentAccountResolver.resolve();</span>
+        try {
+<span class="fc" id="L181">            rateLimiter.checkVerification(request.getRemoteAddr(), PhoneController.ACCOUNT_KEY_PREFIX + account.id());</span>
+<span class="fc" id="L182">        } catch (final OttRateLimitExceededException e) {</span>
+<span class="fc" id="L183">            return redirect(RATE_LIMITED);</span>
+<span class="fc" id="L184">        }</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        return redirect(confirmPhoneUseCase.execute(account.id(), account.username(), code) ? VERIFIED : INVALID_CODE);</span>
+    }
+
+    /**
+     * Removes the phone, when the session shows a recent enough multi-factor sign-in.
+     *
+     * @return a redirect to the page, with the outcome.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; removePhonePage() {
+<span class="fc" id="L195">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (!stepUp.isSatisfied(account.id(), SecurityContextHolder.getContext().getAuthentication())) {</span>
+<span class="fc" id="L197">            return redirect(STEP_UP_REQUIRED);</span>
+        }
+<span class="fc" id="L199">        removePhoneUseCase.execute(account.id(), account.username());</span>
+<span class="fc" id="L200">        return redirect(REMOVED);</span>
+    }
+
+    /**
+     * Builds the redirect back to the page.
+     *
+     * @param status the outcome.
+     * @return {@code 303 See Other} to the page.
+     */
+    private ResponseEntity&lt;Void&gt; redirect(final String status) {
+<span class="fc" id="L210">        return ResponseEntity.status(HttpStatus.SEE_OTHER)</span>
+<span class="fc" id="L211">                .header(HttpHeaders.LOCATION, URI.create(PHONE_PATH + &quot;?&quot; + STATUS_ATTRIBUTE + &quot;=&quot; + status).toString())</span>
+<span class="fc" id="L212">                .build();</span>
+    }
+}
+// end::phone-page-controller[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

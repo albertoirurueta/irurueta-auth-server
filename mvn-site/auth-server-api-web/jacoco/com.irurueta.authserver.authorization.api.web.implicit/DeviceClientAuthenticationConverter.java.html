@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceClientAuthenticationConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">DeviceClientAuthenticationConverter.java</span></div><h1>DeviceClientAuthenticationConverter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.web.authentication.AuthenticationConverter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.StringUtils;
+
+// tag::device-client-authentication[]
+/**
+ * Reads the identifier of a public client of the device flow, the only kind of client authentication that flow has
+ * for a device that cannot keep a secret: the {@code client_id} of the request to the device authorization endpoint
+ * and of the polling request to the token endpoint with the device code grant. Spring Authorization Server's public
+ * client authentication needs a PKCE code verifier, which the device flow does not have. A request that carries any
+ * other credential (an {@code Authorization} header, a client secret or a client assertion) is left to the
+ * converters of those credentials.
+ */
+public class DeviceClientAuthenticationConverter implements AuthenticationConverter {
+
+    /** Names of the parameters that carry a credential of a confidential client. */
+<span class="fc" id="L44">    private static final List&lt;String&gt; CREDENTIAL_PARAMETERS = List.of(</span>
+            OAuth2ParameterNames.CLIENT_SECRET, OAuth2ParameterNames.CLIENT_ASSERTION,
+            OAuth2ParameterNames.CLIENT_ASSERTION_TYPE);
+
+    /** Matches the request for the codes, which names the client. */
+    private final RequestMatcher deviceAuthorizationRequest;
+
+    /**
+     * Creates the converter.
+     *
+     * @param deviceAuthorizationEndpoint path of the device authorization endpoint.
+     */
+<span class="fc" id="L56">    public DeviceClientAuthenticationConverter(final String deviceAuthorizationEndpoint) {</span>
+<span class="fc" id="L57">        deviceAuthorizationRequest = PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L58">                .matcher(HttpMethod.POST, deviceAuthorizationEndpoint);</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * Reads the client of a request.
+     *
+     * @param request the request.
+     * @return the request to authenticate the public client, or {@code null} when the request is not one of the device
+     *         flow's or carries a credential.
+     * @throws OAuth2AuthenticationException {@code invalid_request} if the client is named more than once or not at
+     *                                       all.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+<span class="fc bfc" id="L72" title="All 4 branches covered.">        if (!isDeviceRequest(request) || carriesCredential(request)) {</span>
+<span class="fc" id="L73">            return null;</span>
+        }
+<span class="fc" id="L75">        final var clientIds = request.getParameterValues(OAuth2ParameterNames.CLIENT_ID);</span>
+<span class="pc bpc" id="L76" title="1 of 6 branches missed.">        if (clientIds == null || clientIds.length != 1 || !StringUtils.hasText(clientIds[0])) {</span>
+<span class="fc" id="L77">            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_REQUEST);</span>
+        }
+<span class="fc" id="L79">        return new DeviceClientAuthenticationToken(clientIds[0]);</span>
+    }
+
+    /**
+     * Tells whether the request is one of the device flow's: the request for the codes, or the poll with the device
+     * code grant.
+     *
+     * @param request the request.
+     * @return {@code true} for a device flow request that names a client.
+     */
+    private boolean isDeviceRequest(final HttpServletRequest request) {
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (request.getParameter(OAuth2ParameterNames.CLIENT_ID) == null) {</span>
+<span class="fc" id="L91">            return false;</span>
+        }
+<span class="fc bfc" id="L93" title="All 4 branches covered.">        return deviceAuthorizationRequest.matches(request) || isDeviceCodePoll(request);</span>
+    }
+
+    /**
+     * Tells whether the request is a poll of the token endpoint with the device code grant.
+     *
+     * @param request the request.
+     * @return {@code true} when it is.
+     */
+    private static boolean isDeviceCodePoll(final HttpServletRequest request) {
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        return AuthorizationGrantType.DEVICE_CODE.getValue().equals(request.getParameter(</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">                OAuth2ParameterNames.GRANT_TYPE)) &amp;&amp; request.getParameter(OAuth2ParameterNames.DEVICE_CODE) != null;</span>
+    }
+
+    /**
+     * Tells whether the request carries the credential of a confidential client.
+     *
+     * @param request the request.
+     * @return {@code true} when it does.
+     */
+    private static boolean carriesCredential(final HttpServletRequest request) {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        return request.getHeader(HttpHeaders.AUTHORIZATION) != null</span>
+<span class="fc bfc" id="L115" title="All 4 branches covered.">                || CREDENTIAL_PARAMETERS.stream().anyMatch(name -&gt; request.getParameter(name) != null);</span>
+    }
+}
+// end::device-client-authentication[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

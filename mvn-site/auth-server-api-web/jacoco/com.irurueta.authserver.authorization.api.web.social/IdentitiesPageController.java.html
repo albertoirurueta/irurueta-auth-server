@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdentitiesPageController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">IdentitiesPageController.java</span></div><h1>IdentitiesPageController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.social;
+
+import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.IdentitiesPageApi;
+import com.irurueta.authserver.authorization.application.social.ListIdentitiesUseCase;
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.stereotype.Controller;
+
+// tag::social-identities-page-controller[]
+/**
+ * Serves the account page of the linked identities and the form post that starts linking another one, as the contract
+ * {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml} describes them through the generated
+ * {@link IdentitiesPageApi}. The post records the link marker ({@link PendingIdentityLinks}) and redirects to the
+ * provider's sign-in; the provider's answer then links the identity to the signed-in account (see
+ * {@link FederatedAccountResolver}). The page exists whether or not a provider is configured; without one it lists the
+ * linked identities only. The chain keeps both behind the multi-factor policy ({@link IdentitiesPageChainCustomizer}).
+ */
+@Controller
+@RequiredArgsConstructor
+public class IdentitiesPageController implements IdentitiesPageApi {
+
+    /** Name of the template of the page. */
+    static final String VIEW_NAME = &quot;account-identities&quot;;
+
+    /** Name of the model attribute that holds the linked identities. */
+    static final String IDENTITIES_ATTRIBUTE = &quot;identities&quot;;
+
+    /** Name of the model attribute that holds the providers that can be linked. */
+    static final String PROVIDERS_ATTRIBUTE = &quot;providers&quot;;
+
+    /** Name of the model attribute that holds the outcome of the previous link. */
+    static final String STATUS_ATTRIBUTE = &quot;status&quot;;
+
+    /** Status of an identity that was linked. */
+    static final String LINKED = &quot;linked&quot;;
+
+    /** Status of an identity that belongs to another account. */
+    static final String ALREADY_LINKED = &quot;already-linked&quot;;
+
+    /** Status of a provider that is not configured. */
+    static final String UNKNOWN_PROVIDER = &quot;unknown-provider&quot;;
+
+    /** Path that starts the sign-in with a provider, answered by Spring Security. */
+    static final String AUTHORIZATION_PATH = &quot;/oauth2/authorization/&quot;;
+
+    /** The statuses the page tells; any other value of the parameter is ignored. */
+<span class="fc" id="L76">    private static final Set&lt;String&gt; STATUSES = Set.of(LINKED, ALREADY_LINKED, UNKNOWN_PROVIDER);</span>
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the identities of an account. */
+    private final ListIdentitiesUseCase listIdentitiesUseCase;
+
+    /** Maps the identities onto the view model. */
+    private final IdentityViewMapper identityViewMapper;
+
+    /** Keeps the link markers. */
+    private final PendingIdentityLinks pendingIdentityLinks;
+
+    /** Registrations of the configured providers; absent while none is configured. */
+    private final ObjectProvider&lt;ClientRegistrationRepository&gt; clientRegistrations;
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy, which holds the session. */
+    private final HttpServletRequest request;
+
+    /**
+     * Renders the page.
+     *
+     * @param status outcome of the previous link, ignored when it is not one of the known ones.
+     * @return the page, never cached.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; identitiesPage(final String status) {
+<span class="fc" id="L107">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L108">        final var model = new HashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L109">        model.put(IDENTITIES_ATTRIBUTE, identityViewMapper.toViews(listIdentitiesUseCase.execute(account.id())));</span>
+<span class="fc" id="L110">        model.put(PROVIDERS_ATTRIBUTE, configuredProviders().stream().map(IdentityProvider::id).toList());</span>
+<span class="pc bpc" id="L111" title="1 of 4 branches missed.">        if (status != null &amp;&amp; STATUSES.contains(status)) {</span>
+<span class="fc" id="L112">            model.put(STATUS_ATTRIBUTE, status);</span>
+        }
+<span class="fc" id="L114">        final var page = pageRenderer.render(VIEW_NAME, model);</span>
+<span class="fc" id="L115">        return ResponseEntity.status(page.getStatusCode())</span>
+<span class="fc" id="L116">                .headers(page.getHeaders())</span>
+<span class="fc" id="L117">                .cacheControl(CacheControl.noStore())</span>
+<span class="fc" id="L118">                .body(page.getBody());</span>
+    }
+
+    /**
+     * Records the link marker and sends the browser to the provider's sign-in.
+     *
+     * @param provider registration id of the provider.
+     * @return a redirect to the provider's sign-in, or to the page with {@code unknown-provider}.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; linkIdentityPage(final String provider) {
+<span class="fc" id="L129">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L130">        final var configured = IdentityProvider.fromId(provider).filter(configuredProviders()::contains);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (configured.isEmpty()) {</span>
+<span class="fc" id="L132">            return redirect(PATH_IDENTITIES_PAGE + &quot;?&quot; + STATUS_ATTRIBUTE + &quot;=&quot; + UNKNOWN_PROVIDER);</span>
+        }
+<span class="fc" id="L134">        pendingIdentityLinks.begin(request.getSession(), configured.get(), account.id(), account.username());</span>
+<span class="fc" id="L135">        return redirect(AUTHORIZATION_PATH + configured.get().id());</span>
+    }
+
+    /**
+     * Lists the providers that are configured, in the order of {@link IdentityProvider}.
+     *
+     * @return the configured providers, possibly none.
+     */
+    private List&lt;IdentityProvider&gt; configuredProviders() {
+<span class="fc" id="L144">        return Optional.ofNullable(clientRegistrations.getIfAvailable())</span>
+<span class="fc" id="L145">                .map(repository -&gt; Arrays.stream(IdentityProvider.values())</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">                        .filter(candidate -&gt; repository.findByRegistrationId(candidate.id()) != null)</span>
+<span class="fc" id="L147">                        .toList())</span>
+<span class="fc" id="L148">                .orElseGet(List::of);</span>
+    }
+
+    /**
+     * Answers a redirect that the browser follows with a GET.
+     *
+     * @param location the target, relative to the application.
+     * @return the redirect.
+     */
+    private ResponseEntity&lt;Void&gt; redirect(final String location) {
+<span class="fc" id="L158">        return ResponseEntity.status(HttpStatus.SEE_OTHER)</span>
+<span class="fc" id="L159">                .header(HttpHeaders.LOCATION, request.getContextPath() + location)</span>
+<span class="fc" id="L160">                .build();</span>
+    }
+}
+// end::social-identities-page-controller[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

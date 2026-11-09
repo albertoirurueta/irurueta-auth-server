@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RotateSigningKeysUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.keys</a> &gt; <span class="el_source">RotateSigningKeysUseCase.java</span></div><h1>RotateSigningKeysUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.keys;
+
+import com.irurueta.authserver.authorization.domain.keys.SigningKey;
+import com.irurueta.authserver.authorization.domain.keys.SigningKeyGenerator;
+import com.irurueta.authserver.authorization.domain.keys.SigningKeyRepository;
+import com.irurueta.authserver.authorization.domain.keys.SigningKeyStatus;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Use case that keeps the signing keys rotating. One call, made at start-up and then on a schedule, does whatever is
+ * due: it creates the {@code active} and {@code next} keys when they are missing, promotes {@code next} to
+ * {@code active} and retires the old {@code active} key once the rotation interval has elapsed, always leaves a
+ * fresh {@code next} key behind, and deletes keys retired for longer than the effective retention (see
+ * {@link SigningKeyRetention}). A second call right after the first changes nothing, and the whole call runs under
+ * the repository's rotation lock, so several instances can call it safely. {@link #executeForced()} is the
+ * administrator's path: it replaces the active key immediately, whatever its age.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class RotateSigningKeysUseCase {
+
+    /** Port that stores the keys. */
+    private final SigningKeyRepository signingKeyRepository;
+
+    /** Port that generates keys. */
+    private final SigningKeyGenerator signingKeyGenerator;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /** How long a key signs before it is replaced ({@code authserver.keys.rotation-interval}, application.yml). */
+    @Value(&quot;${authserver.keys.rotation-interval}&quot;)
+    private final Duration rotationInterval;
+
+    /** Decides how long a retired key stays published. */
+    private final SigningKeyRetention signingKeyRetention;
+
+    // tag::keys-rotation[]
+    /**
+     * Does whatever the key lifecycle requires at the current instant: the scheduled path, which only rotates a key
+     * that has signed for the whole rotation interval.
+     */
+    public void execute() {
+<span class="fc" id="L68">        run(false);</span>
+<span class="fc" id="L69">    }</span>
+
+    /**
+     * Rotates now, whatever the age of the active key: the active key is retired, the next key promoted and a new
+     * next key generated (for example after a suspected key compromise). Expired retired keys are deleted too.
+     */
+    public void executeForced() {
+<span class="fc" id="L76">        run(true);</span>
+<span class="fc" id="L77">    }</span>
+
+    /**
+     * Applies the lifecycle transitions while holding the rotation lock.
+     *
+     * @param force whether the active key is replaced even when it is not due.
+     */
+    private void run(final boolean force) {
+<span class="fc" id="L85">        final var now = clock.instant();</span>
+<span class="fc" id="L86">        final var retention = signingKeyRetention.effective();</span>
+<span class="fc" id="L87">        signingKeyRepository.withRotationLock(() -&gt; {</span>
+<span class="fc" id="L88">            rotate(now, force, retention);</span>
+<span class="fc" id="L89">            return null;</span>
+        });
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * Applies the lifecycle transitions that are due, or forced.
+     *
+     * @param now       current instant.
+     * @param force     whether the active key is replaced even when it is not due.
+     * @param retention how long a retired key stays published.
+     */
+    private void rotate(final Instant now, final boolean force, final Duration retention) {
+<span class="fc" id="L101">        final var keys = signingKeyRepository.findAll();</span>
+<span class="fc" id="L102">        var active = first(keys, SigningKeyStatus.ACTIVE);</span>
+<span class="fc" id="L103">        var next = first(keys, SigningKeyStatus.NEXT);</span>
+<span class="fc bfc" id="L104" title="All 6 branches covered.">        if (active != null &amp;&amp; (force || isDue(active, now))) {</span>
+<span class="fc" id="L105">            signingKeyRepository.save(active.retire(now));</span>
+<span class="fc" id="L106">            active = null;</span>
+        }
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (active == null) {</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            final var promoted = next != null ? next : signingKeyGenerator.generate(now);</span>
+<span class="fc" id="L110">            signingKeyRepository.save(promoted.activate(now));</span>
+<span class="fc" id="L111">            next = null;</span>
+        }
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (next == null) {</span>
+<span class="fc" id="L114">            signingKeyRepository.save(signingKeyGenerator.generate(now));</span>
+        }
+<span class="fc" id="L116">        keys.stream()</span>
+<span class="fc bfc" id="L117" title="All 4 branches covered.">                .filter(key -&gt; key.status() == SigningKeyStatus.RETIRED &amp;&amp; isExpired(key, now, retention))</span>
+<span class="fc" id="L118">                .forEach(key -&gt; signingKeyRepository.deleteByKid(key.kid()));</span>
+<span class="fc" id="L119">    }</span>
+    // end::keys-rotation[]
+
+    /**
+     * Finds the first key in a state.
+     *
+     * @param keys   the keys.
+     * @param status the state.
+     * @return the key, or {@code null} when none is in that state.
+     */
+    private static SigningKey first(final List&lt;SigningKey&gt; keys, final SigningKeyStatus status) {
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        return keys.stream().filter(key -&gt; key.status() == status).findFirst().orElse(null);</span>
+    }
+
+    /**
+     * Tells whether the active key has signed for the whole rotation interval.
+     *
+     * @param active the active key.
+     * @param now    current instant.
+     * @return {@code true} when it must be replaced.
+     */
+    private boolean isDue(final SigningKey active, final Instant now) {
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        final var since = active.activatedAt() == null ? active.createdAt() : active.activatedAt();</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        return !since.plus(rotationInterval).isAfter(now);</span>
+    }
+
+    /**
+     * Tells whether a retired key has been retired for longer than the retention.
+     *
+     * @param retired   the retired key.
+     * @param now       current instant.
+     * @param retention how long a retired key stays published.
+     * @return {@code true} when it can be deleted.
+     */
+    private static boolean isExpired(final SigningKey retired, final Instant now, final Duration retention) {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        final var since = retired.retiredAt() == null ? retired.createdAt() : retired.retiredAt();</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        return !since.plus(retention).isAfter(now);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

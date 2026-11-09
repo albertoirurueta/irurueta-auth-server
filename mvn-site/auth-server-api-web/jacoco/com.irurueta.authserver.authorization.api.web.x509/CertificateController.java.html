@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CertificateController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">CertificateController.java</span></div><h1>CertificateController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import com.irurueta.authserver.authorization.api.web.mfa.CurrentAccountResolver;
+import com.irurueta.authserver.authorization.api.web.mfa.StepUpGuard;
+import com.irurueta.authserver.authorization.api.web.v1.generated.api.CertificatesApi;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.BindCertificateRequest;
+import com.irurueta.authserver.authorization.api.web.v1.generated.model.Certificate;
+import com.irurueta.authserver.authorization.application.x509.BindCertificateUseCase;
+import com.irurueta.authserver.authorization.application.x509.ListCertificatesUseCase;
+import com.irurueta.authserver.authorization.application.x509.UnbindCertificateUseCase;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+// tag::x509-certificate-controller[]
+/**
+ * Manages the client certificates bound to the authenticated account (the operations of the contract). Binding and
+ * unbinding change how the account signs in, so both call {@link StepUpGuard} first, as unlinking an identity does.
+ * The controller exists whether or not the sign-in with a certificate is enabled, so certificates can be bound before
+ * it is turned on.
+ */
+@RestController
+@RequiredArgsConstructor
+public class CertificateController implements CertificatesApi {
+
+    /** Resolves the account of the request. */
+    private final CurrentAccountResolver currentAccountResolver;
+
+    /** Lists the certificates of an account. */
+    private final ListCertificatesUseCase listCertificatesUseCase;
+
+    /** Binds a certificate. */
+    private final BindCertificateUseCase bindCertificateUseCase;
+
+    /** Unbinds a certificate. */
+    private final UnbindCertificateUseCase unbindCertificateUseCase;
+
+    /** Requires a recent multi-factor sign-in before a certificate is bound or unbound. */
+    private final StepUpGuard stepUpGuard;
+
+    /** Reads the certificate of a bind request. */
+    private final PemCertificateReader pemCertificateReader;
+
+    /** Maps the bindings onto the contract's DTOs. */
+    private final CertificateDtoMapper certificateDtoMapper;
+
+    /**
+     * Lists the certificates bound to the authenticated account.
+     *
+     * @return {@code 200 OK} with the certificates, possibly none.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;Certificate&gt;&gt; listCertificates() {
+<span class="fc" id="L72">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L73">        return ResponseEntity.ok(certificateDtoMapper.toResponses(listCertificatesUseCase.execute(account.id())));</span>
+    }
+
+    /**
+     * Binds a certificate to the authenticated account.
+     *
+     * @param request the PEM certificate.
+     * @return {@code 201 Created} with the binding.
+     * @throws InvalidCertificateException if the value is not a usable certificate.
+     * @throws com.irurueta.authserver.authorization.domain.x509.CertificateAlreadyBoundException
+     *         if the certificate is bound to another account.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException
+     *         if the account has a confirmed second factor and the token does not show a recent multi-factor
+     *         sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Certificate&gt; bindCertificate(final BindCertificateRequest request) {
+<span class="fc" id="L90">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L91">        stepUpGuard.requireRecentMultiFactor(account.id());</span>
+<span class="fc" id="L92">        final var certificate = pemCertificateReader.read(request.certificate());</span>
+<span class="fc" id="L93">        final var binding = bindCertificateUseCase.execute(account.id(), account.username(),</span>
+<span class="fc" id="L94">                certificate.fingerprintSha256(), certificate.subjectDn());</span>
+<span class="fc" id="L95">        return ResponseEntity.status(HttpStatus.CREATED).body(certificateDtoMapper.toResponse(binding));</span>
+    }
+
+    /**
+     * Unbinds a certificate of the authenticated account.
+     *
+     * @param id identifier of the binding.
+     * @return {@code 204 No Content}.
+     * @throws com.irurueta.authserver.authorization.domain.x509.CertificateNotFoundException
+     *         if the account has no such certificate.
+     * @throws com.irurueta.authserver.authorization.domain.social.LastSignInMethodException
+     *         if the certificate is the last way the account can sign in.
+     * @throws com.irurueta.authserver.authorization.api.web.mfa.InsufficientUserAuthenticationException
+     *         if the account has a confirmed second factor and the token does not show a recent multi-factor
+     *         sign-in.
+     */
+    @Override
+    public ResponseEntity&lt;Void&gt; unbindCertificate(final UUID id) {
+<span class="fc" id="L113">        final var account = currentAccountResolver.resolve();</span>
+<span class="fc" id="L114">        stepUpGuard.requireRecentMultiFactor(account.id());</span>
+<span class="fc" id="L115">        unbindCertificateUseCase.execute(account.id(), account.username(), id);</span>
+<span class="fc" id="L116">        return ResponseEntity.noContent().build();</span>
+    }
+}
+// end::x509-certificate-controller[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

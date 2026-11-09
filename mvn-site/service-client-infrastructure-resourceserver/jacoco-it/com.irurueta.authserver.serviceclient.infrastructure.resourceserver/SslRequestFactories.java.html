@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SslRequestFactories.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">SslRequestFactories.java</span></div><h1>SslRequestFactories.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.ssl.SslBundles;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+/**
+ * Builds the HTTP request factory that presents the client certificate: the one of the SSL bundle named by {@code
+ * service-client.auth.ssl-bundle}. It is used for the token endpoint and for the resource server, whose tokens may be
+ * bound to that certificate.
+ */
+@Component
+@RequiredArgsConstructor
+public class SslRequestFactories {
+
+    /** Settings of the service client at the authorization server. */
+    private final ServiceClientAuthProperties properties;
+
+    /** The SSL bundles of the application, when SSL is configured at all. */
+    private final ObjectProvider&lt;SslBundles&gt; sslBundles;
+
+    /**
+     * Builds a request factory over the configured SSL bundle.
+     *
+     * @return the factory, or empty when no bundle is configured and the authentication method does not need one.
+     * @throws IllegalStateException if a mutual TLS method is configured without a bundle, or the bundle does not
+     *                               exist.
+     */
+    public Optional&lt;ClientHttpRequestFactory&gt; create() {
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if (!StringUtils.hasText(properties.sslBundle())) {</span>
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">            if (properties.method().isMutualTls()) {</span>
+<span class="nc" id="L55">                throw new IllegalStateException(&quot;service-client.auth.ssl-bundle is required for the &quot;</span>
+<span class="nc" id="L56">                        + properties.method() + &quot; authentication method&quot;);</span>
+            }
+<span class="fc" id="L58">            return Optional.empty();</span>
+        }
+<span class="nc" id="L60">        final var bundles = sslBundles.getIfAvailable();</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (bundles == null) {</span>
+<span class="nc" id="L62">            throw new IllegalStateException(&quot;No SSL bundle is configured (spring.ssl.bundle.*)&quot;);</span>
+        }
+<span class="nc" id="L64">        final var settings = HttpClientSettings.ofSslBundle(bundles.getBundle(properties.sslBundle()));</span>
+<span class="nc" id="L65">        return Optional.of(ClientHttpRequestFactoryBuilder.detect().build(settings));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

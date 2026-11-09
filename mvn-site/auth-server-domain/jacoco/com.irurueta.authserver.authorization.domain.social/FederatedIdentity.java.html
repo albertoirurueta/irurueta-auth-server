@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FederatedIdentity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.social</a> &gt; <span class="el_source">FederatedIdentity.java</span></div><h1>FederatedIdentity.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.social;
+
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireTextIfPresent;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * An identity of an external provider linked to a local account: the account is reached by presenting the provider's
+ * stable subject, never by its e-mail address, which a provider may change.
+ *
+ * @param id          identifier of the link.
+ * @param userId      identifier of the local account (the {@code users} row).
+ * @param provider    provider that holds the identity.
+ * @param subject     stable identifier the provider assigned to the user (the {@code sub} claim, or the numeric id of
+ *                    GitHub).
+ * @param email       e-mail address the provider reported when the identity was last used, or {@code null}.
+ * @param linkedAt    instant at which the identity was linked.
+ * @param lastLoginAt instant of the last sign-in with it, or {@code null} when it has not been used since it was
+ *                    linked.
+ */
+public record FederatedIdentity(
+        UUID id,
+        UUID userId,
+        IdentityProvider provider,
+        String subject,
+        String email,
+        Instant linkedAt,
+        Instant lastLoginAt) {
+
+    /**
+     * Validates the identity.
+     *
+     * @throws IllegalArgumentException if the id, the account, the provider or the link instant is missing, the
+     *                                  subject is blank, or the e-mail address is present and blank.
+     */
+<span class="fc" id="L53">    public FederatedIdentity {</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (id == null) {</span>
+<span class="fc" id="L55">            throw new IllegalArgumentException(&quot;id must not be null&quot;);</span>
+        }
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (userId == null) {</span>
+<span class="fc" id="L58">            throw new IllegalArgumentException(&quot;userId must not be null&quot;);</span>
+        }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (provider == null) {</span>
+<span class="fc" id="L61">            throw new IllegalArgumentException(&quot;provider must not be null&quot;);</span>
+        }
+<span class="fc" id="L63">        requireText(subject, &quot;subject&quot;);</span>
+<span class="fc" id="L64">        requireTextIfPresent(email, &quot;email&quot;);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (linkedAt == null) {</span>
+<span class="fc" id="L66">            throw new IllegalArgumentException(&quot;linkedAt must not be null&quot;);</span>
+        }
+<span class="fc" id="L68">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OneTimeCode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.ott</a> &gt; <span class="el_source">OneTimeCode.java</span></div><h1>OneTimeCode.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.ott;
+
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * A numeric one-time code that was issued to a user. Only the hash of the code is kept. The binding identifier is
+ * held by the browser that requested the code (in its session), so the code only works there.
+ *
+ * @param id        identifier of the stored code.
+ * @param username  user name of the account the code was issued to.
+ * @param channel   channel the code was delivered through.
+ * @param purpose   what the code is used for.
+ * @param codeHash  hash of the code, never the code itself.
+ * @param bindingId identifier binding the code to the requesting browser session.
+ * @param attempts  number of wrong submissions so far.
+ * @param expiresAt instant after which the code is no longer valid.
+ * @param createdAt instant at which the code was issued.
+ */
+public record OneTimeCode(
+        UUID id,
+        String username,
+        OttChannel channel,
+        OttPurpose purpose,
+        String codeHash,
+        String bindingId,
+        int attempts,
+        Instant expiresAt,
+        Instant createdAt) {
+
+    /**
+     * Validates the code.
+     *
+     * @throws IllegalArgumentException if the id, channel, purpose or an instant is missing, the user name, hash or
+     *                                  binding is blank, the attempts are negative or the code expires before it was
+     *                                  created.
+     */
+<span class="fc" id="L55">    public OneTimeCode {</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (id == null) {</span>
+<span class="fc" id="L57">            throw new IllegalArgumentException(&quot;id must not be null&quot;);</span>
+        }
+<span class="fc" id="L59">        requireText(username, &quot;username&quot;);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (channel == null) {</span>
+<span class="fc" id="L61">            throw new IllegalArgumentException(&quot;channel must not be null&quot;);</span>
+        }
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (purpose == null) {</span>
+<span class="fc" id="L64">            throw new IllegalArgumentException(&quot;purpose must not be null&quot;);</span>
+        }
+<span class="fc" id="L66">        requireText(codeHash, &quot;codeHash&quot;);</span>
+<span class="fc" id="L67">        requireText(bindingId, &quot;bindingId&quot;);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (attempts &lt; 0) {</span>
+<span class="fc" id="L69">            throw new IllegalArgumentException(&quot;attempts must not be negative&quot;);</span>
+        }
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (expiresAt == null) {</span>
+<span class="fc" id="L72">            throw new IllegalArgumentException(&quot;expiresAt must not be null&quot;);</span>
+        }
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (createdAt == null) {</span>
+<span class="fc" id="L75">            throw new IllegalArgumentException(&quot;createdAt must not be null&quot;);</span>
+        }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (expiresAt.isBefore(createdAt)) {</span>
+<span class="fc" id="L78">            throw new IllegalArgumentException(&quot;expiresAt must not be before createdAt&quot;);</span>
+        }
+<span class="fc" id="L80">    }</span>
+
+    /**
+     * Tells whether the code has expired.
+     *
+     * @param now current instant.
+     * @return {@code true} when the code expires at or before {@code now}.
+     */
+    public boolean isExpiredAt(final Instant now) {
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        return !expiresAt.isAfter(now);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

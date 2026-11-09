@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PollOutcome.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-boot</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.device</a> &gt; <span class="el_source">PollOutcome.java</span></div><h1>PollOutcome.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.serviceclient.device;
+
+/**
+ * What one poll of the token endpoint answered (RFC 8628 section 3.5).
+ */
+public sealed interface PollOutcome {
+
+    /**
+     * The user approved the request.
+     *
+     * @param token the issued tokens.
+     */
+<span class="fc" id="L29">    record Granted(TokenResponse token) implements PollOutcome {</span>
+    }
+
+    /**
+     * {@code authorization_pending}: the user has not decided yet; poll again after the same interval.
+     */
+<span class="fc" id="L35">    record Pending() implements PollOutcome {</span>
+    }
+
+    /**
+     * {@code slow_down}: polling too fast; the interval grows by {@link DeviceFlowCli#SLOW_DOWN_INCREMENT_SECONDS}.
+     */
+<span class="fc" id="L41">    record SlowDown() implements PollOutcome {</span>
+    }
+
+    /**
+     * Any other error ({@code access_denied}, {@code expired_token}, ...): the flow is over.
+     *
+     * @param error       the OAuth error code.
+     * @param description the optional human-readable description, or {@code null}.
+     */
+<span class="fc" id="L50">    record Failed(String error, String description) implements PollOutcome {</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

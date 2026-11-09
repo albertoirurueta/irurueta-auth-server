@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Sender-constrained tokens :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Services and devices</li>
+    <li><a href="sender-constrained-tokens.html">Sender-constrained tokens</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/sender-constrained-tokens.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Sender-constrained tokens</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A bearer token works for whoever holds it. A sender-constrained token is bound to a key the client proves it holds, so a
+stolen token alone is useless. Two bindings are implemented: DPoP, where the client signs a fresh proof JWT for every
+request and the token carries the thumbprint of the proof key (<code>cnf.jkt</code>), and certificate-bound tokens, where the client
+authenticates with mutual TLS and the token carries the thumbprint of its certificate (<code>cnf.x5t#S256</code>). The authorization
+server side is Spring Authorization Server&#8217;s; <code>service-client</code> hand-wires the client side of DPoP because Spring Security
+has none; the resource server checks both bindings.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: <code>service-client</code>, <code>auth-server</code>, <code>resource-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: a confidential client of <code>service-client</code> (see <a href="client-credentials.html" class="xref page">Client credentials</a>).</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>DPoP: nothing on the server or the client registration; <code>service-client.auth.dpop=true</code> (<code>SERVICE_CLIENT_DPOP</code>) on
+<code>service-client</code>.</p>
+</li>
+<li>
+<p>Certificate-bound: the client registered with <code>tls_client_auth</code> or <code>self_signed_tls_client_auth</code> and
+<code>certificateBoundAccessTokens: true</code>; the authorization server&#8217;s TLS connector (<code>authserver.x509.enabled=true</code>,
+<code>authserver.x509.port</code>); the resource server served over TLS with <code>server.ssl.client-auth: want</code> and a bundle.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>POST /oauth2/token</code>, <code>GET /api/documents</code>, the metadata endpoints
+<code>/.well-known/oauth-authorization-server</code> and <code>/.well-known/openid-configuration</code> (for <code>mtls_endpoint_aliases</code>).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_dpop"><a class="anchor" href="#_dpop"></a>DPoP</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>With <code>service-client.auth.dpop=true</code>, <code>OAuth2ClientConfiguration</code> declares a <code>DPoPProofs</code> bean over Nimbus'
+<code>DefaultDPoPProofFactory</code> with a P-256 key generated in memory at startup (signing algorithm <code>ES256</code>). Nothing is
+written to disk.</p>
+</li>
+<li>
+<p><code>TokenEndpointClients</code> adds a <code>DPoP</code> header to every token request: a proof for <code>POST</code> and the token URI
+(<code>DPoPProofs.proof(method, uri)</code> drops the query and fragment, as <code>htu</code> requires).</p>
+</li>
+<li>
+<p>Spring Authorization Server validates the proof and issues <code>token_type=DPoP</code> with <code>cnf.jkt</code>, the JWK SHA-256
+thumbprint of the proof key.</p>
+</li>
+<li>
+<p>For each resource call, <code>ResourceServerInterceptors</code> installs <code>DPoPClientHttpRequestInterceptor</code>, which gets the token
+from the authorized client manager and, when its type is <code>DPoP</code>, sends <code>Authorization: DPoP &lt;token&gt;</code> and a new proof
+for the request&#8217;s method and URL with <code>ath</code> (the hash of the token). A token the server issued as <code>Bearer</code> is sent as
+<code>Bearer</code>.</p>
+</li>
+<li>
+<p>The resource server&#8217;s JWT chain enables <code>dPoP(&#8230;&#8203;)</code>: it checks the proof&#8217;s signature, that its key matches <code>cnf.jkt</code>,
+<code>htm</code>, <code>htu</code>, <code>ath</code>, its age and its <code>jti</code> against a replay cache. A DPoP-bound token sent as <code>Bearer</code> or without a
+proof is answered <code>401</code>.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public ClientHttpResponse intercept(final HttpRequest request, final byte[] body,
+            final ClientHttpRequestExecution execution) throws IOException {
+        final var authorizeRequest = OAuth2AuthorizeRequest.withClientRegistrationId(registrationId)
+                .principal(principal)
+                .build();
+        final var authorizedClient = manager.authorize(authorizeRequest);
+        if (authorizedClient == null) {
+            throw new ClientAuthorizationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED,
+                    "The service client has no access token", null), registrationId);
+        }
+        final var token = authorizedClient.getAccessToken();
+        if (OAuth2AccessToken.TokenType.DPOP.equals(token.getTokenType())) {
+            request.getHeaders().set(HttpHeaders.AUTHORIZATION, DPOP_SCHEME + token.getTokenValue());
+            request.getHeaders().set(DPOP_HEADER,
+                    proofs.proof(request.getMethod().name(), request.getURI(), token.getTokenValue()));
+        } else {
+            request.getHeaders().setBearerAuth(token.getTokenValue());
+        }
+        return execution.execute(request, body);
+    }</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant S as service-client
+  participant A as auth-server
+  participant R as resource-server
+  S->>S: generate P-256 key, DPoPProofs
+  S->>S: proof htm=POST htu=token URI signed with the key
+  S->>A: POST /oauth2/token with DPoP proof header and client authentication
+  A->>A: verify proof, compute key thumbprint
+  A-->>S: 200 token_type=DPoP, access token with cnf.jkt
+  S->>S: proof htm=GET htu=documents URL ath=hash of token
+  S->>R: GET /api/documents with Authorization DPoP token and DPoP proof
+  R->>R: validate JWT, then proof signature, jkt, htm, htu, ath, jti
+  alt proof valid
+    R-->>S: 200 documents
+  else token sent as Bearer or proof missing or wrong key
+    R-->>S: 401
+  end</div></div>
+</div>
+<div class="sect2">
+<h3 id="_certificate_bound_tokens"><a class="anchor" href="#_certificate_bound_tokens"></a>Certificate-bound tokens</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client opens a TLS connection to the authorization server&#8217;s TLS port and presents its certificate (the SSL bundle
+named by <code>service-client.auth.ssl-bundle</code>, <code>SERVICE_CLIENT_SSL_BUNDLE</code>).</p>
+</li>
+<li>
+<p>It authenticates with <code>tls_client_auth</code> or <code>self_signed_tls_client_auth</code> (<code>ClientCertificateVerifier</code>, see
+<a href="client-authentication.html" class="xref page">Client authentication</a>).</p>
+</li>
+<li>
+<p>Because the client has <code>certificateBoundAccessTokens</code>, the framework writes <code>cnf.x5t#S256</code>, the base64url SHA-256
+thumbprint of the certificate, into the access token.</p>
+</li>
+<li>
+<p>The client calls the resource server over TLS with the same certificate. The validator that Spring Boot&#8217;s JWT decoder
+includes compares the thumbprint with the certificate of the connection; without it, or with another certificate,
+the answer is <code>401</code>.</p>
+</li>
+<li>
+<p>When <code>authserver.x509.port</code> is set, <code>MtlsEndpointAliases</code> adds <code>mtls_endpoint_aliases</code> to both metadata documents
+(through <code>ClientAuthProtocolChainCustomizer</code>): the token, revocation, introspection, pushed authorization request and
+device authorization endpoints as <code>https</code> URLs on that port, so a client knows where to send mutual TLS requests.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">                // DPoP (RFC 9449): "Authorization: DPoP &lt;token&gt;" plus a proof; the framework already refuses a
+                // token whose cnf holds jkt when it arrives as Bearer. A cnf.x5t#S256 token is checked against the
+                // TLS client certificate by the validator of the decoder Boot builds (no JwtDecoder bean here).
+                .dPoP(Customizer.withDefaults())</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant S as service-client
+  participant A as auth-server TLS port
+  participant R as resource-server TLS
+  S->>A: TLS handshake with client certificate
+  S->>A: POST /oauth2/token grant_type=client_credentials client_id
+  A->>A: ClientCertificateVerifier checks chain or pinned key
+  A-->>S: 200 access token with cnf x5t S256 thumbprint
+  S->>R: TLS handshake with the same certificate
+  S->>R: GET /api/documents with Authorization Bearer token
+  R->>R: compare thumbprint with connection certificate
+  alt same certificate
+    R-->>S: 200 documents
+  else no certificate or another one
+    R-->>S: 401
+  end</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  T[Token arrives at resource server] --> C{"cnf in token?"}
+  C -- No --> B["Plain bearer token: normal JWT checks"]
+  C -- "cnf.jkt" --> D{"Authorization scheme DPoP with valid proof?"}
+  D -- No --> X[401]
+  D -- Yes --> OK[Accepted, then scope checks]
+  C -- "cnf.x5t S256" --> M{"TLS client certificate matches thumbprint?"}
+  M -- No --> X
+  M -- Yes --> OK
+  B --> OK</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>DPoP: the token response has <code>token_type=DPoP</code>; the access token has <code>cnf: {"jkt": "&lt;JWK SHA-256 thumbprint&gt;"}</code>.</p>
+</li>
+<li>
+<p>Certificate-bound: the access token has <code>cnf: {"x5t#S256": "&lt;certificate SHA-256 thumbprint&gt;"}</code>; <code>token_type</code> stays
+<code>Bearer</code>.</p>
+</li>
+<li>
+<p>All other claims are those of the grant (for client credentials: <code>sub</code> = client id, <code>aud</code>, <code>scope</code>).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code>: <code>ClientAuthenticationIT</code> (<code>token_whenADpopProofIsSent_issuesADpopTokenBoundToTheProofKey</code>,
+<code>token_whenCertificateBoundAccessTokensAreEnabled_carriesTheCertificateThumbprint</code>).</p>
+</li>
+<li>
+<p><code>resource-server/boot</code>: <code>BoundTokenIT</code> accepts a certificate-bound token only with its certificate, and a DPoP-bound token
+only with a valid proof from the bound key (refused as <code>Bearer</code>, without a proof or with a proof of another key).</p>
+</li>
+<li>
+<p><code>service-client/infrastructure/resourceserver</code>: <code>ResourceServerAdapterIT</code>
+(<code>listDocuments_whenDPoPIsOn_sendsProofsAndTheDPoPScheme</code>); unit tests <code>DPoPProofsTest</code> and
+<code>DPoPClientHttpRequestInterceptorTest</code>.</p>
+</li>
+<li>
+<p><code>e2e-tests</code>: <code>ClientCredentialsEndToEndIT</code> (<code>clientCredentials_whenTheToolUsesDpop_theTokenIsBoundToItsKey</code> and
+<code>clientCredentials_whenTheClientPresentsACertificateOfATrustedAuthority_theTokenIsBoundToTheCertificate</code>).</p>
+</li>
+<li>
+<p><code>auth-server/api/web</code>: unit test <code>MtlsEndpointAliasesTest</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9449#section-4">RFC 9449 §4, DPoP proof JWTs</a>,
+<a href="https://www.rfc-editor.org/rfc/rfc9449#section-5">§5, DPoP access token request</a>,
+<a href="https://www.rfc-editor.org/rfc/rfc9449#section-6">§6, public key confirmation</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc9449#section-7">§7, protected resource access</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8705#section-3">RFC 8705 §3, Mutual-TLS client certificate-bound access tokens</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc8705#section-5">§5, metadata for mutual-TLS endpoint aliases</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7800">RFC 7800, Proof-of-Possession key semantics for JWTs (<code>cnf</code>)</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9700#section-4.10">RFC 9700 §4.10, Misuse of stolen access tokens</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/sender-constrained-tokens-dpop-and-mtls.html">Sender-Constrained Tokens: DPoP &amp; mTLS</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/jwt-and-jose.html">JWT &amp; JOSE</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../client-credentials.html" class="xref page">Client credentials and service-to-service calls</a> (feature page)</p>
+</li>
+<li>
+<p><a href="../resource-server.html" class="xref page">Resource server</a></p>
+</li>
+<li>
+<p><a href="client-authentication.html" class="xref page">Client authentication</a></p>
+</li>
+<li>
+<p><a href="resource-server-token-validation.html" class="xref page">Resource server token validation</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

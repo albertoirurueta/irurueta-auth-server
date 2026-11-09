@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResolveCertificateLoginUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.x509</a> &gt; <span class="el_source">ResolveCertificateLoginUseCase.java</span></div><h1>ResolveCertificateLoginUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.application.x509;
+
+import com.irurueta.authserver.authorization.domain.password.UserAccount;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
+import com.irurueta.authserver.authorization.domain.x509.CertificateBindingRepository;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Use case that resolves a client certificate, presented over TLS or by a trusted proxy, to the account it is bound
+ * to. The certificate is recognised by its SHA-256 fingerprint only. Whether the certificate is valid (signed by a
+ * trusted authority, not expired) is decided before, by the TLS layer, never here.
+ */
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class ResolveCertificateLoginUseCase {
+
+    /** Shape of a fingerprint: 64 lower case hexadecimal digits. */
+<span class="fc" id="L38">    private static final Pattern FINGERPRINT = Pattern.compile(&quot;[0-9a-f]{64}&quot;);</span>
+
+    /** Port that stores the bindings. */
+    private final CertificateBindingRepository certificateBindingRepository;
+
+    /** Port that stores the accounts. */
+    private final UserAccountRepository userAccountRepository;
+
+    /**
+     * Finds the account a certificate is bound to.
+     *
+     * @param fingerprintSha256 SHA-256 fingerprint of the certificate, as lower case hexadecimal digits.
+     * @return the account, or an empty optional when the fingerprint is malformed or not bound to any account.
+     */
+    public Optional&lt;UserAccount&gt; execute(final String fingerprintSha256) {
+<span class="fc bfc" id="L53" title="All 4 branches covered.">        if (fingerprintSha256 == null || !FINGERPRINT.matcher(fingerprintSha256).matches()) {</span>
+<span class="fc" id="L54">            return Optional.empty();</span>
+        }
+<span class="fc" id="L56">        return certificateBindingRepository.findByFingerprintSha256(fingerprintSha256)</span>
+<span class="fc" id="L57">                .flatMap(binding -&gt; userAccountRepository.findById(binding.userId()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

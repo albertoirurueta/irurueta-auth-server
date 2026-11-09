@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>X509UserDetailsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">X509UserDetailsService.java</span></div><h1>X509UserDetailsService.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import com.irurueta.authserver.authorization.application.x509.ResolveCertificateLoginUseCase;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+
+// tag::x509-user-details[]
+/**
+ * Loads the account a client certificate is bound to. The principal of the pre-authenticated token is the fingerprint
+ * the {@link CertificatePrincipalExtractor} took, which {@link ResolveCertificateLoginUseCase} maps to the account;
+ * the account is then loaded through a {@link UserDetailsService} that refuses a disabled, locked or expired one, as
+ * the other sign-in methods do.
+ */
+@RequiredArgsConstructor
+public class X509UserDetailsService implements AuthenticationUserDetailsService&lt;PreAuthenticatedAuthenticationToken&gt; {
+
+    /** Finds the account a certificate is bound to. */
+    private final ResolveCertificateLoginUseCase resolveCertificateLoginUseCase;
+
+    /** Loads the account, refusing one that cannot sign in. */
+    private final UserDetailsService userDetailsService;
+
+    /**
+     * Loads the account of a certificate.
+     *
+     * @param token the token whose principal is the fingerprint of the certificate.
+     * @return the account.
+     * @throws UsernameNotFoundException if the certificate is not bound to any account.
+     * @throws org.springframework.security.authentication.AccountStatusException if the account cannot sign in.
+     */
+    @Override
+    public UserDetails loadUserDetails(final PreAuthenticatedAuthenticationToken token)
+            throws UsernameNotFoundException {
+<span class="fc" id="L53">        final var account = resolveCertificateLoginUseCase.execute(String.valueOf(token.getPrincipal()))</span>
+<span class="fc" id="L54">                .orElseThrow(() -&gt; new UsernameNotFoundException(&quot;The certificate is not bound to an account&quot;));</span>
+<span class="fc" id="L55">        return userDetailsService.loadUserByUsername(account.username());</span>
+    }
+}
+// end::x509-user-details[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

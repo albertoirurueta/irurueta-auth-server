@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>X509LoginFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">X509LoginFilter.java</span></div><h1>X509LoginFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+
+/**
+ * The X.509 filter of the sign-in path. Spring's filter always continues the chain, but the success handler of this
+ * server resumes the interrupted request with a redirect and a failed sign-in is redirected to the login page, so the
+ * rest of the chain must not run after a committed response. A request to the sign-in path that no handler answered
+ * carried no usable certificate (none was presented, or the header came from a proxy nobody trusts): it goes back to
+ * the login page too, instead of reaching a path nothing serves.
+ */
+<span class="fc" id="L35">public class X509LoginFilter extends X509AuthenticationFilter {</span>
+
+    /** Matcher of the sign-in requests, the same the parent filter authenticates. */
+<span class="pc" id="L38">    private RequestMatcher signInRequests = request -&gt; false;</span>
+
+    /**
+     * Sets the requests that sign in with a certificate.
+     *
+     * @param requiresAuthenticationRequestMatcher matcher of the sign-in requests.
+     */
+    @Override
+    public void setRequiresAuthenticationRequestMatcher(final RequestMatcher requiresAuthenticationRequestMatcher) {
+<span class="fc" id="L47">        super.setRequiresAuthenticationRequestMatcher(requiresAuthenticationRequestMatcher);</span>
+<span class="fc" id="L48">        signInRequests = requiresAuthenticationRequestMatcher;</span>
+<span class="fc" id="L49">    }</span>
+
+    /**
+     * Authenticates the request, when it is a sign-in with a certificate, and continues the chain unless the response
+     * was answered.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @param chain    the rest of the chain.
+     * @throws IOException      if a handler or the chain fails.
+     * @throws ServletException if a handler or the chain fails.
+     */
+    @Override
+    public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain)
+            throws IOException, ServletException {
+<span class="fc" id="L64">        super.doFilter(request, response, (ignoredRequest, ignoredResponse) -&gt; { });</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (response.isCommitted()) {</span>
+<span class="fc" id="L66">            return;</span>
+        }
+<span class="fc" id="L68">        final var httpRequest = (HttpServletRequest) request;</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (signInRequests.matches(httpRequest)) {</span>
+<span class="fc" id="L70">            ((HttpServletResponse) response).sendRedirect(httpRequest.getContextPath()</span>
+                    + X509ChainCustomizer.FAILURE_URL);
+<span class="fc" id="L72">            return;</span>
+        }
+<span class="fc" id="L74">        chain.doFilter(request, response);</span>
+<span class="fc" id="L75">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

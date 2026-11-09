@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LinkIdentityUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.social</a> &gt; <span class="el_source">LinkIdentityUseCase.java</span></div><h1>LinkIdentityUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.application.social;
+
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentity;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityAlreadyLinkedException;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import java.time.Clock;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Use case that links an identity of an external provider to the account of a signed-in user. Unlike the sign-in, it
+ * does not depend on the e-mail address: the user proved to own the account by being signed in, and the provider by
+ * having just authenticated. The identity is locked first, as the sign-in does, so a concurrent sign-in or link of the
+ * same identity is serialized with it.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class LinkIdentityUseCase {
+
+    /** Port that stores the links. */
+    private final FederatedIdentityRepository federatedIdentityRepository;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Links an identity to an account. Linking an identity the account already has changes nothing.
+     *
+     * @param userId   identifier of the signed-in user.
+     * @param username name of the signed-in account, for the audit log.
+     * @param provider provider that authenticated the user.
+     * @param subject  stable identifier the provider assigned to the user.
+     * @param email    e-mail address the provider reported, or {@code null}.
+     * @return the link.
+     * @throws FederatedIdentityAlreadyLinkedException if the identity belongs to another account.
+     */
+    public FederatedIdentity execute(final UUID userId, final String username, final IdentityProvider provider,
+                                     final String subject, final String email) {
+<span class="fc" id="L63">        federatedIdentityRepository.lockSubject(provider, subject);</span>
+<span class="fc" id="L64">        final var existing = federatedIdentityRepository.findByProviderAndSubject(provider, subject);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (existing.isPresent()) {</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">            if (existing.get().userId().equals(userId)) {</span>
+<span class="fc" id="L67">                return existing.get();</span>
+            }
+<span class="fc" id="L69">            throw new FederatedIdentityAlreadyLinkedException(&quot;The identity is linked to another account&quot;);</span>
+        }
+<span class="fc" id="L71">        final var now = clock.instant();</span>
+<span class="fc" id="L72">        final var stored = federatedIdentityRepository.save(</span>
+<span class="fc" id="L73">                new FederatedIdentity(UUID.randomUUID(), userId, provider, subject, email, now, null));</span>
+<span class="fc" id="L74">        recordSecurityEventUseCase.execute(SecurityEventType.IDENTITY_LINKED, userId, username, provider.id());</span>
+<span class="fc" id="L75">        return stored;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

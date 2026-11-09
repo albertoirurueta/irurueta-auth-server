@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Implicit flow (legacy demo) and PAR :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/legacy-implicit.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Implicit flow (legacy demo) and PAR</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The implicit grant (<code>response_type=token</code>) is removed from OAuth 2.1 because the access token travels in the URL
+fragment and the browser history. The default server therefore answers it with <code>unsupported_response_type</code>, for every
+client.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_opt_in_legacy_implicit_profile"><a class="anchor" href="#_the_opt_in_legacy_implicit_profile"></a>The opt-in legacy-implicit profile</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>With the <code>legacy-implicit</code> Spring profile (a demo that must never be enabled in production) one client,
+<code>legacy-implicit-spa</code>, may use it. The client is seeded from these settings:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authserver:
+  legacy-implicit:
+    client-id: legacy-implicit-spa
+    redirect-uri: ${AUTHSERVER_LEGACY_IMPLICIT_REDIRECT_URI:http://localhost:9000/legacy-implicit/}
+    scopes: documents.read
+    audience: resource-server
+    # lifetime of the access token it issues, at most PT15M
+    access-token-ttl: PT5M</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds the legacy implicit flow to the authorization endpoint: its converter first, its provider first and its
+ * response handler in place of the framework's (which it delegates to for an authorization code).
+ */
+@RequiredArgsConstructor
+public class LegacyImplicitProtocolChainCustomizer implements ProtocolChainCustomizer {
+
+    /** Order of the customizer, after the client authentication one ({@code 3}). */
+    public static final int ORDER = 4;
+
+    /** Reads a request with {@code response_type=token}. */
+    private final AuthenticationConverter converter;
+
+    /** Grants the request. */
+    private final AuthenticationProvider provider;
+
+    /** Redirects with the token in the fragment. */
+    private final AuthenticationSuccessHandler responseHandler;
+
+    /**
+     * Customizes the authorization endpoint.
+     *
+     * @param server configurer of the authorization server.
+     */
+    @Override
+    public void customize(final OAuth2AuthorizationServerConfigurer server) {
+        server.authorizationEndpoint(endpoint -&gt; endpoint
+                .authorizationRequestConverters(converters -&gt; converters.addFirst(converter))
+                .authenticationProviders(providers -&gt; providers.addFirst(provider))
+                .authorizationResponseHandler(responseHandler));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Reads an authorization request with {@code response_type=token}. The framework refuses that response type; this
+ * converter, installed first, takes it over for the one client of the legacy flow and refuses it, with the same
+ * {@code unsupported_response_type} and no redirect, for any other client.
+ */
+public class LegacyImplicitAuthorizationRequestConverter implements AuthenticationConverter {
+
+    /** Response type of the implicit flow. */
+    public static final String RESPONSE_TYPE_TOKEN = "token";
+
+    /** Identifier of the only client that may use the flow. */
+    private final String clientId;
+
+    /** Matches a {@code GET} of the authorization endpoint. */
+    private final RequestMatcher authorizationRequest;
+
+    /**
+     * Creates the converter.
+     *
+     * @param clientId              identifier of the only client that may use the flow.
+     * @param authorizationEndpoint path of the authorization endpoint.
+     */
+    public LegacyImplicitAuthorizationRequestConverter(final String clientId, final String authorizationEndpoint) {
+        this.clientId = clientId;
+        authorizationRequest = PathPatternRequestMatcher.withDefaults()
+                .matcher(HttpMethod.GET, authorizationEndpoint);
+    }
+
+    /**
+     * Reads the request.
+     *
+     * @param request the request.
+     * @return the request of the legacy flow, or {@code null} when the request is not a {@code GET} of the
+     *         authorization endpoint with {@code response_type=token}.
+     * @throws OAuth2AuthorizationCodeRequestAuthenticationException {@code unsupported_response_type} (no redirect)
+     *                                                               when the client is not the one of the legacy
+     *                                                               flow, {@code invalid_request} (no redirect) when
+     *                                                               a parameter is repeated.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+        if (!authorizationRequest.matches(request)
+                || !RESPONSE_TYPE_TOKEN.equals(request.getParameter(OAuth2ParameterNames.RESPONSE_TYPE))) {
+            return null;
+        }
+        final var requestedClient = request.getParameter(OAuth2ParameterNames.CLIENT_ID);
+        if (!clientId.equals(requestedClient)) {
+            throw refused(OAuth2ErrorCodes.UNSUPPORTED_RESPONSE_TYPE);
+        }
+        if (isRepeated(request, OAuth2ParameterNames.CLIENT_ID) || isRepeated(request, OAuth2ParameterNames.SCOPE)
+                || isRepeated(request, OAuth2ParameterNames.REDIRECT_URI)
+                || isRepeated(request, OAuth2ParameterNames.STATE)) {
+            throw refused(OAuth2ErrorCodes.INVALID_REQUEST);
+        }
+        final var scope = request.getParameter(OAuth2ParameterNames.SCOPE);
+        final var scopes = StringUtils.hasText(scope)
+                ? new LinkedHashSet&lt;&gt;(Arrays.asList(StringUtils.delimitedListToStringArray(scope.trim(), " ")))
+                : new LinkedHashSet&lt;String&gt;();
+        scopes.remove("");
+        return new LegacyImplicitAuthorizationRequestToken(requestedClient,
+                request.getParameter(OAuth2ParameterNames.REDIRECT_URI), scopes,
+                request.getParameter(OAuth2ParameterNames.STATE), currentUser());
+    }
+
+    /**
+     * Tells whether a parameter is sent more than once.
+     *
+     * @param request the request.
+     * @param name    name of the parameter.
+     * @return {@code true} when it has more than one value.
+     */
+    private static boolean isRepeated(final HttpServletRequest request, final String name) {
+        final var values = request.getParameterValues(name);
+        return values != null &amp;&amp; values.length &gt; 1;
+    }
+
+    /**
+     * Reads the user of the request from the security context, an anonymous one when there is none.
+     *
+     * @return the user.
+     */
+    private static Authentication currentUser() {
+        final var current = SecurityContextHolder.getContext().getAuthentication();
+        return current != null ? current : new AnonymousAuthenticationToken("anonymous", "anonymous",
+                AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+    }
+
+    /**
+     * Builds the refusal, which carries no authentication and so is answered with {@code 400}.
+     *
+     * @param code error code.
+     * @return the exception.
+     */
+    private static OAuth2AuthorizationCodeRequestAuthenticationException refused(final String code) {
+        return new OAuth2AuthorizationCodeRequestAuthenticationException(new OAuth2Error(code), null);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Grants the legacy implicit request: after checking the client, its redirect URI, the user, the multi-factor policy,
+ * the {@code state} and the scopes, it issues an access token (never a refresh token) through the token generator,
+ * stores the authorization (so the token can be introspected and revoked) and returns it for the response handler.
+ */
+@RequiredArgsConstructor
+public class LegacyImplicitAuthenticationProvider implements AuthenticationProvider {
+
+    /** Grant type recorded for the tokens of the flow; the framework has no constant for it. */
+    public static final AuthorizationGrantType IMPLICIT = new AuthorizationGrantType("implicit");
+
+    /** Finds the client. */
+    private final RegisteredClientRepository registeredClients;
+
+    /** Stores the authorization behind the token. */
+    private final OAuth2AuthorizationService authorizationService;
+
+    /** Generates the access token, with the claims of the other flows. */
+    private final OAuth2TokenGenerator&lt;? extends OAuth2Token&gt; tokenGenerator;
+
+    /** Applies the multi-factor policy. */
+    private final MfaAuthorizationManager authorizationManager;
+
+    /** Longest lifetime of the tokens of the flow. */
+    private final Duration maxAccessTokenTtl;
+
+    /**
+     * Grants or refuses the request.
+     *
+     * @param authentication the request, a {@link LegacyImplicitAuthorizationRequestToken}.
+     * @return the access token, or the error that must be sent in the fragment of the redirect URI.
+     * @throws AuthenticationException {@code unsupported_response_type} or {@code unauthorized_client} when the
+     *                                 client is unknown or may not use the flow, {@code invalid_request} when the
+     *                                 redirect URI is missing or not registered or the user is not signed in (none
+     *                                 of them redirects), {@link SecondFactorRequiredException} when the user owes a
+     *                                 second factor, or {@code server_error} when no token can be generated.
+     */
+    @Override
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
+        final var request = (LegacyImplicitAuthorizationRequestToken) authentication;
+        final var client = registeredClients.findByClientId(request.getClientId());
+        if (client == null) {
+            throw refused(OAuth2ErrorCodes.UNSUPPORTED_RESPONSE_TYPE);
+        }
+        if (!client.getAuthorizationGrantTypes().contains(IMPLICIT)) {
+            throw refused(OAuth2ErrorCodes.UNAUTHORIZED_CLIENT);
+        }
+        final var redirectUri = request.getRedirectUri();
+        if (redirectUri == null || !client.getRedirectUris().contains(redirectUri)) {
+            throw refused(OAuth2ErrorCodes.INVALID_REQUEST);
+        }
+        final var user = (Authentication) request.getPrincipal();
+        if (!MfaAuthorizationManager.isUser(user)) {
+            throw refused(OAuth2ErrorCodes.INVALID_REQUEST);
+        }
+        if (!authorizationManager.evaluate(user, authorizationManager.clientRequiresMfa(client.getClientId()))
+                .isGranted()) {
+            throw new SecondFactorRequiredException();
+        }
+        final var state = request.getState();
+        if (state == null || state.isBlank()) {
+            return new LegacyImplicitErrorToken(OAuth2ErrorCodes.INVALID_REQUEST, "state is required", redirectUri,
+                    null);
+        }
+        final Set&lt;String&gt; scopes = request.getScopes().isEmpty()
+                ? new LinkedHashSet&lt;&gt;(client.getScopes()) : new LinkedHashSet&lt;&gt;(request.getScopes());
+        if (!client.getScopes().containsAll(scopes)) {
+            return new LegacyImplicitErrorToken(OAuth2ErrorCodes.INVALID_SCOPE, null, redirectUri, state);
+        }
+        return issue(request, client, user, scopes);
+    }
+
+    /**
+     * Tells which requests this provider handles.
+     *
+     * @param authentication the type of the request.
+     * @return {@code true} for a request of the legacy flow.
+     */
+    @Override
+    public boolean supports(final Class&lt;?&gt; authentication) {
+        return LegacyImplicitAuthorizationRequestToken.class.isAssignableFrom(authentication);
+    }
+
+    /**
+     * Issues and stores the access token.
+     *
+     * @param request the request.
+     * @param client  the client.
+     * @param user    the signed-in user.
+     * @param scopes  the scopes granted.
+     * @return the result.
+     */
+    private LegacyImplicitAccessTokenToken issue(final LegacyImplicitAuthorizationRequestToken request,
+            final RegisteredClient client, final Authentication user, final Set&lt;String&gt; scopes) {
+        final var cappedClient = withCappedLifetime(client);
+        final var context = DefaultOAuth2TokenContext.builder()
+                .registeredClient(cappedClient)
+                .principal(user)
+                .authorizationServerContext(AuthorizationServerContextHolder.getContext())
+                .authorizedScopes(scopes)
+                .tokenType(OAuth2TokenType.ACCESS_TOKEN)
+                .authorizationGrantType(IMPLICIT)
+                .authorizationGrant(request)
+                .build();
+        final OAuth2Token generated = tokenGenerator.generate(context);
+        if (generated == null) {
+            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR,
+                    "The token generator failed to generate the access token.", null));
+        }
+        final var accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, generated.getTokenValue(),
+                generated.getIssuedAt(), generated.getExpiresAt(), scopes);
+        final var claims = generated instanceof ClaimAccessor accessor ? accessor.getClaims() : null;
+        final var format = client.getTokenSettings().getAccessTokenFormat().getValue();
+        final var authorization = OAuth2Authorization.withRegisteredClient(client)
+                .principalName(user.getName())
+                .authorizationGrantType(IMPLICIT)
+                .authorizedScopes(scopes)
+                .attribute(Principal.class.getName(), user)
+                .token(accessToken, metadata -&gt; {
+                    metadata.put(OAuth2Authorization.Token.CLAIMS_METADATA_NAME, claims);
+                    metadata.put(OAuth2Authorization.Token.INVALIDATED_METADATA_NAME, false);
+                    metadata.put(OAuth2TokenFormat.class.getName(), format);
+                })
+                .build();
+        authorizationService.save(authorization);
+        return new LegacyImplicitAccessTokenToken(accessToken, scopes, request.getRedirectUri(), request.getState());
+    }
+
+    /**
+     * Copies the client with the lifetime of its access tokens limited to the maximum of the flow.
+     *
+     * @param client the client.
+     * @return the client with the lifetime {@code min(client, maximum)}.
+     */
+    private RegisteredClient withCappedLifetime(final RegisteredClient client) {
+        final var settings = client.getTokenSettings();
+        if (settings.getAccessTokenTimeToLive().compareTo(maxAccessTokenTtl) &lt;= 0) {
+            return client;
+        }
+        return RegisteredClient.from(client)
+                .tokenSettings(TokenSettings.withSettings(settings.getSettings())
+                        .accessTokenTimeToLive(maxAccessTokenTtl).build())
+                .build();
+    }
+
+    /**
+     * Builds a refusal that is answered with {@code 400}, never redirected, because the redirect URI is not trusted
+     * yet or the user cannot be sent anywhere.
+     *
+     * @param code error code.
+     * @return the exception.
+     */
+    private static OAuth2AuthorizationCodeRequestAuthenticationException refused(final String code) {
+        return new OAuth2AuthorizationCodeRequestAuthenticationException(new OAuth2Error(code), null);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The provider needs an exact registered redirect URI and a <code>state</code>, applies the multi-factor policy, issues a short-lived
+token restricted to the configured audience and to the requested scopes the client is allowed (the default
+configuration gives it one), and never a refresh token. The client has no consent step and no PKCE (a
+registration whose only grant type is <code>implicit</code> is exempt from the public-client PKCE rule).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Answers the authorization endpoint: for the two results of the legacy implicit flow it redirects with {@code 302} to
+ * the registered redirect URI and carries the token, or the error, in its fragment (so it never reaches a server log
+ * as a query would); any other result is the framework's authorization code response and goes to the delegate. The
+ * response is never cached and the browser sends no referrer, so the fragment does not leak through the next request.
+ */
+@RequiredArgsConstructor
+public class LegacyImplicitResponseHandler implements AuthenticationSuccessHandler {
+
+    /** Value of {@code Cache-Control} of the response. */
+    static final String NO_STORE = "no-store";
+
+    /** Value of {@code Referrer-Policy} of the response. */
+    static final String NO_REFERRER = "no-referrer";
+
+    /** Name of the {@code Referrer-Policy} header. */
+    private static final String REFERRER_POLICY = "Referrer-Policy";
+
+    /** Token type reported to the client. */
+    private static final String BEARER = "Bearer";
+
+    /** Answers the results that are not the legacy flow's. */
+    private final AuthenticationSuccessHandler delegate;
+
+    /**
+     * Answers a result.
+     *
+     * @param request        the request.
+     * @param response       the response.
+     * @param authentication the result of the authorization request.
+     * @throws IOException      if the response cannot be written.
+     * @throws ServletException if the delegate fails.
+     */
+    @Override
+    public void onAuthenticationSuccess(final HttpServletRequest request, final HttpServletResponse response,
+            final Authentication authentication) throws IOException, ServletException {
+        if (authentication instanceof LegacyImplicitAccessTokenToken granted) {
+            redirect(response, granted.getRedirectUri(), grantedFragment(granted));
+        } else if (authentication instanceof LegacyImplicitErrorToken refused) {
+            redirect(response, refused.getRedirectUri(), errorFragment(refused));
+        } else {
+            delegate.onAuthenticationSuccess(request, response, authentication);
+        }
+    }
+
+    /**
+     * Builds the fragment of a granted request.
+     *
+     * @param granted the result.
+     * @return the encoded fragment.
+     */
+    private static String grantedFragment(final LegacyImplicitAccessTokenToken granted) {
+        final var token = granted.getAccessToken();
+        final var parameters = new ArrayList&lt;String&gt;();
+        parameters.add(parameter(OAuth2ParameterNames.ACCESS_TOKEN, token.getTokenValue()));
+        parameters.add(parameter(OAuth2ParameterNames.TOKEN_TYPE, BEARER));
+        parameters.add(parameter(OAuth2ParameterNames.EXPIRES_IN, Long.toString(expiresIn(token))));
+        parameters.add(parameter(OAuth2ParameterNames.SCOPE, String.join(" ", granted.getScopes())));
+        addState(parameters, granted.getState());
+        return String.join("&amp;", parameters);
+    }
+
+    /**
+     * Builds the fragment of a refusal.
+     *
+     * @param refused the result.
+     * @return the encoded fragment.
+     */
+    private static String errorFragment(final LegacyImplicitErrorToken refused) {
+        final var parameters = new ArrayList&lt;String&gt;();
+        parameters.add(parameter(OAuth2ParameterNames.ERROR, refused.getError()));
+        if (StringUtils.hasText(refused.getDescription())) {
+            parameters.add(parameter(OAuth2ParameterNames.ERROR_DESCRIPTION, refused.getDescription()));
+        }
+        addState(parameters, refused.getState());
+        return String.join("&amp;", parameters);
+    }
+
+    /**
+     * Adds the state, when the request had one.
+     *
+     * @param parameters the encoded parameters.
+     * @param state      the state, may be {@code null}.
+     */
+    private static void addState(final ArrayList&lt;String&gt; parameters, final String state) {
+        if (StringUtils.hasText(state)) {
+            parameters.add(parameter(OAuth2ParameterNames.STATE, state));
+        }
+    }
+
+    /**
+     * Encodes one parameter.
+     *
+     * @param name  name of the parameter.
+     * @param value value of the parameter.
+     * @return {@code name=value}, with the value encoded.
+     */
+    private static String parameter(final String name, final String value) {
+        return name + "=" + UriUtils.encodeQueryParam(value, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Computes the lifetime of a token in seconds.
+     *
+     * @param token the token.
+     * @return the seconds between its issue and its expiry.
+     */
+    private static long expiresIn(final OAuth2AccessToken token) {
+        return Duration.between(token.getIssuedAt(), token.getExpiresAt()).getSeconds();
+    }
+
+    /**
+     * Sends the redirect, with the headers that keep the fragment private.
+     *
+     * @param response    the response.
+     * @param redirectUri the registered redirect URI.
+     * @param fragment    the encoded fragment.
+     * @throws IOException if the response cannot be written.
+     */
+    private static void redirect(final HttpServletResponse response, final String redirectUri, final String fragment)
+            throws IOException {
+        response.setHeader(HttpHeaders.CACHE_CONTROL, NO_STORE);
+        response.setHeader(REFERRER_POLICY, NO_REFERRER);
+        response.sendRedirect(redirectUri + "#" + fragment);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The response is a <code>302</code> to <code>redirect_uri#access_token=&#8230;&#8203;&amp;token_type=Bearer&amp;expires_in=&#8230;&#8203;&amp;state=&#8230;&#8203;</code> with
+<code>Cache-Control: no-store</code> and <code>Referrer-Policy: no-referrer</code>. An error after the client and redirect URI are validated
+is returned as <code>#error=&#8230;&#8203;&amp;state=&#8230;&#8203;</code>; before that the request is rejected without a redirect. Every other response (the
+authorization code) is delegated to the framework&#8217;s handler unchanged.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_demo_page"><a class="anchor" href="#_demo_page"></a>Demo page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>/legacy-implicit/</code> is served only under the profile. It builds the request with a random <code>state</code>, reads the fragment,
+checks the <code>state</code>, clears the fragment with <code>history.replaceState</code> and shows the token&#8217;s claims.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;meta name="referrer" content="no-referrer"&gt;
+  &lt;title&gt;Legacy implicit flow demo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1&gt;Legacy implicit flow demo&lt;/h1&gt;
+  &lt;p&gt;&lt;strong&gt;Demo only, never enable it in production.&lt;/strong&gt; The implicit grant was removed from OAuth 2.1: the
+    access token travels in the URL fragment and can leak through the browser history, extensions or scripts. Use the
+    authorization code flow with PKCE instead.&lt;/p&gt;
+  &lt;p&gt;&lt;button id="sign-in" type="button" data-client-id="legacy-implicit-spa" data-scope="documents.read"&gt;Sign in
+    with the implicit flow&lt;/button&gt;&lt;/p&gt;
+  &lt;p id="status" role="status"&gt;&lt;/p&gt;
+  &lt;pre id="claims" hidden&gt;&lt;/pre&gt;
+&lt;/main&gt;
+&lt;script src="legacy-implicit.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_pushed_authorization_requests_par"><a class="anchor" href="#_pushed_authorization_requests_par"></a>Pushed authorization requests (PAR)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>authserver.par.enabled</code> (default <code>false</code>) enables <code>/oauth2/par</code> (RFC 9126). It is a property, not a profile.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  par:
+    # Pushed authorization requests (RFC 9126): the endpoint is off unless explicitly enabled.
+    enabled: false</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the customizer that enables the pushed authorization request endpoint.
+     *
+     * @return the customizer.
+     */
+    @Bean
+    @Order(ORDER)
+    public ProtocolChainCustomizer parProtocolChainCustomizer() {
+        return server -&gt; server.pushedAuthorizationRequestEndpoint(Customizer.withDefaults());
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

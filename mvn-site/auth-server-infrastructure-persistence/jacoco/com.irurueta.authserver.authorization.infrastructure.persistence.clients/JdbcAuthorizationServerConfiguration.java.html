@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcAuthorizationServerConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.clients</a> &gt; <span class="el_source">JdbcAuthorizationServerConfiguration.java</span></div><h1>JdbcAuthorizationServerConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
+
+import com.irurueta.authserver.authorization.infrastructure.persistence.tokens.ReuseDetectingAuthorizationService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+
+/**
+ * Registers the JDBC implementations of the Spring Authorization Server persistence services.
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L35">public class JdbcAuthorizationServerConfiguration {</span>
+
+    // tag::jdbc-services[]
+    /**
+     * Creates the repository of registered clients.
+     *
+     * @param jdbcTemplate JDBC template of the application datasource.
+     * @return the registered client repository.
+     */
+    @Bean
+    public RegisteredClientRepository registeredClientRepository(final JdbcTemplate jdbcTemplate) {
+<span class="fc" id="L46">        return new JdbcRegisteredClientRepository(jdbcTemplate);</span>
+    }
+
+    /**
+     * Creates the service that stores OAuth 2 authorizations, decorated to detect the reuse of rotated refresh
+     * tokens.
+     *
+     * @param jdbcTemplate             JDBC template of the application datasource.
+     * @param registeredClientRepository repository used to resolve the client of each authorization.
+     * @param jsonMapperFactory        creates the mapper that serializes the stored attributes and claims.
+     * @return the authorization service.
+     */
+    @Bean
+    public OAuth2AuthorizationService authorizationService(
+            final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository,
+            final AuthorizationJsonMapperFactory jsonMapperFactory) {
+<span class="fc" id="L62">        final var jsonMapper = jsonMapperFactory.create();</span>
+<span class="fc" id="L63">        final var service = new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository);</span>
+<span class="fc" id="L64">        service.setAuthorizationRowMapper(</span>
+                new JdbcOAuth2AuthorizationService.JsonMapperOAuth2AuthorizationRowMapper(
+                        registeredClientRepository, jsonMapper));
+<span class="fc" id="L67">        service.setAuthorizationParametersMapper(</span>
+                new JdbcOAuth2AuthorizationService.JsonMapperOAuth2AuthorizationParametersMapper(jsonMapper));
+<span class="fc" id="L69">        return new ReuseDetectingAuthorizationService(service, JdbcClient.create(jdbcTemplate));</span>
+    }
+
+    /**
+     * Creates the service that stores the consents granted by users.
+     *
+     * @param jdbcTemplate             JDBC template of the application datasource.
+     * @param registeredClientRepository repository used to resolve the client of each consent.
+     * @return the authorization consent service.
+     */
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService(
+            final JdbcTemplate jdbcTemplate, final RegisteredClientRepository registeredClientRepository) {
+<span class="fc" id="L82">        return new JdbcOAuth2AuthorizationConsentService(jdbcTemplate, registeredClientRepository);</span>
+    }
+    // end::jdbc-services[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

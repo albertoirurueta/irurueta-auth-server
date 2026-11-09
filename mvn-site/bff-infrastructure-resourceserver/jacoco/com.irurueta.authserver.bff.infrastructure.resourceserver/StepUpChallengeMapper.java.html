@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StepUpChallengeMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:bff-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.bff.infrastructure.resourceserver</a> &gt; <span class="el_source">StepUpChallengeMapper.java</span></div><h1>StepUpChallengeMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.bff.infrastructure.resourceserver;
+
+import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredException;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Component;
+
+/**
+ * Maps the {@code WWW-Authenticate} challenge of a {@code 401} answer of the resource server onto the domain: a bearer
+ * challenge with {@code error=&quot;insufficient_user_authentication&quot;} (RFC 9470) becomes a
+ * {@link DocumentsStepUpRequiredException} carrying its {@code acr_values} and {@code max_age}. Any other challenge, or
+ * none, is not a step-up request.
+ */
+@Component
+<span class="fc" id="L35">public class StepUpChallengeMapper {</span>
+
+    /** Error code of a step-up challenge (RFC 9470, section 3). */
+    static final String INSUFFICIENT_USER_AUTHENTICATION = &quot;insufficient_user_authentication&quot;;
+
+    /** Authentication scheme of the challenge. */
+    private static final String BEARER = &quot;bearer&quot;;
+
+    /** Name of the error parameter of the challenge. */
+    private static final String ERROR = &quot;error&quot;;
+
+    /** Name of the parameter carrying the authentication context classes asked for. */
+    private static final String ACR_VALUES = &quot;acr_values&quot;;
+
+    /** Name of the parameter carrying the maximum age of the authentication, in seconds. */
+    private static final String MAX_AGE = &quot;max_age&quot;;
+
+    /** One auth-param of the challenge: a name and a quoted string (with escapes) or a bare token. */
+<span class="fc" id="L53">    private static final Pattern PARAMETER = Pattern.compile(</span>
+            &quot;([A-Za-z0-9_-]+)\\s*=\\s*(?:\&quot;((?:[^\&quot;\\\\]|\\\\.)*)\&quot;|([^\\s,\&quot;]+))&quot;);
+
+    /** Group of {@link #PARAMETER} holding the parameter name. */
+    private static final int NAME_GROUP = 1;
+
+    /** Group of {@link #PARAMETER} holding a quoted value, without its quotes. */
+    private static final int QUOTED_VALUE_GROUP = 2;
+
+    /** Group of {@link #PARAMETER} holding a bare token value. */
+    private static final int TOKEN_VALUE_GROUP = 3;
+
+    /** Escape sequence of a quoted string: a backslash and the character it protects. */
+<span class="fc" id="L66">    private static final Pattern QUOTED_PAIR = Pattern.compile(&quot;\\\\(.)&quot;);</span>
+
+    /**
+     * Reads the step-up request of a {@code 401} answer, if it is one.
+     *
+     * @param headers headers of the answer; {@code null} when it had none.
+     * @param cause   the failure to keep as the cause of the domain exception.
+     * @return the step-up request, or empty when the answer carries no step-up challenge.
+     */
+    public Optional&lt;DocumentsStepUpRequiredException&gt; toException(final HttpHeaders headers, final Throwable cause) {
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (headers == null) {</span>
+<span class="fc" id="L77">            return Optional.empty();</span>
+        }
+<span class="fc" id="L79">        return headers.getOrEmpty(HttpHeaders.WWW_AUTHENTICATE).stream()</span>
+<span class="fc" id="L80">                .filter(StepUpChallengeMapper::isBearer)</span>
+<span class="fc" id="L81">                .map(StepUpChallengeMapper::parameters)</span>
+<span class="fc" id="L82">                .filter(parameters -&gt; INSUFFICIENT_USER_AUTHENTICATION.equals(parameters.get(ERROR)))</span>
+<span class="fc" id="L83">                .findFirst()</span>
+<span class="fc" id="L84">                .map(parameters -&gt; new DocumentsStepUpRequiredException(</span>
+                        &quot;The resource server asks for a stronger or more recent authentication&quot;,
+<span class="fc" id="L86">                        parameters.get(ACR_VALUES), maxAgeOf(parameters.get(MAX_AGE)), cause));</span>
+    }
+
+    /**
+     * Tells whether a challenge is of the bearer scheme.
+     *
+     * @param challenge value of a {@code WWW-Authenticate} header.
+     * @return {@code true} when its scheme is {@code Bearer}, in any case.
+     */
+    private static boolean isBearer(final String challenge) {
+<span class="fc" id="L96">        final var trimmed = challenge.trim();</span>
+<span class="fc bfc" id="L97" title="All 4 branches covered.">        return trimmed.length() &gt; BEARER.length() &amp;&amp; trimmed.regionMatches(true, 0, BEARER, 0, BEARER.length())</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">                &amp;&amp; Character.isWhitespace(trimmed.charAt(BEARER.length()));</span>
+    }
+
+    /**
+     * Reads the auth-params of a bearer challenge.
+     *
+     * @param challenge value of a {@code WWW-Authenticate} header of the bearer scheme.
+     * @return the parameters by lower-case name; a repeated parameter keeps its first value.
+     */
+    private static Map&lt;String, String&gt; parameters(final String challenge) {
+<span class="fc" id="L108">        final var parameters = new HashMap&lt;String, String&gt;();</span>
+<span class="fc" id="L109">        final var matcher = PARAMETER.matcher(challenge.trim().substring(BEARER.length()));</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        while (matcher.find()) {</span>
+<span class="fc" id="L111">            final var quoted = matcher.group(QUOTED_VALUE_GROUP);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">            final var value = quoted != null ? QUOTED_PAIR.matcher(quoted).replaceAll(&quot;$1&quot;)</span>
+<span class="fc" id="L113">                    : matcher.group(TOKEN_VALUE_GROUP);</span>
+<span class="fc" id="L114">            parameters.putIfAbsent(matcher.group(NAME_GROUP).toLowerCase(Locale.ROOT), value);</span>
+<span class="fc" id="L115">        }</span>
+<span class="fc" id="L116">        return parameters;</span>
+    }
+
+    /**
+     * Reads the {@code max_age} parameter.
+     *
+     * @param value the parameter, in seconds; {@code null} when absent.
+     * @return the maximum age, or {@code null} when absent, not a number or negative.
+     */
+    private static Duration maxAgeOf(final String value) {
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L127">            return null;</span>
+        }
+        try {
+<span class="fc" id="L130">            final var seconds = Long.parseLong(value);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">            return seconds &lt; 0 ? null : Duration.ofSeconds(seconds);</span>
+<span class="fc" id="L132">        } catch (final NumberFormatException e) {</span>
+<span class="fc" id="L133">            return null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

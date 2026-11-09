@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">DeviceConfiguration.java</span></div><h1>DeviceConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
+import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.ReauthenticationEntryPoint;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorErrorResponseHandler;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorRequiredEntryPoint;
+import java.time.Clock;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+
+/**
+ * Installs the device authorization grant in the protocol chain. Nothing outside this feature is edited: the chain
+ * applies every {@link ProtocolChainCustomizer} bean, in order.
+ */
+@Configuration(value = &quot;deviceWebConfiguration&quot;, proxyBeanMethods = false)
+@EnableConfigurationProperties(DeviceRateLimitProperties.class)
+<span class="fc" id="L39">public class DeviceConfiguration {</span>
+
+    /**
+     * Declares the limiter of the attempts to verify a user code.
+     *
+     * @param properties limits, window and bound of the tracked keys.
+     * @param clock      source of the current time.
+     * @return the limiter.
+     */
+    @Bean
+    public DeviceVerificationRateLimiter deviceVerificationRateLimiter(
+            final DeviceRateLimitProperties properties, final Clock clock) {
+<span class="fc" id="L51">        return new DeviceVerificationRateLimiter(properties, clock);</span>
+    }
+
+    // tag::device-protocol-customizer[]
+    /**
+     * Declares the customizer that enables the device endpoints. It is applied after the multi-factor and step-up
+     * ones.
+     *
+     * @param registeredClients          finds the clients of the devices.
+     * @param authorizationService       finds the device authorization of a user code.
+     * @param serverSettings             settings of the protocol endpoints, for the device authorization one.
+     * @param rateLimiter                limits the attempts.
+     * @param authorizationManager       applies the multi-factor policy.
+     * @param secondFactorEntryPoint     entry point of the second-factor page.
+     * @param reauthenticationEntryPoint entry point that forces a new sign-in.
+     * @return the customizer.
+     */
+    @Bean
+    @Order(DeviceProtocolChainCustomizer.ORDER)
+    public ProtocolChainCustomizer deviceProtocolChainCustomizer(final RegisteredClientRepository registeredClients,
+            final OAuth2AuthorizationService authorizationService, final AuthorizationServerSettings serverSettings,
+            final DeviceVerificationRateLimiter rateLimiter, final MfaAuthorizationManager authorizationManager,
+            final SecondFactorRequiredEntryPoint secondFactorEntryPoint,
+            final ReauthenticationEntryPoint reauthenticationEntryPoint) {
+<span class="fc" id="L75">        final var errorHandler = new DeviceVerificationErrorHandler(</span>
+                new SecondFactorErrorResponseHandler(secondFactorEntryPoint, reauthenticationEntryPoint),
+                DeviceVerificationController.VERIFICATION_PATH);
+<span class="fc" id="L78">        final var approvedUrl = DeviceVerificationController.VERIFICATION_PATH + &quot;?&quot;</span>
+                + DeviceVerificationController.SUCCESS_PARAMETER;
+<span class="fc" id="L80">        final var successHandler = new SimpleUrlAuthenticationSuccessHandler(approvedUrl);</span>
+<span class="fc" id="L81">        return new DeviceProtocolChainCustomizer(</span>
+<span class="fc" id="L82">                new DeviceClientAuthenticationConverter(serverSettings.getDeviceAuthorizationEndpoint()),</span>
+                new DeviceClientAuthenticationProvider(registeredClients),
+                new DeviceVerificationRequestGuard(rateLimiter, authorizationManager, authorizationService,
+                        registeredClients), errorHandler, successHandler);
+    }
+    // end::device-protocol-customizer[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

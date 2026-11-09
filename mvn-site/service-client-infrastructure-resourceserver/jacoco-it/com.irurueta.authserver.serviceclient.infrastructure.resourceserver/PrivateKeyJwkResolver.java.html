@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrivateKeyJwkResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">PrivateKeyJwkResolver.java</span></div><h1>PrivateKeyJwkResolver.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.util.Base64;
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+/**
+ * Resolves the key that signs the {@code private_key_jwt} assertion: the unencrypted PKCS#8 PEM RSA private key of
+ * {@link ServiceClientKeyProperties}, with its public half derived from it and the {@code RS256} algorithm. Neither
+ * the messages nor the exceptions carry any part of the key.
+ */
+@Component
+@RequiredArgsConstructor
+public class PrivateKeyJwkResolver implements Function&lt;ClientRegistration, JWK&gt; {
+
+    /** Marker of a PEM header or footer line. */
+    private static final String PEM_MARKER = &quot;-----[A-Z ]+-----&quot;;
+
+    /** Header of a PKCS#1 key, which is not supported. */
+    private static final String PKCS1_HEADER = &quot;BEGIN RSA PRIVATE KEY&quot;;
+
+    /** Settings of the key. */
+    private final ServiceClientKeyProperties properties;
+
+    // tag::private-key-jwt-client[]
+    /**
+     * Reads the key and builds its JWK.
+     *
+     * @param registration the registration the assertion is for, which is not needed to choose the key.
+     * @return the signing JWK.
+     * @throws IllegalStateException if no key is configured or it cannot be read as an unencrypted PKCS#8 RSA key.
+     */
+    @Override
+    public JWK apply(final ClientRegistration registration) {
+<span class="fc" id="L67">        final var pem = readPem();</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (pem.contains(PKCS1_HEADER)) {</span>
+<span class="nc" id="L69">            throw new IllegalStateException(&quot;The private key must be PKCS#8 (BEGIN PRIVATE KEY), not PKCS#1&quot;);</span>
+        }
+        try {
+<span class="fc" id="L72">            final var der = Base64.getDecoder().decode(pem.replaceAll(PEM_MARKER, &quot;&quot;).replaceAll(&quot;\\s&quot;, &quot;&quot;));</span>
+<span class="fc" id="L73">            final var factory = KeyFactory.getInstance(&quot;RSA&quot;);</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">            if (!(factory.generatePrivate(new PKCS8EncodedKeySpec(der)) instanceof RSAPrivateCrtKey privateKey)) {</span>
+<span class="nc" id="L75">                throw new IllegalStateException(&quot;The private key is not an RSA private key with CRT parameters&quot;);</span>
+            }
+<span class="fc" id="L77">            final var publicKey = (RSAPublicKey) factory.generatePublic(</span>
+<span class="fc" id="L78">                    new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));</span>
+<span class="fc" id="L79">            return new RSAKey.Builder(publicKey)</span>
+<span class="fc" id="L80">                    .privateKey(privateKey)</span>
+<span class="fc" id="L81">                    .keyUse(KeyUse.SIGNATURE)</span>
+<span class="fc" id="L82">                    .algorithm(JWSAlgorithm.RS256)</span>
+<span class="fc" id="L83">                    .keyID(properties.keyId())</span>
+<span class="fc" id="L84">                    .build();</span>
+<span class="nc" id="L85">        } catch (final IllegalArgumentException | GeneralSecurityException e) {</span>
+<span class="nc" id="L86">            throw new IllegalStateException(&quot;The private key is not a valid unencrypted PKCS#8 RSA key&quot;, e);</span>
+        }
+    }
+    // end::private-key-jwt-client[]
+
+    /**
+     * Reads the PEM text from the inline value or the file.
+     *
+     * @return the PEM text.
+     */
+    private String readPem() {
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        if (StringUtils.hasText(properties.privateKey())) {</span>
+<span class="fc" id="L98">            return properties.privateKey().replace(&quot;\\n&quot;, &quot;\n&quot;);</span>
+        }
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if (properties.privateKeyPath() == null) {</span>
+<span class="nc" id="L101">            throw new IllegalStateException(</span>
+                    &quot;No private key: set service-client.auth.key.private-key or ...private-key-path&quot;);
+        }
+        try {
+<span class="nc" id="L105">            return Files.readString(properties.privateKeyPath());</span>
+<span class="nc" id="L106">        } catch (final IOException e) {</span>
+<span class="nc" id="L107">            throw new IllegalStateException(&quot;The private key file cannot be read&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

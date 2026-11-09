@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MtlsProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.clientauth</a> &gt; <span class="el_source">MtlsProperties.java</span></div><h1>MtlsProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.clientauth;
+
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.util.StringUtils;
+
+// tag::clientauth-mtls-properties[]
+/**
+ * Configuration of the mutual-TLS client authentication ({@code authserver.mtls.*}, RFC 8705).
+ *
+ * @param trustedAuthorities paths of the PEM files whose certificates are the trust anchors of
+ *                           {@code tls_client_auth}; empty (the default) means that no CA-issued client certificate
+ *                           is accepted, and only {@code self_signed_tls_client_auth} can succeed.
+ */
+@ConfigurationProperties(prefix = &quot;authserver.mtls&quot;)
+public record MtlsProperties(@DefaultValue List&lt;String&gt; trustedAuthorities) {
+
+    /**
+     * Validates the configuration and copies the list.
+     *
+     * @throws IllegalArgumentException if a path is blank.
+     */
+<span class="fc" id="L39">    public MtlsProperties {</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        trustedAuthorities = trustedAuthorities == null ? List.of() : List.copyOf(trustedAuthorities);</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">        if (trustedAuthorities.stream().anyMatch(path -&gt; !StringUtils.hasText(path))) {</span>
+<span class="fc" id="L42">            throw new IllegalArgumentException(&quot;authserver.mtls.trusted-authorities must not contain a blank path&quot;);</span>
+        }
+<span class="fc" id="L44">    }</span>
+}
+// end::clientauth-mtls-properties[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

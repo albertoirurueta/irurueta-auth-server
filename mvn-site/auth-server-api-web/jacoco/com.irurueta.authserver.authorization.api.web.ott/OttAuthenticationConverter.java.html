@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttAuthenticationConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttAuthenticationConverter.java</span></div><h1>OttAuthenticationConverter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.authentication.ott.OneTimeTokenAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.AuthenticationConverter;
+import org.springframework.util.StringUtils;
+
+/**
+ * Reads what is posted to {@code POST /login/ott}: the {@code token} field holds either the token of a magic link (a
+ * UUID, which {@link OttLinkAuthenticationProvider} consumes) or the numeric code of an e-mail or SMS, which is tied
+ * to the identifier and the binding id the session of the browser holds. A code posted from a browser that requested
+ * none is still converted (with an empty identifier), so the provider rejects it like any wrong code instead of the
+ * filter ignoring the request.
+ */
+<span class="fc" id="L31">public class OttAuthenticationConverter implements AuthenticationConverter {</span>
+
+    /** Name of the field that holds the token or the code. */
+    public static final String TOKEN_PARAMETER = &quot;token&quot;;
+
+    /**
+     * Converts the post.
+     *
+     * @param request the request.
+     * @return the request to verify, or {@code null} when no token was posted.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+<span class="fc" id="L44">        final var value = StringUtils.trimWhitespace(request.getParameter(TOKEN_PARAMETER));</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (!StringUtils.hasText(value)) {</span>
+<span class="fc" id="L46">            return null;</span>
+        }
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (!OttCodeAuthenticationToken.isCode(value)) {</span>
+<span class="fc" id="L49">            return new OneTimeTokenAuthenticationToken(value);</span>
+        }
+<span class="fc" id="L51">        final var pending = PendingOtt.of(request);</span>
+<span class="fc" id="L52">        return new OttCodeAuthenticationToken(pending.map(PendingOtt::identifier).orElse(&quot;&quot;), value,</span>
+<span class="fc" id="L53">                pending.map(PendingOtt::bindingId).orElse(&quot;&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

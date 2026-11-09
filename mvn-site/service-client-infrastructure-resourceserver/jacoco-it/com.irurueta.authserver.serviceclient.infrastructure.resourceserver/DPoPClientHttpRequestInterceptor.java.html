@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DPoPClientHttpRequestInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">DPoPClientHttpRequestInterceptor.java</span></div><h1>DPoPClientHttpRequestInterceptor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.ClientAuthorizationException;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+
+/**
+ * Sends the access token of an authorized client as {@code Authorization: DPoP &lt;token&gt;} together with a {@code DPoP}
+ * proof that binds the request and the token, when the token is DPoP-bound. Spring Security's own interceptor can
+ * only set a bearer header, so this one replaces it when DPoP is enabled. A call without a token is never sent.
+ */
+@RequiredArgsConstructor
+public class DPoPClientHttpRequestInterceptor implements ClientHttpRequestInterceptor {
+
+    /** Name of the header that carries the proof. */
+    public static final String DPOP_HEADER = &quot;DPoP&quot;;
+
+    /** Scheme of a DPoP-bound token in the {@code Authorization} header. */
+    private static final String DPOP_SCHEME = &quot;DPoP &quot;;
+
+    /** Obtains (and renews) the access token. */
+    private final OAuth2AuthorizedClientManager manager;
+
+    /** Creates the proofs. */
+    private final DPoPProofs proofs;
+
+    /** Registration of the client that obtains the token. */
+    private final String registrationId;
+
+    /** Principal the token is cached under. */
+    private final Authentication principal;
+
+    // tag::dpop-client[]
+    @Override
+    public ClientHttpResponse intercept(final HttpRequest request, final byte[] body,
+            final ClientHttpRequestExecution execution) throws IOException {
+<span class="fc" id="L65">        final var authorizeRequest = OAuth2AuthorizeRequest.withClientRegistrationId(registrationId)</span>
+<span class="fc" id="L66">                .principal(principal)</span>
+<span class="fc" id="L67">                .build();</span>
+<span class="fc" id="L68">        final var authorizedClient = manager.authorize(authorizeRequest);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (authorizedClient == null) {</span>
+<span class="nc" id="L70">            throw new ClientAuthorizationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED,</span>
+                    &quot;The service client has no access token&quot;, null), registrationId);
+        }
+<span class="fc" id="L73">        final var token = authorizedClient.getAccessToken();</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if (OAuth2AccessToken.TokenType.DPOP.equals(token.getTokenType())) {</span>
+<span class="fc" id="L75">            request.getHeaders().set(HttpHeaders.AUTHORIZATION, DPOP_SCHEME + token.getTokenValue());</span>
+<span class="fc" id="L76">            request.getHeaders().set(DPOP_HEADER,</span>
+<span class="fc" id="L77">                    proofs.proof(request.getMethod().name(), request.getURI(), token.getTokenValue()));</span>
+        } else {
+<span class="nc" id="L79">            request.getHeaders().setBearerAuth(token.getTokenValue());</span>
+        }
+<span class="fc" id="L81">        return execution.execute(request, body);</span>
+    }
+    // end::dpop-client[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

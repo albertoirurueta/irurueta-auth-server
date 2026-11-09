@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StartPhoneEnrolmentUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.sms</a> &gt; <span class="el_source">StartPhoneEnrolmentUseCase.java</span></div><h1>StartPhoneEnrolmentUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.sms;
+
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeGenerator;
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
+import com.irurueta.authserver.authorization.domain.sms.PhoneCountryResolver;
+import com.irurueta.authserver.authorization.domain.sms.PhoneNormalizer;
+import com.irurueta.authserver.authorization.domain.sms.PhoneNumber;
+import com.irurueta.authserver.authorization.domain.sms.PhoneVerification;
+import com.irurueta.authserver.authorization.domain.sms.PhoneVerificationRepository;
+import com.irurueta.authserver.authorization.domain.sms.UserPhone;
+import com.irurueta.authserver.authorization.domain.sms.UserPhoneRepository;
+import java.time.Clock;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Starts the enrolment of a phone: normalises the number and sends it a verification code.
+ *
+ * &lt;p&gt;What may be visible and what may not: an invalid number ({@link InvalidPhoneNumberException}) and a country that
+ * is not served ({@link SmsCountryNotAllowedException}) depend on the input alone and reveal nothing about any
+ * account, so they fail visibly. Everything that depends on the state of other accounts or of the system is
+ * indistinguishable from success: a number already verified by another user (no message is sent, no state is
+ * stored, but the same work is done), an exhausted SMS budget and a provider failure (the message is sent after the
+ * transaction commits, off the request thread, by the delivery of {@link SmsRequested}, which records a failure without
+ * the number or the code). Otherwise an attacker could learn which numbers belong to accounts.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class StartPhoneEnrolmentUseCase {
+
+    /** Port that normalises the typed number. */
+    private final PhoneNormalizer phoneNormalizer;
+
+    /** Port that finds the country of a number. */
+    private final PhoneCountryResolver phoneCountryResolver;
+
+    /** Port that reads the verified phones. */
+    private final UserPhoneRepository userPhoneRepository;
+
+    /** Port that stores the pending verification. */
+    private final PhoneVerificationRepository phoneVerificationRepository;
+
+    /** Generator of the verification code. */
+    private final OneTimeCodeGenerator oneTimeCodeGenerator;
+
+    /** Hasher of the verification code. */
+    private final OneTimeCodeHasher oneTimeCodeHasher;
+
+    /** Use case that records the cost of the message and requests it. */
+    private final SendSmsOneTimeCodeUseCase sendSmsOneTimeCodeUseCase;
+
+    /** SMS settings. */
+    private final SmsProperties smsProperties;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Starts the enrolment.
+     *
+     * @param userId identifier of the user.
+     * @param phone  the number as typed, with or without country code.
+     * @return the validity of the code; the same whether or not a message was sent.
+     * @throws InvalidPhoneNumberException   if the text is not a valid number.
+     * @throws SmsCountryNotAllowedException if the country of the number is unknown or not served.
+     */
+    public PhoneEnrolmentStarted execute(final UUID userId, final String phone) {
+<span class="fc" id="L87">        final var number = phoneNormalizer.normalize(phone, smsProperties.defaultRegion())</span>
+<span class="fc" id="L88">                .orElseThrow(InvalidPhoneNumberException::new);</span>
+<span class="fc" id="L89">        phoneCountryResolver.countryOf(number)</span>
+<span class="fc" id="L90">                .filter(country -&gt; smsProperties.allowedCountries().contains(country))</span>
+<span class="fc" id="L91">                .orElseThrow(SmsCountryNotAllowedException::new);</span>
+<span class="fc" id="L92">        final var result = new PhoneEnrolmentStarted(smsProperties.verificationCodeTtl());</span>
+<span class="fc" id="L93">        final var code = oneTimeCodeGenerator.generate(smsProperties.verificationCodeLength());</span>
+<span class="fc" id="L94">        final var hash = oneTimeCodeHasher.hash(code);</span>
+<span class="fc" id="L95">        final var takenByAnother = userPhoneRepository.findByPhone(number)</span>
+<span class="fc" id="L96">                .map(UserPhone::userId)</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                .filter(owner -&gt; !owner.equals(userId))</span>
+<span class="fc" id="L98">                .isPresent();</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (takenByAnother) {</span>
+<span class="fc" id="L100">            return result;</span>
+        }
+<span class="fc" id="L102">        phoneVerificationRepository.save(new PhoneVerification(userId, number, hash, 0,</span>
+<span class="fc" id="L103">                clock.instant().plus(smsProperties.verificationCodeTtl())));</span>
+<span class="fc" id="L104">        send(number, code);</span>
+<span class="fc" id="L105">        return result;</span>
+    }
+
+    /**
+     * Requests the code, swallowing a refusal so that it cannot be told apart from success.
+     *
+     * @param number the destination.
+     * @param code   the clear-text code.
+     */
+    private void send(final PhoneNumber number, final String code) {
+        try {
+<span class="fc" id="L116">            sendSmsOneTimeCodeUseCase.execute(number, SmsMessages.verificationCode(code,</span>
+<span class="fc" id="L117">                    smsProperties.verificationCodeTtl()));</span>
+<span class="fc" id="L118">        } catch (final SmsRefusedException ignored) {</span>
+            // refused by the budget policy: answered like a sent code, so nothing is revealed
+<span class="fc" id="L120">        }</span>
+<span class="fc" id="L121">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

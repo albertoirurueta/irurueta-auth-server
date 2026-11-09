@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Data model :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="data-model.html">Data model</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/data-model.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Data model</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>auth-server</code> stores its state in PostgreSQL. Flyway applies the migrations in
+<code>auth-server/infrastructure/persistence/src/main/resources/db/migration</code> (<code>classpath:db/migration</code>) at start.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Migration</th>
+<th class="tableblock halign-left valign-top">Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V100__spring_authorization_server_schema.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tables of Spring Authorization Server: <code>oauth2_registered_client</code>, <code>oauth2_authorization_consent</code> and
+<code>oauth2_authorization</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V101__users.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tables <code>users</code>, <code>user_authorities</code> and <code>user_passwords</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V200__account.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Adds <code>email</code>, <code>email_verified</code> and <code>tenant</code> to <code>users</code>, and the <code>account_tokens</code> table (hashed single-use tokens).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V210__signing_keys.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Table <code>signing_keys</code> (public JWK, encrypted private JWK, status <code>NEXT</code>/<code>ACTIVE</code>/<code>RETIRED</code>); at most one <code>ACTIVE</code> key.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V230__consumed_refresh_tokens.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Table <code>consumed_refresh_tokens</code>, the hashes of rotated-out refresh tokens used for reuse detection.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V240__authorization_created_at.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Adds <code>created_at</code> to <code>oauth2_authorization</code>, so the authorizations that never got a token (abandoned authorization
+or consent requests) can be cleaned up once they are old enough.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V400__mfa_security_events.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Security events and the failed second-factor attempts used for lockout (see <a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V410__totp_recovery_codes.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TOTP secrets and recovery codes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V420__trusted_devices.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Devices trusted to skip the second factor.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V500__webauthn.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Security&#8217;s WebAuthn tables (<code>user_entities</code>, <code>user_credentials</code>) and an index on the credential owner (see <a href="passkeys.html" class="xref page">Passkeys (WebAuthn)</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V600__one_time_tokens.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Security&#8217;s <code>one_time_tokens</code> table for magic-link tokens (see <a href="one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V610__ott_codes.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hashed numeric e-mail / SMS codes with their attempt counters.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V620__user_phones.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Verified E.164 phone numbers (one per user) and pending phone verifications.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V630__sms_cost_ledger.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spend ledger used by the SMS cost caps.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V700__federated_identities.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Linked external identities (provider and subject unique per user), see <a href="social-login.html" class="xref page">Social login (identity brokering)</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V701__generated_passwords.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Flags a generated (unknown) password, so a just-in-time account does not count a password as a sign-in method.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V710__x509_certificates.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client certificate bindings by SHA-256 fingerprint, see <a href="x509.html" class="xref page">X.509 client certificates</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>V800__client_assertion_jtis.sql</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Used client-assertion identifiers <code>(client_id, jti)</code> with their expiry, see <a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Each issue owns a range of migration numbers so features never collide: the walking skeleton uses <code>V100</code>-<code>V199</code> and the credential and token core (issue #2) uses <code>V200</code>-<code>V299</code>; multi-factor authentication (issue #4) uses <code>V400</code>-<code>V499</code>; passkeys (issue #5) use <code>V500</code>-<code>V599</code>; one-time tokens and SMS (issue #6) use <code>V600</code>-<code>V699</code>; social login, X.509 and the device grant (issue #7) use <code>V700</code>-<code>V799</code>; client authentication, token exchange and PAR (issue #8) use <code>V800</code>-<code>V899</code>. A
+migration is never written outside the range of the issue that adds it.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_entity_diagrams"><a class="anchor" href="#_entity_diagrams"></a>Entity diagrams</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The diagrams below show every table of the <code>auth-server</code> database, grouped by area. They follow the migrations, which
+are the source of truth. Each entity lists its columns with their PostgreSQL type and marks primary keys (<code>PK</code>),
+foreign keys (<code>FK</code>) and unique columns (<code>UK</code>).</p>
+</div>
+<div class="paragraph">
+<p>Two kinds of relationship are drawn:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>a <strong>solid line</strong> is a real foreign key declared in a migration (always to <code>users.id</code>, except
+<code>consumed_refresh_tokens</code> to <code>oauth2_authorization.id</code>);</p>
+</li>
+<li>
+<p>a <strong>dashed line</strong> is a <strong>logical link with no foreign key</strong>. The tables of Spring Authorization Server and Spring
+Security (<code>oauth2_*</code>, <code>user_entities</code>, <code>user_credentials</code>, <code>one_time_tokens</code>) are joined by value, not by constraint:
+their schema is the framework&#8217;s, and a principal name or client id is copied into them. Deleting a user or a client
+does not cascade to those rows.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Columns that hold a secret store only a hash (<code>hashed_token</code>, <code>hashed_code</code>, <code>code_hash</code>, <code>pending_code_hash</code>,
+<code>token_hash</code>) or an encrypted value (<code>private_jwk_encrypted</code>, <code>encrypted_secret</code>); no table holds a code, token or
+private key in clear.</p>
+</div>
+<div class="sect2">
+<h3 id="_users_and_accounts"><a class="anchor" href="#_users_and_accounts"></a>Users and accounts</h3>
+<div class="paragraph">
+<p><code>users</code> is the account. A password is optional (a just-in-time social account holds a generated one, flagged by
+<code>generated</code>); <code>account_tokens</code> holds the single-use e-mail verification and password reset tokens. See
+<a href="passwords-and-accounts.html" class="xref page">Passwords and accounts</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+    boolean enabled
+    varchar email UK "unique on lower(email)"
+    boolean email_verified
+    varchar tenant "default 'default'"
+    boolean mfa_required "forced by an administrator"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  user_authorities {
+    uuid user_id PK, FK
+    varchar authority PK
+  }
+  user_passwords {
+    uuid user_id PK, FK
+    varchar encoded_password "Argon2"
+    boolean generated "unknown password of a JIT account"
+    timestamptz updated_at
+  }
+  account_tokens {
+    uuid id PK
+    uuid user_id FK
+    varchar purpose
+    varchar hashed_token UK
+    timestamptz expires_at
+    timestamptz used_at
+    timestamptz created_at
+  }
+  users ||--o{ user_authorities : "has"
+  users ||--o| user_passwords : "has"
+  users ||--o{ account_tokens : "receives"</div></div>
+</div>
+<div class="sect2">
+<h3 id="_clients_authorizations_and_consents"><a class="anchor" href="#_clients_authorizations_and_consents"></a>Clients, authorizations and consents</h3>
+<div class="paragraph">
+<p>The three tables of Spring Authorization Server. <code>oauth2_authorization</code> holds one row per authorization (one grant
+for one client and one principal), with a group of <code>*_value</code>, <code>*_issued_at</code>, <code>*_expires_at</code> and <code>*_metadata</code> columns
+for each token it carries: authorization code, access token, OIDC ID token, refresh token, user code and device code
+(only the access token group is shown below). <code>created_at</code> (<code>V240</code>) lets abandoned authorizations be cleaned up.
+<code>consumed_refresh_tokens</code> keeps the hashes of rotated-out refresh tokens, and <code>client_assertion_jtis</code> the used
+<code>private_key_jwt</code> assertion ids. See <a href="clients.html" class="xref page">Registered clients</a>, <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a> and
+<a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  oauth2_registered_client {
+    varchar id PK
+    varchar client_id "unique by the application"
+    timestamp client_id_issued_at
+    varchar client_secret "encoded, null for public clients"
+    timestamp client_secret_expires_at
+    varchar client_name
+    varchar client_authentication_methods
+    varchar authorization_grant_types
+    varchar redirect_uris
+    varchar post_logout_redirect_uris
+    varchar scopes
+    varchar client_settings "JSON, includes mfa.required, jwks, audiences"
+    varchar token_settings "JSON"
+  }
+  oauth2_authorization {
+    varchar id PK
+    varchar registered_client_id "logical link"
+    varchar principal_name "logical link"
+    varchar authorization_grant_type
+    varchar authorized_scopes
+    text attributes "serialized principal and request"
+    varchar state
+    text access_token_value
+    timestamp access_token_issued_at
+    timestamp access_token_expires_at
+    text access_token_metadata
+    varchar access_token_type
+    varchar access_token_scopes
+    timestamptz created_at
+  }
+  oauth2_authorization_consent {
+    varchar registered_client_id PK "logical link"
+    varchar principal_name PK "logical link"
+    varchar authorities "granted scopes"
+  }
+  consumed_refresh_tokens {
+    varchar token_hash PK "SHA-256"
+    varchar authorization_id FK
+    timestamptz consumed_at
+  }
+  client_assertion_jtis {
+    varchar client_id PK "logical link"
+    varchar jti PK
+    timestamptz expires_at
+  }
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  oauth2_registered_client ||..o{ oauth2_authorization : "registered_client_id = id"
+  oauth2_registered_client ||..o{ oauth2_authorization_consent : "registered_client_id = id"
+  oauth2_registered_client ||..o{ client_assertion_jtis : "client_id = client_id"
+  users ||..o{ oauth2_authorization : "principal_name = username"
+  users ||..o{ oauth2_authorization_consent : "principal_name = username"
+  oauth2_authorization ||--o{ consumed_refresh_tokens : "rotated out of"</div></div>
+<div class="paragraph">
+<p><code>principal_name</code> is the username for a user grant, and the client id for a <code>client_credentials</code> grant (there is no
+user then), which is one more reason it has no foreign key.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_signing_keys"><a class="anchor" href="#_signing_keys"></a>Signing keys</h3>
+<div class="paragraph">
+<p><code>signing_keys</code> stands alone. A partial unique index on <code>status</code> allows at most one <code>ACTIVE</code> key; the <code>NEXT</code> key is
+published in the JWK set before it signs, and <code>RETIRED</code> keys stay published until no token they signed can still be
+valid. See <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  signing_keys {
+    varchar kid PK
+    varchar alg
+    text public_jwk
+    text private_jwk_encrypted "AES-GCM"
+    varchar status "NEXT, ACTIVE or RETIRED, one ACTIVE at most"
+    timestamptz created_at
+    timestamptz activated_at
+    timestamptz retired_at
+  }</div></div>
+</div>
+<div class="sect2">
+<h3 id="_multi_factor_authentication"><a class="anchor" href="#_multi_factor_authentication"></a>Multi-factor authentication</h3>
+<div class="paragraph">
+<p>The lockout counter (<code>second_factor_attempts</code>, one row per user, read <code>FOR UPDATE</code> so attempts of one user are
+serialized), the audit trail (<code>security_events</code>, which keeps the username after the user is deleted:
+<code>ON DELETE SET NULL</code>), the authenticator app (<code>totp_credentials</code>), the recovery codes and the trusted browsers. See
+<a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+    boolean mfa_required
+  }
+  security_events {
+    uuid id PK
+    varchar type
+    uuid user_id FK "set null on delete"
+    varchar username
+    varchar detail
+    timestamptz occurred_at
+  }
+  second_factor_attempts {
+    uuid user_id PK, FK
+    integer failed_count
+    timestamptz locked_until
+  }
+  totp_credentials {
+    uuid user_id PK, FK
+    bytea encrypted_secret "AES-GCM"
+    boolean confirmed
+    bigint last_used_step "replay protection"
+    timestamptz created_at
+  }
+  recovery_codes {
+    uuid id PK
+    uuid user_id FK
+    varchar hashed_code
+    timestamptz used_at
+    timestamptz created_at
+  }
+  trusted_devices {
+    uuid id PK
+    uuid user_id FK
+    varchar hashed_token UK "SHA-256 of the cookie token"
+    varchar user_agent
+    timestamptz expires_at
+    timestamptz created_at
+  }
+  users |o--o{ security_events : "subject of"
+  users ||--o| second_factor_attempts : "has"
+  users ||--o| totp_credentials : "enrols"
+  users ||--o{ recovery_codes : "holds"
+  users ||--o{ trusted_devices : "trusts"</div></div>
+</div>
+<div class="sect2">
+<h3 id="_passkeys"><a class="anchor" href="#_passkeys"></a>Passkeys</h3>
+<div class="paragraph">
+<p>Spring Security&#8217;s WebAuthn tables. <code>user_entities</code> is the WebAuthn user (its <code>id</code> is the user handle) and is linked to
+the account by name only; <code>user_credentials</code> holds one row per registered passkey. See <a href="passkeys.html" class="xref page">Passkeys (WebAuthn)</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  user_entities {
+    varchar id PK "WebAuthn user handle"
+    varchar name UK "logical link"
+    varchar display_name
+  }
+  user_credentials {
+    varchar credential_id PK "base64url"
+    varchar user_entity_user_id "logical link"
+    bytea public_key
+    bigint signature_count
+    boolean uv_initialized
+    boolean backup_eligible
+    boolean backup_state
+    varchar authenticator_transports
+    varchar public_key_credential_type
+    bytea attestation_object
+    bytea attestation_client_data_json
+    varchar label
+    timestamptz created
+    timestamptz last_used
+  }
+  users ||..o| user_entities : "name = username"
+  user_entities ||..o{ user_credentials : "user_entity_user_id = id"</div></div>
+</div>
+<div class="sect2">
+<h3 id="_one_time_tokens_and_sms"><a class="anchor" href="#_one_time_tokens_and_sms"></a>One-time tokens and SMS</h3>
+<div class="paragraph">
+<p><code>one_time_tokens</code> is Spring Security&#8217;s table for magic-link tokens; <code>ott_codes</code> holds the numeric e-mail and SMS codes
+(bound to the browser session through <code>binding_id</code>, spent after too many <code>attempts</code>). Both name the user by username;
+a second-factor link carries a marker inside <code>username</code>, so it is not a plain copy. <code>user_phones</code> holds the verified
+number and, at the same time, a pending number being verified. <code>sms_cost_ledger</code> records what each sent SMS cost, for
+the spend caps. See <a href="one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  one_time_tokens {
+    varchar token_value PK "UUID"
+    varchar username "logical link"
+    timestamptz expires_at
+  }
+  ott_codes {
+    uuid id PK
+    varchar username "logical link"
+    varchar channel "EMAIL or SMS"
+    varchar purpose "LOGIN or SECOND_FACTOR"
+    varchar code_hash
+    varchar binding_id "browser session"
+    integer attempts
+    timestamptz expires_at
+    timestamptz created_at
+  }
+  user_phones {
+    uuid user_id PK, FK
+    varchar phone_e164 UK "verified number"
+    timestamptz verified_at
+    varchar pending_phone_e164
+    varchar pending_code_hash
+    integer pending_attempts
+    timestamptz pending_expires_at
+  }
+  sms_cost_ledger {
+    bigint id PK "identity"
+    timestamptz sent_at
+    char country "ISO 3166 alpha-2"
+    bigint cost_micros
+  }
+  users ||..o{ one_time_tokens : "username"
+  users ||..o{ ott_codes : "username"
+  users ||--o| user_phones : "verifies"</div></div>
+</div>
+<div class="sect2">
+<h3 id="_social_login_and_x_509"><a class="anchor" href="#_social_login_and_x_509"></a>Social login and X.509</h3>
+<div class="paragraph">
+<p>An account can have several external identities (one per provider and subject, unique across accounts) and several
+bound client certificates (one fingerprint, unique across accounts). Together with a non-generated password and a
+passkey they are the account&#8217;s sign-in methods, of which the last one cannot be removed. See <a href="social-login.html" class="xref page">Social login (identity brokering)</a>
+and <a href="x509.html" class="xref page">X.509 client certificates</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  users {
+    uuid id PK
+    varchar username UK
+  }
+  federated_identities {
+    uuid id PK
+    uuid user_id FK
+    varchar provider UK "google, microsoft, apple or github"
+    varchar subject UK "unique with provider"
+    varchar email
+    timestamptz linked_at
+    timestamptz last_login_at
+  }
+  x509_certificates {
+    uuid id PK
+    uuid user_id FK
+    char fingerprint_sha256 UK "lowercase hex"
+    varchar subject_dn
+    timestamptz created_at
+  }
+  users ||--o{ federated_identities : "links"
+  users ||--o{ x509_certificates : "binds"</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_schema_listings"><a class="anchor" href="#_schema_listings"></a>Schema listings</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE oauth2_registered_client
+(
+    id                            varchar(100)                            NOT NULL,
+    client_id                     varchar(100)                            NOT NULL,
+    client_id_issued_at           timestamp     DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    client_secret                 varchar(200)  DEFAULT NULL,
+    client_secret_expires_at      timestamp     DEFAULT NULL,
+    client_name                   varchar(200)                            NOT NULL,
+    client_authentication_methods varchar(1000)                           NOT NULL,
+    authorization_grant_types     varchar(1000)                           NOT NULL,
+    redirect_uris                 varchar(1000) DEFAULT NULL,
+    post_logout_redirect_uris     varchar(1000) DEFAULT NULL,
+    scopes                        varchar(1000)                           NOT NULL,
+    client_settings               varchar(2000)                           NOT NULL,
+    token_settings                varchar(2000)                           NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE oauth2_authorization_consent
+(
+    registered_client_id varchar(100)  NOT NULL,
+    principal_name       varchar(200)  NOT NULL,
+    authorities          varchar(1000) NOT NULL,
+    PRIMARY KEY (registered_client_id, principal_name)
+);
+
+CREATE TABLE oauth2_authorization
+(
+    id                            varchar(100) NOT NULL,
+    registered_client_id          varchar(100) NOT NULL,
+    principal_name                varchar(200) NOT NULL,
+    authorization_grant_type      varchar(100) NOT NULL,
+    authorized_scopes             varchar(1000) DEFAULT NULL,
+    attributes                    text          DEFAULT NULL,
+    state                         varchar(500)  DEFAULT NULL,
+    authorization_code_value      text          DEFAULT NULL,
+    authorization_code_issued_at  timestamp     DEFAULT NULL,
+    authorization_code_expires_at timestamp     DEFAULT NULL,
+    authorization_code_metadata   text          DEFAULT NULL,
+    access_token_value            text          DEFAULT NULL,
+    access_token_issued_at        timestamp     DEFAULT NULL,
+    access_token_expires_at       timestamp     DEFAULT NULL,
+    access_token_metadata         text          DEFAULT NULL,
+    access_token_type             varchar(100)  DEFAULT NULL,
+    access_token_scopes           varchar(1000) DEFAULT NULL,
+    oidc_id_token_value           text          DEFAULT NULL,
+    oidc_id_token_issued_at       timestamp     DEFAULT NULL,
+    oidc_id_token_expires_at      timestamp     DEFAULT NULL,
+    oidc_id_token_metadata        text          DEFAULT NULL,
+    refresh_token_value           text          DEFAULT NULL,
+    refresh_token_issued_at       timestamp     DEFAULT NULL,
+    refresh_token_expires_at      timestamp     DEFAULT NULL,
+    refresh_token_metadata        text          DEFAULT NULL,
+    user_code_value               text          DEFAULT NULL,
+    user_code_issued_at           timestamp     DEFAULT NULL,
+    user_code_expires_at          timestamp     DEFAULT NULL,
+    user_code_metadata            text          DEFAULT NULL,
+    device_code_value             text          DEFAULT NULL,
+    device_code_issued_at         timestamp     DEFAULT NULL,
+    device_code_expires_at        timestamp     DEFAULT NULL,
+    device_code_metadata          text          DEFAULT NULL,
+    PRIMARY KEY (id)
+);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE users
+(
+    id         uuid                     NOT NULL,
+    username   varchar(100)             NOT NULL,
+    enabled    boolean                  NOT NULL DEFAULT TRUE,
+    created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_users_username UNIQUE (username)
+);
+
+CREATE TABLE user_authorities
+(
+    user_id   uuid         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    authority varchar(100) NOT NULL,
+    PRIMARY KEY (user_id, authority)
+);
+
+CREATE TABLE user_passwords
+(
+    user_id          uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    encoded_password varchar(255)             NOT NULL,
+    updated_at       timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id)
+);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">ALTER TABLE users
+    ADD COLUMN email          varchar(320),
+    ADD COLUMN email_verified boolean      NOT NULL DEFAULT FALSE,
+    ADD COLUMN tenant         varchar(100) NOT NULL DEFAULT 'default';
+
+-- Existing rows have no e-mail; the unique index is case-insensitive and ignores the NULLs.
+CREATE UNIQUE INDEX uq_users_email ON users (lower(email));
+
+CREATE TABLE account_tokens
+(
+    id           uuid                     NOT NULL,
+    user_id      uuid                     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    purpose      varchar(50)              NOT NULL,
+    hashed_token varchar(128)             NOT NULL,
+    expires_at   timestamp with time zone NOT NULL,
+    used_at      timestamp with time zone,
+    created_at   timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_account_tokens_hashed_token UNIQUE (hashed_token)
+);
+
+CREATE INDEX ix_account_tokens_expires_at ON account_tokens (expires_at);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>See <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a> for the <code>signing_keys</code> and <code>consumed_refresh_tokens</code> tables and the <code>created_at</code> column
+of <code>oauth2_authorization</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_bff_database"><a class="anchor" href="#_bff_database"></a>BFF database</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>bff</code> has its own PostgreSQL database (<code>bff</code>, created by <code>compose/init-databases.sql</code> in development), separate from
+the one of <code>auth-server</code>. Its single Flyway migration, <code>V300__spring_session.sql</code> in
+<code>bff/infrastructure/session/src/main/resources/db/migration</code>, creates the Spring Session JDBC tables <code>spring_session</code> (one row per browser
+session) and <code>spring_session_attributes</code> (the serialized session attributes, among them the authorized OAuth2 client with
+the user&#8217;s tokens). Spring Session never creates them (<code>initialize-schema: never</code>). The schema and its use are described
+in <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">erDiagram
+  SPRING_SESSION {
+    char PRIMARY_ID PK
+    char SESSION_ID UK
+    bigint CREATION_TIME
+    bigint LAST_ACCESS_TIME
+    int MAX_INACTIVE_INTERVAL
+    bigint EXPIRY_TIME
+    varchar PRINCIPAL_NAME
+  }
+  SPRING_SESSION_ATTRIBUTES {
+    char SESSION_PRIMARY_ID PK, FK
+    varchar ATTRIBUTE_NAME PK
+    bytea ATTRIBUTE_BYTES "serialized attribute"
+  }
+  SPRING_SESSION ||--o{ SPRING_SESSION_ATTRIBUTES : "holds"</div></div>
+<div class="paragraph">
+<p>The <code>resource-server</code> and the <code>service-client</code> have no database: the resource server keeps its documents in memory,
+and the service client caches its token in memory.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

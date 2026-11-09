@@ -1,0 +1,15 @@
+com.irurueta.authserver.authorization.infrastructure.persistence
+com.irurueta.authserver.authorization.infrastructure.persistence.account
+com.irurueta.authserver.authorization.infrastructure.persistence.clientauth
+com.irurueta.authserver.authorization.infrastructure.persistence.clients
+com.irurueta.authserver.authorization.infrastructure.persistence.dev
+com.irurueta.authserver.authorization.infrastructure.persistence.keys
+com.irurueta.authserver.authorization.infrastructure.persistence.mfa
+com.irurueta.authserver.authorization.infrastructure.persistence.ott
+com.irurueta.authserver.authorization.infrastructure.persistence.passkeys
+com.irurueta.authserver.authorization.infrastructure.persistence.password
+com.irurueta.authserver.authorization.infrastructure.persistence.sms
+com.irurueta.authserver.authorization.infrastructure.persistence.social
+com.irurueta.authserver.authorization.infrastructure.persistence.tokens
+com.irurueta.authserver.authorization.infrastructure.persistence.totp
+com.irurueta.authserver.authorization.infrastructure.persistence.x509

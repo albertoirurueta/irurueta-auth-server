@@ -1,0 +1,7 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:bff-domain,com.irurueta.authserver.bff.domain.documents,DocumentsForbiddenException,0,5,0,0,0,2,0,1,0,1
+com.irurueta.authserver:bff-domain,com.irurueta.authserver.bff.domain.documents,DocumentsUnauthorizedException,0,5,0,0,0,2,0,1,0,1
+com.irurueta.authserver:bff-domain,com.irurueta.authserver.bff.domain.documents,DocumentsStepUpRequiredException,0,19,0,0,0,6,0,3,0,3
+com.irurueta.authserver:bff-domain,com.irurueta.authserver.bff.domain.documents,Document,0,43,0,6,0,10,0,5,0,2
+com.irurueta.authserver:bff-domain,com.irurueta.authserver.bff.domain.documents,DocumentNotFoundException,0,5,0,0,0,2,0,1,0,1
+com.irurueta.authserver:bff-domain,com.irurueta.authserver.bff.domain.documents,DocumentsUnavailableException,0,5,0,0,0,2,0,1,0,1

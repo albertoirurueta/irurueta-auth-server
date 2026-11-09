@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"com.irurueta.authserver.resourceserver.domain.documents","l":"Document"},{"p":"com.irurueta.authserver.resourceserver.domain.documents","l":"DocumentRepository"}];updateSearchResults();

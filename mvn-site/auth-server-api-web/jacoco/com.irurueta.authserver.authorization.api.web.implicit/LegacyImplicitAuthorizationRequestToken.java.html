@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitAuthorizationRequestToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitAuthorizationRequestToken.java</span></div><h1>LegacyImplicitAuthorizationRequestToken.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import java.util.List;
+import java.util.Set;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
+/**
+ * An authorization request of the legacy implicit flow ({@code response_type=token}), not yet authenticated: the
+ * request as the client sent it and the user the request arrived with.
+ */
+public class LegacyImplicitAuthorizationRequestToken extends AbstractAuthenticationToken {
+
+    /** Serial version. */
+    private static final long serialVersionUID = 1L;
+
+    /** Identifier of the client. */
+    private final String clientId;
+
+    /** Redirect URI of the request, {@code null} when it names none. */
+    private final String redirectUri;
+
+    /** Scopes requested. */
+    private final Set&lt;String&gt; scopes;
+
+    /** State of the request, {@code null} when it has none. */
+    private final String state;
+
+    /** The user the request arrived with, possibly anonymous. */
+    private final transient Authentication user;
+
+    /**
+     * Creates the request.
+     *
+     * @param clientId    identifier of the client.
+     * @param redirectUri redirect URI of the request, may be {@code null}.
+     * @param scopes      scopes requested.
+     * @param state       state of the request, may be {@code null}.
+     * @param user        the user the request arrived with.
+     */
+    public LegacyImplicitAuthorizationRequestToken(final String clientId, final String redirectUri,
+            final Set&lt;String&gt; scopes, final String state, final Authentication user) {
+<span class="fc" id="L58">        super(List.of());</span>
+<span class="fc" id="L59">        this.clientId = clientId;</span>
+<span class="fc" id="L60">        this.redirectUri = redirectUri;</span>
+<span class="fc" id="L61">        this.scopes = Set.copyOf(scopes);</span>
+<span class="fc" id="L62">        this.state = state;</span>
+<span class="fc" id="L63">        this.user = user;</span>
+<span class="fc" id="L64">    }</span>
+
+    /**
+     * Returns the identifier of the client.
+     *
+     * @return the client id.
+     */
+    public String getClientId() {
+<span class="fc" id="L72">        return clientId;</span>
+    }
+
+    /**
+     * Returns the redirect URI of the request.
+     *
+     * @return the redirect URI, {@code null} when the request names none.
+     */
+    public String getRedirectUri() {
+<span class="fc" id="L81">        return redirectUri;</span>
+    }
+
+    /**
+     * Returns the scopes requested.
+     *
+     * @return the scopes, possibly empty.
+     */
+    public Set&lt;String&gt; getScopes() {
+<span class="fc" id="L90">        return scopes;</span>
+    }
+
+    /**
+     * Returns the state of the request.
+     *
+     * @return the state, {@code null} when the request has none.
+     */
+    public String getState() {
+<span class="fc" id="L99">        return state;</span>
+    }
+
+    /**
+     * Returns the credentials, which a request has none of.
+     *
+     * @return an empty string.
+     */
+    @Override
+    public Object getCredentials() {
+<span class="fc" id="L109">        return &quot;&quot;;</span>
+    }
+
+    /**
+     * Returns the principal of the request: the user it arrived with.
+     *
+     * @return the user.
+     */
+    @Override
+    public Object getPrincipal() {
+<span class="fc" id="L119">        return user;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PasskeySecondFactorFragment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.passkeys</a> &gt; <span class="el_source">PasskeySecondFactorFragment.java</span></div><h1>PasskeySecondFactorFragment.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.passkeys;
+
+import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorFragment;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.passkeys.HasConfirmedPasskeyUseCase;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
+
+/**
+ * Contributes the &quot;use a passkey&quot; action to the second-factor page. The only data it needs is whether the signed-in
+ * user has a passkey at all: the options of the ceremony are asked from the framework endpoint, which, for a signed-in
+ * session, only allows the credentials of that user.
+ */
+@Component
+@RequiredArgsConstructor
+public class PasskeySecondFactorFragment implements SecondFactorFragment {
+
+    /** Position of the passkey action in the second-factor page: after the TOTP forms. */
+    public static final int ORDER = 200;
+
+    /** Model attribute telling the fragment whether the user has a passkey to present. */
+    public static final String AVAILABLE_ATTRIBUTE = &quot;passkeysAvailable&quot;;
+
+    /** Resolves the identifier of the account of the signed-in user. */
+    private final SecondFactorUserResolver userResolver;
+
+    /** Tells whether the user has a registered passkey. */
+    private final HasConfirmedPasskeyUseCase hasConfirmedPasskeyUseCase;
+
+    /**
+     * Gets the template that holds the fragment.
+     *
+     * @return {@code passkeys-second-factor}.
+     */
+    @Override
+    public String templateName() {
+<span class="fc" id="L56">        return &quot;passkeys-second-factor&quot;;</span>
+    }
+
+    /**
+     * Gets the fragment of the template.
+     *
+     * @return {@code form}.
+     */
+    @Override
+    public String fragmentName() {
+<span class="fc" id="L66">        return &quot;form&quot;;</span>
+    }
+
+    /**
+     * Gets the position of the fragment.
+     *
+     * @return {@link #ORDER}.
+     */
+    @Override
+    public int order() {
+<span class="fc" id="L76">        return ORDER;</span>
+    }
+
+    /**
+     * Tells the template whether to offer the passkey.
+     *
+     * @param authentication the authentication of the user the page is rendered for.
+     * @return the model attributes; none when nobody is signed in.
+     */
+    @Override
+    public Map&lt;String, Object&gt; modelAttributes(final Authentication authentication) {
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        if (!MfaAuthorizationManager.isUser(authentication)) {</span>
+<span class="fc" id="L88">            return Map.of();</span>
+        }
+<span class="fc" id="L90">        return Map.of(AVAILABLE_ATTRIBUTE,</span>
+<span class="fc" id="L91">                hasConfirmedPasskeyUseCase.execute(userResolver.userIdOf(authentication.getName())));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

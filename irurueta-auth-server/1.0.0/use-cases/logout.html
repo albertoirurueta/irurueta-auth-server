@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Logout :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="logout.html">Logout</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/logout.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Logout</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Signing out involves two sessions: the relying party&#8217;s (here the BFF session that holds the tokens) and the
+authorization server&#8217;s own login session. The repository supports three ways out. The SPA signs out with
+<code>POST /bff/logout</code>, which ends the BFF session and then sends the browser to the OpenID Connect RP-initiated logout
+endpoint of <code>auth-server</code> (<code>/connect/logout</code>), which ends the server session and returns the browser to a
+registered post-logout redirect URI. A user of the server&#8217;s own pages can also sign out there directly, through the
+<code>/logout</code> confirmation page. Back-channel and front-channel logout are not implemented.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_at_a_glance"><a class="anchor" href="#_at_a_glance"></a>At a glance</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Item</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Actors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User and browser (the SPA served by the <code>bff</code>), <code>bff</code>, <code>auth-server</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clients</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code> (post-logout redirect URI <code><a href="http://localhost:8080/" class="bare">http://localhost:8080/</a></code> in the <code>dev</code> profile); <code>spa-public</code> may register its own
+(<code><a href="http://localhost:3000/" class="bare">http://localhost:3000/</a></code> in <code>dev</code>). Any client registered through the admin API can carry <code>postLogoutRedirectUris</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Preconditions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The client&#8217;s post-logout redirect URIs: <code>authserver.clients.bff.post-logout-redirect-uris</code>
+(<code>AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS</code>) and <code>authserver.clients.spa-public.post-logout-redirect-uris</code>
+(<code>AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS</code>); none by default. The relying party needs the ID token of the session
+(<code>id_token_hint</code> is required by Spring Authorization Server).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BFF: <code>POST /bff/logout</code> (Spring Security logout filter, CSRF protected). <code>auth-server</code>: <code>GET</code> or <code>POST /connect/logout</code>
+(the <code>end_session_endpoint</code> of the discovery document), <code>GET /logout</code> (confirmation page, <code>LogoutController</code>,
+pages contract) and <code>POST /logout</code> (Spring Security logout filter, CSRF protected).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_sign_out_from_the_spa_rp_initiated"><a class="anchor" href="#_sign_out_from_the_spa_rp_initiated"></a>Sign-out from the SPA (RP-initiated)</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The SPA builds a <code>&lt;form method="post" action="/bff/logout"&gt;</code> with a hidden <code>_csrf</code> field copied from the
+<code>XSRF-TOKEN</code> cookie and submits it as a top-level navigation.</p>
+</li>
+<li>
+<p>The BFF chain&#8217;s logout filter (configured in <code>SecurityConfig.bffFilterChain</code>, matching only <code>POST /bff/logout</code>) runs
+its handlers: it clears the <code>XSRF-TOKEN</code> cookie and the security context and invalidates the session, which deletes it
+from the <code>spring_session</code> table, tokens included.</p>
+</li>
+<li>
+<p><code>OidcClientInitiatedLogoutSuccessHandler</code> (<code>LogoutConfiguration</code>) answers <code>302</code> to the <code>end_session_endpoint</code> it read
+from the discovery document, with <code>id_token_hint</code> (the session&#8217;s ID token) and
+<code>post_logout_redirect_uri</code> (<code>{baseUrl}/</code>, the root of the SPA).</p>
+</li>
+<li>
+<p>The browser follows the redirect to <code>/connect/logout</code>. Spring Authorization Server finds the authorization that
+issued the ID token, checks that its <code>aud</code> is the client, and, when the browser still has a server session, that the
+token&#8217;s <code>sub</code> and <code>sid</code> match that session; then it checks that <code>post_logout_redirect_uri</code> is one of the client&#8217;s
+registered <code>postLogoutRedirectUris</code>.</p>
+</li>
+<li>
+<p>It ends the server session (security context cleared, session invalidated) and redirects to the post-logout
+redirect URI, adding <code>state</code> when the request carried one. The SPA loads in its signed-out state and does not start
+a new sign-in by itself.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sign_out_on_the_authorization_server_pages"><a class="anchor" href="#_sign_out_on_the_authorization_server_pages"></a>Sign-out on the authorization server pages</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A signed-in user opens <code>GET /logout</code>. <code>LogoutController</code> renders <code>templates/logout.html</code>, whose form posts to
+<code>/logout</code> with the CSRF token added by <code>th:action</code>.</p>
+</li>
+<li>
+<p><code>POST /logout</code>, configured by <code>LogoutChainCustomizer</code> on the login chain, invalidates the session, deletes the
+<code>JSESSIONID</code> cookie and redirects to <code>/login?logout</code>. A post without the CSRF token is refused with <code>403</code> and the
+session is kept.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser SPA
+  participant F as BFF
+  participant A as auth-server
+  B->>F: POST /bff/logout with _csrf
+  Note over F: XSRF-TOKEN cleared, session and tokens deleted
+  F-->>B: 302 to /connect/logout with id_token_hint and post_logout_redirect_uri
+  B->>A: GET /connect/logout
+  Note over A: check id_token_hint, client and registered redirect URI
+  A-->>B: 302 to post_logout_redirect_uri, server session ended
+  B->>F: GET /
+  F-->>B: SPA in its signed-out state
+  B->>F: GET /bff/user
+  F-->>B: 401</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["Request to /connect/logout"]) --> Hint{"id_token_hint present and issued by this server?"}
+  Hint -- "no" --> Bad["4xx error, nothing ended"]
+  Hint -- "yes" --> Aud{"aud matches the client?"}
+  Aud -- "no" --> Bad
+  Aud -- "yes" --> Sess{"Server session present?"}
+  Sess -- "yes" --> Match{"sub and sid match the session?"}
+  Match -- "no" --> Bad
+  Match -- "yes" --> Uri
+  Sess -- "no" --> Uri{"post_logout_redirect_uri sent?"}
+  Uri -- "no" --> Root["Session ended, 302 to the server root"]
+  Uri -- "yes" --> Reg{"Registered for the client?"}
+  Reg -- "no" --> Bad
+  Reg -- "yes" --> Back["Session ended, 302 to the URI with state"]</div></div>
+<div class="paragraph">
+<p>The BFF&#8217;s logout handler:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the handler that redirects the browser to the logout URL of the authorization server (its
+     * {@code end_session_endpoint}, with {@code id_token_hint} and {@code post_logout_redirect_uri}), with the default
+     * redirect strategy: the answer to {@code POST /bff/logout} is a {@code 302} that the browser follows as a
+     * top-level navigation, so no script ever reads the ID token the URL carries.
+     *
+     * @param clientRepository the registered OAuth2 clients.
+     * @return the logout success handler.
+     */
+    @Bean
+    OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(
+            final ClientRegistrationRepository clientRepository) {
+        final var handler = new OidcClientInitiatedLogoutSuccessHandler(clientRepository);
+        handler.setPostLogoutRedirectUri(POST_LOGOUT_REDIRECT_URI);
+        return handler;
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The server&#8217;s own logout:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public void customize(final HttpSecurity http) {
+        http.logout(logout -&gt; logout
+                .logoutUrl(LOGOUT_PATH)
+                .logoutSuccessUrl(LOGOUT_SUCCESS_URL)
+                .invalidateHttpSession(true)
+                .deleteCookies(SESSION_COOKIE));
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>No token is issued. The ID token travels as <code>id_token_hint</code> in the URL of a top-level navigation only, never in a
+response a script can read; <code>BffEndToEndIT</code> allows it there and nowhere else. The logout ends sessions; it does not
+revoke the authorization stored on the server, so a copied refresh token stays valid until it expires or is revoked
+(<code>/oauth2/revoke</code>). The BFF no longer holds any token once its session is invalidated.</p>
+</div>
+<div class="paragraph">
+<p>What is not implemented:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Back-channel logout</strong>: the server sends no <code>logout_token</code>, so another client&#8217;s session survives a sign-out of the
+server until it expires.</p>
+</li>
+<li>
+<p><strong>Front-channel logout</strong>: not supported by Spring Authorization Server.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code> <code>LogoutIT</code>: the confirmation page, <code>POST /logout</code> invalidating the session, refused without CSRF,
+and <code>/connect/logout</code> redirecting to a registered <code>post_logout_redirect_uri</code> with <code>state</code> (session invalidated) or
+refusing an unregistered one without redirecting (session kept).</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>SecurityConfigIT</code>: the sign-out form with the raw <code>_csrf</code> parameter ends the session and redirects; a
+<code>GET /bff/logout</code> is not handled.</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>SpaStaticResourcesIT</code>: the SPA signs out with a form post.</p>
+</li>
+<li>
+<p><code>e2e-tests</code> <code>BffEndToEndIT</code>: signs in and out through the real servers, lands on the signed-out SPA, and checks that
+<code>/bff/user</code> and <code>/api/documents</code> answer <code>401</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html">OpenID Connect RP-Initiated Logout 1.0</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout">§2: RP-Initiated Logout</a> and
+<a href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RedirectionAfterLogout">§3: Redirection to RP After Logout</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-backchannel-1_0.html">OpenID Connect Back-Channel Logout 1.0</a> (not implemented)</p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-frontchannel-1_0.html">OpenID Connect Front-Channel Logout 1.0</a> (not supported)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/logout-and-session-management.html">Logout &amp; Session Management</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/openid-connect.html">OpenID Connect</a></p>
+</li>
+<li>
+<p><a href="../login-and-bff.html" class="xref page">Login pages and the BFF</a></p>
+</li>
+<li>
+<p><a href="../clients.html" class="xref page">Registered clients</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+<li>
+<p><a href="openid-connect.html" class="xref page">OpenID Connect sign-in</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

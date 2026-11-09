@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>X509TlsConnectorCustomizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">X509TlsConnectorCustomizer.java</span></div><h1>X509TlsConnectorCustomizer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import lombok.RequiredArgsConstructor;
+import org.apache.catalina.connector.Connector;
+import org.apache.coyote.http11.AbstractHttp11Protocol;
+import org.apache.coyote.http11.Http11NioProtocol;
+import org.apache.tomcat.util.net.SSLHostConfig;
+import org.apache.tomcat.util.net.SSLHostConfigCertificate;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+
+// tag::x509-tls-connector[]
+/**
+ * Adds the dedicated TLS port that requests a client certificate, when {@code authserver.x509.port} is set. The main
+ * port is left as it is, so the rest of the application never asks a browser for a certificate. The connector
+ * &lt;em&gt;requests&lt;/em&gt; a certificate without requiring one and without validating it against a CA
+ * ({@code optionalNoCA}): the TLS handshake proves that the client holds the private key, and what identifies the
+ * client is the fingerprint of the certificate, which has to be bound to an account. The servlet container leaves the
+ * certificate in the request attribute that the X.509 filter reads. The connector's trust manager
+ * ({@link AnyClientCertificateTrustManager}) advertises no certificate authority: without it the handshake lists the
+ * authorities of the JVM's default trust store, and a client offers only a certificate issued by a listed authority,
+ * so the certificate of a private authority would never be presented.
+ */
+@RequiredArgsConstructor
+public class X509TlsConnectorCustomizer implements WebServerFactoryCustomizer&lt;TomcatServletWebServerFactory&gt; {
+
+    /** Value of the certificate verification that asks for a certificate but does not validate it. */
+    static final String CERTIFICATE_VERIFICATION = &quot;optionalNoCA&quot;;
+
+    /** Scheme of the connector. */
+    private static final String SCHEME = &quot;https&quot;;
+
+    /** Settings of the sign-in with a certificate. */
+    private final X509Properties properties;
+
+    /** Finds the key store with the server certificate. */
+    private final X509TlsKeyStoreResolver keyStoreResolver;
+
+    /**
+     * Adds the connector to the server, when the port is configured.
+     *
+     * @param factory the factory of the embedded Tomcat.
+     */
+    @Override
+    public void customize(final TomcatServletWebServerFactory factory) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (properties.tlsEnabled()) {</span>
+<span class="fc" id="L62">            factory.addAdditionalConnectors(connector(keyStoreResolver.resolve()));</span>
+        }
+<span class="fc" id="L64">    }</span>
+
+    /**
+     * Builds the connector.
+     *
+     * @param keyStore the key store with the server certificate.
+     * @return the connector.
+     */
+    Connector connector(final X509TlsKeyStore keyStore) {
+<span class="fc" id="L73">        final var connector = new Connector(Http11NioProtocol.class.getName());</span>
+<span class="fc" id="L74">        connector.setScheme(SCHEME);</span>
+<span class="fc" id="L75">        connector.setSecure(true);</span>
+<span class="fc" id="L76">        connector.setPort(properties.port());</span>
+<span class="fc" id="L77">        final var protocol = (AbstractHttp11Protocol&lt;?&gt;) connector.getProtocolHandler();</span>
+<span class="fc" id="L78">        protocol.setSSLEnabled(true);</span>
+<span class="fc" id="L79">        final var host = new SSLHostConfig();</span>
+<span class="fc" id="L80">        host.setCertificateVerification(CERTIFICATE_VERIFICATION);</span>
+<span class="fc" id="L81">        host.setTrustManagerClassName(AnyClientCertificateTrustManager.class.getName());</span>
+<span class="fc" id="L82">        final var certificate = new SSLHostConfigCertificate(host, SSLHostConfigCertificate.Type.UNDEFINED);</span>
+<span class="fc" id="L83">        certificate.setCertificateKeystoreFile(keyStore.location().toString());</span>
+<span class="fc" id="L84">        certificate.setCertificateKeystorePassword(keyStore.password());</span>
+<span class="fc" id="L85">        certificate.setCertificateKeystoreType(keyStore.type());</span>
+<span class="fc" id="L86">        host.addCertificate(certificate);</span>
+<span class="fc" id="L87">        protocol.addSslHostConfig(host);</span>
+<span class="fc" id="L88">        return connector;</span>
+    }
+}
+// end::x509-tls-connector[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

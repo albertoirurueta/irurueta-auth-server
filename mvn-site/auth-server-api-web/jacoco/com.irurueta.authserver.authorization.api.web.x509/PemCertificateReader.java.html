@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PemCertificateReader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">PemCertificateReader.java</span></div><h1>PemCertificateReader.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.X509Certificate;
+import org.springframework.stereotype.Component;
+
+// tag::x509-pem-reader[]
+/**
+ * Reads the certificate sent to bind it to an account: exactly one X.509 certificate in PEM form, within its validity
+ * period, with a subject. A value that carries a private key is refused without being parsed: only the public
+ * certificate is ever sent. The fingerprint is computed exactly as {@link CertificatePrincipalExtractor} computes it at
+ * sign-in, so the binding matches the certificate the browser presents later.
+ */
+@Component
+<span class="fc" id="L36">public class PemCertificateReader {</span>
+
+    /** Longest subject the {@code x509_certificates} table keeps. */
+    static final int MAX_SUBJECT_LENGTH = 1000;
+
+    /** Type of the certificates. */
+    private static final String CERTIFICATE_TYPE = &quot;X.509&quot;;
+
+    /** Marker of a PEM private key, of any algorithm. */
+    private static final String PRIVATE_KEY_MARKER = &quot;PRIVATE KEY&quot;;
+
+    /** Computes the fingerprint the sign-in looks up. */
+<span class="fc" id="L48">    private final CertificatePrincipalExtractor fingerprints = new CertificatePrincipalExtractor();</span>
+
+    /**
+     * Reads a certificate.
+     *
+     * @param pem the certificate in PEM form.
+     * @return its fingerprint and subject.
+     * @throws InvalidCertificateException if the value carries a private key, is not exactly one X.509 certificate, is
+     *                                     outside its validity period or has no usable subject.
+     */
+    public PresentedCertificate read(final String pem) {
+<span class="fc bfc" id="L59" title="All 4 branches covered.">        if (pem == null || pem.contains(PRIVATE_KEY_MARKER)) {</span>
+<span class="fc" id="L60">            throw new InvalidCertificateException(&quot;Only a public certificate may be sent&quot;);</span>
+        }
+<span class="fc" id="L62">        final var certificate = parse(pem);</span>
+        try {
+<span class="fc" id="L64">            certificate.checkValidity();</span>
+<span class="fc" id="L65">        } catch (final CertificateExpiredException | CertificateNotYetValidException e) {</span>
+<span class="fc" id="L66">            throw new InvalidCertificateException(&quot;The certificate is not within its validity period&quot;, e);</span>
+<span class="fc" id="L67">        }</span>
+<span class="fc" id="L68">        final var subject = certificate.getSubjectX500Principal().getName();</span>
+<span class="pc bpc" id="L69" title="1 of 4 branches missed.">        if (subject.isBlank() || subject.length() &gt; MAX_SUBJECT_LENGTH) {</span>
+<span class="fc" id="L70">            throw new InvalidCertificateException(&quot;The certificate has no usable subject&quot;);</span>
+        }
+        try {
+<span class="fc" id="L73">            return new PresentedCertificate(fingerprints.fingerprintOf(certificate.getEncoded()), subject);</span>
+<span class="nc" id="L74">        } catch (final CertificateEncodingException e) {</span>
+<span class="nc" id="L75">            throw new InvalidCertificateException(&quot;The certificate cannot be encoded&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Parses exactly one X.509 certificate.
+     *
+     * @param pem the PEM text.
+     * @return the certificate.
+     * @throws InvalidCertificateException if the text is not exactly one X.509 certificate.
+     */
+    private static X509Certificate parse(final String pem) {
+        try {
+<span class="fc" id="L88">            final var certificates = CertificateFactory.getInstance(CERTIFICATE_TYPE)</span>
+<span class="fc" id="L89">                    .generateCertificates(new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII)));</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            if (certificates.size() != 1</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                    || !(certificates.iterator().next() instanceof final X509Certificate certificate)) {</span>
+<span class="fc" id="L92">                throw new InvalidCertificateException(&quot;Exactly one X.509 certificate must be sent&quot;);</span>
+            }
+<span class="fc" id="L94">            return certificate;</span>
+<span class="fc" id="L95">        } catch (final CertificateException e) {</span>
+<span class="fc" id="L96">            throw new InvalidCertificateException(&quot;The value is not a PEM X.509 certificate&quot;, e);</span>
+        }
+    }
+}
+// end::x509-pem-reader[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

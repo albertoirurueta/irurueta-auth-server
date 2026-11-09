@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServiceClientAuthProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">ServiceClientAuthProperties.java</span></div><h1>ServiceClientAuthProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import java.net.URI;
+import java.time.Duration;
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Settings of the service client at the authorization server ({@code service-client.auth.*}). Every one has a default
+ * so that the application starts under any profile; the CLI profiles supply the real values.
+ *
+ * @param method        how the client authenticates, {@code client_secret_basic} by default.
+ * @param clientId      identifier of the client, {@code service-client} by default.
+ * @param clientSecret  shared secret of {@code client_secret_basic}; empty for the other methods.
+ * @param tokenUri      token endpoint, {@code http://localhost:9000/oauth2/token} by default.
+ * @param scopes        scopes requested, {@code documents.read} by default.
+ * @param refreshBefore how long before its expiry a cached access token is renewed, {@code PT60S} by default.
+ * @param dpop          whether tokens are bound to a proof-of-possession key (RFC 9449).
+ * @param sslBundle     name of the Spring Boot SSL bundle that holds the client certificate and the trust material;
+ *                      needed by the mutual TLS methods (it is also used for the calls to the resource server), and
+ *                      used by the other methods only when set.
+ */
+@ConfigurationProperties(prefix = &quot;service-client.auth&quot;)
+public record ServiceClientAuthProperties(AuthMethod method, String clientId, String clientSecret, URI tokenUri,
+        List&lt;String&gt; scopes, Duration refreshBefore, boolean dpop, String sslBundle) {
+
+    /** Client identifier used when nothing is configured. */
+    public static final String DEFAULT_CLIENT_ID = &quot;service-client&quot;;
+
+    /** Token endpoint used when nothing is configured. */
+<span class="fc" id="L48">    public static final URI DEFAULT_TOKEN_URI = URI.create(&quot;http://localhost:9000/oauth2/token&quot;);</span>
+
+    /** Scope requested when nothing is configured. */
+    public static final String DEFAULT_SCOPE = &quot;documents.read&quot;;
+
+    /** Seconds before the expiry of a token at which it is renewed, when nothing is configured. */
+    public static final long DEFAULT_REFRESH_BEFORE_SECONDS = 60L;
+
+    /**
+     * Applies the defaults and validates the values.
+     *
+     * @throws IllegalArgumentException if the refresh margin is negative.
+     */
+<span class="fc" id="L61">    public ServiceClientAuthProperties {</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        method = method == null ? AuthMethod.CLIENT_SECRET_BASIC : method;</span>
+<span class="fc bfc" id="L63" title="All 4 branches covered.">        clientId = clientId == null || clientId.isBlank() ? DEFAULT_CLIENT_ID : clientId;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        clientSecret = clientSecret == null ? &quot;&quot; : clientSecret;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        tokenUri = tokenUri == null ? DEFAULT_TOKEN_URI : tokenUri;</span>
+<span class="fc bfc" id="L66" title="All 4 branches covered.">        scopes = scopes == null || scopes.isEmpty() ? List.of(DEFAULT_SCOPE) : List.copyOf(scopes);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        refreshBefore = refreshBefore == null ? Duration.ofSeconds(DEFAULT_REFRESH_BEFORE_SECONDS) : refreshBefore;</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (refreshBefore.isNegative()) {</span>
+<span class="fc" id="L69">            throw new IllegalArgumentException(&quot;service-client.auth.refresh-before must not be negative&quot;);</span>
+        }
+<span class="fc" id="L71">    }</span>
+
+    /**
+     * Describes the settings without the secret.
+     *
+     * @return the description.
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L80">        return &quot;ServiceClientAuthProperties[method=&quot; + method + &quot;, clientId=&quot; + clientId + &quot;, tokenUri=&quot; + tokenUri</span>
+                + &quot;, scopes=&quot; + scopes + &quot;, refreshBefore=&quot; + refreshBefore + &quot;, dpop=&quot; + dpop + &quot;, sslBundle=&quot;
+                + sslBundle + &quot;]&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

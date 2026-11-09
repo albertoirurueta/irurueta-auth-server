@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitTokenGeneratorFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitTokenGeneratorFactory.java</span></div><h1>LegacyImplicitTokenGeneratorFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.oauth2.core.OAuth2Token;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.server.authorization.token.DelegatingOAuth2TokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
+import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2AccessTokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenClaimsContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
+
+/**
+ * Builds the token generator of the legacy flow with the claims customizers of the server, so its tokens carry the same
+ * roles, tenant, audience and authentication claims as those of the other flows. The generator is deliberately not a
+ * bean: a bean of that type would replace the one the framework builds for every other flow.
+ */
+@RequiredArgsConstructor
+public class LegacyImplicitTokenGeneratorFactory {
+
+    /** Signs the self-contained tokens. */
+    private final JwtEncoder jwtEncoder;
+
+    /** Adds the claims of the server to a JWT. */
+    private final ObjectProvider&lt;OAuth2TokenCustomizer&lt;JwtEncodingContext&gt;&gt; jwtCustomizers;
+
+    /** Adds the claims of the server to a reference token. */
+    private final ObjectProvider&lt;OAuth2TokenCustomizer&lt;OAuth2TokenClaimsContext&gt;&gt; claimsCustomizers;
+
+    /**
+     * Creates the generator: a JWT for a client of self-contained tokens, an opaque token otherwise.
+     *
+     * @return the generator.
+     */
+    public OAuth2TokenGenerator&lt;OAuth2Token&gt; create() {
+<span class="fc" id="L53">        final var jwtGenerator = new JwtGenerator(jwtEncoder);</span>
+<span class="fc" id="L54">        jwtCustomizers.ifAvailable(jwtGenerator::setJwtCustomizer);</span>
+<span class="fc" id="L55">        final var accessTokenGenerator = new OAuth2AccessTokenGenerator();</span>
+<span class="fc" id="L56">        claimsCustomizers.ifAvailable(accessTokenGenerator::setAccessTokenCustomizer);</span>
+<span class="fc" id="L57">        return new DelegatingOAuth2TokenGenerator(jwtGenerator, accessTokenGenerator);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

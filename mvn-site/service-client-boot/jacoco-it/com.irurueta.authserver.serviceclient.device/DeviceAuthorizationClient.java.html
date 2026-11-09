@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceAuthorizationClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-boot</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.device</a> &gt; <span class="el_source">DeviceAuthorizationClient.java</span></div><h1>DeviceAuthorizationClient.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.serviceclient.device;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+
+/**
+ * Calls the standard device flow endpoints of the authorization server. They belong to Spring Authorization
+ * Server, so there is no contract of ours to generate a client from.
+ */
+@Component
+@Profile(DeviceFlowConfiguration.PROFILE)
+@RequiredArgsConstructor
+public class DeviceAuthorizationClient {
+
+    /**
+     * Path of the device authorization endpoint.
+     */
+    public static final String DEVICE_AUTHORIZATION_PATH = &quot;/oauth2/device_authorization&quot;;
+
+    /**
+     * Path of the token endpoint.
+     */
+    public static final String TOKEN_PATH = &quot;/oauth2/token&quot;;
+
+    /**
+     * Grant type of the token request (RFC 8628 section 3.4).
+     */
+    public static final String DEVICE_CODE_GRANT = &quot;urn:ietf:params:oauth:grant-type:device_code&quot;;
+
+    /**
+     * Error code meaning the user has not decided yet.
+     */
+    public static final String AUTHORIZATION_PENDING = &quot;authorization_pending&quot;;
+
+    /**
+     * Error code meaning the client polls too fast.
+     */
+    public static final String SLOW_DOWN = &quot;slow_down&quot;;
+
+    /** The invalid response. */
+    private static final String INVALID_RESPONSE = &quot;invalid_response&quot;;
+
+    /** The rest client. */
+    private final RestClient restClient;
+
+    /** The properties. */
+    private final DeviceFlowProperties properties;
+
+    /**
+     * Asks the server for a device code and a user code.
+     *
+     * @return the authorization the user has to approve.
+     * @throws DeviceFlowException if the request fails or the answer is unusable.
+     */
+    public DeviceAuthorization requestDeviceAuthorization() {
+<span class="nc" id="L80">        final var form = new LinkedMultiValueMap&lt;String, String&gt;();</span>
+<span class="nc" id="L81">        form.add(&quot;client_id&quot;, properties.clientId());</span>
+<span class="nc" id="L82">        form.add(&quot;scope&quot;, properties.scope());</span>
+        try {
+<span class="nc" id="L84">            final var body = restClient.post()</span>
+<span class="nc" id="L85">                    .uri(DEVICE_AUTHORIZATION_PATH)</span>
+<span class="nc" id="L86">                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)</span>
+<span class="nc" id="L87">                    .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L88">                    .body(form)</span>
+<span class="nc" id="L89">                    .retrieve()</span>
+<span class="nc" id="L90">                    .body(DeviceAuthorization.class);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            if (body == null) {</span>
+<span class="nc" id="L92">                throw new DeviceFlowException(&quot;The device authorization response is empty&quot;);</span>
+            }
+<span class="nc" id="L94">            return body;</span>
+<span class="nc" id="L95">        } catch (final RestClientException e) {</span>
+<span class="nc" id="L96">            throw new DeviceFlowException(&quot;The device authorization request failed: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    /**
+     * Polls the token endpoint once.
+     *
+     * @param deviceCode the device code returned by {@link #requestDeviceAuthorization()}.
+     * @return what the server answered.
+     * @throws DeviceFlowException if the server cannot be reached or the answer is not an OAuth response.
+     */
+    public PollOutcome pollToken(final String deviceCode) {
+<span class="nc" id="L108">        final MultiValueMap&lt;String, String&gt; form = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="nc" id="L109">        form.add(&quot;grant_type&quot;, DEVICE_CODE_GRANT);</span>
+<span class="nc" id="L110">        form.add(&quot;device_code&quot;, deviceCode);</span>
+<span class="nc" id="L111">        form.add(&quot;client_id&quot;, properties.clientId());</span>
+        try {
+<span class="nc" id="L113">            return restClient.post()</span>
+<span class="nc" id="L114">                    .uri(TOKEN_PATH)</span>
+<span class="nc" id="L115">                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)</span>
+<span class="nc" id="L116">                    .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L117">                    .body(form)</span>
+<span class="nc" id="L118">                    .exchange((request, response) -&gt; {</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                        if (response.getStatusCode().is2xxSuccessful()) {</span>
+<span class="nc" id="L120">                            final var token = response.bodyTo(TokenResponse.class);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                            return token == null ? new PollOutcome.Failed(INVALID_RESPONSE, &quot;empty token response&quot;)</span>
+<span class="nc" id="L122">                                    : new PollOutcome.Granted(token);</span>
+                        }
+<span class="nc" id="L124">                        return toOutcome(response.bodyTo(OAuthError.class));</span>
+                    });
+<span class="nc" id="L126">        } catch (final RestClientException e) {</span>
+<span class="nc" id="L127">            throw new DeviceFlowException(&quot;The token request failed: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    /**
+     * Maps an error response of the token endpoint to a poll outcome.
+     *
+     * @param error the error response; may be {@code null}.
+     * @return the outcome.
+     */
+    private PollOutcome toOutcome(final OAuthError error) {
+<span class="nc bnc" id="L138" title="All 4 branches missed.">        if (error == null || error.error() == null) {</span>
+<span class="nc" id="L139">            return new PollOutcome.Failed(INVALID_RESPONSE, &quot;the error response has no error code&quot;);</span>
+        }
+<span class="nc bnc" id="L141" title="All 3 branches missed.">        return switch (error.error()) {</span>
+<span class="nc" id="L142">            case AUTHORIZATION_PENDING -&gt; new PollOutcome.Pending();</span>
+<span class="nc" id="L143">            case SLOW_DOWN -&gt; new PollOutcome.SlowDown();</span>
+<span class="nc" id="L144">            default -&gt; new PollOutcome.Failed(error.error(), error.errorDescription());</span>
+        };
+    }
+
+    /**
+     * Error response of the token endpoint (RFC 6749 section 5.2).
+     *
+     * @param error            the error code.
+     * @param errorDescription the optional description.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+<span class="nc" id="L155">    record OAuthError(</span>
+            @JsonProperty(&quot;error&quot;) String error,
+            @JsonProperty(&quot;error_description&quot;) String errorDescription) {
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

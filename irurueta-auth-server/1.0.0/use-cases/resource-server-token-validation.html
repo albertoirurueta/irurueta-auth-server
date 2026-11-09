@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Resource server token validation :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Services and devices</li>
+    <li><a href="resource-server-token-validation.html">Resource server token validation</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/resource-server-token-validation.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Resource server token validation</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The resource server (port 8081) accepts a request only with an access token that the authorization server issued for
+it. By default tokens are self-contained JWTs, validated locally against the authorization server&#8217;s published keys:
+signature, issuer, timestamps and audience, then scopes and roles. Under the <code>opaque</code> profile the resource server
+instead introspects reference tokens at the authorization server (RFC 7662), authenticating as a client of its own.
+Clients can revoke tokens (RFC 7009); an introspecting resource server sees the revocation at once, a JWT-validating one
+when the token expires. Failures follow RFC 6750.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: a client holding an access token (the BFF, <code>service-client</code>, &#8230;&#8203;), <code>resource-server</code>, <code>auth-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: the client the token was issued to, whose configured audiences must include <code>resource-server</code>;
+under <code>opaque</code>, a confidential client for the resource server with <code>client_secret_basic</code> (any confidential client can
+introspect), and token clients registered with <code>"accessTokenFormat": "reference"</code>.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>JWT (default, profile not <code>opaque</code>): <code>spring.security.oauth2.resourceserver.jwt.issuer-uri</code> (<code>AUTH_ISSUER</code>, default
+<code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code>) and <code>&#8230;&#8203;jwt.audiences</code> (<code>RESOURCE_SERVER_AUDIENCES</code>, default <code>resource-server</code>; the
+application refuses to start when it is empty).</p>
+</li>
+<li>
+<p>Introspection: Spring profile <code>opaque</code> and <code>AUTH_INTROSPECTION_URI</code>, <code>INTROSPECTION_CLIENT_ID</code>,
+<code>INTROSPECTION_CLIENT_SECRET</code> (no defaults); the same audiences setting.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>GET /api/documents</code>, <code>DELETE /api/documents/{id}</code> (resource server);
+<code>/.well-known/openid-configuration</code>, <code>/oauth2/jwks</code>, <code>POST /oauth2/introspect</code>, <code>POST /oauth2/revoke</code> (authorization
+server).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_jwt_validation_default"><a class="anchor" href="#_jwt_validation_default"></a>JWT validation (default)</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A request arrives with <code>Authorization: Bearer &lt;JWT&gt;</code> (or <code>DPoP &lt;JWT&gt;</code> with a proof, see
+<a href="sender-constrained-tokens.html" class="xref page">Sender-constrained tokens</a>).</p>
+</li>
+<li>
+<p><code>SecurityConfig.resourceServerFilterChain</code> (<code>@Profile("!opaque")</code>) uses the decoder Spring Boot builds from the issuer
+URI. On the first request it reads the issuer&#8217;s metadata and its <code>jwks_uri</code> (<code>/oauth2/jwks</code>), which publishes the
+active, next and still-valid retired keys, so tokens signed before a key rotation still verify (see
+<a href="../tokens-and-keys.html" class="xref page">Tokens and signing keys</a>).</p>
+</li>
+<li>
+<p>The decoder verifies the signature by <code>kid</code>, then <code>iss</code> (must equal the issuer), <code>exp</code> / <code>nbf</code> and <code>aud</code> (must list one
+of the configured audiences). A token issued for another audience, for example the authorization server&#8217;s own API
+(<code>auth-server</code>), is refused.</p>
+</li>
+<li>
+<p><code>jwtAuthenticationConverter</code> maps <code>scope</code> to <code>SCOPE_*</code> authorities and <code>roles</code> to <code>ROLE_*</code> authorities
+(<code>BearerAuthorities</code>).</p>
+</li>
+<li>
+<p>Authorization: <code>GET /api/documents</code> needs <code>SCOPE_documents.read</code>; <code>DELETE /api/documents/{id}</code> goes through
+<code>StepUpAuthorizationManager</code> (<code>SCOPE_documents.delete</code> plus a recent multi-factor sign-in, see
+<a href="step-up.html" class="xref page">Step-up authentication</a>); ownership is checked by <code>DeleteDocumentUseCase</code>.</p>
+</li>
+<li>
+<p>A token with <code>cnf.jkt</code> needs a valid DPoP proof and one with <code>cnf.x5t#S256</code> the matching TLS client certificate.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Nothing in this repository sets or checks the RFC 9068 <code>typ: at+jwt</code> header; the checks that apply are the issuer,
+signature, audience and lifetime ones RFC 9068 §4 also asks for.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the filter chain validating bearer JWTs (the decoder is built from {@code issuer-uri}, and the
+     * configured audiences are validated by it).
+     *
+     * @param http       the HTTP security builder.
+     * @param properties the resource server properties.
+     * @param stepUp     requires a recent strong authentication to delete.
+     * @param accessDeniedHandler answers the denials, including the step-up challenge.
+     * @return the security filter chain.
+     * @throws Exception if the chain cannot be built.
+     * @throws IllegalStateException if no accepted audience is configured.
+     */
+    @Bean
+    @Profile("!opaque")
+    SecurityFilterChain resourceServerFilterChain(final HttpSecurity http,
+            final OAuth2ResourceServerProperties properties, final StepUpAuthorizationManager stepUp,
+            final StepUpAccessDeniedHandler accessDeniedHandler) throws Exception {
+        requireAudiences(properties.getJwt().getAudiences());
+        authorize(http, stepUp);
+        http.oauth2ResourceServer(oauth2 -&gt; oauth2
+                .jwt(jwt -&gt; jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                // DPoP (RFC 9449): "Authorization: DPoP &lt;token&gt;" plus a proof; the framework already refuses a
+                // token whose cnf holds jkt when it arrives as Bearer. A cnf.x5t#S256 token is checked against the
+                // TLS client certificate by the validator of the decoder Boot builds (no JwtDecoder bean here).
+                .dPoP(Customizer.withDefaults())
+                .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
+                .accessDeniedHandler(accessDeniedHandler));
+        return http.build();
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Maps the {@code scope} claim to {@code SCOPE_*} authorities (the default converter) and the {@code roles}
+     * claim to {@code ROLE_*} authorities.
+     *
+     * @return the converter.
+     */
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        final var scopes = new JwtGrantedAuthoritiesConverter();
+        final var converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -&gt; {
+            final var authorities = new ArrayList&lt;GrantedAuthority&gt;(scopes.convert(jwt));
+            authorities.addAll(BearerAuthorities.roleAuthorities(
+                    jwt.getClaimAsStringList(BearerAuthorities.ROLES_CLAIM)));
+            return authorities;
+        });
+        return converter;
+    }</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant C as Client
+  participant R as resource-server
+  participant A as auth-server
+  C->>R: GET /api/documents with Authorization Bearer JWT
+  opt first request or unknown kid
+    R->>A: GET /.well-known/openid-configuration
+    A-->>R: issuer, jwks_uri
+    R->>A: GET /oauth2/jwks
+    A-->>R: public keys
+  end
+  R->>R: verify signature, iss, exp, nbf, aud
+  R->>R: scope to SCOPE authorities, roles to ROLE authorities
+  alt valid and SCOPE_documents.read
+    R-->>C: 200 documents
+  else invalid signature, expired, wrong issuer or audience
+    R-->>C: 401 WWW-Authenticate Bearer error=invalid_token
+  else scope missing
+    R-->>C: 403 WWW-Authenticate Bearer error=insufficient_scope
+  end</div></div>
+</div>
+<div class="sect2">
+<h3 id="_introspection_of_reference_tokens_profile_opaque"><a class="anchor" href="#_introspection_of_reference_tokens_profile_opaque"></a>Introspection of reference tokens (profile opaque)</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A client registered with <code>"accessTokenFormat": "reference"</code> receives an opaque token. The authorization server stores
+its claims with the authorization; <code>ReferenceTokenClaimsCustomizer</code> adds <code>roles</code>, <code>tenant</code> and <code>aud</code> to them.</p>
+</li>
+<li>
+<p><code>SecurityConfig.opaqueTokenFilterChain</code> (<code>@Profile("opaque")</code>) hands the token to <code>AudienceRolesOpaqueTokenIntrospector</code>,
+which wraps Spring&#8217;s <code>SpringOpaqueTokenIntrospector</code>.</p>
+</li>
+<li>
+<p>The introspector posts <code>token=&#8230;&#8203;</code> to <code>AUTH_INTROSPECTION_URI</code> (<code>/oauth2/introspect</code>), authenticating with
+<code>INTROSPECTION_CLIENT_ID</code> and <code>INTROSPECTION_CLIENT_SECRET</code> (HTTP Basic).</p>
+</li>
+<li>
+<p>The authorization server authenticates that client and answers <code>active</code> and, for an active token, <code>sub</code>, <code>client_id</code>,
+<code>scope</code>, <code>aud</code>, <code>exp</code>, <code>iat</code>, <code>roles</code>, <code>tenant</code>. An unknown, expired or revoked token is <code>{"active": false}</code>.</p>
+</li>
+<li>
+<p>An inactive token is <code>401 invalid_token</code>. For an active one, <code>AudienceRolesOpaqueTokenIntrospector</code> requires <code>aud</code> to
+list a configured audience and adds <code>ROLE_*</code> authorities from <code>roles</code>; authorization then proceeds as for a JWT.
+Introspection happens on every request.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant C as Client
+  participant R as resource-server opaque
+  participant A as auth-server
+  C->>R: GET /api/documents with Authorization Bearer opaque token
+  R->>A: POST /oauth2/introspect token, Basic INTROSPECTION_CLIENT_ID
+  A->>A: authenticate resource server client, look token up
+  alt active
+    A-->>R: active true, sub, scope, aud, roles, tenant
+    R->>R: AudienceRolesOpaqueTokenIntrospector checks aud, maps roles
+    R-->>C: 200 or 403 insufficient_scope
+  else unknown, expired or revoked
+    A-->>R: active false
+    R-->>C: 401 invalid_token
+  end</div></div>
+</div>
+<div class="sect2">
+<h3 id="_revocation"><a class="anchor" href="#_revocation"></a>Revocation</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client that holds a token posts <code>token</code> (and optionally <code>token_type_hint=access_token</code> or <code>refresh_token</code>) to
+<code>POST /oauth2/revoke</code>, authenticating as itself. A client can revoke only its own tokens.</p>
+</li>
+<li>
+<p>The server answers <code>200</code> and marks the token invalid. Introspection then reports it inactive, and a revoked refresh
+token can no longer be used. Separately, a reused rotated refresh token revokes the whole authorization (see
+<a href="refresh-token-rotation.html" class="xref page">Refresh token rotation and reuse detection</a>).</p>
+</li>
+<li>
+<p>A JWT-validating resource server does not ask the authorization server, so it accepts a revoked JWT until <code>exp</code>; keep
+access token lifetimes short, or use reference tokens where immediate revocation matters.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  T[Token at resource server] --> P{"Profile opaque?"}
+  P -- No --> J["Validate JWT locally: signature, iss, exp, aud"]
+  P -- Yes --> I["POST /oauth2/introspect"]
+  I --> AC{"active?"}
+  AC -- No --> X["401 invalid_token"]
+  AC -- Yes --> AU{"aud lists a configured audience?"}
+  J --> JV{"Valid?"}
+  JV -- No --> X
+  JV -- Yes --> AU
+  AU -- No --> X
+  AU -- Yes --> B{"Bound token? cnf jkt or x5t"}
+  B -- "Yes, proof fails" --> X
+  B -- "No, or proof passes" --> S{"Required scope present?"}
+  S -- No --> F["403 insufficient_scope"]
+  S -- Yes --> OK[200]
+  RV["Client POST /oauth2/revoke"] -.->|"introspection now inactive"| AC</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Claims the resource server uses: <code>iss</code>, <code>exp</code>, <code>nbf</code>, <code>aud</code> (validation); <code>sub</code> (the caller, owner of the documents);
+<code>scope</code> (<code>SCOPE_*</code>); <code>roles</code> (<code>ROLE_*</code>, <code>ROLE_ADMIN</code> sees and deletes every document); <code>acr</code> and <code>auth_time</code> (step-up
+on delete); <code>cnf</code> (bound tokens).</p>
+</li>
+<li>
+<p>Introspection response: <code>active</code>, plus for an active token the stored claims (<code>sub</code>, <code>client_id</code>, <code>scope</code>, <code>aud</code>,
+<code>roles</code>, <code>tenant</code>, &#8230;&#8203;).</p>
+</li>
+<li>
+<p>RFC 6750 challenges: no token is <code>401</code> with <code>WWW-Authenticate: Bearer</code>; an invalid token is <code>401</code> with
+<code>error="invalid_token"</code>; a missing scope is <code>403</code> with <code>error="insufficient_scope"</code>. A missing step-up is <code>401</code> with
+<code>error="insufficient_user_authentication"</code> (RFC 9470).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>resource-server/boot</code>: <code>SecurityConfigIT</code> (no token, valid token, accepted and other audience, no audience, invalid
+token, missing scopes, ownership, step-up on delete); <code>OpaqueTokenSecurityIT</code> (active, inactive, other audience, missing
+scope, no token, delete scope and step-up under <code>opaque</code>); <code>BoundTokenIT</code> (DPoP and certificate-bound tokens).</p>
+</li>
+<li>
+<p><code>auth-server/boot</code>: <code>TokenFlowIT</code> (<code>revoke_whenAccessTokenIsRevoked_introspectionTurnsInactive</code>,
+<code>revoke_whenRefreshTokenIsRevoked_itCannotBeUsed</code>, <code>introspect_whenTokenIsActiveOrUnknown_reportsIt</code>,
+<code>introspect_whenTokenIsAReferenceToken_returnsAudienceRolesAndTenant</code>).</p>
+</li>
+<li>
+<p><code>e2e-tests</code>: <code>ResourceServerEndToEndIT</code> runs the packaged resource server against the packaged authorization server, in
+the default profile (a token for its audience accepted, one for another audience refused, no token refused) and in
+<code>opaque</code> (a reference token introspected and accepted).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9068#section-4">RFC 9068 §4, Validating JWT access tokens</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3">RFC 7519 §4.1.3, <code>aud</code> claim</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7662#section-2">RFC 7662 §2, Introspection endpoint</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7009#section-2">RFC 7009 §2, Token revocation</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6750#section-3">RFC 6750 §3, The WWW-Authenticate response header</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc6750#section-3.1">§3.1, error codes</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9470#section-3">RFC 9470 §3, Step-up authentication challenge</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/opaque-tokens-introspection-and-revocation.html">Opaque Tokens, Introspection &amp; Revocation</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/scopes-claims-and-permissions.html">Scopes, Claims &amp; Permissions</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/jwt-and-jose.html">JWT &amp; JOSE</a></p>
+</li>
+<li>
+<p><a href="../resource-server.html" class="xref page">Resource server</a> (feature page)</p>
+</li>
+<li>
+<p><a href="../tokens-and-keys.html" class="xref page">Tokens and signing keys</a></p>
+</li>
+<li>
+<p><a href="sender-constrained-tokens.html" class="xref page">Sender-constrained tokens</a></p>
+</li>
+<li>
+<p><a href="step-up.html" class="xref page">Step-up authentication</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

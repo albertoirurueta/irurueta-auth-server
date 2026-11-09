@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttRateLimitFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttRateLimitFilter.java</span></div><h1>OttRateLimitFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Applies {@link OttRateLimiter} to the one-time token endpoints, which are Spring Security filters (so no controller
+ * advice sees their failures): {@code POST /ott/generate} counts as a token request and {@code POST /login/ott} and
+ * {@code POST /login/second-factor/ott} as submissions, each per client address and per identifier. A request over a
+ * limit is answered {@code 429} as {@code application/problem+json} with a {@code Retry-After} header, before any token
+ * is stored or any code is checked. The identifier is the one the request names (the {@code username} field of a
+ * sign-in, the signed-in user for a second factor, the identifier the session requested a code for for a submission),
+ * whether or not it belongs to an account.
+ */
+public class OttRateLimitFilter extends OncePerRequestFilter {
+
+    /** Path of the token requests, Spring Security's default. */
+    public static final String GENERATE_PATH = &quot;/ott/generate&quot;;
+
+    /** Type of the problem answered. */
+    static final String PROBLEM_TYPE = &quot;urn:problem:ott:rate-limited&quot;;
+
+    /** The limiter. */
+    private final OttRateLimiter limiter;
+
+    /** Matches the token requests. */
+<span class="fc" id="L58">    private final RequestMatcher generateMatcher = PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L59">            .matcher(HttpMethod.POST, GENERATE_PATH);</span>
+
+    /** Matches the submissions. */
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    private final RequestMatcher verificationMatcher = request -&gt; HttpMethod.POST.matches(request.getMethod())</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            &amp;&amp; (matches(request, OneTimeTokenPageApi.PATH_OTT_CODE_PAGE)</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            || matches(request, OttSecondFactorFilter.SECOND_FACTOR_OTT_PATH));</span>
+
+    /**
+     * Creates the filter.
+     *
+     * @param limiter the limiter.
+     */
+<span class="fc" id="L71">    public OttRateLimitFilter(final OttRateLimiter limiter) {</span>
+<span class="fc" id="L72">        this.limiter = limiter;</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * Counts the request and answers {@code 429} when it is over a limit.
+     *
+     * @param request     the request.
+     * @param response    the response.
+     * @param filterChain the rest of the chain.
+     * @throws ServletException if the chain fails.
+     * @throws IOException      if the answer cannot be written.
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain filterChain) throws ServletException, IOException {
+        try {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (generateMatcher.matches(request)) {</span>
+<span class="fc" id="L89">                limiter.checkGeneration(request.getRemoteAddr(), generationIdentifier(request));</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            } else if (verificationMatcher.matches(request)) {</span>
+<span class="fc" id="L91">                limiter.checkVerification(request.getRemoteAddr(), verificationIdentifier(request));</span>
+            }
+<span class="fc" id="L93">        } catch (final OttRateLimitExceededException e) {</span>
+<span class="fc" id="L94">            tooManyRequests(response, e);</span>
+<span class="fc" id="L95">            return;</span>
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * Gets the identifier a token request names.
+     *
+     * @param request the request.
+     * @return the signed-in user for a second factor, the {@code username} field otherwise; {@code null} when none.
+     */
+    private static String generationIdentifier(final HttpServletRequest request) {
+<span class="fc" id="L107">        final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc" id="L108">        final var parameters = OttGenerationParameters.from(request, current);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">        final var identifier = parameters.purpose() == OttPurpose.SECOND_FACTOR ? current.getName()</span>
+<span class="fc" id="L110">                : request.getParameter(OttGenerationParameters.USERNAME_PARAMETER);</span>
+<span class="fc" id="L111">        final var cleaned = LinkTokenUsername.clean(identifier);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        return StringUtils.hasText(cleaned) ? cleaned.toLowerCase(Locale.ROOT) : null;</span>
+    }
+
+    /**
+     * Gets the identifier a submission is for.
+     *
+     * @param request the request.
+     * @return the identifier the session requested a token for, else the signed-in user; {@code null} when none (a
+     *         magic link carries no identifier).
+     */
+    private static String verificationIdentifier(final HttpServletRequest request) {
+<span class="fc" id="L123">        return PendingOtt.of(request).map(PendingOtt::identifier).orElseGet(() -&gt; {</span>
+<span class="fc" id="L124">            final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">            return OttGenerationParameters.isSignedIn(current) ? current.getName() : null;</span>
+        });
+    }
+
+    /**
+     * Tells whether a request is for a path.
+     *
+     * @param request the request.
+     * @param path    the path.
+     * @return {@code true} when the path of the request, without the context path, is the given one.
+     */
+    private static boolean matches(final HttpServletRequest request, final String path) {
+<span class="fc" id="L137">        return PathPatternRequestMatcher.withDefaults().matcher(path).matches(request);</span>
+    }
+
+    /**
+     * Answers {@code 429} with a problem body that carries no user data.
+     *
+     * @param response  the response.
+     * @param exception the limit that was exceeded.
+     * @throws IOException if the answer cannot be written.
+     */
+    private static void tooManyRequests(final HttpServletResponse response,
+            final OttRateLimitExceededException exception) throws IOException {
+<span class="fc" id="L149">        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
+<span class="fc" id="L150">        response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(Math.max(1, exception.getRetryAfter().toSeconds())));</span>
+<span class="fc" id="L151">        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);</span>
+<span class="fc" id="L152">        response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L153">        response.getWriter().write(&quot;{\&quot;type\&quot;:\&quot;&quot; + PROBLEM_TYPE + &quot;\&quot;,\&quot;title\&quot;:\&quot;Too many requests\&quot;,\&quot;status\&quot;:&quot;</span>
+<span class="fc" id="L154">                + HttpStatus.TOO_MANY_REQUESTS.value() + &quot;,\&quot;detail\&quot;:\&quot;Too many requests; try again later\&quot;}&quot;);</span>
+<span class="fc" id="L155">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

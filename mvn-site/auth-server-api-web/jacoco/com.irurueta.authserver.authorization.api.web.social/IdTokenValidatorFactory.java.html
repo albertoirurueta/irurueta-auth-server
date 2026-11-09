@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdTokenValidatorFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">IdTokenValidatorFactory.java</span></div><h1>IdTokenValidatorFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import java.util.List;
+import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.client.oidc.authentication.OidcIdTokenValidator;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+/**
+ * Chooses the validator of the ID token of each registration: the framework's {@link OidcIdTokenValidator}, plus the
+ * {@link EntraIssuerValidator} for Microsoft (registered without an issuer, see {@link ClientRegistrationMapper}).
+ * It is the {@code jwtValidatorFactory} of the {@code OidcIdTokenDecoderFactory}, which replaces the default validator,
+ * so the framework's checks of the audience, the timestamps and the subject stay.
+ */
+@RequiredArgsConstructor
+public class IdTokenValidatorFactory implements Function&lt;ClientRegistration, OAuth2TokenValidator&lt;Jwt&gt;&gt; {
+
+    /** Settings of the providers, for the tenants Microsoft is limited to. */
+    private final SocialProperties properties;
+
+    /**
+     * Builds the validator of a registration.
+     *
+     * @param registration the registration the token was issued for.
+     * @return the validator.
+     */
+    @Override
+    public OAuth2TokenValidator&lt;Jwt&gt; apply(final ClientRegistration registration) {
+<span class="fc" id="L49">        final var standard = new OidcIdTokenValidator(registration);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!IdentityProvider.MICROSOFT.id().equals(registration.getRegistrationId())) {</span>
+<span class="fc" id="L51">            return standard;</span>
+        }
+<span class="fc" id="L53">        final var tenants = properties.find(IdentityProvider.MICROSOFT)</span>
+<span class="fc" id="L54">                .map(SocialProperties.Provider::permittedTenants).orElse(List.of());</span>
+<span class="fc" id="L55">        return new DelegatingOAuth2TokenValidator&lt;&gt;(standard, new EntraIssuerValidator(tenants));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

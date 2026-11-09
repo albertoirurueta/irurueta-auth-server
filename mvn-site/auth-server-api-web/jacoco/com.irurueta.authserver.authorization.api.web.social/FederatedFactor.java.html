@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FederatedFactor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">FederatedFactor.java</span></div><h1>FederatedFactor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
+import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Registers the sign-in with an external provider as an authentication factor, in two flavours that are never held
+ * together by one session:
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@link #AUTHORITY} ({@code fed}, a {@link FactorStrength#PRIMARY} factor): the normal case. The provider
+ *   proved the user, but the server does not know how, so the normal second-factor flow applies;&lt;/li&gt;
+ *   &lt;li&gt;{@link #STRONG_AUTHORITY} ({@code fed}, {@link FactorStrength#PRIMARY_STRONG}): granted instead of the first
+ *   only when the provider is marked {@code trust-mfa} &lt;em&gt;and&lt;/em&gt; its upstream {@code amr} contains {@code mfa}, so
+ *   the sign-in satisfies the multi-factor policy on its own, like a passkey. Unlike a passkey it is also
+ *   {@link AuthenticationFactor#multiFactor() multi-factor alone}: the provider proved several factors, so the
+ *   session reaches the multi-factor {@code acr} and passes a step-up without a local second factor.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * Both report the same {@code amr} value, so the tokens read {@code fed} either way (plus {@code mfa} and the upstream
+ * values for the strong one, see {@link IdpClaimsContributor}).
+ */
+@Configuration(proxyBeanMethods = false)
+<span class="fc" id="L40">public class FederatedFactor {</span>
+
+    /** Authority of a federated sign-in, a primary factor. */
+    public static final String AUTHORITY = &quot;FACTOR_FEDERATED&quot;;
+
+    /** Authority of a federated sign-in whose provider proved several factors and is trusted for it. */
+    public static final String STRONG_AUTHORITY = &quot;FACTOR_FEDERATED_MFA&quot;;
+
+    /** RFC 8176 {@code amr} value of a federated sign-in. */
+    public static final String AMR_VALUE = &quot;fed&quot;;
+
+    // tag::social-factor[]
+    /**
+     * Declares the federated factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor federatedAuthenticationFactor() {
+<span class="fc" id="L59">        return new AuthenticationFactor(&quot;federated&quot;, AMR_VALUE, AUTHORITY, FactorStrength.PRIMARY);</span>
+    }
+
+    /**
+     * Declares the federated factor of a trusted provider that proved several factors.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor federatedStrongAuthenticationFactor() {
+<span class="fc" id="L69">        return new AuthenticationFactor(&quot;federated-mfa&quot;, AMR_VALUE, STRONG_AUTHORITY, FactorStrength.PRIMARY_STRONG,</span>
+                true);
+    }
+    // end::social-factor[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

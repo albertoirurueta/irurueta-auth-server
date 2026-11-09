@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttLinkFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttLinkFactory.java</span></div><h1>OttLinkFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import java.net.URI;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponentsBuilder;
+
+/**
+ * Builds the magic link of a token. It points at the confirmation page ({@code GET /login/ott/confirm}), whose button
+ * posts the token, and never at an endpoint that consumes it, so a mail scanner that opens the link does not use it
+ * up. The host is the configured issuer of this server, never the {@code Host} header of the request that asked for the
+ * link, which an attacker controls: a link built from it could carry the token of somebody else to another host.
+ */
+@Component
+public final class OttLinkFactory {
+
+    /** Name of the query parameter that carries the token. */
+    public static final String TOKEN_PARAMETER = &quot;token&quot;;
+
+    /** Public base URL of this server, the issuer of the tokens. */
+    private final String issuer;
+
+    /**
+     * Creates the factory.
+     *
+     * @param settings settings of the authorization server, whose issuer
+     *                 ({@code spring.security.oauth2.authorizationserver.issuer}) is the base of the links.
+     * @throws IllegalStateException if no issuer is configured: a link built from the request would trust its
+     *                               {@code Host} header.
+     */
+<span class="fc" id="L48">    public OttLinkFactory(final AuthorizationServerSettings settings) {</span>
+<span class="fc" id="L49">        final var configured = settings.getIssuer();</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!StringUtils.hasText(configured)) {</span>
+<span class="fc" id="L51">            throw new IllegalStateException(</span>
+                    &quot;spring.security.oauth2.authorizationserver.issuer must be set to build magic links&quot;);
+        }
+<span class="fc" id="L54">        issuer = configured;</span>
+<span class="fc" id="L55">    }</span>
+
+    /**
+     * Builds the link of a token.
+     *
+     * @param tokenValue value of the token.
+     * @return the link to the confirmation page.
+     */
+    public URI confirmationLink(final String tokenValue) {
+<span class="fc" id="L64">        return UriComponentsBuilder.fromUriString(issuer)</span>
+<span class="fc" id="L65">                .path(OneTimeTokenPageApi.PATH_OTT_CONFIRM_PAGE)</span>
+<span class="fc" id="L66">                .queryParam(TOKEN_PARAMETER, tokenValue)</span>
+<span class="fc" id="L67">                .build()</span>
+<span class="fc" id="L68">                .toUri();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

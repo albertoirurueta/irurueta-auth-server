@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UnlinkIdentityUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.social</a> &gt; <span class="el_source">UnlinkIdentityUseCase.java</span></div><h1>UnlinkIdentityUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.application.social;
+
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityNotFoundException;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
+import com.irurueta.authserver.authorization.domain.social.FederatedLinkingPolicy;
+import com.irurueta.authserver.authorization.domain.social.LastSignInMethodException;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Use case that unlinks an identity of an external provider from an account and audits it. It refuses to remove the
+ * last way to sign in: the account must keep a password its owner knows, another linked identity, a passkey or a bound
+ * certificate. The methods are counted under the lock of {@link LockSignInMethodsUseCase}, so a concurrent removal
+ * (another identity, a certificate) of the same account waits and then counts what this one left.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class UnlinkIdentityUseCase {
+
+    /** Port that stores the links. */
+    private final FederatedIdentityRepository federatedIdentityRepository;
+
+    /** Locks and counts the sign-in methods of the account. */
+    private final LockSignInMethodsUseCase lockSignInMethodsUseCase;
+
+    /** Rules of linking and unlinking. */
+    private final FederatedLinkingPolicy federatedLinkingPolicy;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    /**
+     * Unlinks an identity; an identity of another account is never touched.
+     *
+     * @param userId   identifier of the signed-in user.
+     * @param username name of the signed-in account, for the audit log.
+     * @param id       identifier of the link.
+     * @throws FederatedIdentityNotFoundException if the account has no such link.
+     * @throws LastSignInMethodException          if the link is the last way the account can sign in.
+     */
+    public void execute(final UUID userId, final String username, final UUID id) {
+<span class="fc" id="L62">        final var methods = lockSignInMethodsUseCase.execute(userId);</span>
+<span class="fc" id="L63">        final var identity = federatedIdentityRepository.findByIdAndUser(id, userId)</span>
+<span class="fc" id="L64">                .orElseThrow(() -&gt; new FederatedIdentityNotFoundException(&quot;The account has no identity &quot; + id));</span>
+<span class="fc" id="L65">        final var remaining = methods.withoutFederatedIdentity();</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (!federatedLinkingPolicy.mayUnlink(remaining)) {</span>
+<span class="fc" id="L67">            throw new LastSignInMethodException(&quot;The identity is the last way to sign in to the account&quot;);</span>
+        }
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (!federatedIdentityRepository.delete(id, userId)) {</span>
+<span class="fc" id="L70">            throw new FederatedIdentityNotFoundException(&quot;The account has no identity &quot; + id);</span>
+        }
+<span class="fc" id="L72">        recordSecurityEventUseCase.execute(SecurityEventType.IDENTITY_UNLINKED, userId, username,</span>
+<span class="fc" id="L73">                identity.provider().id());</span>
+<span class="fc" id="L74">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

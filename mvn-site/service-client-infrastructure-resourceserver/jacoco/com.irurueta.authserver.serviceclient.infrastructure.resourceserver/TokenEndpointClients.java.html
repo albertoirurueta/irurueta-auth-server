@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenEndpointClients.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">TokenEndpointClients.java</span></div><h1>TokenEndpointClients.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.security.oauth2.client.endpoint.AbstractOAuth2AuthorizationGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.AbstractRestClientOAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.NimbusJwtClientAuthenticationParametersConverter;
+import org.springframework.security.oauth2.client.endpoint.RestClientClientCredentialsTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.RestClientTokenExchangeTokenResponseClient;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
+import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RestClient;
+
+/**
+ * Builds the clients of the token endpoint for the two grants, set up for the configured authentication method: the
+ * default for {@code client_secret_basic}; the signed assertion for {@code private_key_jwt}; a REST client over the
+ * SSL bundle (so the client certificate is presented) for the mutual TLS methods; plus a DPoP proof header when DPoP
+ * is enabled.
+ */
+@Component
+@RequiredArgsConstructor
+public class TokenEndpointClients {
+
+    /** Settings of the service client at the authorization server. */
+    private final ServiceClientAuthProperties properties;
+
+    /** Signing key of the assertion. */
+    private final PrivateKeyJwkResolver jwkResolver;
+
+    /** Request factory that presents the client certificate. */
+    private final SslRequestFactories requestFactories;
+
+    /** Creates the DPoP proofs; absent unless DPoP is enabled. */
+    private final ObjectProvider&lt;DPoPProofs&gt; dpopProofs;
+
+    /**
+     * Builds the client of the client credentials grant.
+     *
+     * @return the client.
+     */
+    public RestClientClientCredentialsTokenResponseClient clientCredentials() {
+<span class="fc" id="L64">        final var client = new RestClientClientCredentialsTokenResponseClient();</span>
+<span class="fc" id="L65">        customize(client);</span>
+<span class="fc" id="L66">        return client;</span>
+    }
+
+    /**
+     * Builds the client of the token exchange grant.
+     *
+     * @return the client.
+     */
+    public RestClientTokenExchangeTokenResponseClient tokenExchange() {
+<span class="fc" id="L75">        final var client = new RestClientTokenExchangeTokenResponseClient();</span>
+<span class="fc" id="L76">        customize(client);</span>
+<span class="fc" id="L77">        return client;</span>
+    }
+
+    /**
+     * Sets a token response client up for the configured authentication method.
+     *
+     * @param client the client.
+     * @param &lt;T&gt;    grant request of the client.
+     */
+    private &lt;T extends AbstractOAuth2AuthorizationGrantRequest&gt; void customize(
+            final AbstractRestClientOAuth2AccessTokenResponseClient&lt;T&gt; client) {
+<span class="fc" id="L88">        requestFactories.create().ifPresent(factory -&gt; client.setRestClient(tokenRestClient(factory)));</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (properties.method() == AuthMethod.PRIVATE_KEY_JWT) {</span>
+<span class="fc" id="L90">            client.addParametersConverter(new NimbusJwtClientAuthenticationParametersConverter&lt;T&gt;(jwkResolver));</span>
+        }
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (properties.method().isMutualTls()) {</span>
+            // The client is identified by its certificate: nothing to add to the request but, as it is, the client
+            // refuses any method other than basic, post and none. Adding any parameters converter (this one adds
+            // nothing) lifts that check; the default converter still sends client_id.
+<span class="fc" id="L96">            client.addParametersConverter(request -&gt; new LinkedMultiValueMap&lt;&gt;());</span>
+        }
+<span class="fc" id="L98">        final var proofs = dpopProofs.getIfAvailable();</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (proofs != null) {</span>
+<span class="fc" id="L100">            client.addHeadersConverter(request -&gt; {</span>
+<span class="fc" id="L101">                final var headers = new HttpHeaders();</span>
+<span class="fc" id="L102">                headers.set(DPoPClientHttpRequestInterceptor.DPOP_HEADER,</span>
+<span class="fc" id="L103">                        proofs.proof(&quot;POST&quot;, properties.tokenUri()));</span>
+<span class="fc" id="L104">                return headers;</span>
+            });
+        }
+<span class="fc" id="L107">    }</span>
+
+    /**
+     * Builds the REST client of the token endpoint over a request factory, with the message converters and the error
+     * handler of Spring Security's default one.
+     *
+     * @param factory the request factory.
+     * @return the REST client.
+     */
+    private static RestClient tokenRestClient(final ClientHttpRequestFactory factory) {
+<span class="fc" id="L117">        return RestClient.builder()</span>
+<span class="fc" id="L118">                .requestFactory(factory)</span>
+<span class="fc" id="L119">                .configureMessageConverters(converters -&gt; {</span>
+<span class="fc" id="L120">                    converters.addCustomConverter(new FormHttpMessageConverter());</span>
+<span class="fc" id="L121">                    converters.addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter());</span>
+<span class="fc" id="L122">                })</span>
+<span class="fc" id="L123">                .defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())</span>
+<span class="fc" id="L124">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

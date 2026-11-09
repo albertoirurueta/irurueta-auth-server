@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitAuthorizationRequestConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitAuthorizationRequestConverter.java</span></div><h1>LegacyImplicitAuthorizationRequestConverter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
+import org.springframework.security.web.authentication.AuthenticationConverter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.StringUtils;
+
+// tag::implicit-converter[]
+/**
+ * Reads an authorization request with {@code response_type=token}. The framework refuses that response type; this
+ * converter, installed first, takes it over for the one client of the legacy flow and refuses it, with the same
+ * {@code unsupported_response_type} and no redirect, for any other client.
+ */
+public class LegacyImplicitAuthorizationRequestConverter implements AuthenticationConverter {
+
+    /** Response type of the implicit flow. */
+    public static final String RESPONSE_TYPE_TOKEN = &quot;token&quot;;
+
+    /** Identifier of the only client that may use the flow. */
+    private final String clientId;
+
+    /** Matches a {@code GET} of the authorization endpoint. */
+    private final RequestMatcher authorizationRequest;
+
+    /**
+     * Creates the converter.
+     *
+     * @param clientId              identifier of the only client that may use the flow.
+     * @param authorizationEndpoint path of the authorization endpoint.
+     */
+<span class="fc" id="L58">    public LegacyImplicitAuthorizationRequestConverter(final String clientId, final String authorizationEndpoint) {</span>
+<span class="fc" id="L59">        this.clientId = clientId;</span>
+<span class="fc" id="L60">        authorizationRequest = PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L61">                .matcher(HttpMethod.GET, authorizationEndpoint);</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Reads the request.
+     *
+     * @param request the request.
+     * @return the request of the legacy flow, or {@code null} when the request is not a {@code GET} of the
+     *         authorization endpoint with {@code response_type=token}.
+     * @throws OAuth2AuthorizationCodeRequestAuthenticationException {@code unsupported_response_type} (no redirect)
+     *                                                               when the client is not the one of the legacy
+     *                                                               flow, {@code invalid_request} (no redirect) when
+     *                                                               a parameter is repeated.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (!authorizationRequest.matches(request)</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">                || !RESPONSE_TYPE_TOKEN.equals(request.getParameter(OAuth2ParameterNames.RESPONSE_TYPE))) {</span>
+<span class="fc" id="L79">            return null;</span>
+        }
+<span class="fc" id="L81">        final var requestedClient = request.getParameter(OAuth2ParameterNames.CLIENT_ID);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (!clientId.equals(requestedClient)) {</span>
+<span class="fc" id="L83">            throw refused(OAuth2ErrorCodes.UNSUPPORTED_RESPONSE_TYPE);</span>
+        }
+<span class="pc bpc" id="L85" title="2 of 4 branches missed.">        if (isRepeated(request, OAuth2ParameterNames.CLIENT_ID) || isRepeated(request, OAuth2ParameterNames.SCOPE)</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                || isRepeated(request, OAuth2ParameterNames.REDIRECT_URI)</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">                || isRepeated(request, OAuth2ParameterNames.STATE)) {</span>
+<span class="fc" id="L88">            throw refused(OAuth2ErrorCodes.INVALID_REQUEST);</span>
+        }
+<span class="fc" id="L90">        final var scope = request.getParameter(OAuth2ParameterNames.SCOPE);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        final var scopes = StringUtils.hasText(scope)</span>
+<span class="fc" id="L92">                ? new LinkedHashSet&lt;&gt;(Arrays.asList(StringUtils.delimitedListToStringArray(scope.trim(), &quot; &quot;)))</span>
+<span class="fc" id="L93">                : new LinkedHashSet&lt;String&gt;();</span>
+<span class="fc" id="L94">        scopes.remove(&quot;&quot;);</span>
+<span class="fc" id="L95">        return new LegacyImplicitAuthorizationRequestToken(requestedClient,</span>
+<span class="fc" id="L96">                request.getParameter(OAuth2ParameterNames.REDIRECT_URI), scopes,</span>
+<span class="fc" id="L97">                request.getParameter(OAuth2ParameterNames.STATE), currentUser());</span>
+    }
+
+    /**
+     * Tells whether a parameter is sent more than once.
+     *
+     * @param request the request.
+     * @param name    name of the parameter.
+     * @return {@code true} when it has more than one value.
+     */
+    private static boolean isRepeated(final HttpServletRequest request, final String name) {
+<span class="fc" id="L108">        final var values = request.getParameterValues(name);</span>
+<span class="fc bfc" id="L109" title="All 4 branches covered.">        return values != null &amp;&amp; values.length &gt; 1;</span>
+    }
+
+    /**
+     * Reads the user of the request from the security context, an anonymous one when there is none.
+     *
+     * @return the user.
+     */
+    private static Authentication currentUser() {
+<span class="fc" id="L118">        final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        return current != null ? current : new AnonymousAuthenticationToken(&quot;anonymous&quot;, &quot;anonymous&quot;,</span>
+<span class="fc" id="L120">                AuthorityUtils.createAuthorityList(&quot;ROLE_ANONYMOUS&quot;));</span>
+    }
+
+    /**
+     * Builds the refusal, which carries no authentication and so is answered with {@code 400}.
+     *
+     * @param code error code.
+     * @return the exception.
+     */
+    private static OAuth2AuthorizationCodeRequestAuthenticationException refused(final String code) {
+<span class="fc" id="L130">        return new OAuth2AuthorizationCodeRequestAuthenticationException(new OAuth2Error(code), null);</span>
+    }
+}
+// end::implicit-converter[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

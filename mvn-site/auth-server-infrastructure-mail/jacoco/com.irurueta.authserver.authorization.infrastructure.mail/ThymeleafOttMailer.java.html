@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ThymeleafOttMailer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-mail</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.mail</a> &gt; <span class="el_source">ThymeleafOttMailer.java</span></div><h1>ThymeleafOttMailer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.mail;
+
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import com.irurueta.authserver.authorization.domain.ott.OttDelivery;
+import com.irurueta.authserver.authorization.domain.ott.OttDeliveryException;
+import jakarta.mail.MessagingException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.exceptions.TemplateEngineException;
+
+/**
+ * {@link OttDelivery} that e-mails one-time codes and magic links as multipart messages (plain text and HTML)
+ * rendered with Thymeleaf. Only {@link OttChannel#EMAIL} is handled: asking it to deliver through another channel is
+ * a programming error and is refused with an {@link IllegalArgumentException}, so a token is never silently dropped.
+ * Subject and texts come from a {@link MessageSource} resolved with the explicitly configured locale, never the
+ * platform's default. A delivery failure becomes an {@link OttDeliveryException} with a generic message and a
+ * sanitized cause: neither the address, nor the code, nor the link is ever logged or carried by an exception.
+ */
+// tag::ott-mailer[]
+<span class="fc" id="L45">@Slf4j</span>
+@RequiredArgsConstructor
+public class ThymeleafOttMailer implements OttDelivery {
+
+    /** Template of the code message (without extension). */
+    static final String CODE_TEMPLATE = &quot;mail/ott-code&quot;;
+
+    /** Template of the link message (without extension). */
+    static final String LINK_TEMPLATE = &quot;mail/ott-link&quot;;
+
+    /** Extension of the HTML templates. */
+    static final String HTML_EXTENSION = &quot;.html&quot;;
+
+    /** Extension of the plain-text templates. */
+    static final String TEXT_EXTENSION = &quot;.txt&quot;;
+
+    /** Message key of the subject of the code message. */
+    static final String CODE_SUBJECT = &quot;ott.code.subject&quot;;
+
+    /** Message key of the subject of the link message. */
+    static final String LINK_SUBJECT = &quot;ott.link.subject&quot;;
+
+    /** Template variable holding the code. */
+    static final String CODE_VARIABLE = &quot;code&quot;;
+
+    /** Template variable holding the link. */
+    static final String LINK_VARIABLE = &quot;link&quot;;
+
+    /** Template variable holding the validity in minutes. */
+    static final String VALID_MINUTES_VARIABLE = &quot;validMinutes&quot;;
+
+    /** Generic message of every delivery failure. */
+    static final String FAILURE_MESSAGE = &quot;Could not deliver the one-time token by e-mail&quot;;
+
+    /** Seconds in a minute. */
+    private static final long SECONDS_PER_MINUTE = 60L;
+
+    /** Sends the messages. */
+    private final JavaMailSender mailSender;
+
+    /** Renders the templates; private to this mailer. */
+    private final TemplateEngine templateEngine;
+
+    /** Source of the subjects. */
+    private final MessageSource messageSource;
+
+    /** Sender, base URL and locale. */
+    private final MailProperties properties;
+
+    @Override
+    public void deliverCode(final OttChannel channel, final String destination, final String code,
+                            final Duration validFor) {
+<span class="fc" id="L97">        requireEmail(channel);</span>
+<span class="fc" id="L98">        send(destination, CODE_SUBJECT, CODE_TEMPLATE, CODE_VARIABLE, code, validFor);</span>
+<span class="fc" id="L99">    }</span>
+
+    @Override
+    public void deliverLink(final OttChannel channel, final String destination, final URI link,
+                            final Duration validFor) {
+<span class="fc" id="L104">        requireEmail(channel);</span>
+<span class="fc" id="L105">        send(destination, LINK_SUBJECT, LINK_TEMPLATE, LINK_VARIABLE, link.toString(), validFor);</span>
+<span class="fc" id="L106">    }</span>
+
+    /**
+     * Renders and sends one message.
+     *
+     * @param destination recipient address.
+     * @param subjectKey  message key of the subject.
+     * @param template    template name without extension.
+     * @param variable    name of the variable that holds the secret value.
+     * @param value       the code or link.
+     * @param validFor    validity shown to the user.
+     * @throws OttDeliveryException if the message cannot be rendered or delivered.
+     */
+    private void send(final String destination, final String subjectKey, final String template,
+                      final String variable, final String value, final Duration validFor) {
+<span class="fc" id="L121">        final var locale = properties.locale();</span>
+<span class="fc" id="L122">        final var context = new Context(locale);</span>
+<span class="fc" id="L123">        context.setVariable(variable, value);</span>
+<span class="fc" id="L124">        context.setVariable(VALID_MINUTES_VARIABLE, minutes(validFor));</span>
+        try {
+<span class="fc" id="L126">            final var text = templateEngine.process(template + TEXT_EXTENSION, context);</span>
+<span class="fc" id="L127">            final var html = templateEngine.process(template + HTML_EXTENSION, context);</span>
+<span class="fc" id="L128">            final var message = mailSender.createMimeMessage();</span>
+<span class="fc" id="L129">            final var helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L130">            helper.setFrom(properties.from());</span>
+<span class="fc" id="L131">            helper.setTo(destination);</span>
+<span class="fc" id="L132">            helper.setSubject(messageSource.getMessage(subjectKey, null, locale));</span>
+<span class="fc" id="L133">            helper.setText(text, html);</span>
+<span class="fc" id="L134">            mailSender.send(message);</span>
+<span class="fc" id="L135">        } catch (final MailException | MessagingException | TemplateEngineException e) {</span>
+            // Only the type of the failure is kept: its message may contain the address or the rendered body.
+<span class="fc" id="L137">            log.warn(&quot;Could not deliver a one-time token by e-mail ({})&quot;, e.getClass().getSimpleName());</span>
+<span class="fc" id="L138">            throw new OttDeliveryException(FAILURE_MESSAGE,</span>
+<span class="fc" id="L139">                    new IllegalStateException(&quot;Delivery failed with &quot; + e.getClass().getName()));</span>
+<span class="fc" id="L140">        }</span>
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Rounds a duration up to whole minutes, at least one.
+     *
+     * @param validFor the validity.
+     * @return the minutes to show.
+     */
+    private static long minutes(final Duration validFor) {
+<span class="fc" id="L150">        final var seconds = validFor.toSeconds();</span>
+<span class="fc" id="L151">        return Math.max(1L, (seconds + SECONDS_PER_MINUTE - 1L) / SECONDS_PER_MINUTE);</span>
+    }
+
+    /**
+     * Refuses a channel other than e-mail.
+     *
+     * @param channel requested channel.
+     * @throws IllegalArgumentException if the channel is not {@link OttChannel#EMAIL}.
+     */
+    private static void requireEmail(final OttChannel channel) {
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (channel != OttChannel.EMAIL) {</span>
+<span class="fc" id="L162">            throw new IllegalArgumentException(&quot;Unsupported channel for the e-mail delivery: &quot; + channel);</span>
+        }
+<span class="fc" id="L164">    }</span>
+}
+// end::ott-mailer[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

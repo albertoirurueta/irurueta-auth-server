@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>X509Properties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">X509Properties.java</span></div><h1>X509Properties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
+import org.springframework.util.StringUtils;
+
+// tag::x509-properties[]
+/**
+ * Configuration of the sign-in with a client certificate ({@code authserver.x509.*}). It is off by default.
+ *
+ * @param enabled           whether the sign-in with a client certificate exists at all (default {@code false}).
+ * @param forwardedHeader   name of the request header in which a trusted reverse proxy forwards the client certificate
+ *                          it verified (PEM, URL-encoded as {@code $ssl_client_escaped_cert} of nginx does, or the
+ *                          base64 of the DER form); empty (the default) turns the forwarded transport off.
+ * @param trustedProxies    addresses or CIDR ranges of the proxies that may forward a certificate; required when the
+ *                          header is set, and a request from any other address never has its header read.
+ * @param port              port of the dedicated TLS connector that requests a client certificate; {@code 0} (the
+ *                          default) turns the direct transport off.
+ * @param amr               RFC 8176 {@code amr} value the factor reports: {@code sc} (smart card, the default) or
+ *                          {@code hwk} (a hardware-bound key).
+ * @param keyStore          path of the key store with the server certificate of the dedicated port; with the
+ *                          {@code dev} profile and none configured, a self-signed one is generated at the first start
+ *                          under {@code ~/.irurueta-auth-server/}.
+ * @param keyStorePassword  password of the key store (and of its key), from the environment, never from a file.
+ * @param keyStoreType      type of the key store (default {@code PKCS12}).
+ */
+@ConfigurationProperties(prefix = &quot;authserver.x509&quot;)
+public record X509Properties(
+        @DefaultValue(&quot;false&quot;) boolean enabled,
+        @DefaultValue(&quot;&quot;) String forwardedHeader,
+        @DefaultValue List&lt;String&gt; trustedProxies,
+        @DefaultValue(&quot;0&quot;) int port,
+        @DefaultValue(&quot;sc&quot;) String amr,
+        @DefaultValue(&quot;&quot;) String keyStore,
+        @DefaultValue(&quot;&quot;) String keyStorePassword,
+        @DefaultValue(&quot;PKCS12&quot;) String keyStoreType) {
+
+    /** {@code amr} value of a smart card. */
+    public static final String AMR_SMART_CARD = &quot;sc&quot;;
+
+    /** {@code amr} value of a key held in hardware. */
+    public static final String AMR_HARDWARE_KEY = &quot;hwk&quot;;
+
+    /** Highest TCP port. */
+    private static final int MAX_PORT = 65_535;
+
+    /**
+     * Validates the configuration and copies the list.
+     *
+     * @throws IllegalArgumentException if the port is out of range, the {@code amr} value is not {@code sc} or
+     *                                  {@code hwk}, a trusted proxy is not an address or a range, or a forwarded
+     *                                  header is set without any trusted proxy.
+     */
+<span class="fc" id="L71">    public X509Properties {</span>
+<span class="fc" id="L72">        trustedProxies = List.copyOf(trustedProxies);</span>
+<span class="fc bfc" id="L73" title="All 4 branches covered.">        if (port &lt; 0 || port &gt; MAX_PORT) {</span>
+<span class="fc" id="L74">            throw new IllegalArgumentException(&quot;port must be between 0 and &quot; + MAX_PORT);</span>
+        }
+<span class="fc bfc" id="L76" title="All 4 branches covered.">        if (!AMR_SMART_CARD.equals(amr) &amp;&amp; !AMR_HARDWARE_KEY.equals(amr)) {</span>
+<span class="fc" id="L77">            throw new IllegalArgumentException(&quot;amr must be &quot; + AMR_SMART_CARD + &quot; or &quot; + AMR_HARDWARE_KEY);</span>
+        }
+<span class="fc" id="L79">        trustedProxies.forEach(IpAddressMatcher::new);</span>
+<span class="fc bfc" id="L80" title="All 4 branches covered.">        if (StringUtils.hasText(forwardedHeader) &amp;&amp; trustedProxies.isEmpty()) {</span>
+<span class="fc" id="L81">            throw new IllegalArgumentException(&quot;a forwarded header needs at least one trusted proxy&quot;);</span>
+        }
+<span class="fc" id="L83">    }</span>
+
+    /**
+     * Tells whether the certificate may arrive in a header.
+     *
+     * @return {@code true} when a header name is configured.
+     */
+    public boolean forwardedEnabled() {
+<span class="fc" id="L91">        return StringUtils.hasText(forwardedHeader);</span>
+    }
+
+    /**
+     * Tells whether the dedicated TLS connector is requested.
+     *
+     * @return {@code true} when a port is configured.
+     */
+    public boolean tlsEnabled() {
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        return port &gt; 0;</span>
+    }
+}
+// end::x509-properties[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

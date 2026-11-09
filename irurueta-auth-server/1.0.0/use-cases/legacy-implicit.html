@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Legacy implicit flow :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="legacy-implicit.html">Legacy implicit flow</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/legacy-implicit.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Legacy implicit flow</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>In the implicit grant (<code>response_type=token</code>) the authorization endpoint returns the access token directly in the
+fragment of the redirect URI, with no code and no token request. The token then sits in the browser&#8217;s address bar and
+history, can leak through referrers, logs and injected scripts, cannot be bound to the client, and cannot be refreshed.
+OAuth 2.0 Security BCP (RFC 9700) says not to use it and OAuth 2.1 removes it; the authorization code flow with PKCE
+replaces it. This server rejects it by default, for every client. Under the opt-in <code>legacy-implicit</code> profile, which must
+never be enabled in production, one demo client may use it so that the risk can be shown end to end. The feature page
+<a href="../legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a> describes the classes; this page follows the flow.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user with a browser, the demo page <code>/legacy-implicit/</code> (a single-page app served by the authorization
+server), <code>auth-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: <code>legacy-implicit-spa</code>, public (<code>none</code>), only grant type <code>implicit</code>, no consent, no refresh token,
+seeded by <code>LegacyImplicitClientSeeder</code>. The admin API refuses <code>implicit</code> for any other client
+(<code>ImplicitClientRefusedException</code>, <code>400 invalid</code>).</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>: Spring profile <code>legacy-implicit</code> on <code>auth-server</code> and the settings of
+<code>application-legacy-implicit.yml</code>: <code>authserver.legacy-implicit.client-id</code> (<code>legacy-implicit-spa</code>), <code>redirect-uri</code>
+(<code>AUTHSERVER_LEGACY_IMPLICIT_REDIRECT_URI</code>, default <code><a href="http://localhost:9000/legacy-implicit/" class="bare">http://localhost:9000/legacy-implicit/</a></code>), <code>scopes</code>
+(<code>documents.read</code>), <code>audience</code> (<code>resource-server</code>) and <code>access-token-ttl</code> (<code>PT5M</code>, at most <code>PT15M</code>).</p>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>GET /oauth2/authorize</code> with <code>response_type=token</code>, <code>/login</code>, the demo page <code>/legacy-implicit/</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_without_the_profile_default"><a class="anchor" href="#_without_the_profile_default"></a>Without the profile (default)</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A request to <code>GET /oauth2/authorize</code> with <code>response_type=token</code> reaches Spring Authorization Server&#8217;s authorization
+endpoint, which only knows <code>code</code>.</p>
+</li>
+<li>
+<p>The server answers <code>400</code> with <code>unsupported_response_type</code>, without redirecting, whatever the client.</p>
+</li>
+<li>
+<p><code>/legacy-implicit/</code> is not served (it ends at the catch-all rule and redirects to <code>/login</code>).</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_with_the_legacy_implicit_profile"><a class="anchor" href="#_with_the_legacy_implicit_profile"></a>With the legacy-implicit profile</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>At startup <code>LegacyImplicitClientSeeder</code> creates <code>legacy-implicit-spa</code> (if missing) with the exact redirect URI, scopes
+and audience of the settings, and logs a warning.</p>
+</li>
+<li>
+<p>The user opens <code>/legacy-implicit/</code> (served from <code>classpath:/legacy-implicit/</code> by a resource handler that exists only
+under the profile). The page generates a random <code>state</code> and redirects to
+<code>/oauth2/authorize?response_type=token&amp;client_id=legacy-implicit-spa&amp;redirect_uri=&#8230;&#8203;&amp;scope=documents.read&amp;state=&#8230;&#8203;</code>.</p>
+</li>
+<li>
+<p>The authorization endpoint runs behind the authorization filter, so a user who is not signed in goes to <code>/login</code>
+first and the request resumes afterwards.</p>
+</li>
+<li>
+<p><code>LegacyImplicitProtocolChainCustomizer</code> (a <code>ProtocolChainCustomizer</code>, order 4) has added
+<code>LegacyImplicitAuthorizationRequestConverter</code> first: it takes only <code>GET</code> requests with <code>response_type=token</code>; any
+client but <code>legacy-implicit-spa</code> is refused with <code>unsupported_response_type</code>, and repeated <code>client_id</code>, <code>scope</code>,
+<code>redirect_uri</code> or <code>state</code> parameters with <code>invalid_request</code>.</p>
+</li>
+<li>
+<p><code>LegacyImplicitAuthenticationProvider</code> checks that the client has the <code>implicit</code> grant and that the redirect URI matches
+a registered one exactly; until then errors are thrown and the browser is not redirected. It applies the MFA policy
+(a client or user that requires a second factor is sent to <code>/login/second-factor</code>). A missing <code>state</code> or a scope
+outside the client&#8217;s becomes a <code>LegacyImplicitErrorToken</code>.</p>
+</li>
+<li>
+<p>It issues the access token through the token generator, with the lifetime capped at <code>PT15M</code>, stores the authorization
+and never issues a refresh token.</p>
+</li>
+<li>
+<p><code>LegacyImplicitResponseHandler</code> answers <code>302</code> to <code>redirect_uri</code> with the fragment
+<code>access_token=&#8230;&#8203;&amp;token_type=Bearer&amp;expires_in=&#8230;&#8203;&amp;scope=&#8230;&#8203;&amp;state=&#8230;&#8203;</code> (or <code>error=&#8230;&#8203;&amp;state=&#8230;&#8203;</code>), with
+<code>Cache-Control: no-store</code> and <code>Referrer-Policy: no-referrer</code>. Every other result (a <code>code</code> response) is delegated to
+<code>AuthorizationCodeResponseHandler</code>, the framework&#8217;s default, so the code flow is unchanged.</p>
+</li>
+<li>
+<p>The demo page reads the fragment, refuses it when <code>state</code> does not match, removes it from the address with
+<code>history.replaceState</code> and shows the token&#8217;s claims.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser demo page
+  participant A as auth-server
+  B->>B: generate random state
+  B->>A: GET /oauth2/authorize response_type=token client_id=legacy-implicit-spa redirect_uri scope state
+  alt profile legacy-implicit not active
+    A-->>B: 400 unsupported_response_type
+  else profile active
+    A-->>B: 302 /login
+    B->>A: sign in, second factor if required
+    A->>A: converter and provider: client, exact redirect URI, MFA, state, scopes
+    A->>A: issue short-lived audience-restricted token, no refresh token
+    A-->>B: 302 redirect_uri with fragment access_token, token_type, expires_in, scope, state
+    B->>B: check state, clear fragment with history.replaceState, show claims
+  end</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  R["GET /oauth2/authorize response_type=token"] --> P{"legacy-implicit profile?"}
+  P -- No --> U["400 unsupported_response_type"]
+  P -- Yes --> C{"client_id is legacy-implicit-spa?"}
+  C -- No --> U
+  C -- Yes --> L{"Signed in?"}
+  L -- No --> LG[Redirect to /login]
+  L -- Yes --> RU{"Redirect URI registered exactly?"}
+  RU -- No --> E1["400, no redirect"]
+  RU -- Yes --> M{"MFA policy satisfied?"}
+  M -- No --> SF[Redirect to /login/second-factor]
+  M -- Yes --> S{"state present and scopes allowed?"}
+  S -- No --> E2["Redirect with error in fragment"]
+  S -- Yes --> T["Redirect with access_token in fragment"]</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_why_it_is_deprecated"><a class="anchor" href="#_why_it_is_deprecated"></a>Why it is deprecated</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>The token travels in a URL: browser history, referrer headers (the response sets <code>Referrer-Policy: no-referrer</code> to
+limit this), proxy logs and any script on the page can read it.</p>
+</li>
+<li>
+<p>There is no client authentication and no PKCE, so a token injected into the redirect cannot be told apart from a
+genuine one; <code>state</code> only protects against cross-site request forgery.</p>
+</li>
+<li>
+<p>The token cannot be sender-constrained and there is no refresh token, so clients ask for long-lived tokens instead.</p>
+</li>
+<li>
+<p>The authorization code flow with PKCE gives a browser app the same result without these problems (see
+<a href="authorization-code-public-spa.html" class="xref page">Authorization code with PKCE for a public client</a>).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Fragment parameters: <code>access_token</code>, <code>token_type=Bearer</code>, <code>expires_in</code>, <code>scope</code>, <code>state</code>. No refresh token, no ID token.</p>
+</li>
+<li>
+<p>Access token claims: <code>sub</code> the user, <code>aud</code> the configured audience (<code>resource-server</code>), <code>scope</code> the granted scopes
+(<code>documents.read</code>), plus the user&#8217;s <code>roles</code> and <code>tenant</code>; no <code>cnf</code>, it is a plain bearer token. Lifetime
+<code>access-token-ttl</code>, at most 15 minutes.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code>: <code>ImplicitRejectedIT</code> (default profile: <code>response_type=token</code> and an unknown response type answer
+<code>unsupported_response_type</code>, the demo page is not served); <code>LegacyImplicitIT</code> (profile active: token in the fragment,
+login redirect, another client refused, unregistered redirect URI not followed, missing <code>state</code> returned as
+<code>invalid_request</code> in the fragment, code flow unchanged, demo page served).</p>
+</li>
+<li>
+<p><code>e2e-tests</code>: <code>LegacyImplicitEndToEndIT</code> signs the demo user in through the demo page in headless Chromium, checks the
+claims and that the fragment is cleared, and checks that another client is refused.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.2">RFC 6749 §4.2, Implicit Grant</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9700#section-2.1.2">RFC 9700 §2.1.2, Implicit Grant (not to be used)</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-10.16">RFC 6749 §10.16, Misuse of access token to impersonate resource owner in implicit flow</a></p>
+</li>
+<li>
+<p><a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/">OAuth 2.1 draft (removes the implicit grant)</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/legacy-implicit-and-password-grants.html">Legacy Implicit &amp; Password Grants</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a> (feature page)</p>
+</li>
+<li>
+<p><a href="authorization-code-public-spa.html" class="xref page">Authorization code with PKCE for a public client</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

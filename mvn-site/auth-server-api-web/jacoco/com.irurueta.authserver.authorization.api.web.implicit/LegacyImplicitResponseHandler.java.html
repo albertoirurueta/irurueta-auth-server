@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitResponseHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitResponseHandler.java</span></div><h1>LegacyImplicitResponseHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriUtils;
+
+// tag::implicit-response-handler[]
+/**
+ * Answers the authorization endpoint: for the two results of the legacy implicit flow it redirects with {@code 302} to
+ * the registered redirect URI and carries the token, or the error, in its fragment (so it never reaches a server log
+ * as a query would); any other result is the framework's authorization code response and goes to the delegate. The
+ * response is never cached and the browser sends no referrer, so the fragment does not leak through the next request.
+ */
+@RequiredArgsConstructor
+public class LegacyImplicitResponseHandler implements AuthenticationSuccessHandler {
+
+    /** Value of {@code Cache-Control} of the response. */
+    static final String NO_STORE = &quot;no-store&quot;;
+
+    /** Value of {@code Referrer-Policy} of the response. */
+    static final String NO_REFERRER = &quot;no-referrer&quot;;
+
+    /** Name of the {@code Referrer-Policy} header. */
+    private static final String REFERRER_POLICY = &quot;Referrer-Policy&quot;;
+
+    /** Token type reported to the client. */
+    private static final String BEARER = &quot;Bearer&quot;;
+
+    /** Answers the results that are not the legacy flow's. */
+    private final AuthenticationSuccessHandler delegate;
+
+    /**
+     * Answers a result.
+     *
+     * @param request        the request.
+     * @param response       the response.
+     * @param authentication the result of the authorization request.
+     * @throws IOException      if the response cannot be written.
+     * @throws ServletException if the delegate fails.
+     */
+    @Override
+    public void onAuthenticationSuccess(final HttpServletRequest request, final HttpServletResponse response,
+            final Authentication authentication) throws IOException, ServletException {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (authentication instanceof LegacyImplicitAccessTokenToken granted) {</span>
+<span class="fc" id="L72">            redirect(response, granted.getRedirectUri(), grantedFragment(granted));</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        } else if (authentication instanceof LegacyImplicitErrorToken refused) {</span>
+<span class="fc" id="L74">            redirect(response, refused.getRedirectUri(), errorFragment(refused));</span>
+        } else {
+<span class="fc" id="L76">            delegate.onAuthenticationSuccess(request, response, authentication);</span>
+        }
+<span class="fc" id="L78">    }</span>
+
+    /**
+     * Builds the fragment of a granted request.
+     *
+     * @param granted the result.
+     * @return the encoded fragment.
+     */
+    private static String grantedFragment(final LegacyImplicitAccessTokenToken granted) {
+<span class="fc" id="L87">        final var token = granted.getAccessToken();</span>
+<span class="fc" id="L88">        final var parameters = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L89">        parameters.add(parameter(OAuth2ParameterNames.ACCESS_TOKEN, token.getTokenValue()));</span>
+<span class="fc" id="L90">        parameters.add(parameter(OAuth2ParameterNames.TOKEN_TYPE, BEARER));</span>
+<span class="fc" id="L91">        parameters.add(parameter(OAuth2ParameterNames.EXPIRES_IN, Long.toString(expiresIn(token))));</span>
+<span class="fc" id="L92">        parameters.add(parameter(OAuth2ParameterNames.SCOPE, String.join(&quot; &quot;, granted.getScopes())));</span>
+<span class="fc" id="L93">        addState(parameters, granted.getState());</span>
+<span class="fc" id="L94">        return String.join(&quot;&amp;&quot;, parameters);</span>
+    }
+
+    /**
+     * Builds the fragment of a refusal.
+     *
+     * @param refused the result.
+     * @return the encoded fragment.
+     */
+    private static String errorFragment(final LegacyImplicitErrorToken refused) {
+<span class="fc" id="L104">        final var parameters = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L105">        parameters.add(parameter(OAuth2ParameterNames.ERROR, refused.getError()));</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        if (StringUtils.hasText(refused.getDescription())) {</span>
+<span class="fc" id="L107">            parameters.add(parameter(OAuth2ParameterNames.ERROR_DESCRIPTION, refused.getDescription()));</span>
+        }
+<span class="fc" id="L109">        addState(parameters, refused.getState());</span>
+<span class="fc" id="L110">        return String.join(&quot;&amp;&quot;, parameters);</span>
+    }
+
+    /**
+     * Adds the state, when the request had one.
+     *
+     * @param parameters the encoded parameters.
+     * @param state      the state, may be {@code null}.
+     */
+    private static void addState(final ArrayList&lt;String&gt; parameters, final String state) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (StringUtils.hasText(state)) {</span>
+<span class="fc" id="L121">            parameters.add(parameter(OAuth2ParameterNames.STATE, state));</span>
+        }
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * Encodes one parameter.
+     *
+     * @param name  name of the parameter.
+     * @param value value of the parameter.
+     * @return {@code name=value}, with the value encoded.
+     */
+    private static String parameter(final String name, final String value) {
+<span class="fc" id="L133">        return name + &quot;=&quot; + UriUtils.encodeQueryParam(value, StandardCharsets.UTF_8);</span>
+    }
+
+    /**
+     * Computes the lifetime of a token in seconds.
+     *
+     * @param token the token.
+     * @return the seconds between its issue and its expiry.
+     */
+    private static long expiresIn(final OAuth2AccessToken token) {
+<span class="fc" id="L143">        return Duration.between(token.getIssuedAt(), token.getExpiresAt()).getSeconds();</span>
+    }
+
+    /**
+     * Sends the redirect, with the headers that keep the fragment private.
+     *
+     * @param response    the response.
+     * @param redirectUri the registered redirect URI.
+     * @param fragment    the encoded fragment.
+     * @throws IOException if the response cannot be written.
+     */
+    private static void redirect(final HttpServletResponse response, final String redirectUri, final String fragment)
+            throws IOException {
+<span class="fc" id="L156">        response.setHeader(HttpHeaders.CACHE_CONTROL, NO_STORE);</span>
+<span class="fc" id="L157">        response.setHeader(REFERRER_POLICY, NO_REFERRER);</span>
+<span class="fc" id="L158">        response.sendRedirect(redirectUri + &quot;#&quot; + fragment);</span>
+<span class="fc" id="L159">    }</span>
+}
+// end::implicit-response-handler[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

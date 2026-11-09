@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SeedRegisteredClientsUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.clients</a> &gt; <span class="el_source">SeedRegisteredClientsUseCase.java</span></div><h1>SeedRegisteredClientsUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.clients;
+
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+// tag::clients-seeding[]
+/**
+ * Use case that registers the configured clients (built from {@link DefaultClientDefinitions}) that are missing. It
+ * is idempotent: a client that already exists is left untouched, including its secret.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class SeedRegisteredClientsUseCase {
+
+    /** Port that stores the clients. */
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    /** Port that encodes secrets. */
+    private final PasswordHasher passwordHasher;
+
+    /**
+     * Registers the missing clients among the given definitions.
+     *
+     * @param definitions   the clients this deployment seeds; a client that is not configured is not in the list.
+     * @param clientSecrets clear-text secrets by client id, taken from the environment; only needed for the
+     *                      confidential clients that do not exist yet.
+     * @return the ids of the clients that were created and of those skipped; a confidential client without a
+     * secret is skipped and does not prevent the other clients from being created.
+     */
+    public SeedResult execute(final List&lt;ClientRegistration&gt; definitions, final Map&lt;String, String&gt; clientSecrets) {
+<span class="fc" id="L56">        final var created = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L57">        final var skipped = new ArrayList&lt;String&gt;();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        for (final var definition : definitions) {</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            if (clientRegistrationRepository.findByClientId(definition.clientId()).isPresent()) {</span>
+<span class="fc" id="L60">                continue;</span>
+            }
+<span class="fc" id="L62">            String encodedSecret = null;</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            if (definition.confidential()) {</span>
+<span class="fc" id="L64">                final var secret = clientSecrets.get(definition.clientId());</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">                if (!StringUtils.hasText(secret)) {</span>
+<span class="fc" id="L66">                    skipped.add(definition.clientId());</span>
+<span class="fc" id="L67">                    continue;</span>
+                }
+<span class="fc" id="L69">                encodedSecret = passwordHasher.encode(secret);</span>
+            }
+<span class="fc" id="L71">            clientRegistrationRepository.save(definition, encodedSecret);</span>
+<span class="fc" id="L72">            created.add(definition.clientId());</span>
+<span class="fc" id="L73">        }</span>
+<span class="fc" id="L74">        return new SeedResult(created, skipped);</span>
+    }
+}
+// end::clients-seeding[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

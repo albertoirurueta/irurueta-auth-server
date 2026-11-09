@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitAuthenticationProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitAuthenticationProvider.java</span></div><h1>LegacyImplicitAuthenticationProvider.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorRequiredException;
+import java.security.Principal;
+import java.time.Duration;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClaimAccessor;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2Token;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder;
+import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.security.oauth2.server.authorization.token.DefaultOAuth2TokenContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
+
+// tag::implicit-provider[]
+/**
+ * Grants the legacy implicit request: after checking the client, its redirect URI, the user, the multi-factor policy,
+ * the {@code state} and the scopes, it issues an access token (never a refresh token) through the token generator,
+ * stores the authorization (so the token can be introspected and revoked) and returns it for the response handler.
+ */
+@RequiredArgsConstructor
+public class LegacyImplicitAuthenticationProvider implements AuthenticationProvider {
+
+    /** Grant type recorded for the tokens of the flow; the framework has no constant for it. */
+<span class="fc" id="L57">    public static final AuthorizationGrantType IMPLICIT = new AuthorizationGrantType(&quot;implicit&quot;);</span>
+
+    /** Finds the client. */
+    private final RegisteredClientRepository registeredClients;
+
+    /** Stores the authorization behind the token. */
+    private final OAuth2AuthorizationService authorizationService;
+
+    /** Generates the access token, with the claims of the other flows. */
+    private final OAuth2TokenGenerator&lt;? extends OAuth2Token&gt; tokenGenerator;
+
+    /** Applies the multi-factor policy. */
+    private final MfaAuthorizationManager authorizationManager;
+
+    /** Longest lifetime of the tokens of the flow. */
+    private final Duration maxAccessTokenTtl;
+
+    /**
+     * Grants or refuses the request.
+     *
+     * @param authentication the request, a {@link LegacyImplicitAuthorizationRequestToken}.
+     * @return the access token, or the error that must be sent in the fragment of the redirect URI.
+     * @throws AuthenticationException {@code unsupported_response_type} or {@code unauthorized_client} when the
+     *                                 client is unknown or may not use the flow, {@code invalid_request} when the
+     *                                 redirect URI is missing or not registered or the user is not signed in (none
+     *                                 of them redirects), {@link SecondFactorRequiredException} when the user owes a
+     *                                 second factor, or {@code server_error} when no token can be generated.
+     */
+    @Override
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
+<span class="fc" id="L87">        final var request = (LegacyImplicitAuthorizationRequestToken) authentication;</span>
+<span class="fc" id="L88">        final var client = registeredClients.findByClientId(request.getClientId());</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (client == null) {</span>
+<span class="fc" id="L90">            throw refused(OAuth2ErrorCodes.UNSUPPORTED_RESPONSE_TYPE);</span>
+        }
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (!client.getAuthorizationGrantTypes().contains(IMPLICIT)) {</span>
+<span class="fc" id="L93">            throw refused(OAuth2ErrorCodes.UNAUTHORIZED_CLIENT);</span>
+        }
+<span class="fc" id="L95">        final var redirectUri = request.getRedirectUri();</span>
+<span class="fc bfc" id="L96" title="All 4 branches covered.">        if (redirectUri == null || !client.getRedirectUris().contains(redirectUri)) {</span>
+<span class="fc" id="L97">            throw refused(OAuth2ErrorCodes.INVALID_REQUEST);</span>
+        }
+<span class="fc" id="L99">        final var user = (Authentication) request.getPrincipal();</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (!MfaAuthorizationManager.isUser(user)) {</span>
+<span class="fc" id="L101">            throw refused(OAuth2ErrorCodes.INVALID_REQUEST);</span>
+        }
+<span class="fc" id="L103">        if (!authorizationManager.evaluate(user, authorizationManager.clientRequiresMfa(client.getClientId()))</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">                .isGranted()) {</span>
+<span class="fc" id="L105">            throw new SecondFactorRequiredException();</span>
+        }
+<span class="fc" id="L107">        final var state = request.getState();</span>
+<span class="pc bpc" id="L108" title="1 of 4 branches missed.">        if (state == null || state.isBlank()) {</span>
+<span class="fc" id="L109">            return new LegacyImplicitErrorToken(OAuth2ErrorCodes.INVALID_REQUEST, &quot;state is required&quot;, redirectUri,</span>
+                    null);
+        }
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        final Set&lt;String&gt; scopes = request.getScopes().isEmpty()</span>
+<span class="fc" id="L113">                ? new LinkedHashSet&lt;&gt;(client.getScopes()) : new LinkedHashSet&lt;&gt;(request.getScopes());</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (!client.getScopes().containsAll(scopes)) {</span>
+<span class="fc" id="L115">            return new LegacyImplicitErrorToken(OAuth2ErrorCodes.INVALID_SCOPE, null, redirectUri, state);</span>
+        }
+<span class="fc" id="L117">        return issue(request, client, user, scopes);</span>
+    }
+
+    /**
+     * Tells which requests this provider handles.
+     *
+     * @param authentication the type of the request.
+     * @return {@code true} for a request of the legacy flow.
+     */
+    @Override
+    public boolean supports(final Class&lt;?&gt; authentication) {
+<span class="fc" id="L128">        return LegacyImplicitAuthorizationRequestToken.class.isAssignableFrom(authentication);</span>
+    }
+
+    /**
+     * Issues and stores the access token.
+     *
+     * @param request the request.
+     * @param client  the client.
+     * @param user    the signed-in user.
+     * @param scopes  the scopes granted.
+     * @return the result.
+     */
+    private LegacyImplicitAccessTokenToken issue(final LegacyImplicitAuthorizationRequestToken request,
+            final RegisteredClient client, final Authentication user, final Set&lt;String&gt; scopes) {
+<span class="fc" id="L142">        final var cappedClient = withCappedLifetime(client);</span>
+<span class="fc" id="L143">        final var context = DefaultOAuth2TokenContext.builder()</span>
+<span class="fc" id="L144">                .registeredClient(cappedClient)</span>
+<span class="fc" id="L145">                .principal(user)</span>
+<span class="fc" id="L146">                .authorizationServerContext(AuthorizationServerContextHolder.getContext())</span>
+<span class="fc" id="L147">                .authorizedScopes(scopes)</span>
+<span class="fc" id="L148">                .tokenType(OAuth2TokenType.ACCESS_TOKEN)</span>
+<span class="fc" id="L149">                .authorizationGrantType(IMPLICIT)</span>
+<span class="fc" id="L150">                .authorizationGrant(request)</span>
+<span class="fc" id="L151">                .build();</span>
+<span class="fc" id="L152">        final OAuth2Token generated = tokenGenerator.generate(context);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        if (generated == null) {</span>
+<span class="fc" id="L154">            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR,</span>
+                    &quot;The token generator failed to generate the access token.&quot;, null));
+        }
+<span class="fc" id="L157">        final var accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, generated.getTokenValue(),</span>
+<span class="fc" id="L158">                generated.getIssuedAt(), generated.getExpiresAt(), scopes);</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">        final var claims = generated instanceof ClaimAccessor accessor ? accessor.getClaims() : null;</span>
+<span class="fc" id="L160">        final var format = client.getTokenSettings().getAccessTokenFormat().getValue();</span>
+<span class="fc" id="L161">        final var authorization = OAuth2Authorization.withRegisteredClient(client)</span>
+<span class="fc" id="L162">                .principalName(user.getName())</span>
+<span class="fc" id="L163">                .authorizationGrantType(IMPLICIT)</span>
+<span class="fc" id="L164">                .authorizedScopes(scopes)</span>
+<span class="fc" id="L165">                .attribute(Principal.class.getName(), user)</span>
+<span class="fc" id="L166">                .token(accessToken, metadata -&gt; {</span>
+<span class="fc" id="L167">                    metadata.put(OAuth2Authorization.Token.CLAIMS_METADATA_NAME, claims);</span>
+<span class="fc" id="L168">                    metadata.put(OAuth2Authorization.Token.INVALIDATED_METADATA_NAME, false);</span>
+<span class="fc" id="L169">                    metadata.put(OAuth2TokenFormat.class.getName(), format);</span>
+<span class="fc" id="L170">                })</span>
+<span class="fc" id="L171">                .build();</span>
+<span class="fc" id="L172">        authorizationService.save(authorization);</span>
+<span class="fc" id="L173">        return new LegacyImplicitAccessTokenToken(accessToken, scopes, request.getRedirectUri(), request.getState());</span>
+    }
+
+    /**
+     * Copies the client with the lifetime of its access tokens limited to the maximum of the flow.
+     *
+     * @param client the client.
+     * @return the client with the lifetime {@code min(client, maximum)}.
+     */
+    private RegisteredClient withCappedLifetime(final RegisteredClient client) {
+<span class="fc" id="L183">        final var settings = client.getTokenSettings();</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (settings.getAccessTokenTimeToLive().compareTo(maxAccessTokenTtl) &lt;= 0) {</span>
+<span class="fc" id="L185">            return client;</span>
+        }
+<span class="fc" id="L187">        return RegisteredClient.from(client)</span>
+<span class="fc" id="L188">                .tokenSettings(TokenSettings.withSettings(settings.getSettings())</span>
+<span class="fc" id="L189">                        .accessTokenTimeToLive(maxAccessTokenTtl).build())</span>
+<span class="fc" id="L190">                .build();</span>
+    }
+
+    /**
+     * Builds a refusal that is answered with {@code 400}, never redirected, because the redirect URI is not trusted
+     * yet or the user cannot be sent anywhere.
+     *
+     * @param code error code.
+     * @return the exception.
+     */
+    private static OAuth2AuthorizationCodeRequestAuthenticationException refused(final String code) {
+<span class="fc" id="L201">        return new OAuth2AuthorizationCodeRequestAuthenticationException(new OAuth2Error(code), null);</span>
+    }
+}
+// end::implicit-provider[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

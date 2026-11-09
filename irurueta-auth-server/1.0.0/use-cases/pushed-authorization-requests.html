@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Pushed authorization requests :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="pushed-authorization-requests.html">Pushed authorization requests</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/pushed-authorization-requests.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Pushed authorization requests</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>With pushed authorization requests (PAR, RFC 9126) the client sends the parameters of its authorization request straight
+to the authorization server over an authenticated back-channel call, and the browser is then sent to the authorization
+endpoint with only an opaque <code>request_uri</code>. The parameters can no longer be read or altered in the browser, the client
+is authenticated before the user sees anything, and long requests do not hit URL limits. The endpoint is Spring
+Authorization Server&#8217;s; this repository only switches it on with a property. The rest is the ordinary authorization code
+flow with PKCE (see <a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a>).</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user with a browser, a client of the authorization code flow, <code>auth-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: any client with the <code>authorization_code</code> grant and a registered redirect URI. No client setting
+makes PAR mandatory: the endpoint is offered, not required. The BFF does not use it.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>: <code>authserver.par.enabled=true</code> (default <code>false</code>). It is a property, not a profile.</p>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>POST /oauth2/par</code>, <code>GET /oauth2/authorize</code>, <code>POST /oauth2/token</code>; the metadata field
+<code>pushed_authorization_request_endpoint</code> in <code>/.well-known/openid-configuration</code> and
+<code>/.well-known/oauth-authorization-server</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>With <code>authserver.par.enabled=true</code>, <code>ParConfiguration</code> (conditional on the property) declares a
+<code>ProtocolChainCustomizer</code> (order 5) that enables the framework&#8217;s pushed authorization request endpoint. The metadata
+then advertises <code>pushed_authorization_request_endpoint</code>; with the property off, <code>POST /oauth2/par</code> answers <code>404</code> and the
+field is absent.</p>
+</li>
+<li>
+<p>The client builds a normal authorization request (<code>response_type=code</code>, <code>client_id</code>, <code>redirect_uri</code>, <code>scope</code>, <code>state</code>,
+<code>code_challenge</code>, <code>code_challenge_method=S256</code>) and posts it as a form to <code>POST /oauth2/par</code>, authenticating as it would
+at the token endpoint (see <a href="client-authentication.html" class="xref page">Client authentication</a>).</p>
+</li>
+<li>
+<p>The server authenticates the client, validates the request as the authorization endpoint would (client, redirect URI,
+scopes, PKCE), stores it and answers <code>201 Created</code> with <code>request_uri</code>
+(<code>urn:ietf:params:oauth:request_uri:&#8230;&#8203;</code>) and <code>expires_in</code>.</p>
+</li>
+<li>
+<p>The client redirects the browser to <code>GET /oauth2/authorize?client_id=&#8230;&#8203;&amp;request_uri=&#8230;&#8203;</code>.</p>
+</li>
+<li>
+<p>The server resolves the stored request. From here the flow is the authorization code flow: sign-in at <code>/login</code>, the MFA
+policy and step-up (<code>MfaProtocolChainCustomizer</code> and <code>StepUpProtocolChainCustomizer</code> apply as usual, so a client with
+<code>mfaRequired</code> sends the user to <code>/login/second-factor</code>), consent, then a redirect to <code>redirect_uri</code> with <code>code</code> and
+<code>state</code>.</p>
+</li>
+<li>
+<p>The <code>request_uri</code> is single use: presenting it again does not yield another code.</p>
+</li>
+<li>
+<p>The client exchanges the code with its <code>code_verifier</code> at <code>POST /oauth2/token</code>.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the customizer that enables the pushed authorization request endpoint.
+     *
+     * @return the customizer.
+     */
+    @Bean
+    @Order(ORDER)
+    public ProtocolChainCustomizer parProtocolChainCustomizer() {
+        return server -&gt; server.pushedAuthorizationRequestEndpoint(Customizer.withDefaults());
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  par:
+    # Pushed authorization requests (RFC 9126): the endpoint is off unless explicitly enabled.
+    enabled: false</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as Client
+  participant A as auth-server
+  C->>A: POST /oauth2/par client authentication, response_type=code, redirect_uri, scope, state, code_challenge
+  A->>A: authenticate client, validate and store request
+  A-->>C: 201 request_uri, expires_in
+  C-->>B: 302 /oauth2/authorize?client_id and request_uri
+  B->>A: GET /oauth2/authorize?client_id and request_uri
+  A->>A: resolve stored request
+  A-->>B: 302 /login
+  B->>A: sign in, second factor if required, consent
+  A-->>B: 302 redirect_uri?code and state
+  B->>C: code and state
+  C->>A: POST /oauth2/token grant_type=authorization_code, code, code_verifier
+  A-->>C: 200 access token, refresh token, ID token if openid</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  P["POST /oauth2/par"] --> E{"authserver.par.enabled?"}
+  E -- No --> N404[404]
+  E -- Yes --> CA{"Client authenticated?"}
+  CA -- No --> X["401 invalid_client"]
+  CA -- Yes --> V{"Request valid: redirect URI, scopes, PKCE?"}
+  V -- No --> X2["400 error"]
+  V -- Yes --> R["201 request_uri"]
+  R --> AZ["GET /oauth2/authorize with request_uri"]
+  AZ --> U{"request_uri known, unused, not expired?"}
+  U -- No --> X3["Error, no code"]
+  U -- Yes --> F[Sign-in, MFA, consent, code]</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>PAR changes how the request reaches the server, not the result: the tokens are those of the authorization code flow
+(access token with <code>roles</code>, <code>tenant</code>, <code>aud</code> and the MFA claims, refresh token, and an ID token when <code>openid</code> was
+requested). The push response holds only <code>request_uri</code> and <code>expires_in</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code>: <code>ParIT</code> checks that with the property off the endpoint answers <code>404</code> and is not advertised; with
+<code>authserver.par.enabled=true</code> it answers a <code>request_uri</code> and is advertised, the pushed request completes the code flow,
+a client requiring MFA is sent to the second-factor page, and a reused <code>request_uri</code> yields no code.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9126#section-2">RFC 9126 §2, Pushed authorization request endpoint</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9126#section-4">RFC 9126 §4, Authorization request with <code>request_uri</code></a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9126#section-5">RFC 9126 §5, Authorization server metadata</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.1">RFC 6749 §4.1, Authorization Code Grant</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636, PKCE</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/par-jar-and-hardened-profiles.html">PAR, JAR &amp; Hardened Profiles</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a> (feature page, which also covers the PAR switch)</p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+<li>
+<p><a href="client-authentication.html" class="xref page">Client authentication</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DPoPProofs.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">DPoPProofs.java</span></div><h1>DPoPProofs.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.oauth2.sdk.dpop.DPoPProofFactory;
+import com.nimbusds.oauth2.sdk.token.DPoPAccessToken;
+import java.net.URI;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.util.UriComponentsBuilder;
+
+/**
+ * Creates the DPoP proofs (RFC 9449) of the service client. Spring Security has no client-side DPoP support, so the
+ * proofs are made with Nimbus' {@link DPoPProofFactory}, signed with a key pair that lives as long as the process.
+ */
+@RequiredArgsConstructor
+public class DPoPProofs {
+
+    /** Creates and signs the proofs. */
+    private final DPoPProofFactory proofFactory;
+
+    /**
+     * Creates the proof of a token request: it binds the request, not yet any token.
+     *
+     * @param method HTTP method of the request.
+     * @param uri    URI of the request.
+     * @return the serialized proof JWT.
+     * @throws IllegalStateException if the proof cannot be signed.
+     */
+    public String proof(final String method, final URI uri) {
+        try {
+<span class="fc" id="L47">            return proofFactory.createDPoPJWT(method, withoutQuery(uri)).serialize();</span>
+<span class="nc" id="L48">        } catch (final JOSEException e) {</span>
+<span class="nc" id="L49">            throw new IllegalStateException(&quot;The DPoP proof cannot be signed&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Creates the proof of a call that carries an access token: it also binds the token ({@code ath} claim).
+     *
+     * @param method      HTTP method of the request.
+     * @param uri         URI of the request.
+     * @param accessToken value of the access token the request carries.
+     * @return the serialized proof JWT.
+     * @throws IllegalStateException if the proof cannot be signed.
+     */
+    public String proof(final String method, final URI uri, final String accessToken) {
+        try {
+<span class="fc" id="L64">            return proofFactory.createDPoPJWT(method, withoutQuery(uri), new DPoPAccessToken(accessToken))</span>
+<span class="fc" id="L65">                    .serialize();</span>
+<span class="nc" id="L66">        } catch (final JOSEException e) {</span>
+<span class="nc" id="L67">            throw new IllegalStateException(&quot;The DPoP proof cannot be signed&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Removes the query and the fragment, which {@code htu} does not include.
+     *
+     * @param uri the URI of the request.
+     * @return the URI as the proof states it.
+     */
+    private static URI withoutQuery(final URI uri) {
+<span class="fc" id="L78">        return UriComponentsBuilder.fromUri(uri).replaceQuery(null).fragment(null).build().toUri();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

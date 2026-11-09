@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApplePrivateKeyParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">ApplePrivateKeyParser.java</span></div><h1>ApplePrivateKeyParser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.interfaces.ECPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
+import org.springframework.stereotype.Component;
+
+/**
+ * Reads the private key Apple issues for Sign in with Apple (an EC P-256 key in PKCS#8 PEM form, the content of the
+ * {@code .p8} file) from the text an environment variable holds, where line breaks are often written as a literal
+ * {@code \n}. The error never repeats the key.
+ */
+@Component
+<span class="fc" id="L32">public class ApplePrivateKeyParser {</span>
+
+    /** Bits of the order of the P-256 curve Apple's ES256 keys use. */
+    static final int P256_ORDER_BITS = 256;
+
+    /**
+     * Parses a key.
+     *
+     * @param pem PKCS#8 PEM text of the key, with or without the header and footer lines.
+     * @return the private key.
+     * @throws IllegalArgumentException if the text is not a PKCS#8 EC P-256 private key.
+     */
+    public ECPrivateKey parse(final String pem) {
+<span class="fc" id="L45">        final var body = pem.replace(&quot;\\n&quot;, &quot;\n&quot;)</span>
+<span class="fc" id="L46">                .replaceAll(&quot;-----(BEGIN|END) PRIVATE KEY-----&quot;, &quot;&quot;)</span>
+<span class="fc" id="L47">                .replaceAll(&quot;\\s&quot;, &quot;&quot;);</span>
+        try {
+<span class="fc" id="L49">            final var key = KeyFactory.getInstance(&quot;EC&quot;)</span>
+<span class="fc" id="L50">                    .generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(body)));</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">            if (key instanceof final ECPrivateKey ecKey</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">                    &amp;&amp; ecKey.getParams().getOrder().bitLength() == P256_ORDER_BITS) {</span>
+<span class="fc" id="L53">                return ecKey;</span>
+            }
+<span class="fc" id="L55">        } catch (final GeneralSecurityException | IllegalArgumentException e) {</span>
+<span class="fc" id="L56">            throw new IllegalArgumentException(notAKey(), e);</span>
+<span class="fc" id="L57">        }</span>
+<span class="fc" id="L58">        throw new IllegalArgumentException(notAKey());</span>
+    }
+
+    /**
+     * Builds the message of a refused key.
+     *
+     * @return the message.
+     */
+    private static String notAKey() {
+<span class="fc" id="L67">        return &quot;authserver.social.providers.apple.private-key is not a PKCS#8 EC P-256 private key&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResolveFederatedLoginUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.social</a> &gt; <span class="el_source">ResolveFederatedLoginUseCase.java</span></div><h1>ResolveFederatedLoginUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.application.social;
+
+import com.irurueta.authserver.authorization.application.account.RegisterAccountUseCase;
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.account.TokenGenerator;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.password.PasswordHasher;
+import com.irurueta.authserver.authorization.domain.password.UserAccount;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentity;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
+import com.irurueta.authserver.authorization.domain.social.FederatedLinkingPolicy;
+import com.irurueta.authserver.authorization.domain.social.FederatedLoginRefusedException;
+import com.irurueta.authserver.authorization.domain.social.GeneratedPasswordRepository;
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Use case that resolves a sign-in with an external provider to a local account. The provider's stable subject, never
+ * its e-mail address, finds the account. The identity is locked first
+ * ({@link FederatedIdentityRepository#lockSubject}), so two concurrent first sign-ins of the same person are
+ * serialized and the second one finds the link of the first instead of failing on the unique constraint. In order:
+ * &lt;ol&gt;
+ *     &lt;li&gt;an identity that is already linked signs in its account, unless the account is disabled;&lt;/li&gt;
+ *     &lt;li&gt;otherwise the provider must vouch for the e-mail address: an unverified address never links and never
+ *     provisions;&lt;/li&gt;
+ *     &lt;li&gt;an account that has that address and has verified it too is linked to the identity, unless it is disabled:
+ *     a disabled account is refused before anything is linked or audited;&lt;/li&gt;
+ *     &lt;li&gt;an address that belongs to an account that never verified it is refused, so a pre-registered account cannot
+ *     capture the victim's sign-in;&lt;/li&gt;
+ *     &lt;li&gt;otherwise a new, enabled account is provisioned, whose password is a random one nobody knows.&lt;/li&gt;
+ * &lt;/ol&gt;
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class ResolveFederatedLoginUseCase {
+
+    /** Longest username the {@code users} table accepts. */
+    static final int MAX_USERNAME_LENGTH = 100;
+
+    /** Port that stores the links. */
+    private final FederatedIdentityRepository federatedIdentityRepository;
+
+    /** Port that stores the accounts. */
+    private final UserAccountRepository userAccountRepository;
+
+    /** Port that remembers the accounts that only hold a generated password. */
+    private final GeneratedPasswordRepository generatedPasswordRepository;
+
+    /** Port that hashes the generated password. */
+    private final PasswordHasher passwordHasher;
+
+    /** Port that generates the unguessable secret the generated password is made of. */
+    private final TokenGenerator tokenGenerator;
+
+    /** Rules of linking and provisioning. */
+    private final FederatedLinkingPolicy federatedLinkingPolicy;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Resolves a sign-in.
+     *
+     * @param provider      provider that authenticated the user.
+     * @param subject       stable identifier the provider assigned to the user.
+     * @param email         e-mail address the provider reported, or {@code null}.
+     * @param emailVerified whether the provider says it verified the address.
+     * @return the account the sign-in resolved to and how it was found.
+     * @throws FederatedLoginRefusedException if the identity is not linked and the provider does not vouch for a usable
+     *                                        e-mail address, the address belongs to an unverified account, or the
+     *                                        account is disabled.
+     */
+    public FederatedLogin execute(
+            final IdentityProvider provider, final String subject, final String email, final boolean emailVerified) {
+<span class="fc" id="L101">        final var now = clock.instant();</span>
+<span class="fc" id="L102">        federatedIdentityRepository.lockSubject(provider, subject);</span>
+<span class="fc" id="L103">        final var existing = federatedIdentityRepository.findByProviderAndSubject(provider, subject);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (existing.isPresent()) {</span>
+<span class="fc" id="L105">            return signIn(existing.get(), email, now);</span>
+        }
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (!federatedLinkingPolicy.mayProvision(email, emailVerified)) {</span>
+<span class="fc" id="L108">            throw new FederatedLoginRefusedException(&quot;The provider did not verify an e-mail address&quot;);</span>
+        }
+<span class="fc" id="L110">        final var sameAddress = userAccountRepository.findByEmail(email);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (sameAddress.isPresent()) {</span>
+<span class="fc" id="L112">            final var account = sameAddress.get();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if (!federatedLinkingPolicy.mayLinkByEmail(account, email, emailVerified)) {</span>
+<span class="fc" id="L114">                throw new FederatedLoginRefusedException(&quot;The e-mail address belongs to an unverified account&quot;);</span>
+            }
+<span class="fc" id="L116">            requireMaySignIn(account);</span>
+<span class="fc" id="L117">            return new FederatedLogin(account, link(account, provider, subject, email, now),</span>
+                    FederatedLoginOutcome.LINKED);
+        }
+<span class="fc" id="L120">        final var account = provision(provider, email);</span>
+<span class="fc" id="L121">        return new FederatedLogin(account, link(account, provider, subject, email, now),</span>
+                FederatedLoginOutcome.PROVISIONED);
+    }
+
+    /**
+     * Signs in the account of an identity that is already linked, remembering the sign-in.
+     *
+     * @param identity the stored link.
+     * @param email    e-mail address the provider reported now, or {@code null}.
+     * @param now      current instant.
+     * @return the resolution.
+     */
+    private FederatedLogin signIn(final FederatedIdentity identity, final String email, final Instant now) {
+<span class="fc" id="L134">        final var account = userAccountRepository.findById(identity.userId())</span>
+<span class="fc" id="L135">                .orElseThrow(() -&gt; new FederatedLoginRefusedException(&quot;The linked account no longer exists&quot;));</span>
+<span class="fc" id="L136">        requireMaySignIn(account);</span>
+<span class="fc" id="L137">        final var updated = federatedIdentityRepository.save(new FederatedIdentity(identity.id(), identity.userId(),</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">                identity.provider(), identity.subject(), email == null ? identity.email() : email,</span>
+<span class="fc" id="L139">                identity.linkedAt(), now));</span>
+<span class="fc" id="L140">        return new FederatedLogin(account, updated, FederatedLoginOutcome.EXISTING);</span>
+    }
+
+    /**
+     * Refuses an account that may not sign in, before anything is linked, updated or audited.
+     *
+     * @param account the account the sign-in resolved to.
+     * @throws FederatedLoginRefusedException if the account is disabled.
+     */
+    private void requireMaySignIn(final UserAccount account) {
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (!federatedLinkingPolicy.maySignIn(account)) {</span>
+<span class="fc" id="L151">            throw new FederatedLoginRefusedException(&quot;The account may not sign in&quot;);</span>
+        }
+<span class="fc" id="L153">    }</span>
+
+    /**
+     * Links an identity to an account and audits it.
+     *
+     * @param account  the account.
+     * @param provider provider of the identity.
+     * @param subject  subject of the identity.
+     * @param email    e-mail address the provider reported.
+     * @param now      current instant.
+     * @return the stored link.
+     */
+    private FederatedIdentity link(final UserAccount account, final IdentityProvider provider, final String subject,
+                                   final String email, final Instant now) {
+<span class="fc" id="L167">        final var stored = federatedIdentityRepository.save(</span>
+<span class="fc" id="L168">                new FederatedIdentity(UUID.randomUUID(), account.id(), provider, subject, email, now, now));</span>
+<span class="fc" id="L169">        recordSecurityEventUseCase.execute(SecurityEventType.IDENTITY_LINKED, account.id(), account.username(),</span>
+<span class="fc" id="L170">                provider.id());</span>
+<span class="fc" id="L171">        return stored;</span>
+    }
+
+    /**
+     * Creates an enabled account from the provider's verified e-mail address. Its password is the hash of a random
+     * secret that is discarded, and the account is marked as having no password of its own.
+     *
+     * @param provider provider that vouched for the address.
+     * @param email    verified e-mail address.
+     * @return the new account.
+     */
+    private UserAccount provision(final IdentityProvider provider, final String email) {
+<span class="fc" id="L183">        final var id = UUID.randomUUID();</span>
+<span class="fc bfc" id="L184" title="All 4 branches covered.">        final var username = userAccountRepository.existsByUsername(email) || email.length() &gt; MAX_USERNAME_LENGTH</span>
+<span class="fc" id="L185">                ? provider.id() + &quot;-&quot; + id : email;</span>
+<span class="fc" id="L186">        final var account = new UserAccount(id, username, passwordHasher.encode(tokenGenerator.generate()), true,</span>
+<span class="fc" id="L187">                List.of(RegisterAccountUseCase.DEFAULT_AUTHORITY), email, true, UserAccount.DEFAULT_TENANT);</span>
+<span class="fc" id="L188">        userAccountRepository.save(account);</span>
+<span class="fc" id="L189">        generatedPasswordRepository.markGenerated(id);</span>
+<span class="fc" id="L190">        return account;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

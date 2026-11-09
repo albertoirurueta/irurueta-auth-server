@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttChainCustomizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttChainCustomizer.java</span></div><h1>OttChainCustomizer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.login.LoginController;
+import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ott.OneTimeTokenService;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.AuthenticationConverter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.ott.GenerateOneTimeTokenFilter;
+import org.springframework.security.web.authentication.ott.GenerateOneTimeTokenRequestResolver;
+import org.springframework.security.web.authentication.ott.OneTimeTokenGenerationSuccessHandler;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+
+// tag::ott-chain[]
+/**
+ * Adds the one-time token methods to the login/UI chain through {@code http.oneTimeTokenLogin(...)}: the request of a
+ * token ({@code POST /ott/generate}), the submission of a magic link token or a numeric code ({@code POST /login/ott})
+ * and, as a second factor, the submission of a code ({@code POST /login/second-factor/ott}). The pages the user lands
+ * on (where the code is typed, where a magic link is confirmed) are open to everybody and the second-factor post to
+ * signed-in users only. The rate limits are applied before anything else of the one-time token flow. CSRF protection
+ * stays on: every form carries the token. Once the chain is configured, the second-factor filter gets the chain's
+ * session authentication strategy, the one the form login uses (a new session id and a new CSRF token on success).
+ * Spring's own default submit page is turned off: the pages are this server's own.
+ */
+@RequiredArgsConstructor
+public class OttChainCustomizer implements LoginChainCustomizer {
+
+    /** Order of this customizer in the login chain, after the TOTP ({@code 1}) and passkey ({@code 2}) ones. */
+    public static final int ORDER = 3;
+
+    /** Applies the rate limits to the endpoints. */
+    private final OttRateLimitFilter rateLimitFilter;
+
+    /** Resolves the token Spring's filter generates. */
+    private final GenerateOneTimeTokenRequestResolver requestResolver;
+
+    /** Delivers the token that was generated. */
+    private final OneTimeTokenGenerationSuccessHandler generationSuccessHandler;
+
+    /** Store of the magic link tokens. */
+    private final OneTimeTokenService tokenService;
+
+    /** Reads what is posted to the sign-in endpoint. */
+    private final AuthenticationConverter authenticationConverter;
+
+    /** Confirms a magic link. */
+    private final AuthenticationProvider linkProvider;
+
+    /** Signs a user in with a numeric code. */
+    private final AuthenticationProvider codeProvider;
+
+    /** Resumes the interrupted request after a sign-in. */
+    private final AuthenticationSuccessHandler successHandler;
+
+    /** Sends the browser back after a failed sign-in. */
+    private final AuthenticationFailureHandler failureHandler;
+
+    /** Processes the post of the second-factor code form. */
+    private final OttSecondFactorFilter secondFactorFilter;
+
+    /**
+     * Customizes the login/UI chain.
+     *
+     * @param http security builder of the chain.
+     */
+    @Override
+    public void customize(final HttpSecurity http) {
+<span class="fc" id="L89">        http.authorizeHttpRequests(authorize -&gt; authorize</span>
+<span class="fc" id="L90">                .requestMatchers(OttRateLimitFilter.GENERATE_PATH, OneTimeTokenPageApi.PATH_OTT_CODE_PAGE,</span>
+<span class="fc" id="L91">                        OneTimeTokenPageApi.PATH_OTT_CODE_PAGE + &quot;/**&quot;).permitAll()</span>
+<span class="fc" id="L92">                .requestMatchers(OttSecondFactorFilter.SECOND_FACTOR_OTT_PATH).authenticated());</span>
+<span class="fc" id="L93">        http.addFilterBefore(rateLimitFilter, GenerateOneTimeTokenFilter.class);</span>
+<span class="fc" id="L94">        http.addFilterBefore(secondFactorFilter, AuthorizationFilter.class);</span>
+<span class="fc" id="L95">        http.authenticationProvider(codeProvider);</span>
+<span class="fc" id="L96">        http.oneTimeTokenLogin(ott -&gt; ott</span>
+<span class="fc" id="L97">                .tokenGeneratingUrl(OttRateLimitFilter.GENERATE_PATH)</span>
+<span class="fc" id="L98">                .loginProcessingUrl(OneTimeTokenPageApi.PATH_OTT_CODE_PAGE)</span>
+<span class="fc" id="L99">                .loginPage(LoginController.LOGIN_PATH)</span>
+<span class="fc" id="L100">                .showDefaultSubmitPage(false)</span>
+<span class="fc" id="L101">                .tokenService(tokenService)</span>
+<span class="fc" id="L102">                .generateRequestResolver(requestResolver)</span>
+<span class="fc" id="L103">                .tokenGenerationSuccessHandler(generationSuccessHandler)</span>
+<span class="fc" id="L104">                .authenticationConverter(authenticationConverter)</span>
+<span class="fc" id="L105">                .authenticationProvider(linkProvider)</span>
+<span class="fc" id="L106">                .successHandler(successHandler)</span>
+<span class="fc" id="L107">                .failureHandler(failureHandler));</span>
+<span class="fc" id="L108">        http.with(new SessionStrategyConfigurer(secondFactorFilter));</span>
+<span class="fc" id="L109">    }</span>
+
+    /**
+     * Hands the session authentication strategy of the chain to the second-factor filter. The strategy is a shared
+     * object of the chain that only exists once every configurer has been initialised (the CSRF configurer adds its
+     * {@code CsrfAuthenticationStrategy} to the session management one), so it is read in {@link #configure}, as the
+     * form login does for its own filter. Package-private so its test can drive it.
+     */
+    @RequiredArgsConstructor
+    static final class SessionStrategyConfigurer
+            extends AbstractHttpConfigurer&lt;SessionStrategyConfigurer, HttpSecurity&gt; {
+
+        /** The filter that gets the strategy. */
+        private final OttSecondFactorFilter filter;
+
+        /**
+         * Sets the shared strategy, when the chain has one, on the filter.
+         *
+         * @param http security builder of the chain.
+         */
+        @Override
+        public void configure(final HttpSecurity http) {
+<span class="fc" id="L131">            final var strategy = http.getSharedObject(SessionAuthenticationStrategy.class);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">            if (strategy != null) {</span>
+<span class="fc" id="L133">                filter.setSessionAuthenticationStrategy(strategy);</span>
+            }
+<span class="fc" id="L135">        }</span>
+    }
+}
+// end::ott-chain[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientCertificateVerifier.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.clientauth</a> &gt; <span class="el_source">ClientCertificateVerifier.java</span></div><h1>ClientCertificateVerifier.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.clientauth;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.AsymmetricJWK;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import java.security.GeneralSecurityException;
+import java.security.PublicKey;
+import java.security.cert.CertPathValidator;
+import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXParameters;
+import java.security.cert.X509Certificate;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.function.Consumer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationContext;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
+import org.springframework.util.StringUtils;
+
+// tag::clientauth-certificate-verifier[]
+/**
+ * Verifies the certificate a client presented on the TLS port (RFC 8705), replacing the framework's verifier, which
+ * has no trust anchors of its own.
+ * &lt;ul&gt;
+ * &lt;li&gt;{@code tls_client_auth}: the chain must validate (PKIX path validation) against the configured trust anchors,
+ * and the subject DN of the leaf must equal the one registered for the client. Revocation checking is disabled: it
+ * needs a CRL or OCSP endpoint reachable from the server, which this example does not assume. No configured anchor
+ * means no client is accepted.&lt;/li&gt;
+ * &lt;li&gt;{@code self_signed_tls_client_auth}: the certificate must be self-signed and its public key one of the keys of
+ * the client's registered JWK set; otherwise the decision is the framework's own (which compares it with the keys of
+ * the client's {@code jwkSetUrl}), whose provider is {@code defaultProvider}.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * Every refusal is {@code invalid_client}.
+ */
+@RequiredArgsConstructor
+public class ClientCertificateVerifier implements Consumer&lt;OAuth2ClientAuthenticationContext&gt; {
+
+    /** Type of the certification path. */
+    private static final String CERTIFICATE_TYPE = &quot;X.509&quot;;
+
+    /** Algorithm of the path validation. */
+    private static final String PKIX = &quot;PKIX&quot;;
+
+    /** The trusted certificate authorities. */
+    private final MtlsTrustAnchors trustAnchors;
+
+    /** A default-configured provider of the framework, asked about a self-signed certificate with no registered key. */
+    private final AuthenticationProvider defaultProvider;
+
+    /**
+     * Verifies the certificate of the client.
+     *
+     * @param context the client and its authentication.
+     * @throws OAuth2AuthenticationException {@code invalid_client} if the certificate is not accepted.
+     */
+    @Override
+    public void accept(final OAuth2ClientAuthenticationContext context) {
+<span class="fc" id="L80">        final OAuth2ClientAuthenticationToken authentication = context.getAuthentication();</span>
+<span class="fc" id="L81">        final var method = authentication.getClientAuthenticationMethod();</span>
+<span class="fc" id="L82">        final var chain = chainOf(authentication);</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (ClientAuthenticationMethod.TLS_CLIENT_AUTH.equals(method)) {</span>
+<span class="fc" id="L84">            verifyCaIssued(context, chain);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        } else if (ClientAuthenticationMethod.SELF_SIGNED_TLS_CLIENT_AUTH.equals(method)) {</span>
+<span class="fc" id="L86">            verifySelfSigned(context, authentication, chain);</span>
+        } else {
+<span class="fc" id="L88">            throw invalidClient();</span>
+        }
+<span class="fc" id="L90">    }</span>
+
+    /**
+     * Verifies a certificate issued by a trusted authority.
+     *
+     * @param context the client and its authentication.
+     * @param chain   the presented chain, the leaf first.
+     */
+    private void verifyCaIssued(final OAuth2ClientAuthenticationContext context, final X509Certificate[] chain) {
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (trustAnchors.anchors().isEmpty()) {</span>
+<span class="fc" id="L100">            throw invalidClient();</span>
+        }
+<span class="fc" id="L102">        final var leaf = chain[0];</span>
+        // the leaf is the certificate whose key the TLS handshake proved and whose DN is compared below: it must be
+        // the first certificate of the validated path, never an anchor left out of it
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if (isAnchor(leaf)) {</span>
+<span class="fc" id="L106">            throw invalidClient();</span>
+        }
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        final var path = Arrays.stream(chain).filter(certificate -&gt; !isAnchor(certificate)).toList();</span>
+        try {
+<span class="fc" id="L110">            final var parameters = new PKIXParameters(trustAnchors.anchors());</span>
+<span class="fc" id="L111">            parameters.setRevocationEnabled(false);</span>
+<span class="fc" id="L112">            CertPathValidator.getInstance(PKIX).validate(</span>
+<span class="fc" id="L113">                    CertificateFactory.getInstance(CERTIFICATE_TYPE).generateCertPath(path), parameters);</span>
+<span class="fc" id="L114">        } catch (GeneralSecurityException e) {</span>
+<span class="fc" id="L115">            throw invalidClient();</span>
+<span class="fc" id="L116">        }</span>
+<span class="fc" id="L117">        final var expected = context.getRegisteredClient().getClientSettings().getX509CertificateSubjectDN();</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        if (!StringUtils.hasText(expected) || !expected.equals(leaf.getSubjectX500Principal().getName())) {</span>
+<span class="fc" id="L119">            throw invalidClient();</span>
+        }
+<span class="fc" id="L121">    }</span>
+
+    /**
+     * Verifies a self-signed certificate.
+     *
+     * @param context        the client and its authentication.
+     * @param authentication the client authentication.
+     * @param chain          the presented chain, the leaf first.
+     */
+    private void verifySelfSigned(final OAuth2ClientAuthenticationContext context,
+                                  final OAuth2ClientAuthenticationToken authentication,
+                                  final X509Certificate[] chain) {
+<span class="fc" id="L133">        final var leaf = chain[0];</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (leaf.getIssuerX500Principal().equals(leaf.getSubjectX500Principal())</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">                &amp;&amp; matchesRegisteredKey(context, leaf.getPublicKey())) {</span>
+<span class="fc" id="L136">            return;</span>
+        }
+        // the result is not needed: the provider throws invalid_client when the certificate does not match
+<span class="fc" id="L139">        defaultProvider.authenticate(authentication);</span>
+<span class="fc" id="L140">    }</span>
+
+    /**
+     * Tells whether a key is one of the registered JWK set of the client.
+     *
+     * @param context the client and its authentication.
+     * @param key     the public key of the certificate.
+     * @return {@code true} when a registered key equals it.
+     */
+    private boolean matchesRegisteredKey(final OAuth2ClientAuthenticationContext context, final PublicKey key) {
+<span class="fc" id="L150">        final var jwks = context.getRegisteredClient().getClientSettings()</span>
+<span class="fc" id="L151">                .&lt;Object&gt;getSetting(RegisteredJwksClientAssertionDecoderFactory.JWKS_SETTING);</span>
+<span class="pc bpc" id="L152" title="1 of 4 branches missed.">        if (!(jwks instanceof String json) || !StringUtils.hasText(json)) {</span>
+<span class="fc" id="L153">            return false;</span>
+        }
+        try {
+<span class="fc bfc" id="L156" title="All 2 branches covered.">            for (final JWK jwk : JWKSet.parse(json).getKeys()) {</span>
+<span class="pc bpc" id="L157" title="1 of 4 branches missed.">                if (jwk instanceof AsymmetricJWK asymmetric &amp;&amp; Arrays.equals(asymmetric.toPublicKey().getEncoded(),</span>
+<span class="fc" id="L158">                        key.getEncoded())) {</span>
+<span class="fc" id="L159">                    return true;</span>
+                }
+<span class="fc" id="L161">            }</span>
+<span class="fc" id="L162">            return false;</span>
+<span class="fc" id="L163">        } catch (ParseException | JOSEException e) {</span>
+<span class="fc" id="L164">            return false;</span>
+        }
+    }
+
+    /**
+     * Tells whether a certificate is itself a trust anchor, which a certification path must not contain.
+     *
+     * @param certificate the certificate.
+     * @return {@code true} when an anchor holds exactly that certificate.
+     */
+    private boolean isAnchor(final X509Certificate certificate) {
+<span class="fc" id="L175">        return trustAnchors.anchors().stream().anyMatch(anchor -&gt; certificate.equals(anchor.getTrustedCert()));</span>
+    }
+
+    /**
+     * Reads the presented chain.
+     *
+     * @param authentication the client authentication.
+     * @return the chain, the leaf first.
+     */
+    private static X509Certificate[] chainOf(final Authentication authentication) {
+<span class="pc bpc" id="L185" title="1 of 4 branches missed.">        if (authentication.getCredentials() instanceof X509Certificate[] chain &amp;&amp; chain.length &gt; 0) {</span>
+<span class="fc" id="L186">            return chain;</span>
+        }
+<span class="fc" id="L188">        throw invalidClient();</span>
+    }
+
+    /**
+     * Builds the refusal.
+     *
+     * @return the {@code invalid_client} exception.
+     */
+    private static OAuth2AuthenticationException invalidClient() {
+<span class="fc" id="L197">        return new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.INVALID_CLIENT));</span>
+    }
+}
+// end::clientauth-certificate-verifier[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

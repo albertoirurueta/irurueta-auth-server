@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthenticationFactorRegistry.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">AuthenticationFactorRegistry.java</span></div><h1>AuthenticationFactorRegistry.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor;
+import com.irurueta.authserver.authorization.domain.mfa.FactorStrength;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+
+/**
+ * Registry of the authentication factors this server knows. Every {@link AuthenticationFactor} bean is registered, so
+ * a new login method adds its factor by declaring a bean, without editing shared files. The class is final because its
+ * constructor validates (and may throw), which would otherwise leave a partially built subclass instance observable.
+ */
+public final class AuthenticationFactorRegistry {
+
+    /** Registered factors by the authority that proves them, in registration order. */
+<span class="fc" id="L39">    private final Map&lt;String, AuthenticationFactor&gt; byAuthority = new LinkedHashMap&lt;&gt;();</span>
+
+    /**
+     * Creates the registry.
+     *
+     * @param factors the factors to register.
+     * @throws IllegalArgumentException if two factors share an authority.
+     */
+<span class="fc" id="L47">    public AuthenticationFactorRegistry(final List&lt;AuthenticationFactor&gt; factors) {</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        for (final var factor : factors) {</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">            if (byAuthority.putIfAbsent(factor.authority(), factor) != null) {</span>
+<span class="fc" id="L50">                throw new IllegalArgumentException(&quot;Authority registered twice: &quot; + factor.authority());</span>
+            }
+<span class="fc" id="L52">        }</span>
+<span class="fc" id="L53">    }</span>
+
+    /**
+     * Lists every registered factor.
+     *
+     * @return the factors, in registration order.
+     */
+    public List&lt;AuthenticationFactor&gt; all() {
+<span class="fc" id="L61">        return List.copyOf(byAuthority.values());</span>
+    }
+
+    /**
+     * Finds the factor proved by an authority.
+     *
+     * @param authority the authority, for example {@code FACTOR_PASSWORD}.
+     * @return the factor, or an empty optional when none is registered for it.
+     */
+    public Optional&lt;AuthenticationFactor&gt; findByAuthority(final String authority) {
+<span class="fc" id="L71">        return Optional.ofNullable(byAuthority.get(authority));</span>
+    }
+
+    /**
+     * Lists the registered factors that have a strength.
+     *
+     * @param strength the strength to look for.
+     * @return the factors, in registration order.
+     */
+    public List&lt;AuthenticationFactor&gt; withStrength(final FactorStrength strength) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        return byAuthority.values().stream().filter(factor -&gt; factor.strength() == strength).toList();</span>
+    }
+
+    /**
+     * Tells which registered factors an authentication has presented.
+     *
+     * @param authentication the authentication; its authorities that match a registered factor count.
+     * @return the factors used, empty when none.
+     */
+    public Set&lt;AuthenticationFactor&gt; factorsOf(final Authentication authentication) {
+<span class="fc" id="L91">        return authentication.getAuthorities().stream()</span>
+<span class="fc" id="L92">                .map(GrantedAuthority::getAuthority)</span>
+<span class="fc" id="L93">                .map(byAuthority::get)</span>
+<span class="fc" id="L94">                .filter(Objects::nonNull)</span>
+<span class="fc" id="L95">                .collect(Collectors.toUnmodifiableSet());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

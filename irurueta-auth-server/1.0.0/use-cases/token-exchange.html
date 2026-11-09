@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Token exchange :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Services and devices</li>
+    <li><a href="token-exchange.html">Token exchange</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/token-exchange.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Token exchange</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A service receives a user&#8217;s access token and must call another API on that user&#8217;s behalf, while making clear that it is
+the service doing so. With token exchange (RFC 8693) <code>service-client</code>, started with the <code>token-exchange</code> profile, sends
+the user&#8217;s token as the subject token and its own client-credentials token as the actor token, and gets a new access
+token whose subject is still the user and whose <code>act</code> claim names the client (delegation). The new token keeps the user&#8217;s
+<code>roles</code> and <code>tenant</code>, and its audience is limited to what the client may target.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user (who signed in earlier, for example through the BFF), <code>service-client</code>, <code>auth-server</code>,
+<code>resource-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: the client that obtained the user&#8217;s token (for example <code>bff</code>), and the exchanging confidential
+client of <code>service-client</code>, registered through <code>POST /api/admin/clients</code> with the grant types <code>client_credentials</code>
+and <code>urn:ietf:params:oauth:grant-type:token-exchange</code>, the scope <code>documents.read</code> and the audience <code>resource-server</code>.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>: Spring profile <code>token-exchange</code> on <code>service-client</code>; the user&#8217;s access token, issued by this server,
+in <code>SERVICE_CLIENT_SUBJECT_TOKEN</code> (<code>service-client.cli.subject-token</code>); the client settings of
+<a href="client-credentials.html" class="xref page">Client credentials</a> (<code>SERVICE_CLIENT_ID</code>, <code>SERVICE_CLIENT_SECRET</code>, <code>SERVICE_CLIENT_TOKEN_URI</code>, &#8230;&#8203;).</p>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>POST /oauth2/token</code> (twice: client credentials, then token exchange), <code>GET /api/documents</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>TokenExchangeCli</code> (profile <code>token-exchange</code>) reads the subject token from <code>SERVICE_CLIENT_SUBJECT_TOKEN</code> and fails
+with a clear message when it is empty.</p>
+</li>
+<li>
+<p>It runs <code>ListDocumentsOnBehalfOfUseCase</code>, which calls the port <code>OnBehalfOfDocumentGateway</code>, implemented by
+<code>RestOnBehalfOfDocumentGateway</code>. The call&#8217;s principal is the user&#8217;s token (<code>PrincipalMapper.user</code>), and the
+registration is <code>service-client-token-exchange</code> (<code>ServiceClientRegistrationMapper</code>).</p>
+</li>
+<li>
+<p>The authorized client manager of <code>OAuth2ClientConfiguration</code> uses a <code>TokenExchangeOAuth2AuthorizedClientProvider</code>. Its
+actor token resolver first obtains the client&#8217;s own client-credentials token through the client-credentials manager
+(cached and renewed as in <a href="client-credentials.html" class="xref page">Client credentials</a>).</p>
+</li>
+<li>
+<p>The provider posts to <code>/oauth2/token</code>: <code>grant_type=urn:ietf:params:oauth:grant-type:token-exchange</code>, <code>subject_token</code>
+(the user&#8217;s token) with <code>subject_token_type=urn:ietf:params:oauth:token-type:access_token</code>, <code>actor_token</code> (the
+client-credentials token) with its type, and the scopes, authenticating the client with its configured method.</p>
+</li>
+<li>
+<p>Spring Authorization Server authenticates the client, checks it has the token-exchange grant (else
+<code>unauthorized_client</code>), finds the authorization that holds the subject token (a token it did not issue is
+<code>invalid_grant</code>), validates the actor token, honours a <code>may_act</code> claim of the subject token if present, and builds a
+composite principal: the user, acted on by the client.</p>
+</li>
+<li>
+<p>The token customizers run. <code>IssuedTokenClaims</code> adds the user&#8217;s <code>roles</code> and <code>tenant</code> and the client&#8217;s configured
+audiences. <code>TokenExchangeAudienceContributor</code> (a <code>JwtClaimsContributor</code>, order 120) runs only for an access token of
+this grant whose request named an <code>audience</code>: it keeps the requested audiences that are in the client&#8217;s
+<code>settings.client.audiences</code> and answers <code>invalid_target</code> when none is. It never widens <code>aud</code>.</p>
+</li>
+<li>
+<p>The exchanged token is cached under the user&#8217;s principal and sent as a bearer token (or DPoP) to
+<code>GET /api/documents</code>. The resource server sees the user as <code>sub</code> and returns that user&#8217;s documents.</p>
+</li>
+<li>
+<p>With <code>SERVICE_CLIENT_PRINT_ACCESS_TOKEN=true</code> the exchanged token is printed too.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><code>service-client</code> itself sends no <code>audience</code> parameter, so its exchanged token carries the client&#8217;s configured audiences.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">        // The builder has no token exchange method, so its provider is added with provider(...). The subject token is
+        // the principal object of the call (see PrincipalMapper.user) and the actor token is the client's own client
+        // credentials token, which is how the exchanged token names the client as actor.
+        final var exchange = new TokenExchangeOAuth2AuthorizedClientProvider();
+        exchange.setAccessTokenResponseClient(tokenClients.tokenExchange());
+        exchange.setClockSkew(properties.refreshBefore());
+        exchange.setActorTokenResolver(context -&gt; {
+            final var actor = clientCredentialsManager.authorize(OAuth2AuthorizeRequest
+                    .withClientRegistrationId(ServiceClientRegistrationMapper.CLIENT_CREDENTIALS_REGISTRATION_ID)
+                    .principal(principalMapper.serviceClient(properties.clientId()))
+                    .build());
+            return actor == null ? null : actor.getAccessToken();
+        });</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Honours the {@code audience} parameter of a token exchange request, which the framework parses but ignores. The
+ * audiences of an exchanged access token are those the exchanging client may have (its
+ * {@value IssuedTokenClaims#AUDIENCES_SETTING} setting); when the request names audiences, only the ones among them
+ * are kept. An audience outside the list of the client is simply not granted, and when none of the requested ones is
+ * allowed the request is refused with {@value #INVALID_TARGET} (RFC 8693, section 2.2.2), so a narrowed request never
+ * comes back with every audience of the client. Tokens of any other grant type are not touched.
+ */
+@Component
+@Order(TokenExchangeAudienceContributor.ORDER)
+public class TokenExchangeAudienceContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the multi-factor ({@code 100}) and identity provider ({@code 110}) ones. */
+    public static final int ORDER = 120;
+
+    /** Error code of an unacceptable target (RFC 8693, section 2.2.2), which the framework has no constant for. */
+    public static final String INVALID_TARGET = "invalid_target";
+
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        if (!OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())
+                || !AuthorizationGrantType.TOKEN_EXCHANGE.equals(context.getAuthorizationGrantType())
+                || !(context.getAuthorizationGrant() instanceof OAuth2TokenExchangeAuthenticationToken exchange)
+                || exchange.getAudiences().isEmpty()) {
+            return;
+        }
+        final var allowed = context.getRegisteredClient().getClientSettings()
+                .&lt;Object&gt;getSetting(IssuedTokenClaims.AUDIENCES_SETTING) instanceof List&lt;?&gt; audiences
+                ? audiences : List.of();
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var granted = allowed.stream().map(String::valueOf).filter(exchange.getAudiences()::contains)
+                .collect(Collectors.toCollection(ArrayList::new));
+        if (granted.isEmpty()) {
+            throw new OAuth2AuthenticationException(new OAuth2Error(INVALID_TARGET,
+                    "None of the requested audiences is allowed for the client", null));
+        }
+        claims.put(OAuth2TokenClaimNames.AUD, granted);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant U as User via BFF
+  participant S as service-client
+  participant A as auth-server
+  participant R as resource-server
+  U-->>S: user access token in SERVICE_CLIENT_SUBJECT_TOKEN
+  S->>A: POST /oauth2/token grant_type=client_credentials
+  A-->>S: actor token, sub = client id
+  S->>A: POST /oauth2/token grant_type=token-exchange, subject_token, actor_token
+  A->>A: authenticate client, check token-exchange grant
+  A->>A: find authorization of subject token, validate actor token, check may_act
+  A->>A: claims: sub = user, act.sub = client, roles, tenant, aud narrowed
+  A-->>S: 200 access_token, issued_token_type=access_token
+  S->>R: GET /api/documents with Authorization Bearer exchanged token
+  R-->>S: 200 documents of the user</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Q[Token exchange request] --> G{"Client has token-exchange grant?"}
+  G -- No --> E1["400 unauthorized_client"]
+  G -- Yes --> S{"Subject token issued by this server and active?"}
+  S -- No --> E2["400 invalid_grant"]
+  S -- Yes --> M{"may_act present?"}
+  M -- "Yes, excludes actor" --> E2
+  M -- "No, or names actor" --> A{"audience requested?"}
+  A -- No --> T["aud = client audiences"]
+  A -- Yes --> N{"Any requested audience in client audiences?"}
+  N -- No --> E3["400 invalid_target"]
+  N -- Yes --> T2["aud = requested and allowed audiences"]
+  T --> OK["Token: sub user, act client"]
+  T2 --> OK</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Token response: <code>access_token</code>, <code>issued_token_type=urn:ietf:params:oauth:token-type:access_token</code>, <code>token_type</code>,
+<code>expires_in</code>, <code>scope</code>.</p>
+</li>
+<li>
+<p><code>sub</code>: the user (the subject token&#8217;s <code>sub</code>, the local username).</p>
+</li>
+<li>
+<p><code>act</code>: <code>{"sub": "&lt;exchanging client id&gt;"}</code>, written by the framework.</p>
+</li>
+<li>
+<p><code>roles</code> and <code>tenant</code>: the user&#8217;s, as in the subject token.</p>
+</li>
+<li>
+<p><code>aud</code>: the client&#8217;s configured audiences, or the requested ones that are among them.</p>
+</li>
+<li>
+<p><code>scope</code>: the granted scopes of the exchanging client.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code>: <code>TokenExchangeIT</code> checks a valid exchange (<code>sub</code> user, <code>act.sub</code> client, <code>aud</code> narrowed), an
+audience that is not allowed (<code>invalid_target</code>), a client without the grant (<code>unauthorized_client</code>), a foreign subject
+token (<code>invalid_grant</code>) and a <code>may_act</code> claim that excludes or names the actor.</p>
+</li>
+<li>
+<p><code>service-client/infrastructure/resourceserver</code>: <code>ResourceServerAdapterIT</code>
+(<code>listDocumentsAs_whenUserTokenIsGiven_exchangesItWithTheClientTokenAsActor</code>).</p>
+</li>
+<li>
+<p><code>e2e-tests</code>: <code>TokenExchangeEndToEndIT</code> signs the demo user in through the BFF, runs the packaged <code>service-client</code> with
+the user&#8217;s token and checks <code>sub</code>, <code>act.sub</code>, <code>aud</code> and <code>scope</code>; a foreign subject token makes the tool fail.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8693#section-2.1">RFC 8693 §2.1, Token exchange request</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc8693#section-2.2">§2.2, response</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8693#section-4.1">RFC 8693 §4.1, <code>act</code> claim</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc8693#section-4.4">§4.4, <code>may_act</code> claim</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8693#section-2.2.2">RFC 8693 §2.2.2, error response (<code>invalid_target</code>)</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/token-exchange-and-assertion-grants.html">Token Exchange &amp; Assertion Grants</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/scopes-claims-and-permissions.html">Scopes, Claims &amp; Permissions</a></p>
+</li>
+<li>
+<p><a href="../client-credentials.html" class="xref page">Client credentials and service-to-service calls</a> (feature page)</p>
+</li>
+<li>
+<p><a href="../tokens-and-keys.html" class="xref page">Tokens and signing keys</a></p>
+</li>
+<li>
+<p><a href="client-credentials.html" class="xref page">Client credentials</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceFlowCli.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-boot</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.device</a> &gt; <span class="el_source">DeviceFlowCli.java</span></div><h1>DeviceFlowCli.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.serviceclient.device;
+
+import java.time.Clock;
+import java.time.Duration;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+/**
+ * Command-line client of the OAuth 2.0 device authorization grant (RFC 8628): requests a device code, prints the user
+ * code and the verification URI, then polls the token endpoint honouring {@code interval}, {@code slow_down},
+ * {@code authorization_pending} and {@code expired_token}.
+ * &lt;p&gt;
+ * &lt;b&gt;Running it from the packaged jar&lt;/b&gt;: the class is a runner of the {@code device-flow} Spring profile, so
+ * &lt;pre&gt;
+ * java -jar service-client-boot.jar --spring.profiles.active=device-flow --device-flow.issuer=http://localhost:9000
+ * &lt;/pre&gt;
+ * runs it instead of the regular application (which is unaffected without the profile). Optional settings are
+ * {@code --device-flow.client-id}, {@code --device-flow.scope} and {@code --device-flow.print-access-token=true}.
+ * &lt;p&gt;
+ * &lt;b&gt;Output&lt;/b&gt;, one line each and in this order, so a test can parse them:
+ * &lt;pre&gt;
+ * User code: ABCD-EFGH
+ * Verification URI: http://localhost:9000/oauth2/device_verification
+ * Verification URI (complete): http://localhost:9000/oauth2/device_verification?user_code=ABCD-EFGH
+ * Device flow completed: token_type=Bearer expires_in=300 scope=profile documents.read refresh_token=false
+ * &lt;/pre&gt;
+ * The tokens themselves are never printed unless {@code print-access-token} is set, which adds an
+ * {@code Access token: ...} line. On any failure the process ends with a non-zero exit code.
+ * &lt;p&gt;
+ * &lt;b&gt;Why it lives in {@code src/main}&lt;/b&gt;: the end-to-end test runs the packaged service-client jar, so the CLI has to
+ * be in it; it is a genuine, reusable tool of the application and not a test double.
+ */
+<span class="fc" id="L52">@Slf4j</span>
+@Component
+@Profile(DeviceFlowConfiguration.PROFILE)
+@RequiredArgsConstructor
+public class DeviceFlowCli implements CommandLineRunner {
+
+    /**
+     * Seconds added to the polling interval each time the server answers {@code slow_down} (RFC 8628 section 3.5).
+     */
+    public static final long SLOW_DOWN_INCREMENT_SECONDS = 5L;
+
+    /** The expired token. */
+    private static final String EXPIRED_TOKEN = &quot;expired_token&quot;;
+
+    /** The client. */
+    private final DeviceAuthorizationClient client;
+
+    /** The sleeper. */
+    private final Sleeper sleeper;
+
+    /** The clock. */
+    private final Clock clock;
+
+    /** The output. */
+    private final DeviceFlowOutput output;
+
+    /** The properties. */
+    private final DeviceFlowProperties properties;
+
+    /**
+     * Runs the whole flow.
+     *
+     * @param args ignored: settings arrive as Spring properties.
+     * @throws DeviceFlowException if the user denies the request, the device code expires, a request fails or the
+     *                             thread is interrupted.
+     */
+    @Override
+    public void run(final String... args) {
+<span class="fc" id="L90">        final var authorization = client.requestDeviceAuthorization();</span>
+<span class="fc" id="L91">        output.line(&quot;User code: &quot; + authorization.userCode());</span>
+<span class="fc" id="L92">        output.line(&quot;Verification URI: &quot; + authorization.verificationUri());</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (authorization.verificationUriComplete() != null) {</span>
+<span class="fc" id="L94">            output.line(&quot;Verification URI (complete): &quot; + authorization.verificationUriComplete());</span>
+        }
+<span class="fc" id="L96">        final var token = poll(authorization);</span>
+<span class="fc" id="L97">        output.line(&quot;Device flow completed: token_type=&quot; + token.tokenType()</span>
+<span class="fc" id="L98">                + &quot; expires_in=&quot; + token.expiresIn()</span>
+<span class="fc" id="L99">                + &quot; scope=&quot; + token.scope()</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">                + &quot; refresh_token=&quot; + (token.refreshToken() != null));</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (properties.printAccessToken()) {</span>
+<span class="fc" id="L102">            output.line(&quot;Access token: &quot; + token.accessToken());</span>
+        }
+<span class="fc" id="L104">    }</span>
+
+    /**
+     * Polls until the user approves the request, the code expires or the server refuses.
+     *
+     * @param authorization the pending authorization.
+     * @return the issued tokens.
+     */
+    private TokenResponse poll(final DeviceAuthorization authorization) {
+<span class="fc" id="L113">        final var deadline = clock.instant().plusSeconds(authorization.expiresIn());</span>
+<span class="fc" id="L114">        var interval = authorization.interval();</span>
+        while (true) {
+<span class="fc" id="L116">            pause(Duration.ofSeconds(interval));</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            if (!clock.instant().isBefore(deadline)) {</span>
+<span class="fc" id="L118">                throw new DeviceFlowException(&quot;The device code expired before the request was approved&quot;);</span>
+            }
+<span class="fc" id="L120">            final var outcome = client.pollToken(authorization.deviceCode());</span>
+<span class="fc bfc" id="L121" title="All 4 branches covered.">            switch (outcome) {</span>
+<span class="fc" id="L122">                case PollOutcome.Granted granted -&gt; {</span>
+<span class="fc" id="L123">                    return granted.token();</span>
+                }
+<span class="fc" id="L125">                case PollOutcome.Pending ignored -&gt; log.debug(&quot;Authorization pending&quot;);</span>
+<span class="fc" id="L126">                case PollOutcome.SlowDown ignored -&gt; {</span>
+<span class="fc" id="L127">                    interval += SLOW_DOWN_INCREMENT_SECONDS;</span>
+<span class="fc" id="L128">                    log.info(&quot;The server asked to slow down, polling every {} seconds&quot;, interval);</span>
+<span class="fc" id="L129">                }</span>
+<span class="fc" id="L130">                case PollOutcome.Failed failed -&gt; throw failure(failed);</span>
+            }
+<span class="fc" id="L132">        }</span>
+    }
+
+    /**
+     * Waits, turning an interruption into a {@link DeviceFlowException}.
+     *
+     * @param duration how long to wait.
+     */
+    private void pause(final Duration duration) {
+        try {
+<span class="fc" id="L142">            sleeper.sleep(duration);</span>
+<span class="fc" id="L143">        } catch (final InterruptedException e) {</span>
+<span class="fc" id="L144">            Thread.currentThread().interrupt();</span>
+<span class="fc" id="L145">            throw new DeviceFlowException(&quot;Interrupted while waiting for the approval&quot;, e);</span>
+<span class="fc" id="L146">        }</span>
+<span class="fc" id="L147">    }</span>
+
+    /**
+     * Maps a final error of the token endpoint to an exception.
+     *
+     * @param failed the error.
+     * @return the exception to throw.
+     */
+    private DeviceFlowException failure(final PollOutcome.Failed failed) {
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (EXPIRED_TOKEN.equals(failed.error())) {</span>
+<span class="fc" id="L157">            return new DeviceFlowException(&quot;The device code expired before the request was approved&quot;);</span>
+        }
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        final var suffix = failed.description() == null ? &quot;&quot; : &quot;: &quot; + failed.description();</span>
+<span class="fc" id="L160">        return new DeviceFlowException(&quot;The device flow failed with &quot; + failed.error() + suffix);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegisteredJwksClientAssertionDecoderFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.clientauth</a> &gt; <span class="el_source">RegisteredJwksClientAssertionDecoderFactory.java</span></div><h1>RegisteredJwksClientAssertionDecoderFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.clientauth;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.proc.SecurityContext;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.time.Duration;
+import java.util.HexFormat;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.authorization.authentication.JwtClientAssertionDecoderFactory;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.util.StringUtils;
+
+// tag::clientauth-assertion-decoder[]
+/**
+ * Creates the decoder of the client assertions of a client. A client with a registered JWK set
+ * ({@code settings.client.jwks}) is verified against those keys; any other client goes through the framework's
+ * factory, which reads the keys of its {@code jwkSetUrl} (or the shared secret of {@code client_secret_jwt}). Both
+ * add the framework's default assertion validators (issuer, subject, audience including the PAR endpoint, expiry)
+ * and the {@link ReplayRejectingJwtValidator}. The framework's own factory caches a decoder per client forever, so
+ * this one caches the decoders itself, per client identifier and a hash of the settings that decide the keys, and a
+ * client whose keys or algorithm were changed is verified against the new ones.
+ */
+@RequiredArgsConstructor
+public class RegisteredJwksClientAssertionDecoderFactory implements JwtDecoderFactory&lt;RegisteredClient&gt; {
+
+    /** Name of the custom client setting that holds the registered public JWK set as JSON. */
+    public static final String JWKS_SETTING = &quot;settings.client.jwks&quot;;
+
+    /** Most decoders kept. */
+    private static final long MAX_DECODERS = 1_000L;
+
+    /** Time an unused decoder is kept. */
+<span class="fc" id="L64">    private static final Duration IDLE = Duration.ofMinutes(10);</span>
+
+    /** Separator of the fields hashed into a cache key. */
+    private static final char SEPARATOR = '\u0000';
+
+    /** Algorithm of the settings hash. */
+    private static final String HASH_ALGORITHM = &quot;SHA-256&quot;;
+
+    /** Records the use of an assertion and checks its lifetime. */
+    private final ReplayRejectingJwtValidator replayValidator;
+
+    /** Decoders by client and settings hash. */
+    private final Cache&lt;String, JwtDecoder&gt; decoders = Caffeine.newBuilder().maximumSize(MAX_DECODERS)
+            .expireAfterAccess(IDLE).build();
+
+    /**
+     * Returns the decoder of the assertions of a client.
+     *
+     * @param registeredClient the client that authenticates.
+     * @return the decoder, which also rejects a replayed assertion.
+     * @throws OAuth2AuthenticationException {@code invalid_client} if the client has registered keys but no signing
+     *                                       algorithm, or the keys cannot be read; the framework's factory throws it
+     *                                       too when it has no way to find the keys.
+     */
+    @Override
+    public JwtDecoder createDecoder(final RegisteredClient registeredClient) {
+<span class="fc" id="L90">        return decoders.get(cacheKey(registeredClient), key -&gt; build(registeredClient));</span>
+    }
+
+    /**
+     * Builds a decoder.
+     *
+     * @param registeredClient the client that authenticates.
+     * @return the decoder.
+     */
+    private JwtDecoder build(final RegisteredClient registeredClient) {
+<span class="fc" id="L100">        final var validators = validatorsOf(registeredClient);</span>
+<span class="fc" id="L101">        final var jwks = registeredClient.getClientSettings().&lt;Object&gt;getSetting(JWKS_SETTING);</span>
+<span class="pc bpc" id="L102" title="1 of 4 branches missed.">        if (!(jwks instanceof String json) || !StringUtils.hasText(json)) {</span>
+<span class="fc" id="L103">            final var framework = new JwtClientAssertionDecoderFactory();</span>
+<span class="fc" id="L104">            framework.setJwtValidatorFactory(client -&gt; validators);</span>
+<span class="fc" id="L105">            return framework.createDecoder(registeredClient);</span>
+        }
+<span class="fc" id="L107">        final var algorithm = registeredClient.getClientSettings().getTokenEndpointAuthenticationSigningAlgorithm();</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (algorithm == null) {</span>
+<span class="fc" id="L109">            throw invalidClient(&quot;The token endpoint signing algorithm of the client is not registered&quot;);</span>
+        }
+<span class="fc" id="L111">        final var signatureAlgorithm = SignatureAlgorithm.from(algorithm.getName());</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (signatureAlgorithm == null) {</span>
+<span class="fc" id="L113">            throw invalidClient(&quot;The token endpoint signing algorithm of the client is not an asymmetric one&quot;);</span>
+        }
+        final JWKSet keys;
+        try {
+<span class="fc" id="L117">            keys = JWKSet.parse(json);</span>
+<span class="fc" id="L118">        } catch (ParseException e) {</span>
+<span class="fc" id="L119">            throw invalidClient(&quot;The registered keys of the client cannot be read&quot;);</span>
+<span class="fc" id="L120">        }</span>
+<span class="fc" id="L121">        final var decoder = NimbusJwtDecoder.withJwkSource(new ImmutableJWKSet&lt;SecurityContext&gt;(keys))</span>
+<span class="fc" id="L122">                .jwsAlgorithm(signatureAlgorithm).build();</span>
+<span class="fc" id="L123">        decoder.setJwtValidator(validators);</span>
+<span class="fc" id="L124">        return decoder;</span>
+    }
+
+    /**
+     * Combines the default assertion validators with the replay one, failing fast so the replay validator only runs
+     * (and only records the {@code jti}) for an assertion that passed every default check.
+     *
+     * @param registeredClient the client that authenticates.
+     * @return the validator.
+     */
+    private OAuth2TokenValidator&lt;Jwt&gt; validatorsOf(final RegisteredClient registeredClient) {
+<span class="fc" id="L135">        final var defaults = JwtClientAssertionDecoderFactory.DEFAULT_JWT_VALIDATOR_FACTORY.apply(registeredClient);</span>
+<span class="fc" id="L136">        final var validators = new DelegatingOAuth2TokenValidator&lt;&gt;(defaults, replayValidator);</span>
+<span class="fc" id="L137">        validators.setFailOnError(true);</span>
+<span class="fc" id="L138">        return validators;</span>
+    }
+
+    /**
+     * Builds the cache key: the client identifier and the hash of everything that decides which keys verify it.
+     *
+     * @param registeredClient the client that authenticates.
+     * @return the key.
+     */
+    private static String cacheKey(final RegisteredClient registeredClient) {
+<span class="fc" id="L148">        final var settings = registeredClient.getClientSettings();</span>
+<span class="fc" id="L149">        final var algorithm = settings.getTokenEndpointAuthenticationSigningAlgorithm();</span>
+<span class="fc" id="L150">        final var material = String.join(String.valueOf(SEPARATOR),</span>
+<span class="fc" id="L151">                String.valueOf(settings.&lt;Object&gt;getSetting(JWKS_SETTING)),</span>
+<span class="fc" id="L152">                String.valueOf(settings.getJwkSetUrl()),</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">                algorithm == null ? &quot;&quot; : algorithm.getName(),</span>
+<span class="fc" id="L154">                String.valueOf(registeredClient.getClientSecret()));</span>
+        try {
+<span class="fc" id="L156">            final var hash = MessageDigest.getInstance(HASH_ALGORITHM)</span>
+<span class="fc" id="L157">                    .digest(material.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L158">            return registeredClient.getClientId() + SEPARATOR + HexFormat.of().formatHex(hash);</span>
+<span class="nc" id="L159">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L160">            throw new IllegalStateException(HASH_ALGORITHM + &quot; is always available&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Builds the {@code invalid_client} error.
+     *
+     * @param description what is wrong.
+     * @return the exception.
+     */
+    private static OAuth2AuthenticationException invalidClient(final String description) {
+<span class="fc" id="L171">        return new OAuth2AuthenticationException(</span>
+                new OAuth2Error(OAuth2ErrorCodes.INVALID_CLIENT, description, null));
+    }
+}
+// end::clientauth-assertion-decoder[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

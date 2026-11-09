@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.par</a> &gt; <span class="el_source">ParConfiguration.java</span></div><h1>ParConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.par;
+
+import com.irurueta.authserver.authorization.api.web.ProtocolChainCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
+
+/**
+ * Enables pushed authorization requests (RFC 9126) when {@code authserver.par.enabled} is {@code true}: a client
+ * authenticates at {@code POST /oauth2/par}, receives a one-time {@code request_uri} and then sends the user to the
+ * authorization endpoint with it. The authorization endpoint's converters, the multi-factor policy and the step-up
+ * rules apply to the request exactly as they do to one sent in the query. Without the property no bean is created, the
+ * endpoint does not exist and the metadata does not advertise it.
+ */
+@Configuration(value = &quot;parWebConfiguration&quot;, proxyBeanMethods = false)
+@ConditionalOnProperty(prefix = &quot;authserver.par&quot;, name = &quot;enabled&quot;, havingValue = &quot;true&quot;)
+<span class="fc" id="L35">public class ParConfiguration {</span>
+
+    /** Order of the customizer: after the client authentication ({@code 3}) and legacy implicit ({@code 4}) ones. */
+    public static final int ORDER = 5;
+
+    // tag::par-chain[]
+    /**
+     * Declares the customizer that enables the pushed authorization request endpoint.
+     *
+     * @return the customizer.
+     */
+    @Bean
+    @Order(ORDER)
+    public ProtocolChainCustomizer parProtocolChainCustomizer() {
+<span class="fc" id="L49">        return server -&gt; server.pushedAuthorizationRequestEndpoint(Customizer.withDefaults());</span>
+    }
+    // end::par-chain[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

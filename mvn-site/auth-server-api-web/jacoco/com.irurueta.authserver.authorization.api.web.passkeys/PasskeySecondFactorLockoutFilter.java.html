@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PasskeySecondFactorLockoutFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.passkeys</a> &gt; <span class="el_source">PasskeySecondFactorLockoutFilter.java</span></div><h1>PasskeySecondFactorLockoutFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.passkeys;
+
+import com.irurueta.authserver.authorization.api.web.mfa.MfaAuthorizationManager;
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorUserResolver;
+import com.irurueta.authserver.authorization.application.mfa.CheckSecondFactorLockoutUseCase;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Applies the second-factor lockout to a passkey that completes a second-factor step. It runs right before the
+ * WebAuthn authentication filter on {@code POST /login/webauthn}: when the session already holds a signed-in user
+ * (the password was presented, see {@link MfaAuthorizationManager#isUser}), the passkey is being used as that user's
+ * second factor, and while {@link CheckSecondFactorLockoutUseCase} reports the user's second factor locked (after too
+ * many failed codes of another factor) the request is answered {@code 401} and the chain does not continue, so a
+ * passkey cannot be used to step around a lockout. A passkey used as the primary, passwordless sign-in (no user in
+ * the session) is not affected: there is no account to look up before the assertion is verified.
+ *
+ * &lt;p&gt;Failed passkey assertions are deliberately &lt;em&gt;not&lt;/em&gt; counted as failed second-factor attempts: an assertion
+ * is a signature by a private key that never leaves the authenticator, over a fresh server challenge, so it cannot be
+ * guessed the way a six-digit code can, and counting the user's cancelled or failed ceremonies would only let them
+ * lock themselves out of their other factors.
+ *
+ * &lt;p&gt;It is not a bean: {@link PasskeyChainCustomizer} builds it (a {@code Filter} bean would also be registered by
+ * Spring Boot in the servlet container, outside the security chain).
+ */
+<span class="fc" id="L52">@Slf4j</span>
+@RequiredArgsConstructor
+public class PasskeySecondFactorLockoutFilter extends OncePerRequestFilter {
+
+    /** Matches the post that verifies an authentication ceremony. */
+<span class="fc" id="L57">    private static final RequestMatcher AUTHENTICATION = PathPatternRequestMatcher.pathPattern(</span>
+            HttpMethod.POST, PasskeyChainCustomizer.AUTHENTICATION_PATH);
+
+    /** Resolves the account of the signed-in user. */
+    private final SecondFactorUserResolver secondFactorUserResolver;
+
+    /** Tells whether the second factor of a user is locked. */
+    private final CheckSecondFactorLockoutUseCase checkSecondFactorLockoutUseCase;
+
+    /**
+     * Answers {@code 401} to a passkey completing the second factor of a locked user, and lets anything else through.
+     *
+     * @param request     the request.
+     * @param response    the response.
+     * @param filterChain the rest of the chain.
+     * @throws ServletException if the rest of the chain fails.
+     * @throws IOException      if the rest of the chain fails.
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain filterChain) throws ServletException, IOException {
+<span class="fc bfc" id="L78" title="All 4 branches covered.">        if (AUTHENTICATION.matches(request) &amp;&amp; isLocked()) {</span>
+<span class="fc" id="L79">            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="fc" id="L80">            return;</span>
+        }
+<span class="fc" id="L82">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L83">    }</span>
+
+    /**
+     * Tells whether the session holds a signed-in user whose second factor is locked. An account that no longer
+     * exists is refused as well.
+     *
+     * @return {@code true} when the passkey must be refused.
+     */
+    private boolean isLocked() {
+<span class="fc" id="L92">        final var authentication = SecurityContextHolder.getContextHolderStrategy().getContext().getAuthentication();</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (!MfaAuthorizationManager.isUser(authentication)) {</span>
+<span class="fc" id="L94">            return false;</span>
+        }
+        try {
+<span class="fc" id="L97">            final var locked = checkSecondFactorLockoutUseCase.execute(</span>
+<span class="fc" id="L98">                    secondFactorUserResolver.userIdOf(authentication.getName()));</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">            if (locked) {</span>
+<span class="fc" id="L100">                log.info(&quot;Passkey refused as a second factor: the second factor of the user is locked&quot;);</span>
+            }
+<span class="fc" id="L102">            return locked;</span>
+<span class="fc" id="L103">        } catch (final UsernameNotFoundException e) {</span>
+<span class="fc" id="L104">            log.info(&quot;Passkey refused as a second factor: the account of the session no longer exists&quot;);</span>
+<span class="fc" id="L105">            return true;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiContract.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:test-support</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.testsupport</a> &gt; <span class="el_source">OpenApiContract.java</span></div><h1>OpenApiContract.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.testsupport;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+
+/**
+ * Compares an OpenAPI contract under {@code apis/} with the OpenAPI document a running application serves. Both are
+ * reduced to a sorted summary of what a client depends on: the info title and version, the security schemes, for
+ * every operation under a path prefix its operation id, tags, security requirements, parameters, request body and
+ * status codes, the schema of every media type an answer declares, and the properties and required properties of
+ * every schema. Descriptions are left out: they are the contract's prose, rendered by springdoc from the annotations
+ * generated from it. Two documents describe the same API when their summaries are equal, and {@code assertEquals} on
+ * the two summaries lists exactly what drifted.
+ * &lt;p&gt;
+ * springdoc documents a few things the contract does not say: it repeats the return type of an operation under
+ * every media type the operation produces and on answers declared without a body (such as a {@code 401}), and it
+ * adds schemas of its own. {@link #restrictTo(SortedMap, SortedMap)} leaves those out of the served summary; an
+ * operation, a status code, a media type or a schema the contract declares and the application does not serve, or
+ * serves differently, is still reported.
+ * &lt;p&gt;
+ * Documents are read with SnakeYAML's safe constructor, which reads YAML and JSON alike, and {@code $ref}s to
+ * {@code #/components/...} are resolved, so a contract may share parameters and responses that the served document
+ * repeats inline.
+ */
+public final class OpenApiContract {
+
+    /** HTTP methods an OpenAPI path item may declare an operation for. */
+<span class="nc" id="L58">    private static final List&lt;String&gt; METHODS = List.of(&quot;get&quot;, &quot;put&quot;, &quot;post&quot;, &quot;delete&quot;, &quot;options&quot;, &quot;head&quot;, &quot;patch&quot;,</span>
+            &quot;trace&quot;);
+
+    /** Prefix of a local reference. */
+    private static final String LOCAL_REF = &quot;#/&quot;;
+
+    /** Key of a reference. */
+    private static final String REF = &quot;$ref&quot;;
+
+    /** Key of the security requirements. */
+    private static final String SECURITY = &quot;security&quot;;
+
+    /** Key of the content of a request body or a response. */
+    private static final String CONTENT = &quot;content&quot;;
+
+    /** Key of a schema. */
+    private static final String SCHEMA = &quot;schema&quot;;
+
+    /** Key of the components. */
+    private static final String COMPONENTS = &quot;components&quot;;
+
+    /** Prefix of the summary keys of the schemas. */
+    private static final String SCHEMA_KEY = &quot;schema &quot;;
+
+    /** Infix of the summary keys of the media types of an answer. */
+    private static final String CONTENT_KEY = &quot; content &quot;;
+
+    /** Value of the summary key of a status code: its body is described by the media type keys. */
+    private static final String RESPONSE = &quot;declared&quot;;
+
+    /** Utility class: not meant to be instantiated. */
+    private OpenApiContract() {
+    }
+
+    /**
+     * Reads an OpenAPI document from a file.
+     *
+     * @param file YAML or JSON file.
+     * @return the document.
+     * @throws IOException if the file cannot be read.
+     */
+    public static Map&lt;String, Object&gt; read(final Path file) throws IOException {
+<span class="nc" id="L100">        return parse(Files.readString(file, StandardCharsets.UTF_8));</span>
+    }
+
+    /**
+     * Parses an OpenAPI document.
+     *
+     * @param text YAML or JSON text.
+     * @return the document.
+     */
+    public static Map&lt;String, Object&gt; parse(final String text) {
+<span class="nc" id="L110">        return new Yaml(new SafeConstructor(new LoaderOptions())).load(text);</span>
+    }
+
+    /**
+     * Summarizes the API a document describes.
+     *
+     * @param document   the OpenAPI document.
+     * @param pathPrefix prefix of the paths that belong to the API, such as {@code /api/}.
+     * @return the summary, sorted by key.
+     */
+    public static SortedMap&lt;String, String&gt; summarize(final Map&lt;String, Object&gt; document, final String pathPrefix) {
+<span class="nc" id="L121">        final var summary = new TreeMap&lt;String, String&gt;();</span>
+<span class="nc" id="L122">        final var info = map(document.get(&quot;info&quot;));</span>
+<span class="nc" id="L123">        summary.put(&quot;info&quot;, info.get(&quot;title&quot;) + &quot; &quot; + info.get(&quot;version&quot;));</span>
+<span class="nc" id="L124">        final var components = map(document.get(COMPONENTS));</span>
+<span class="nc" id="L125">        map(components.get(&quot;securitySchemes&quot;)).forEach((name, scheme) -&gt;</span>
+<span class="nc" id="L126">                summary.put(&quot;securityScheme &quot; + name, describeScheme(map(scheme))));</span>
+<span class="nc" id="L127">        map(components.get(&quot;schemas&quot;)).forEach((name, schema) -&gt;</span>
+<span class="nc" id="L128">                summary.put(SCHEMA_KEY + name, describeSchemaProperties(map(schema))));</span>
+<span class="nc" id="L129">        final var globalSecurity = document.get(SECURITY);</span>
+<span class="nc" id="L130">        map(document.get(&quot;paths&quot;)).forEach((path, item) -&gt; {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (path.startsWith(pathPrefix)) {</span>
+<span class="nc" id="L132">                summarizePath(document, path, map(item), globalSecurity, summary);</span>
+            }
+<span class="nc" id="L134">        });</span>
+<span class="nc" id="L135">        return summary;</span>
+    }
+
+    /**
+     * Restricts the summary of a served document to the schemas and the media types of the answers the contract
+     * declares, leaving out what the server documents by itself.
+     *
+     * @param served   the summary of the served document.
+     * @param contract the summary of the contract.
+     * @return the restricted summary.
+     */
+    public static SortedMap&lt;String, String&gt; restrictTo(final SortedMap&lt;String, String&gt; served,
+                                                       final SortedMap&lt;String, String&gt; contract) {
+<span class="nc" id="L148">        final var restricted = new TreeMap&lt;String, String&gt;();</span>
+<span class="nc" id="L149">        served.forEach((key, value) -&gt; {</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">            final var optional = key.startsWith(SCHEMA_KEY) || key.contains(CONTENT_KEY);</span>
+<span class="nc bnc" id="L151" title="All 4 branches missed.">            if (!optional || contract.containsKey(key)) {</span>
+<span class="nc" id="L152">                restricted.put(key, value);</span>
+            }
+<span class="nc" id="L154">        });</span>
+<span class="nc" id="L155">        return restricted;</span>
+    }
+
+    /**
+     * Summarizes every operation of a path.
+     *
+     * @param document       the document, to resolve references.
+     * @param path           the path.
+     * @param item           the path item.
+     * @param globalSecurity the security requirements of the document, used by operations that declare none.
+     * @param summary        the summary to fill.
+     */
+    private static void summarizePath(final Map&lt;String, Object&gt; document, final String path,
+                                      final Map&lt;String, Object&gt; item, final Object globalSecurity,
+                                      final Map&lt;String, String&gt; summary) {
+<span class="nc" id="L170">        final var pathParameters = list(item.get(&quot;parameters&quot;));</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        for (final var method : METHODS) {</span>
+<span class="nc" id="L172">            final var operation = map(item.get(method));</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            if (operation.isEmpty()) {</span>
+<span class="nc" id="L174">                continue;</span>
+            }
+<span class="nc" id="L176">            final var key = method.toUpperCase(Locale.ROOT) + &quot; &quot; + path;</span>
+<span class="nc" id="L177">            final var parameters = new ArrayList&lt;Object&gt;(pathParameters);</span>
+<span class="nc" id="L178">            parameters.addAll(list(operation.get(&quot;parameters&quot;)));</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            final var security = operation.containsKey(SECURITY) ? operation.get(SECURITY) : globalSecurity;</span>
+<span class="nc" id="L180">            summary.put(key, &quot;operationId=&quot; + operation.get(&quot;operationId&quot;)</span>
+<span class="nc" id="L181">                    + &quot;; tags=&quot; + sorted(list(operation.get(&quot;tags&quot;)))</span>
+<span class="nc" id="L182">                    + &quot;; security=&quot; + describeSecurity(list(security))</span>
+<span class="nc" id="L183">                    + &quot;; parameters=&quot; + describeParameters(document, parameters)</span>
+<span class="nc" id="L184">                    + &quot;; requestBody=&quot; + describeBody(map(resolve(document, operation.get(&quot;requestBody&quot;)))));</span>
+<span class="nc" id="L185">            map(operation.get(&quot;responses&quot;)).forEach((code, response) -&gt; {</span>
+<span class="nc" id="L186">                summary.put(key + &quot; &quot; + code, RESPONSE);</span>
+<span class="nc" id="L187">                map(map(resolve(document, response)).get(CONTENT)).forEach((mediaType, media) -&gt;</span>
+<span class="nc" id="L188">                        summary.put(key + &quot; &quot; + code + CONTENT_KEY + mediaType,</span>
+<span class="nc" id="L189">                                describeSchema(map(map(media).get(SCHEMA)))));</span>
+<span class="nc" id="L190">            });</span>
+<span class="nc" id="L191">        }</span>
+<span class="nc" id="L192">    }</span>
+
+    /**
+     * Describes a security scheme by the fields a client relies on.
+     *
+     * @param scheme the scheme.
+     * @return its description.
+     */
+    private static String describeScheme(final Map&lt;String, Object&gt; scheme) {
+<span class="nc" id="L201">        return List.of(&quot;type&quot;, &quot;scheme&quot;, &quot;bearerFormat&quot;, &quot;in&quot;, &quot;name&quot;).stream()</span>
+<span class="nc" id="L202">                .filter(scheme::containsKey)</span>
+<span class="nc" id="L203">                .map(field -&gt; field + &quot;=&quot; + scheme.get(field))</span>
+<span class="nc" id="L204">                .collect(Collectors.joining(&quot;, &quot;));</span>
+    }
+
+    /**
+     * Describes the properties of a schema.
+     *
+     * @param schema the schema.
+     * @return its sorted property names and required property names.
+     */
+    private static String describeSchemaProperties(final Map&lt;String, Object&gt; schema) {
+<span class="nc" id="L214">        return &quot;properties=&quot; + sorted(map(schema.get(&quot;properties&quot;)).keySet())</span>
+<span class="nc" id="L215">                + &quot;; required=&quot; + sorted(list(schema.get(&quot;required&quot;)));</span>
+    }
+
+    /**
+     * Describes security requirements, an absent or empty list meaning a public operation.
+     *
+     * @param requirements the requirements.
+     * @return their sorted description, such as {@code [bearer[admin]]}.
+     */
+    private static String describeSecurity(final List&lt;Object&gt; requirements) {
+<span class="nc" id="L225">        final var described = new ArrayList&lt;String&gt;();</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        for (final var requirement : requirements) {</span>
+<span class="nc" id="L227">            map(requirement).forEach((name, roles) -&gt; described.add(name + sorted(list(roles))));</span>
+<span class="nc" id="L228">        }</span>
+<span class="nc" id="L229">        return sorted(described).toString();</span>
+    }
+
+    /**
+     * Describes parameters by location, name and whether they are required.
+     *
+     * @param document   the document, to resolve references.
+     * @param parameters the parameters.
+     * @return their sorted description.
+     */
+    private static String describeParameters(final Map&lt;String, Object&gt; document, final List&lt;Object&gt; parameters) {
+<span class="nc" id="L240">        return sorted(parameters.stream()</span>
+<span class="nc" id="L241">                .map(parameter -&gt; map(resolve(document, parameter)))</span>
+<span class="nc" id="L242">                .map(parameter -&gt; parameter.get(&quot;in&quot;) + &quot;:&quot; + parameter.get(&quot;name&quot;) + &quot;:&quot;</span>
+<span class="nc" id="L243">                        + Boolean.TRUE.equals(parameter.get(&quot;required&quot;)))</span>
+<span class="nc" id="L244">                .toList()).toString();</span>
+    }
+
+    /**
+     * Describes a request body.
+     *
+     * @param body the body, already resolved, empty when the operation takes none.
+     * @return its description.
+     */
+    private static String describeBody(final Map&lt;String, Object&gt; body) {
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (body.isEmpty()) {</span>
+<span class="nc" id="L255">            return &quot;none&quot;;</span>
+        }
+<span class="nc" id="L257">        return &quot;required=&quot; + Boolean.TRUE.equals(body.get(&quot;required&quot;)) + &quot; &quot;</span>
+<span class="nc" id="L258">                + describeContent(map(body.get(CONTENT)));</span>
+    }
+
+    /**
+     * Describes a content map by media type and schema.
+     *
+     * @param content the content map, empty when there is no body.
+     * @return its sorted description.
+     */
+    private static String describeContent(final Map&lt;String, Object&gt; content) {
+<span class="nc" id="L268">        final var described = new ArrayList&lt;String&gt;();</span>
+<span class="nc" id="L269">        content.forEach((mediaType, media) -&gt;</span>
+<span class="nc" id="L270">                described.add(mediaType + &quot;:&quot; + describeSchema(map(map(media).get(SCHEMA)))));</span>
+<span class="nc" id="L271">        return sorted(described).toString();</span>
+    }
+
+    /**
+     * Describes a schema by name, or by type for an inline one.
+     *
+     * @param schema the schema, empty when there is none.
+     * @return its description, such as {@code ClientResponse} or {@code array&lt;ClientResponse&gt;}.
+     */
+    private static String describeSchema(final Map&lt;String, Object&gt; schema) {
+<span class="nc bnc" id="L281" title="All 2 branches missed.">        if (schema.isEmpty()) {</span>
+<span class="nc" id="L282">            return &quot;none&quot;;</span>
+        }
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        if (schema.containsKey(REF)) {</span>
+<span class="nc" id="L285">            final var ref = schema.get(REF).toString();</span>
+<span class="nc" id="L286">            return ref.substring(ref.lastIndexOf('/') + 1);</span>
+        }
+<span class="nc bnc" id="L288" title="All 2 branches missed.">        if (&quot;array&quot;.equals(schema.get(&quot;type&quot;))) {</span>
+<span class="nc" id="L289">            return &quot;array&lt;&quot; + describeSchema(map(schema.get(&quot;items&quot;))) + &quot;&gt;&quot;;</span>
+        }
+<span class="nc" id="L291">        return String.valueOf(schema.get(&quot;type&quot;));</span>
+    }
+
+    /**
+     * Resolves a local reference, such as {@code #/components/responses/Unauthorized}.
+     *
+     * @param document the document.
+     * @param node     the node, which may be a reference.
+     * @return the node it refers to, or the node itself when it is not a reference.
+     */
+    private static Object resolve(final Map&lt;String, Object&gt; document, final Object node) {
+<span class="nc" id="L302">        final var value = map(node);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">        if (!value.containsKey(REF)) {</span>
+<span class="nc" id="L304">            return node;</span>
+        }
+<span class="nc" id="L306">        final var ref = value.get(REF).toString();</span>
+<span class="nc bnc" id="L307" title="All 2 branches missed.">        if (!ref.startsWith(LOCAL_REF)) {</span>
+<span class="nc" id="L308">            throw new IllegalArgumentException(&quot;Only local references are supported: &quot; + ref);</span>
+        }
+<span class="nc" id="L310">        Object target = document;</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        for (final var segment : ref.substring(LOCAL_REF.length()).split(&quot;/&quot;)) {</span>
+<span class="nc" id="L312">            target = map(target).get(segment);</span>
+        }
+<span class="nc" id="L314">        return Objects.requireNonNull(target, () -&gt; &quot;Unresolved reference &quot; + ref);</span>
+    }
+
+    /**
+     * Sorts values by their text.
+     *
+     * @param values the values.
+     * @return a sorted list of their texts.
+     */
+    private static List&lt;String&gt; sorted(final Collection&lt;?&gt; values) {
+<span class="nc" id="L324">        return values.stream().map(String::valueOf).sorted().toList();</span>
+    }
+
+    /**
+     * Reads a node as a map.
+     *
+     * @param node the node.
+     * @return the node, or an empty map when it is absent or not a map.
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private static Map&lt;String, Object&gt; map(final Object node) {
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        return node instanceof Map&lt;?, ?&gt; value ? (Map&lt;String, Object&gt;) value : Map.of();</span>
+    }
+
+    /**
+     * Reads a node as a list.
+     *
+     * @param node the node.
+     * @return the node, or an empty list when it is absent or not a list.
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private static List&lt;Object&gt; list(final Object node) {
+<span class="nc bnc" id="L346" title="All 2 branches missed.">        return node instanceof List&lt;?&gt; value ? (List&lt;Object&gt;) value : List.of();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

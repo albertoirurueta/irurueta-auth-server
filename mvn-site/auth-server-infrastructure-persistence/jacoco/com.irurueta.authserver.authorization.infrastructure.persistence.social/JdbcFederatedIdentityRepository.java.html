@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcFederatedIdentityRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.social</a> &gt; <span class="el_source">JdbcFederatedIdentityRepository.java</span></div><h1>JdbcFederatedIdentityRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.infrastructure.persistence.social;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentity;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link FederatedIdentityRepository} over the {@code federated_identities} table. It joins the transaction of its
+ * caller, in which {@link #lockSubject} takes a PostgreSQL transaction-level advisory lock on the provider's identity,
+ * so two first sign-ins of the same person are serialized and the unique constraint on (provider, subject) is never
+ * hit (a violation would abort the caller's transaction).
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcFederatedIdentityRepository implements FederatedIdentityRepository {
+
+    /** First key of the advisory locks of the identities, which keeps them apart from every other advisory lock. */
+    static final int SUBJECT_LOCK_NAMESPACE = 700;
+
+    /** Statement taking the advisory lock of an identity, released when the caller's transaction ends. */
+    private static final String LOCK_SUBJECT = &quot;SELECT pg_advisory_xact_lock(?, hashtext(?))&quot;;
+
+    /** Columns selected for every query. */
+    private static final String COLUMNS = &quot;id, user_id, provider, subject, email, linked_at, last_login_at&quot;;
+
+    /** Query returning the link of a provider's subject. */
+    private static final String FIND_BY_SUBJECT = &quot;SELECT &quot; + COLUMNS
+            + &quot; FROM federated_identities WHERE provider = ? AND subject = ?&quot;;
+
+    /** Query returning the links of an account, oldest first. */
+    private static final String FIND_BY_USER = &quot;SELECT &quot; + COLUMNS
+            + &quot; FROM federated_identities WHERE user_id = ? ORDER BY linked_at, id&quot;;
+
+    /** Query returning one link of an account. */
+    private static final String FIND_BY_ID_AND_USER = &quot;SELECT &quot; + COLUMNS
+            + &quot; FROM federated_identities WHERE id = ? AND user_id = ?&quot;;
+
+    /** Statement inserting a link, or updating the e-mail address and last sign-in of the one with the same id. */
+    private static final String UPSERT = &quot;&quot;&quot;
+            INSERT INTO federated_identities (id, user_id, provider, subject, email, linked_at, last_login_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, last_login_at = EXCLUDED.last_login_at
+            &quot;&quot;&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps a row to an identity. */
+    private final FederatedIdentityRowMapper federatedIdentityRowMapper;
+
+    // tag::social-lock-subject[]
+    @Override
+    public void lockSubject(final IdentityProvider provider, final String subject) {
+<span class="fc" id="L77">        jdbcClient.sql(LOCK_SUBJECT).params(SUBJECT_LOCK_NAMESPACE, provider.id() + &quot;:&quot; + subject)</span>
+<span class="pc" id="L78">                .query((rs, rowNum) -&gt; Boolean.TRUE).list();</span>
+<span class="fc" id="L79">    }</span>
+    // end::social-lock-subject[]
+
+    @Override
+    public Optional&lt;FederatedIdentity&gt; findByProviderAndSubject(final IdentityProvider provider,
+                                                                final String subject) {
+<span class="fc" id="L85">        return jdbcClient.sql(FIND_BY_SUBJECT).params(provider.id(), subject).query(federatedIdentityRowMapper)</span>
+<span class="fc" id="L86">                .optional();</span>
+    }
+
+    @Override
+    public List&lt;FederatedIdentity&gt; findByUser(final UUID userId) {
+<span class="fc" id="L91">        return jdbcClient.sql(FIND_BY_USER).param(userId).query(federatedIdentityRowMapper).list();</span>
+    }
+
+    @Override
+    public Optional&lt;FederatedIdentity&gt; findByIdAndUser(final UUID id, final UUID userId) {
+<span class="fc" id="L96">        return jdbcClient.sql(FIND_BY_ID_AND_USER).params(id, userId).query(federatedIdentityRowMapper).optional();</span>
+    }
+
+    @Override
+    public FederatedIdentity save(final FederatedIdentity identity) {
+<span class="fc" id="L101">        jdbcClient.sql(UPSERT)</span>
+<span class="fc" id="L102">                .params(identity.id(), identity.userId(), identity.provider().id(), identity.subject(),</span>
+<span class="fc" id="L103">                        identity.email(), toTimestamp(identity.linkedAt()), toTimestamp(identity.lastLoginAt()))</span>
+<span class="fc" id="L104">                .update();</span>
+<span class="fc" id="L105">        return identity;</span>
+    }
+
+    @Override
+    public boolean delete(final UUID id, final UUID userId) {
+<span class="fc" id="L110">        return jdbcClient.sql(&quot;DELETE FROM federated_identities WHERE id = ? AND user_id = ?&quot;).params(id, userId)</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">                .update() &gt; 0;</span>
+    }
+
+    @Override
+    public long countByUser(final UUID userId) {
+<span class="fc" id="L116">        return jdbcClient.sql(&quot;SELECT count(*) FROM federated_identities WHERE user_id = ?&quot;).param(userId)</span>
+<span class="fc" id="L117">                .query(Long.class).single();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfirmTotpUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.totp</a> &gt; <span class="el_source">ConfirmTotpUseCase.java</span></div><h1>ConfirmTotpUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.totp;
+
+import com.irurueta.authserver.authorization.domain.totp.InvalidTotpCodeException;
+import com.irurueta.authserver.authorization.domain.totp.TotpAlgorithm;
+import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
+import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepository;
+import com.irurueta.authserver.authorization.domain.totp.TotpNotEnrolledException;
+import com.irurueta.authserver.authorization.domain.totp.TotpSecretCipher;
+import java.time.Clock;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+// tag::totp-confirm-use-case[]
+/**
+ * Use case that finishes the enrolment of an authenticator app with the first code it shows. The step of that code is
+ * stored so it cannot be replayed, the credential is confirmed and the recovery codes are generated.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class ConfirmTotpUseCase {
+
+    /** Port that stores the TOTP credentials. */
+    private final TotpCredentialRepository totpCredentialRepository;
+
+    /** Port that decrypts the secrets. */
+    private final TotpSecretCipher totpSecretCipher;
+
+    /** The TOTP algorithm. */
+    private final TotpAlgorithm totpAlgorithm;
+
+    /** Use case that creates the recovery codes. */
+    private final GenerateRecoveryCodesUseCase generateRecoveryCodesUseCase;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Confirms the enrolment.
+     *
+     * @param userId identifier of the user.
+     * @param code   the code shown by the authenticator app.
+     * @return the clear-text recovery codes, to be shown once.
+     * @throws TotpNotEnrolledException    if no enrolment was started.
+     * @throws TotpAlreadyEnabledException if the enrolment was already confirmed.
+     * @throws InvalidTotpCodeException    if the code is wrong.
+     */
+    public List&lt;String&gt; execute(final UUID userId, final String code) {
+<span class="fc" id="L69">        return tryConfirm(userId, code).orElseThrow(() -&gt; new InvalidTotpCodeException(&quot;The code is wrong&quot;));</span>
+    }
+
+    /**
+     * Confirms the enrolment, answering a wrong code with an empty result instead of an exception, so that a caller
+     * running in the same transaction can still count the failure (an exception leaving a transactional method marks
+     * the whole transaction for rollback).
+     *
+     * @param userId identifier of the user.
+     * @param code   the code shown by the authenticator app.
+     * @return the clear-text recovery codes, to be shown once; empty when the code is wrong.
+     * @throws TotpNotEnrolledException    if no enrolment was started.
+     * @throws TotpAlreadyEnabledException if the enrolment was already confirmed.
+     */
+    public Optional&lt;List&lt;String&gt;&gt; tryConfirm(final UUID userId, final String code) {
+<span class="fc" id="L84">        final var credential = totpCredentialRepository.findByUser(userId)</span>
+<span class="fc" id="L85">                .orElseThrow(() -&gt; new TotpNotEnrolledException(&quot;No authenticator app is being enrolled&quot;));</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (credential.confirmed()) {</span>
+<span class="fc" id="L87">            throw new TotpAlreadyEnabledException(&quot;The authenticator app is already enabled&quot;);</span>
+        }
+<span class="fc" id="L89">        final var secret = totpSecretCipher.decrypt(credential.encryptedSecret());</span>
+<span class="fc" id="L90">        final var step = totpAlgorithm.matchingStep(secret, code, clock.instant(), credential.lastUsedStep());</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (step.isEmpty()) {</span>
+<span class="fc" id="L92">            return Optional.empty();</span>
+        }
+<span class="fc" id="L94">        totpCredentialRepository.advanceLastUsedStep(userId, step.getAsLong());</span>
+<span class="fc" id="L95">        totpCredentialRepository.confirm(userId);</span>
+<span class="fc" id="L96">        return Optional.of(generateRecoveryCodesUseCase.execute(userId));</span>
+    }
+}
+// end::totp-confirm-use-case[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

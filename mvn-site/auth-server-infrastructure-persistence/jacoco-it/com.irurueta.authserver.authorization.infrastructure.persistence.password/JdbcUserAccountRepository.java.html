@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcUserAccountRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.password</a> &gt; <span class="el_source">JdbcUserAccountRepository.java</span></div><h1>JdbcUserAccountRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.password;
+
+import com.irurueta.authserver.authorization.domain.password.UserAccount;
+import com.irurueta.authserver.authorization.domain.password.UserAccountRepository;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link UserAccountRepository} reading user accounts from the {@code users}, {@code user_authorities} and
+ * {@code user_passwords} tables.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcUserAccountRepository implements UserAccountRepository {
+
+    // tag::password-load-user[]
+    /** Columns selected for an account. */
+    private static final String SELECT_USER = &quot;&quot;&quot;
+            SELECT u.id, u.username, u.enabled, u.email, u.email_verified, u.tenant, p.encoded_password
+            FROM users u JOIN user_passwords p ON p.user_id = u.id
+            &quot;&quot;&quot;;
+
+    /** Query returning the user and its encoded password by username. */
+    private static final String FIND_USER = SELECT_USER + &quot;WHERE u.username = ?&quot;;
+    // end::password-load-user[]
+
+    /** Query returning the user and its encoded password by id. */
+    private static final String FIND_USER_BY_ID = SELECT_USER + &quot;WHERE u.id = ?&quot;;
+
+    /** Query returning the user and its encoded password by e-mail address, ignoring case. */
+    private static final String FIND_USER_BY_EMAIL = SELECT_USER + &quot;WHERE lower(u.email) = lower(?)&quot;;
+
+    /** Statement inserting a user, or replacing the columns of the user that has the same id. */
+    private static final String UPSERT_USER = &quot;&quot;&quot;
+            INSERT INTO users (id, username, enabled, email, email_verified, tenant)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, enabled = EXCLUDED.enabled,
+                email = EXCLUDED.email, email_verified = EXCLUDED.email_verified, tenant = EXCLUDED.tenant,
+                updated_at = CURRENT_TIMESTAMP
+            &quot;&quot;&quot;;
+
+    /** Statement inserting an encoded password, or replacing the stored one. */
+    private static final String UPSERT_PASSWORD = &quot;&quot;&quot;
+            INSERT INTO user_passwords (user_id, encoded_password) VALUES (?, ?)
+            ON CONFLICT (user_id) DO UPDATE SET encoded_password = EXCLUDED.encoded_password,
+                generated = FALSE, updated_at = CURRENT_TIMESTAMP
+            &quot;&quot;&quot;;
+
+    // tag::password-load-user[]
+    /** Query returning the authorities of a user by user id. */
+    private static final String FIND_AUTHORITIES = &quot;&quot;&quot;
+            SELECT authority
+            FROM user_authorities
+            WHERE user_id = ?
+            ORDER BY authority
+            &quot;&quot;&quot;;
+    // end::password-load-user[]
+
+    // tag::account-verify-once[]
+    /**
+     * Statement that verifies the e-mail address and enables the account, only while the address is still
+     * unverified: a verification link is effective once, so replaying it cannot re-enable an account that was
+     * disabled afterwards.
+     */
+    private static final String MARK_EMAIL_VERIFIED = &quot;&quot;&quot;
+            UPDATE users SET email_verified = TRUE, enabled = TRUE, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND email_verified = FALSE
+            &quot;&quot;&quot;;
+    // end::account-verify-once[]
+
+    /** JDBC client used to run the queries. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps a user row, without its authorities. */
+    private final UserAccountRowMapper userAccountRowMapper;
+
+    // tag::password-load-user[]
+    @Override
+    public Optional&lt;UserAccount&gt; findByUsername(final String username) {
+<span class="fc" id="L99">        return findOne(FIND_USER, username);</span>
+    }
+    // end::password-load-user[]
+
+    @Override
+    public Optional&lt;UserAccount&gt; findById(final UUID id) {
+<span class="fc" id="L105">        return findOne(FIND_USER_BY_ID, id);</span>
+    }
+
+    @Override
+    public Optional&lt;UserAccount&gt; findByEmail(final String email) {
+<span class="fc" id="L110">        return findOne(FIND_USER_BY_EMAIL, email);</span>
+    }
+
+    @Override
+    public boolean existsByUsername(final String username) {
+<span class="nc" id="L115">        return jdbcClient.sql(&quot;SELECT count(*) FROM users WHERE username = ?&quot;).param(username)</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                .query(Integer.class).single() &gt; 0;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * &lt;p&gt;Several statements: runs in the caller's transaction, which the use case opens (transactions are
+     * demarcated by the use cases, never by the adapters).
+     */
+    @Override
+    public void save(final UserAccount account) {
+<span class="fc" id="L127">        jdbcClient.sql(UPSERT_USER)</span>
+<span class="fc" id="L128">                .params(account.id(), account.username(), account.enabled(), account.email(),</span>
+<span class="fc" id="L129">                        account.emailVerified(), account.tenant())</span>
+<span class="fc" id="L130">                .update();</span>
+<span class="fc" id="L131">        jdbcClient.sql(UPSERT_PASSWORD).params(account.id(), account.encodedPassword()).update();</span>
+<span class="fc" id="L132">        jdbcClient.sql(&quot;DELETE FROM user_authorities WHERE user_id = ?&quot;).param(account.id()).update();</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        for (final var authority : account.authorities()) {</span>
+<span class="fc" id="L134">            jdbcClient.sql(&quot;INSERT INTO user_authorities (user_id, authority) VALUES (?, ?)&quot;)</span>
+<span class="fc" id="L135">                    .params(account.id(), authority).update();</span>
+<span class="fc" id="L136">        }</span>
+<span class="fc" id="L137">    }</span>
+
+    @Override
+    public void updatePassword(final UUID userId, final String encodedPassword) {
+<span class="fc" id="L141">        jdbcClient.sql(&quot;UPDATE user_passwords SET encoded_password = ?, generated = FALSE WHERE user_id = ?&quot;)</span>
+<span class="fc" id="L142">                .params(encodedPassword, userId).update();</span>
+<span class="fc" id="L143">    }</span>
+
+    @Override
+    public boolean markEmailVerified(final UUID userId) {
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        return jdbcClient.sql(MARK_EMAIL_VERIFIED).param(userId).update() &gt; 0;</span>
+    }
+
+    // tag::password-load-user[]
+    /**
+     * Loads one account, with its authorities.
+     *
+     * @param sql   query selecting the user row by one parameter.
+     * @param value value of the parameter.
+     * @return the account, or an empty optional when no row matches.
+     */
+    private Optional&lt;UserAccount&gt; findOne(final String sql, final Object value) {
+<span class="fc" id="L159">        return jdbcClient.sql(sql).param(value)</span>
+<span class="fc" id="L160">                .query(userAccountRowMapper)</span>
+<span class="fc" id="L161">                .optional()</span>
+<span class="fc" id="L162">                .map(row -&gt; row.toUserAccount(</span>
+<span class="fc" id="L163">                        jdbcClient.sql(FIND_AUTHORITIES).param(row.id()).query(String.class).list()));</span>
+    }
+    // end::password-load-user[]
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

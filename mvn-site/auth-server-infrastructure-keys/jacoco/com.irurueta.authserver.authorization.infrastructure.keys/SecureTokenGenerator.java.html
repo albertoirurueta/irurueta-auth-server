@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecureTokenGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-keys</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.keys</a> &gt; <span class="el_source">SecureTokenGenerator.java</span></div><h1>SecureTokenGenerator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.keys;
+
+import com.irurueta.authserver.authorization.domain.account.TokenGenerator;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+import org.springframework.stereotype.Component;
+
+/**
+ * {@link TokenGenerator} that creates tokens from a {@link SecureRandom} and hashes them with SHA-256. The tokens
+ * are random with 256 bits of entropy, so a fast deterministic hash is enough to store them.
+ */
+@Component
+<span class="fc" id="L32">public class SecureTokenGenerator implements TokenGenerator {</span>
+
+    /** Number of random bytes of a token. */
+    static final int TOKEN_BYTES = 32;
+
+    /** Name of the hash algorithm. */
+    private static final String ALGORITHM = &quot;SHA-256&quot;;
+
+    /** Source of randomness. */
+<span class="fc" id="L41">    private final SecureRandom random = new SecureRandom();</span>
+
+    @Override
+    public String generate() {
+<span class="fc" id="L45">        final var bytes = new byte[TOKEN_BYTES];</span>
+<span class="fc" id="L46">        random.nextBytes(bytes);</span>
+<span class="fc" id="L47">        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);</span>
+    }
+
+    @Override
+    public String hash(final String token) {
+<span class="fc" id="L52">        return digest(ALGORITHM, token);</span>
+    }
+
+    /**
+     * Hashes a token with a message digest algorithm.
+     *
+     * @param algorithm name of the algorithm.
+     * @param token     the token value.
+     * @return the URL-safe, unpadded Base64 digest.
+     * @throws IllegalStateException if the algorithm is not available.
+     */
+    static String digest(final String algorithm, final String token) {
+        try {
+<span class="fc" id="L65">            final var digest = MessageDigest.getInstance(algorithm).digest(token.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L66">            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);</span>
+<span class="fc" id="L67">        } catch (final NoSuchAlgorithmException e) {</span>
+            // every Java platform must provide SHA-256, so this only happens for another algorithm name
+<span class="fc" id="L69">            throw new IllegalStateException(algorithm + &quot; is not available&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Device authorization grant :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Services and devices</li>
+    <li><a href="device-authorization.html">Device authorization grant</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/device-authorization.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Device authorization grant</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A program that cannot open a browser or type a password (a CLI, a TV, an IoT device) asks the authorization server for a
+device code and a short user code, shows the user code and a verification address, and polls the token endpoint. The
+user opens the address on another device, signs in (with a second factor when the policy asks for one), enters or
+confirms the code and approves on the consent page. The next poll returns the tokens. In this repository the device is
+<code>service-client</code> started with the <code>device-flow</code> profile (<code>DeviceFlowCli</code>) and the client is the public <code>device-client</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user with a browser, the device (<code>service-client</code>, <code>DeviceFlowCli</code>), <code>auth-server</code>.</p>
+</li>
+<li>
+<p><strong>Clients involved</strong>: <code>device-client</code>, public (<code>none</code>), grant types <code>urn:ietf:params:oauth:grant-type:device_code</code> and
+<code>refresh_token</code>, scopes <code>profile documents.read</code>, consent required. It is seeded by <code>DevDataInitializer</code> under the <code>dev</code>
+profile only; elsewhere, register such a client through <code>POST /api/admin/clients</code>.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>: Spring profile <code>device-flow</code> on <code>service-client</code> with <code>device-flow.issuer</code> (required); optional
+<code>device-flow.client-id</code> (default <code>device-client</code>), <code>device-flow.scope</code> (default <code>profile documents.read</code>) and
+<code>device-flow.print-access-token</code>. No <code>openid</code> scope: Spring Authorization Server refuses it in device requests.
+Rate limit settings <code>authserver.device.rate-limit.*</code> (enabled, <code>window</code> <code>PT15M</code>, <code>per-client</code> 30, <code>per-user</code> 10).</p>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>POST /oauth2/device_authorization</code> (framework), <code>GET /oauth2/device_verification</code> (custom page) and
+<code>POST /oauth2/device_verification</code> (framework), <code>/oauth2/consent</code>, <code>POST /oauth2/token</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>DeviceFlowCli</code> calls <code>DeviceAuthorizationClient.requestDeviceAuthorization</code>: <code>POST /oauth2/device_authorization</code> with
+<code>client_id</code> and <code>scope</code>, no secret.</p>
+</li>
+<li>
+<p><code>DeviceProtocolChainCustomizer</code> (a <code>ProtocolChainCustomizer</code>, order 2) has enabled the device endpoints and added
+<code>DeviceClientAuthenticationConverter</code> / <code>DeviceClientAuthenticationProvider</code>: for a request to the device authorization
+endpoint or a <code>device_code</code> poll that carries a <code>client_id</code> and no credential, the client is authenticated by id alone,
+provided it is registered with the <code>none</code> method.</p>
+</li>
+<li>
+<p>The server answers <code>device_code</code>, <code>user_code</code> (for example <code>ABCD-EFGH</code>), <code>verification_uri</code>
+(<code>/oauth2/device_verification</code>), <code>verification_uri_complete</code> (with the user code), <code>expires_in</code> and <code>interval</code>.
+The CLI prints the user code and both addresses.</p>
+</li>
+<li>
+<p>The user opens the address. Not signed in, the browser goes to <code>/login</code> and comes back afterwards.</p>
+</li>
+<li>
+<p>Without a code, <code>DeviceVerificationController</code> renders <code>templates/device-verification.html</code> (a form posting <code>user_code</code>
+to <code>POST /oauth2/device_verification</code>). The complete address carries the code and goes straight to the framework&#8217;s
+verification endpoint.</p>
+</li>
+<li>
+<p><code>DeviceVerificationRequestGuard</code> runs first among the verification converters:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>it counts the attempt in <code>DeviceVerificationRateLimiter</code> per client address and per user; over the limit,
+<code>DeviceVerificationErrorHandler</code> answers <code>429</code> with <code>Retry-After</code>;</p>
+</li>
+<li>
+<p>it finds the client of the device authorization stored for the user code (<code>OAuth2AuthorizationService.findByToken</code>,
+the code normalised to <code>XXXX-XXXX</code>), falling back to the consent post&#8217;s <code>client_id</code>, and applies the MFA policy with
+that client&#8217;s <code>mfaRequired</code>; when it is not satisfied, the user is sent to <code>/login/second-factor</code> and the request
+resumes after the second factor.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>The framework looks the user code up. An unknown or expired code redirects to <code>/oauth2/device_verification?error</code>.
+Otherwise, because <code>device-client</code> requires consent, it redirects to <code>/oauth2/consent</code>.</p>
+</li>
+<li>
+<p>The user approves (or denies) the scopes; the consent page posts the decision to <code>POST /oauth2/device_verification</code>.
+On approval the success handler redirects to <code>/oauth2/device_verification?success</code>.</p>
+</li>
+<li>
+<p>Meanwhile <code>DeviceFlowCli</code> polls: it waits <code>interval</code> seconds, then <code>DeviceAuthorizationClient.pollToken</code> posts
+<code>grant_type=urn:ietf:params:oauth:grant-type:device_code</code>, <code>device_code</code> and <code>client_id</code> to <code>/oauth2/token</code>.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p><code>authorization_pending</code>: keep polling.</p>
+</li>
+<li>
+<p><code>slow_down</code>: add <code>DeviceFlowCli.SLOW_DOWN_INCREMENT_SECONDS</code> (5) to the interval.</p>
+</li>
+<li>
+<p><code>access_denied</code> (the user denied) or <code>expired_token</code>, or the local deadline from <code>expires_in</code> passes: stop with a
+<code>DeviceFlowException</code>.</p>
+</li>
+<li>
+<p><code>200</code>: print <code>token_type</code>, <code>expires_in</code>, <code>scope</code> and whether a refresh token came, and the access token when
+<code>device-flow.print-access-token</code> is set.</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Guards the device verification endpoint. It is installed first among the converters of the endpoint and never
+ * converts anything: it either lets the request go on (returning {@code null}) or refuses it. Every request that
+ * carries a user code (the code typed on the verification page, a link that carries it, and the consent decision) is
+ * counted against the limit on the attempts, and the multi-factor policy of the account and of the client must be
+ * satisfied, as the authorization endpoint requires before it issues a code: a user who owes a second factor is sent
+ * to the second-factor page and resumes afterwards. The framework's own MFA customizer covers only
+ * {@code /oauth2/authorize}.
+ *
+ * &lt;p&gt;The client is the one the device authorization stored for the user code was issued to, because the code typed on
+ * the page (or carried by the link) is the only thing the request names: so a client that requires multi-factor
+ * authentication is enforced even when it skips the consent page. Only when no authorization holds the code (an
+ * unknown or expired one, which the endpoint refuses anyway) is the {@code client_id} of the consent decision used.
+ */
+@RequiredArgsConstructor
+public class DeviceVerificationRequestGuard implements AuthenticationConverter {
+
+    /** Type of the token the user code is stored as. */
+    static final OAuth2TokenType USER_CODE_TOKEN_TYPE = new OAuth2TokenType(OAuth2ParameterNames.USER_CODE);
+
+    /** Number of letters and digits of a user code. */
+    private static final int USER_CODE_LENGTH = 8;
+
+    /** Position of the dash the framework stores a user code with. */
+    private static final int USER_CODE_GROUP = USER_CODE_LENGTH / 2;
+
+    /** Everything a user may type around the letters and digits of a code (dashes, spaces). */
+    private static final Pattern NOT_ALPHANUMERIC = Pattern.compile("[^A-Z\\d]+");
+
+    /** Limits the attempts. */
+    private final DeviceVerificationRateLimiter rateLimiter;
+
+    /** Applies the multi-factor policy. */
+    private final MfaAuthorizationManager authorizationManager;
+
+    /** Finds the device authorization of a user code. */
+    private final OAuth2AuthorizationService authorizationService;
+
+    /** Finds the client of a device authorization. */
+    private final RegisteredClientRepository registeredClientRepository;
+
+    /**
+     * Checks the request.
+     *
+     * @param request the request.
+     * @return always {@code null}: this converter only vetoes requests.
+     * @throws DeviceVerificationRateLimitedException if the client address or the user made too many attempts.
+     * @throws SecondFactorRequiredException          if the user still owes a second factor.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+        final var user = SecurityContextHolder.getContext().getAuthentication();
+        if (!MfaAuthorizationManager.isUser(user)) {
+            return null;
+        }
+        rateLimiter.check(request.getRemoteAddr(), user.getName());
+        final var clientRequires = authorizationManager.clientRequiresMfa(clientIdOf(request));
+        if (!authorizationManager.evaluate(user, clientRequires).isGranted()) {
+            throw new SecondFactorRequiredException();
+        }
+        return null;
+    }
+
+    /**
+     * Finds the client a request is about: the client of the device authorization stored for its user code, or the
+     * {@code client_id} parameter when no authorization holds that code.
+     *
+     * @param request the request.
+     * @return the client id, or {@code null} when neither tells it.
+     */
+    private String clientIdOf(final HttpServletRequest request) {
+        return normalize(request.getParameter(OAuth2ParameterNames.USER_CODE))
+                .map(userCode -&gt; authorizationService.findByToken(userCode, USER_CODE_TOKEN_TYPE))
+                .map(authorization -&gt; registeredClientRepository.findById(authorization.getRegisteredClientId()))
+                .map(RegisteredClient::getClientId)
+                .orElseGet(() -&gt; request.getParameter(OAuth2ParameterNames.CLIENT_ID));
+    }
+
+    /**
+     * Normalises a user code as the framework stores it: upper case letters and digits in two groups of four,
+     * separated by a dash.
+     *
+     * @param userCode the code as typed, may be {@code null}.
+     * @return the stored form, or empty when the value cannot be a user code.
+     */
+    private static Optional&lt;String&gt; normalize(final String userCode) {
+        if (!StringUtils.hasText(userCode)) {
+            return Optional.empty();
+        }
+        final var compact = NOT_ALPHANUMERIC.matcher(userCode.toUpperCase(Locale.ROOT)).replaceAll("");
+        if (compact.length() != USER_CODE_LENGTH) {
+            return Optional.empty();
+        }
+        return Optional.of(compact.substring(0, USER_CODE_GROUP) + "-" + compact.substring(USER_CODE_GROUP));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant D as DeviceFlowCli
+  participant A as auth-server
+  participant B as User browser
+  D->>A: POST /oauth2/device_authorization client_id=device-client scope
+  A-->>D: device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval
+  D->>D: print user code and addresses
+  B->>A: GET verification_uri_complete
+  A-->>B: 302 /login
+  B->>A: sign in, second factor if required
+  A->>A: DeviceVerificationRequestGuard: rate limit and MFA policy
+  A-->>B: 302 /oauth2/consent
+  B->>A: approve scopes, POST /oauth2/device_verification
+  A-->>B: 302 /oauth2/device_verification?success
+  loop every interval seconds
+    D->>A: POST /oauth2/token grant_type=device_code device_code client_id
+    alt user has not decided
+      A-->>D: 400 authorization_pending
+    else server asks to slow down
+      A-->>D: 400 slow_down, interval plus 5 s
+    else approved
+      A-->>D: 200 access_token, refresh_token
+    end
+  end</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  P["POST /oauth2/device_verification (user_code)"] --> S{"Signed in?"}
+  S -- No --> L[Redirect to /login]
+  S -- Yes --> R{"Within rate limit?"}
+  R -- No --> E429["429 with Retry-After"]
+  R -- Yes --> M{"MFA policy satisfied for the code's client?"}
+  M -- No --> SF[Redirect to /login/second-factor]
+  M -- Yes --> C{"User code known and valid?"}
+  C -- No --> ERR["Redirect to ?error"]
+  C -- Yes --> CO[Consent page]
+  CO -- Approve --> OK["Redirect to ?success, next poll gets tokens"]
+  CO -- Deny --> DN["Next poll gets access_denied"]</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Token response: <code>access_token</code> (JWT), <code>refresh_token</code>, <code>token_type=Bearer</code>, <code>expires_in</code>, <code>scope</code>. No ID token
+(no <code>openid</code>).</p>
+</li>
+<li>
+<p><code>sub</code>: the user who approved (<code>demo</code> with the dev data). <code>scope</code>: the approved scopes, for example
+<code>profile documents.read</code>.</p>
+</li>
+<li>
+<p><code>aud</code>: the client&#8217;s configured audiences; the seeded <code>device-client</code> has <code>resource-server</code> and the API audience
+(<code>authserver.api.audience</code>, default <code>auth-server</code>). <code>roles</code> and <code>tenant</code>: the user&#8217;s.</p>
+</li>
+<li>
+<p>The seeded client&#8217;s tokens live 10 minutes (access) and 8 hours (refresh).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code>: <code>DeviceVerificationPageIT</code> (the page signed in and out, error and success states, a full approval
+in which the device obtains tokens, an unknown code, the complete address going straight to consent, and the second
+factor required by the account or by a client without consent); <code>DeviceVerificationRateLimitIT</code> (<code>429</code>).</p>
+</li>
+<li>
+<p><code>e2e-tests</code>: <code>DeviceFlowEndToEndIT</code> runs the packaged <code>service-client</code> with <code>device-flow</code>, approves in headless Chromium
+through Playwright and checks the token; a denial ends the tool without tokens.</p>
+</li>
+<li>
+<p><code>service-client/boot</code>: unit tests <code>DeviceFlowCliTest</code> and <code>DeviceAuthorizationClientTest</code> (pending, slow down, denial,
+expiry).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8628#section-3.1">RFC 8628 §3.1, Device authorization request</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc8628#section-3.2">§3.2, response</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8628#section-3.3">RFC 8628 §3.3, User interaction</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8628#section-3.4">RFC 8628 §3.4, Device access token request</a> and
+<a href="https://www.rfc-editor.org/rfc/rfc8628#section-3.5">§3.5, response (<code>authorization_pending</code>, <code>slow_down</code>)</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8628#section-5.1">RFC 8628 §5.1, User code brute forcing</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/device-authorization-grant.html">Device Authorization Grant</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/spring-boot-flow-recipes.html">Spring Boot Flow Recipes</a></p>
+</li>
+<li>
+<p><a href="../device-grant.html" class="xref page">Device authorization grant</a> (feature page)</p>
+</li>
+<li>
+<p><a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a></p>
+</li>
+<li>
+<p><a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

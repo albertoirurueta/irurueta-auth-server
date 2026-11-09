@@ -1,0 +1,5 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:auth-server-infrastructure-mail,com.irurueta.authserver.authorization.infrastructure.mail,MailProperties,0,50,1,11,0,6,1,6,0,1
+com.irurueta.authserver:auth-server-infrastructure-mail,com.irurueta.authserver.authorization.infrastructure.mail,SmtpAccountMailer,0,87,0,0,0,18,0,5,0,5
+com.irurueta.authserver:auth-server-infrastructure-mail,com.irurueta.authserver.authorization.infrastructure.mail,ThymeleafOttMailer,0,141,0,2,0,31,0,7,0,6
+com.irurueta.authserver:auth-server-infrastructure-mail,com.irurueta.authserver.authorization.infrastructure.mail,MailConfiguration,0,98,0,0,0,26,0,7,0,7

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GitHubEmailMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-github</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.github</a> &gt; <span class="el_source">GitHubEmailMapper.java</span></div><h1>GitHubEmailMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.infrastructure.github;
+
+import com.irurueta.authserver.authorization.infrastructure.github.v1.generated.model.Email;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+/**
+ * Maps the e-mail addresses GitHub lists onto the one address the domain wants: the address GitHub marks as both
+ * primary and verified. A verified address that is not the primary one, or a primary one that is not verified, does
+ * not count.
+ */
+@Component
+<span class="fc" id="L31">public class GitHubEmailMapper {</span>
+
+    /**
+     * Picks the verified primary address.
+     *
+     * @param emails the addresses GitHub answered, possibly {@code null} for an empty body.
+     * @return the address, or an empty optional when none is both primary and verified.
+     */
+    public Optional&lt;String&gt; verifiedPrimary(final List&lt;Email&gt; emails) {
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        if (emails == null) {</span>
+<span class="fc" id="L41">            return Optional.empty();</span>
+        }
+<span class="fc" id="L43">        return emails.stream()</span>
+<span class="fc" id="L44">                .filter(Objects::nonNull)</span>
+<span class="fc bfc" id="L45" title="All 4 branches covered.">                .filter(email -&gt; Boolean.TRUE.equals(email.getPrimary()) &amp;&amp; Boolean.TRUE.equals(email.getVerified()))</span>
+<span class="fc" id="L46">                .map(Email::getEmail)</span>
+<span class="fc" id="L47">                .filter(StringUtils::hasText)</span>
+<span class="fc" id="L48">                .findFirst();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

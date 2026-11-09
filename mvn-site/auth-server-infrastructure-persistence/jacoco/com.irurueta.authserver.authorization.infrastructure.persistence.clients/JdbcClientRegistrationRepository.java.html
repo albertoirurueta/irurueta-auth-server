@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcClientRegistrationRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.clients</a> &gt; <span class="el_source">JdbcClientRegistrationRepository.java</span></div><h1>JdbcClientRegistrationRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
+
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistrationRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link ClientRegistrationRepository} over Spring Authorization Server's {@link RegisteredClientRepository}
+ * (the JDBC one), which reads and writes the {@code oauth2_registered_client} table. The operations that
+ * repository does not offer (listing, deleting, replacing a secret) run directly on that table. The conversion
+ * between both models belongs to the {@link RegisteredClientMapper}.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcClientRegistrationRepository implements ClientRegistrationRepository {
+
+    /** Sub-query selecting the internal id of a client by its client id. */
+    private static final String CLIENT_ROW_ID = &quot;(SELECT id FROM oauth2_registered_client WHERE client_id = ?)&quot;;
+
+    /** Statement deleting the authorizations of a client. */
+    private static final String DELETE_AUTHORIZATIONS =
+            &quot;DELETE FROM oauth2_authorization WHERE registered_client_id = &quot; + CLIENT_ROW_ID;
+
+    /** Statement deleting the consents granted to a client. */
+    private static final String DELETE_CONSENTS =
+            &quot;DELETE FROM oauth2_authorization_consent WHERE registered_client_id = &quot; + CLIENT_ROW_ID;
+
+    /** Repository that maps registered clients to rows. */
+    private final RegisteredClientRepository registeredClientRepository;
+
+    /** JDBC client used for the operations the registered client repository lacks. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps between registrations and registered clients. */
+    private final RegisteredClientMapper registeredClientMapper;
+
+    @Override
+    public Optional&lt;ClientRegistration&gt; findByClientId(final String clientId) {
+<span class="fc" id="L63">        return Optional.ofNullable(registeredClientRepository.findByClientId(clientId))</span>
+<span class="fc" id="L64">                .map(registeredClientMapper::toRegistration);</span>
+    }
+
+    @Override
+    public List&lt;ClientRegistration&gt; findAll() {
+<span class="fc" id="L69">        return jdbcClient.sql(&quot;SELECT client_id FROM oauth2_registered_client ORDER BY client_id&quot;)</span>
+<span class="fc" id="L70">                .query(String.class).list().stream()</span>
+<span class="fc" id="L71">                .map(registeredClientRepository::findByClientId)</span>
+<span class="fc" id="L72">                .filter(Objects::nonNull)</span>
+<span class="fc" id="L73">                .map(registeredClientMapper::toRegistration)</span>
+<span class="fc" id="L74">                .toList();</span>
+    }
+
+    @Override
+    public void save(final ClientRegistration registration, final String encodedSecret) {
+<span class="fc" id="L79">        final var existing = registeredClientRepository.findByClientId(registration.clientId());</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        final var id = existing == null ? UUID.randomUUID().toString() : existing.getId();</span>
+<span class="pc bpc" id="L81" title="1 of 4 branches missed.">        final var issuedAt = existing == null || existing.getClientIdIssuedAt() == null</span>
+<span class="fc" id="L82">                ? Instant.now() : existing.getClientIdIssuedAt();</span>
+<span class="pc bpc" id="L83" title="1 of 4 branches missed.">        final var secret = encodedSecret == null &amp;&amp; existing != null ? existing.getClientSecret() : encodedSecret;</span>
+<span class="fc" id="L84">        registeredClientRepository.save(registeredClientMapper.toRegisteredClient(registration, id, issuedAt, secret));</span>
+<span class="fc" id="L85">    }</span>
+
+    /**
+     * {@inheritDoc}
+     *
+     * &lt;p&gt;The authorizations (with their consumed refresh tokens, by cascade) and the consents granted to the client
+     * reference it by its internal id without a foreign key, so they are deleted first, in the same transaction:
+     * otherwise loading one of them later fails because its client is gone. The transaction is the caller's: use
+     * cases demarcate transactions, never the adapters.
+     */
+    @Override
+    public void deleteByClientId(final String clientId) {
+<span class="fc" id="L97">        jdbcClient.sql(DELETE_AUTHORIZATIONS).param(clientId).update();</span>
+<span class="fc" id="L98">        jdbcClient.sql(DELETE_CONSENTS).param(clientId).update();</span>
+<span class="fc" id="L99">        jdbcClient.sql(&quot;DELETE FROM oauth2_registered_client WHERE client_id = ?&quot;).param(clientId).update();</span>
+<span class="fc" id="L100">    }</span>
+
+    @Override
+    public void updateSecret(final String clientId, final String encodedSecret) {
+<span class="fc" id="L104">        jdbcClient.sql(&quot;UPDATE oauth2_registered_client SET client_secret = ? WHERE client_id = ?&quot;)</span>
+<span class="fc" id="L105">                .params(encodedSecret, clientId).update();</span>
+<span class="fc" id="L106">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

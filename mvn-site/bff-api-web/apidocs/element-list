@@ -1,0 +1,8 @@
+com.irurueta.authserver.bff.api.web
+com.irurueta.authserver.bff.api.web.documents
+com.irurueta.authserver.bff.api.web.login
+com.irurueta.authserver.bff.api.web.logout
+com.irurueta.authserver.bff.api.web.security
+com.irurueta.authserver.bff.api.web.user
+com.irurueta.authserver.bff.api.web.v1.generated.api
+com.irurueta.authserver.bff.api.web.v1.generated.model

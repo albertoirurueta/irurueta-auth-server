@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StepUpProblemMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:bff-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.bff.api.web.documents</a> &gt; <span class="el_source">StepUpProblemMapper.java</span></div><h1>StepUpProblemMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.bff.api.web.documents;
+
+import com.irurueta.authserver.bff.api.web.login.StepUpLoginParameters;
+import com.irurueta.authserver.bff.domain.documents.DocumentsStepUpRequiredException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
+
+/**
+ * Maps a step-up request of the resource server onto the extra members of the {@code step-up-required} problem, the
+ * values the SPA passes back to {@code GET /bff/login}. They are values the resource server chose, so they are kept
+ * within what that endpoint accepts, otherwise the login would answer {@code 400} and the user could never step up:
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code acrValues}: only the references of the accepted format are kept, and none at all when the result would
+ *       be empty or longer than the login allows;&lt;/li&gt;
+ *   &lt;li&gt;{@code maxAge}: capped at the login's maximum, which is stricter than what the resource server asked for, so
+ *       the new sign-in still satisfies it.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+<span class="fc" id="L38">public class StepUpProblemMapper {</span>
+
+    /** Problem member carrying the authentication context classes. */
+    static final String ACR_VALUES_PROPERTY = &quot;acrValues&quot;;
+
+    /** Problem member carrying the maximum age, in seconds. */
+    static final String MAX_AGE_PROPERTY = &quot;maxAge&quot;;
+
+    /** Separator of the authentication context class references: any run of whitespace. */
+    private static final String ACR_VALUES_SEPARATOR = &quot;\\s+&quot;;
+
+    /**
+     * Builds the extra problem members of a step-up request.
+     *
+     * @param exception the step-up request, with the values the resource server asked for.
+     * @return the members, in a stable order; empty when the resource server named no usable value.
+     */
+    public Map&lt;String, Object&gt; toProblemProperties(final DocumentsStepUpRequiredException exception) {
+<span class="fc" id="L56">        final var properties = new LinkedHashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L57">        exception.getAcrValues()</span>
+<span class="fc" id="L58">                .map(StepUpProblemMapper::acceptedAcrValues)</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">                .filter(acrValues -&gt; !acrValues.isEmpty()</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">                        &amp;&amp; acrValues.length() &lt;= StepUpLoginParameters.MAX_ACR_VALUES_LENGTH)</span>
+<span class="fc" id="L61">                .ifPresent(acrValues -&gt; properties.put(ACR_VALUES_PROPERTY, acrValues));</span>
+<span class="fc" id="L62">        exception.getMaxAge().ifPresent(maxAge -&gt; properties.put(MAX_AGE_PROPERTY,</span>
+<span class="fc" id="L63">                Math.min(maxAge.toSeconds(), StepUpLoginParameters.MAX_AGE_LIMIT_SECONDS)));</span>
+<span class="fc" id="L64">        return properties;</span>
+    }
+
+    /**
+     * Keeps the authentication context class references of the format the login accepts.
+     *
+     * @param acrValues space-separated references.
+     * @return the accepted ones, separated by one space; empty when none is.
+     */
+    private static String acceptedAcrValues(final String acrValues) {
+<span class="fc" id="L74">        return Arrays.stream(acrValues.trim().split(ACR_VALUES_SEPARATOR))</span>
+<span class="fc" id="L75">                .filter(acr -&gt; StepUpLoginParameters.ACR_VALUE.matcher(acr).matches())</span>
+<span class="fc" id="L76">                .collect(Collectors.joining(&quot; &quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

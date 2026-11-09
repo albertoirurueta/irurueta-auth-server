@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Authorization code with PKCE through the BFF :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/authorization-code-bff.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Authorization code with PKCE through the BFF</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The browser never takes part in the OAuth exchange as a client. The single page application (SPA) served by the <code>bff</code>
+asks the BFF to sign the user in; the BFF runs the authorization code flow with PKCE against <code>auth-server</code> as the
+confidential client <code>bff</code>, exchanges the code with its client secret, and keeps the access, refresh and ID tokens in
+its server-side session, stored in PostgreSQL by Spring Session JDBC. The browser only holds the <code>__Host-SESSION</code>
+cookie. When the SPA asks for the user&#8217;s documents, the BFF calls the resource server with the access token of the
+session and answers with its own response.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_at_a_glance"><a class="anchor" href="#_at_a_glance"></a>At a glance</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Item</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Actors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User and browser (the SPA from <code>bff/boot</code>, <code>index.html</code> and <code>assets/app.js</code>), <code>bff</code> (port 8080), <code>auth-server</code> (port
+9000), <code>resource-server</code> (port 8081).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code>: confidential, <code>client_secret_basic</code>, grants <code>authorization_code</code> and <code>refresh_token</code>, PKCE required, consent
+required, refresh tokens rotated, access token 10 minutes, refresh token 8 hours (<code>DefaultClientDefinitions.bff</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Preconditions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code> seeds <code>bff</code> only when <code>authserver.clients.bff.redirect-uris</code> (<code>AUTHSERVER_BFF_REDIRECT_URIS</code>) and the
+secret <code>AUTHSERVER_BFF_CLIENT_SECRET</code> are set; with the <code>dev</code> profile <code>DevDataInitializer</code> seeds it with
+<code><a href="http://localhost:8080/login/oauth2/code/bff" class="bare">http://localhost:8080/login/oauth2/code/bff</a></code> and a generated secret that it logs. The BFF reads the same secret from
+<code>BFF_CLIENT_SECRET</code> and the issuer from <code>AUTH_ISSUER</code> (default <code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code>). The BFF asks for the scopes
+<code>openid</code>, <code>profile</code>, <code>documents.read</code> and <code>documents.delete</code> (each resource-server operation needs its own).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BFF endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /bff/login?returnTo=</code>, <code>GET /oauth2/authorization/bff</code>, <code>GET /login/oauth2/code/bff</code>, <code>GET /bff/user</code>,
+<code>GET /api/documents</code>, <code>DELETE /api/documents/{id}</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Authorization server endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /oauth2/authorize</code>, <code>GET /login</code> and <code>POST /login</code>, <code>GET /login/second-factor</code> when a second factor is owed,
+<code>GET /oauth2/consent</code>, <code>POST /oauth2/authorize</code> (the consent decision), <code>POST /oauth2/token</code>, <code>GET /oauth2/jwks</code>,
+<code>GET /.well-known/openid-configuration</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Resource server endpoint</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /api/documents</code> (needs <code>SCOPE_documents.read</code> and the audience <code>resource-server</code>).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The SPA calls <code>GET /bff/user</code>. Without a session the BFF chain answers <code>401</code> (requests under <code>/bff/<strong></code> and <code>/api/</strong></code>
+get an <code>HttpStatusEntryPoint</code>, not a redirect), and the SPA shows its <strong>Sign in</strong> button.</p>
+</li>
+<li>
+<p>The user clicks it and the browser navigates to <code>GET /bff/login?returnTo=/</code>. <code>BffLoginController</code> checks <code>returnTo</code>
+against <code>bff.login.allowed-return-paths</code>, stores it in the session and answers <code>302</code> to <code>/oauth2/authorization/bff</code>.</p>
+</li>
+<li>
+<p>Spring Security&#8217;s authorization request filter builds the request with the <code>DefaultOAuth2AuthorizationRequestResolver</code>
+that <code>SecurityConfig.bffFilterChain</code> customises with <code>OAuth2AuthorizationRequestCustomizers.withPkce()</code> (Spring only
+adds PKCE by itself for public clients). It keeps <code>state</code>, <code>nonce</code> and the <code>code_verifier</code> in the BFF session and
+redirects the browser to <code>auth-server</code> <code>/oauth2/authorize</code> with <code>code_challenge</code> and <code>code_challenge_method=S256</code>.</p>
+</li>
+<li>
+<p>The protocol chain (<code>SecurityConfig.authorizationServerSecurityFilterChain</code>) sees no session and sends the browser to
+<code>/login</code> through its <code>LoginUrlAuthenticationEntryPoint</code>. The user signs in with any method the login page offers (see
+<a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a>).</p>
+</li>
+<li>
+<p>If the MFA policy is not satisfied (<code>MfaProtocolChainCustomizer</code>, <code>MfaAuthorizationManager</code>), the browser is sent to
+<code>/login/second-factor</code>; once the factor is proved, the saved authorization request resumes.</p>
+</li>
+<li>
+<p><code>bff</code> requires consent, so Spring Authorization Server redirects to the custom consent page (<code>ConsentProtocolCustomizer</code>,
+<code>ConsentController</code>, <code>templates/consent.html</code>) unless the user already granted every requested scope. <strong>Allow</strong> posts the
+approved scopes to <code>/oauth2/authorize</code>; <strong>Deny</strong> posts none and the BFF gets <code>error=access_denied</code>.</p>
+</li>
+<li>
+<p><code>auth-server</code> redirects to <code><a href="http://localhost:8080/login/oauth2/code/bff?code=&#8230;&#8203;&amp;state=&#8230;&#8203" class="bare">http://localhost:8080/login/oauth2/code/bff?code=&#8230;&#8203;&amp;state=&#8230;&#8203</a>;</code>.</p>
+</li>
+<li>
+<p>The BFF&#8217;s login filter checks <code>state</code> and posts the code, the <code>redirect_uri</code> and the <code>code_verifier</code> to
+<code>/oauth2/token</code>, authenticating with <code>client_secret_basic</code>. The server checks the code verifier against the stored
+challenge and answers with an access token, a refresh token and an ID token.</p>
+</li>
+<li>
+<p>The BFF validates the ID token with the keys from <code>/oauth2/jwks</code> (found through the issuer&#8217;s discovery document),
+builds an <code>OidcUser</code> and stores the authorized client in the session through <code>HttpSessionOAuth2AuthorizedClientRepository</code>.
+Spring Session JDBC writes the session to the <code>spring_session</code> tables of the <code>bff</code> database (<code>V300__spring_session.sql</code>).</p>
+</li>
+<li>
+<p><code>ReturnToAuthenticationSuccessHandler</code> reads and removes the stored <code>returnTo</code>, validates it again and redirects
+there. The SPA calls <code>GET /bff/user</code> again, and <code>UserController</code> answers with the claims of the <code>OidcUser</code>.</p>
+</li>
+<li>
+<p>The SPA calls <code>GET /api/documents</code>. <code>DocumentsController</code> calls <code>ListDocumentsUseCase</code>, whose port
+<code>DocumentGateway</code> is implemented by <code>RestDocumentGateway</code>. The generated client runs on a <code>RestClient</code> with
+<code>OAuth2ClientHttpRequestInterceptor</code>, which asks the <code>OAuth2AuthorizedClientManager</code> for the session&#8217;s access token
+(renewing it with the refresh token when it expired, see <a href="refresh-token-rotation.html" class="xref page">Refresh token rotation and reuse detection</a>) and sends it as
+<code>Authorization: Bearer</code> to the resource server.</p>
+</li>
+<li>
+<p>The resource server validates the JWT (issuer, signature, audience <code>resource-server</code>, scope <code>documents.read</code>) and
+answers. <code>RestDocumentGateway</code> maps the answer, or translates a failure into a domain exception, and the BFF answers
+the SPA with its own body: no token, header or error body of the resource server reaches the browser.</p>
+</li>
+<li>
+<p>Deleting (<code>DELETE /api/documents/{id}</code>, with the CSRF token) goes the same way with the <code>documents.delete</code> scope,
+but the resource server also requires a recent multi-factor sign-in. Without one it answers the RFC 9470 challenge,
+which the BFF turns into a <code>401</code> problem <code>urn:problem:documents:step-up-required</code> with <code>acrValues</code> and <code>maxAge</code> (the
+only values of the resource server that reach the browser). The SPA signs in again through
+<code>GET /bff/login?returnTo=&#8230;&#8203;&amp;acrValues=&#8230;&#8203;&amp;maxAge=&#8230;&#8203;</code>, which adds <code>acr_values</code> and <code>max_age</code> to the next
+authorization request, and retries; see <a href="step-up.html" class="xref page">Step-up authentication</a>.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser SPA
+  participant F as BFF
+  participant A as auth-server
+  participant R as resource-server
+  B->>F: GET /bff/login?returnTo=/
+  F-->>B: 302 to /oauth2/authorization/bff
+  B->>F: GET /oauth2/authorization/bff
+  Note over F: state, nonce and code_verifier saved in the session
+  F-->>B: 302 to /oauth2/authorize with code_challenge S256
+  B->>A: GET /oauth2/authorize
+  A-->>B: 302 to /login
+  B->>A: POST /login with credentials
+  A-->>B: 302 back to /oauth2/authorize
+  B->>A: GET /oauth2/authorize
+  A-->>B: consent page
+  B->>A: POST /oauth2/authorize with approved scopes
+  A-->>B: 302 to /login/oauth2/code/bff with code and state
+  B->>F: GET /login/oauth2/code/bff
+  F->>A: POST /oauth2/token with code, code_verifier and client_secret_basic
+  A-->>F: access_token, refresh_token, id_token
+  F->>A: GET /oauth2/jwks
+  Note over F: tokens stored in the Spring Session JDBC session
+  F-->>B: 302 to returnTo, Set-Cookie __Host-SESSION
+  B->>F: GET /api/documents with session cookie
+  F->>R: GET /api/documents with Bearer access token
+  R-->>F: 200 documents
+  F-->>B: 200 documents, no token</div></div>
+<div class="paragraph">
+<p>The branches of the authorization request on <code>auth-server</code>:</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["GET /oauth2/authorize from the BFF"]) --> Session{"Signed in on auth-server?"}
+  Session -- "no" --> Login["/login: any sign-in method"]
+  Login --> Mfa
+  Session -- "yes" --> Mfa{"MFA policy satisfied?"}
+  Mfa -- "no" --> Second["/login/second-factor"]
+  Second --> Consent
+  Mfa -- "yes" --> Consent{"All requested scopes already granted?"}
+  Consent -- "no" --> Page["/oauth2/consent"]
+  Page -- "Allow" --> Code["302 with code and state"]
+  Page -- "Deny" --> Denied["302 with error=access_denied"]
+  Consent -- "yes" --> Code
+  Denied --> Fail["BFF redirects to /?error=signin"]
+  Code --> Token["BFF exchanges the code at /oauth2/token"]</div></div>
+<div class="paragraph">
+<p>The session store and the authorized client manager of the BFF:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Keeps the authorized clients (the tokens of the signed-in user) in the HTTP session, which Spring Session JDBC
+     * persists, so no table of its own is needed and the tokens never reach the browser.
+     *
+     * @return the repository of authorized clients.
+     */
+    @Bean
+    OAuth2AuthorizedClientRepository authorizedClientRepository() {
+        return new HttpSessionOAuth2AuthorizedClientRepository();
+    }
+
+    /**
+     * Builds the manager that obtains the access token of the signed-in user and renews it with its refresh token when
+     * it expires.
+     *
+     * @param clientRepository           the registered OAuth2 clients.
+     * @param authorizedClientRepository where the authorized clients are kept.
+     * @return the authorized client manager, with the {@code authorization_code} and {@code refresh_token} providers.
+     */
+    @Bean
+    OAuth2AuthorizedClientManager authorizedClientManager(final ClientRegistrationRepository clientRepository,
+            final OAuth2AuthorizedClientRepository authorizedClientRepository) {
+        final var manager = new DefaultOAuth2AuthorizedClientManager(clientRepository, authorizedClientRepository);
+        manager.setAuthorizedClientProvider(OAuth2AuthorizedClientProviderBuilder.builder()
+                .authorizationCode()
+                .refreshToken()
+                .build());
+        return manager;
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The token response goes to the BFF only:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Access token</strong>: a JWT signed with the active key (<code>RS256</code>), <code>sub</code> the username, <code>aud</code> <code>resource-server</code> and
+<code>auth-server</code> (the client&#8217;s <code>audiences</code>), <code>scope</code>, <code>roles</code>, <code>tenant</code>, and <code>amr</code>, <code>acr</code> and <code>auth_time</code> from
+<code>MfaClaimsContributor</code>. Lifetime 10 minutes.</p>
+</li>
+<li>
+<p><strong>Refresh token</strong>: opaque, 8 hours, replaced on every use.</p>
+</li>
+<li>
+<p><strong>ID token</strong>: <code>sub</code>, <code>aud</code> <code>bff</code>, <code>azp</code>, <code>nonce</code>, <code>amr</code> and <code>acr</code>; no <code>roles</code>, <code>tenant</code> or custom <code>aud</code>. See
+<a href="openid-connect.html" class="xref page">OpenID Connect sign-in</a>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The SPA sees none of them. <code>GET /bff/user</code> answers a <code>SessionUserResponse</code> built from the <code>OidcUser</code> by
+<code>SessionUserDtoMapper</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>e2e-tests</code> <code>BffEndToEndIT</code>: the packaged <code>auth-server</code>, <code>resource-server</code> and <code>bff</code> in headless Chromium. Signs in
+through the login and consent pages, lists the documents, signs out, and scans every response, the storages and the
+cookies for tokens; a second scenario denies consent and checks that no session is created.</p>
+</li>
+<li>
+<p><code>e2e-tests</code> <code>SignInSmokeIT</code>: the demo user signs in through the BFF and <code>/bff/user</code> carries the subject.</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>SecurityConfigIT</code>: the authorization request carries PKCE (<code>bffFilterChain_whenAuthorizationIsRequested_usesPkce</code>),
+a failed sign-in lands on <code>/?error=signin</code>, <code>returnTo</code> is validated.</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>BffSessionIT</code>: the session is stored in PostgreSQL with the hardened <code>__Host-</code> cookie.</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>DocumentsApiIT</code>: the bearer token is sent upstream and kept from the browser; resource server failures are
+mapped to <code>401</code>, <code>403</code>, <code>404</code> and <code>502</code>, a step-up challenge to the <code>step-up-required</code> problem, and a client that only
+accepts JSON is not refused with <code>406</code>.</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>SecurityConfigIT</code> also checks that both document scopes are requested and that a login started with
+<code>acrValues</code> / <code>maxAge</code> sends them once as <code>acr_values</code> / <code>max_age</code>.</p>
+</li>
+<li>
+<p><code>e2e-tests</code> <code>BffEndToEndIT</code> (third scenario): a password-only session&#8217;s deletion answers the step-up problem and the
+step-up login reaches the authorization server&#8217;s second-factor page.</p>
+</li>
+<li>
+<p><code>bff/boot</code> <code>UserControllerIT</code>: <code>GET /bff/user</code> signed in and anonymous.</p>
+</li>
+<li>
+<p><code>auth-server/boot</code> <code>AuthorizationCodePkceIT</code> and <code>ConsentPageIT</code>: the server side of the code flow and the consent page.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-4.1">RFC 6749 §4.1: Authorization Code Grant</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636: Proof Key for Code Exchange</a></p>
+</li>
+<li>
+<p><a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/">The OAuth 2.1 Authorization Framework (draft)</a></p>
+</li>
+<li>
+<p><a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-browser-based-apps/">OAuth 2.0 for Browser-Based Applications (draft), Backend for Frontend pattern</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth">OpenID Connect Core §3.1: Authorization Code Flow</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/authorization-code-and-pkce.html">Authorization Code &amp; PKCE</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/browser-based-apps.html">Browser-Based Apps</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/spring-boot-flow-recipes.html">Spring Boot flow recipes</a></p>
+</li>
+<li>
+<p><a href="../login-and-bff.html" class="xref page">Login pages and the BFF</a></p>
+</li>
+<li>
+<p><a href="../clients.html" class="xref page">Registered clients</a></p>
+</li>
+<li>
+<p><a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a></p>
+</li>
+<li>
+<p><a href="../resource-server.html" class="xref page">Resource server</a></p>
+</li>
+<li>
+<p><a href="authorization-code-public-spa.html" class="xref page">Authorization code with PKCE for a public client</a></p>
+</li>
+<li>
+<p><a href="logout.html" class="xref page">Logout</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

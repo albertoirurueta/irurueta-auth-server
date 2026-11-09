@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfirmPhoneUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.sms</a> &gt; <span class="el_source">ConfirmPhoneUseCase.java</span></div><h1>ConfirmPhoneUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.sms;
+
+import com.irurueta.authserver.authorization.application.mfa.RecordSecurityEventUseCase;
+import com.irurueta.authserver.authorization.domain.mfa.SecurityEventType;
+import com.irurueta.authserver.authorization.domain.mfa.TrustedDeviceRepository;
+import com.irurueta.authserver.authorization.domain.ott.OneTimeCodeHasher;
+import com.irurueta.authserver.authorization.domain.sms.PhoneVerification;
+import com.irurueta.authserver.authorization.domain.sms.PhoneVerificationRepository;
+import com.irurueta.authserver.authorization.domain.sms.UserPhone;
+import com.irurueta.authserver.authorization.domain.sms.UserPhoneRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Confirms a phone with the code that was sent to it. Every way of failing returns the same {@code false}: no
+ * pending verification, an expired or burnt code, a wrong code and a number that another user verified meanwhile.
+ *
+ * &lt;p&gt;Confirming a number other than the verified one replaces a second factor: the replacement is audited as the
+ * removal of the old phone, and every trusted device of the user is revoked, as disabling TOTP does, because those
+ * browsers were remembered in place of a factor the user no longer has.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class ConfirmPhoneUseCase {
+
+    /** Start of the detail of the audit event of a replaced phone, followed by the number of revoked devices. */
+    static final String REPLACED_DETAIL = &quot;phone replaced; trusted devices revoked: &quot;;
+
+    /** Port that stores the verified phones. */
+    private final UserPhoneRepository userPhoneRepository;
+
+    /** Port that stores the pending verification. */
+    private final PhoneVerificationRepository phoneVerificationRepository;
+
+    /** Hasher of the verification code. */
+    private final OneTimeCodeHasher oneTimeCodeHasher;
+
+    /** Port that stores the trusted devices. */
+    private final TrustedDeviceRepository trustedDeviceRepository;
+
+    /** Use case that records the audit events. */
+    private final RecordSecurityEventUseCase recordSecurityEventUseCase;
+
+    /** SMS settings. */
+    private final SmsProperties smsProperties;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /**
+     * Confirms the phone of a user.
+     *
+     * @param userId   identifier of the user.
+     * @param username name of the user, for the audit log.
+     * @param code     the code as typed.
+     * @return {@code true} when the code was right and the phone is now verified.
+     */
+    public boolean execute(final UUID userId, final String username, final String code) {
+<span class="fc" id="L80">        final var now = clock.instant();</span>
+<span class="fc" id="L81">        final var pending = phoneVerificationRepository.findByUserId(userId).orElse(null);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (pending == null) {</span>
+<span class="fc" id="L83">            return false;</span>
+        }
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (pending.isExpiredAt(now)) {</span>
+<span class="fc" id="L86">            phoneVerificationRepository.deleteByUserId(userId);</span>
+<span class="fc" id="L87">            return false;</span>
+        }
+<span class="fc" id="L89">        final var attempts = phoneVerificationRepository.incrementAttempts(userId);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (attempts &gt; smsProperties.verificationMaxAttempts()) {</span>
+<span class="fc" id="L91">            phoneVerificationRepository.deleteByUserId(userId);</span>
+<span class="fc" id="L92">            return false;</span>
+        }
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (!oneTimeCodeHasher.matches(code, pending.codeHash())) {</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">            if (attempts &gt;= smsProperties.verificationMaxAttempts()) {</span>
+<span class="fc" id="L96">                phoneVerificationRepository.deleteByUserId(userId);</span>
+            }
+<span class="fc" id="L98">            return false;</span>
+        }
+<span class="fc" id="L100">        return verify(userId, username, pending, now);</span>
+    }
+
+    /**
+     * Stores the verified phone, clears the pending verification and handles the replacement of another number.
+     *
+     * @param userId   identifier of the user.
+     * @param username name of the user, for the audit log.
+     * @param pending  the verification that was confirmed.
+     * @param now      the current instant.
+     * @return {@code true} when the phone was stored, {@code false} when another user owns the number.
+     */
+    private boolean verify(final UUID userId, final String username, final PhoneVerification pending,
+            final Instant now) {
+<span class="fc" id="L114">        final var replaced = userPhoneRepository.findByUserId(userId)</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">                .filter(previous -&gt; !previous.phone().equals(pending.phone()))</span>
+<span class="fc" id="L116">                .isPresent();</span>
+<span class="fc" id="L117">        final var stored = userPhoneRepository.save(new UserPhone(userId, pending.phone(), now));</span>
+<span class="fc" id="L118">        phoneVerificationRepository.deleteByUserId(userId);</span>
+<span class="fc bfc" id="L119" title="All 4 branches covered.">        if (stored &amp;&amp; replaced) {</span>
+<span class="fc" id="L120">            final var revoked = trustedDeviceRepository.deleteByUser(userId);</span>
+<span class="fc" id="L121">            recordSecurityEventUseCase.execute(SecurityEventType.SECOND_FACTOR_REMOVED, userId, username,</span>
+                    REPLACED_DETAIL + revoked);
+        }
+<span class="fc" id="L124">        return stored;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

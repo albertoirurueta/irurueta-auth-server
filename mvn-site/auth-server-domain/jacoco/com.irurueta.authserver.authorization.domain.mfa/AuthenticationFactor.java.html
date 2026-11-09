@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthenticationFactor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.mfa</a> &gt; <span class="el_source">AuthenticationFactor.java</span></div><h1>AuthenticationFactor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.domain.mfa;
+
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+
+/**
+ * A way of authenticating, as registered by a feature.
+ *
+ * @param id        stable identifier of the factor, for example {@code totp}.
+ * @param amrValue  value of the {@code amr} claim (RFC 8176) reported when the factor was used, for example
+ *                  {@code otp}.
+ * @param authority authority granted to an authentication that used the factor, for example {@code FACTOR_TOTP}.
+ * @param strength    how much the factor proves on its own.
+ * @param multiFactor whether the factor alone proves a multi-factor authentication, so a session holding only it
+ *                    reaches the multi-factor class ({@code acr}) and passes a step-up: for example a sign-in at a
+ *                    provider trusted for, and reporting, its own multi-factor authentication. Only a
+ *                    {@link FactorStrength#PRIMARY_STRONG} factor can be one; a strong factor that proves a single
+ *                    thing (a passkey whose user verification is not required, a certificate) is not.
+ */
+public record AuthenticationFactor(String id, String amrValue, String authority, FactorStrength strength,
+        boolean multiFactor) {
+
+    /**
+     * Validates the factor.
+     *
+     * @throws IllegalArgumentException if a text is blank, the strength is missing, or a factor that is not
+     *                                  {@link FactorStrength#PRIMARY_STRONG} claims to be multi-factor alone.
+     */
+<span class="fc" id="L43">    public AuthenticationFactor {</span>
+<span class="fc" id="L44">        requireText(id, &quot;id&quot;);</span>
+<span class="fc" id="L45">        requireText(amrValue, &quot;amrValue&quot;);</span>
+<span class="fc" id="L46">        requireText(authority, &quot;authority&quot;);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (strength == null) {</span>
+<span class="fc" id="L48">            throw new IllegalArgumentException(&quot;strength must not be null&quot;);</span>
+        }
+<span class="fc bfc" id="L50" title="All 4 branches covered.">        if (multiFactor &amp;&amp; strength != FactorStrength.PRIMARY_STRONG) {</span>
+<span class="fc" id="L51">            throw new IllegalArgumentException(&quot;only a PRIMARY_STRONG factor can be multi-factor alone&quot;);</span>
+        }
+<span class="fc" id="L53">    }</span>
+
+    /**
+     * Creates a factor that does not prove a multi-factor authentication alone, the usual case.
+     *
+     * @param id        stable identifier of the factor.
+     * @param amrValue  value of the {@code amr} claim reported when the factor was used.
+     * @param authority authority granted to an authentication that used the factor.
+     * @param strength  how much the factor proves on its own.
+     * @throws IllegalArgumentException if a text is blank or the strength is missing.
+     */
+    public AuthenticationFactor(final String id, final String amrValue, final String authority,
+            final FactorStrength strength) {
+<span class="fc" id="L66">        this(id, amrValue, authority, strength, false);</span>
+<span class="fc" id="L67">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

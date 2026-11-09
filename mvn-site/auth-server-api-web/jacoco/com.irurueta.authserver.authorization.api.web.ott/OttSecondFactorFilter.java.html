@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttSecondFactorFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttSecondFactorFilter.java</span></div><h1>OttSecondFactorFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.api.web.mfa.SecondFactorController;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.OneTimeTokenPageApi;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.util.StringUtils;
+
+/**
+ * Processes the post of the one-time code form of the second factor ({@code POST /login/second-factor/ott}), in the
+ * way {@code TotpAuthenticationFilter} processes the TOTP forms. The code is verified by
+ * {@link OttSecondFactorAuthenticationProvider} against the binding id the session holds; on success the session id is
+ * changed (and the CSRF token renewed, with the session authentication strategy of the chain, as the form login does),
+ * the enriched authentication is saved to the session and the browser resumes the request that was interrupted. On
+ * failure it goes back to the page where the code is typed with {@code ?error}. Only a user who has already presented a
+ * primary factor may post. The endpoint is owned by this filter, like {@code POST /login}, so it is not part of the
+ * pages contract.
+ */
+public class OttSecondFactorFilter extends AbstractAuthenticationProcessingFilter {
+
+    /** Path the code form of the second factor posts to. */
+    public static final String SECOND_FACTOR_OTT_PATH = SecondFactorController.SECOND_FACTOR_PATH + &quot;/ott&quot;;
+
+    /** Name of the form field that holds the code. */
+    public static final String CODE_PARAMETER = &quot;code&quot;;
+
+    /** Rules about the session a second factor is presented in. */
+    private final PrimaryFactorSession primaryFactorSession;
+
+    /**
+     * Creates the filter. Until the chain customizer hands it the session authentication strategy of the chain, it
+     * changes the session id on success with a {@link ChangeSessionIdAuthenticationStrategy}.
+     *
+     * @param authenticationManager manager that holds the {@link OttSecondFactorAuthenticationProvider}.
+     * @param primaryFactorSession  rules about the session a second factor is presented in.
+     */
+    public OttSecondFactorFilter(final AuthenticationManager authenticationManager,
+            final PrimaryFactorSession primaryFactorSession) {
+<span class="fc" id="L66">        super(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, SECOND_FACTOR_OTT_PATH),</span>
+                authenticationManager);
+<span class="fc" id="L68">        this.primaryFactorSession = primaryFactorSession;</span>
+<span class="fc" id="L69">        setSecurityContextRepository(new HttpSessionSecurityContextRepository());</span>
+<span class="fc" id="L70">        setSessionAuthenticationStrategy(new ChangeSessionIdAuthenticationStrategy());</span>
+<span class="fc" id="L71">        setAuthenticationSuccessHandler(new OttAuthenticationSuccessHandler(</span>
+                new SavedRequestAwareAuthenticationSuccessHandler()));
+<span class="fc" id="L73">        setAuthenticationFailureHandler(new SimpleUrlAuthenticationFailureHandler(</span>
+                OneTimeTokenPageApi.PATH_OTT_CODE_PAGE + &quot;?error&quot;));
+<span class="fc" id="L75">    }</span>
+
+    /**
+     * Builds the verification request from the form, the authentication the user already holds and the binding id of
+     * the session.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @return the authentication with the second factor of the channel added.
+     * @throws AuthenticationException if nobody has presented a primary factor yet or the code is not accepted.
+     */
+    @Override
+    public Authentication attemptAuthentication(final HttpServletRequest request, final HttpServletResponse response)
+            throws AuthenticationException {
+<span class="fc" id="L89">        final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (!primaryFactorSession.holdsPrimaryFactor(current)) {</span>
+<span class="fc" id="L91">            throw new InsufficientAuthenticationException(&quot;The user has not presented a primary factor yet&quot;);</span>
+        }
+<span class="fc" id="L93">        final var code = StringUtils.trimWhitespace(request.getParameter(CODE_PARAMETER));</span>
+<span class="fc" id="L94">        final var bindingId = PendingOtt.of(request).map(PendingOtt::bindingId).orElse(&quot;&quot;);</span>
+<span class="fc" id="L95">        return getAuthenticationManager().authenticate(</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">                new OttSecondFactorToken(current, code == null ? &quot;&quot; : code, bindingId));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

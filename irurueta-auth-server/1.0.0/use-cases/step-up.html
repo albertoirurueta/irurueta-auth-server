@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Step-up authentication :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="step-up.html">Step-up authentication</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/step-up.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Step-up authentication</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Step-up authentication lets a client or an API demand a stronger or more recent sign-in than the one the user already
+has. A client asks for it up front with the OpenID Connect <code>acr_values</code> and <code>max_age</code> parameters of
+<code>GET /oauth2/authorize</code>; the authorization server then either continues, sends the user to the second-factor page or
+makes them sign in again. An API asks for it after the fact, per RFC 9470: it answers <code>401</code> with
+<code>WWW-Authenticate: Bearer error="insufficient_user_authentication"</code> and the <code>acr_values</code> and <code>max_age</code> it needs, and
+the client sends the user through the authorization server again with those values and retries with the new token.
+This repository has two such APIs: the authorization server&#8217;s own account API (<code>StepUpGuard</code>) and the resource
+server&#8217;s document deletion (<code>StepUpAuthorizationManager</code>).</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user and their browser, the client (for example the <code>bff</code>), the authorization server, and the API that
+demands the step-up (the authorization server&#8217;s <code>/api/account/**</code> or the resource server on port 8081).</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Authorization request: nothing to enable; <code>StepUpProtocolChainCustomizer</code> is always on. Only the classes
+<code>urn:irurueta:acr:pwd</code> and <code>urn:irurueta:acr:mfa</code> are understood; other values are ignored.</p>
+</li>
+<li>
+<p>Account API: the account has a confirmed second factor (otherwise <code>StepUpGuard</code> lets the call through, since the
+user could not step up); the age limit is <code>authserver.mfa.step-up-max-age</code> (default <code>PT5M</code>).</p>
+</li>
+<li>
+<p>Resource server: <code>resourceserver.step-up.enabled</code> (default <code>true</code>), <code>acr-values</code> (default
+<code>urn:irurueta:acr:mfa</code>) and <code>max-age</code> (default <code>PT5M</code>), bound into <code>StepUpProperties</code>; the token must have the
+<code>documents.delete</code> scope.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>GET /oauth2/authorize</code> with <code>acr_values</code> and <code>max_age</code>, <code>GET /login</code>, <code>GET /login/second-factor</code>; on
+the account API <code>DELETE /api/account/totp</code>, <code>POST /api/account/recovery-codes</code>,
+<code>DELETE /api/account/trusted-devices/{id}</code>, <code>DELETE /api/account/passkeys/{id}</code>, <code>PUT</code> and <code>DELETE /api/account/phone</code>,
+<code>POST /api/account/certificates</code>,
+<code>DELETE /api/account/certificates/{id}</code>, <code>DELETE /api/account/identities/{id}</code>; on the resource server
+<code>DELETE /api/documents/{id}</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_step_up_on_the_authorization_request"><a class="anchor" href="#_step_up_on_the_authorization_request"></a>Step-up on the authorization request</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client sends <code>GET /oauth2/authorize</code> with <code>acr_values=urn:irurueta:acr:mfa</code> and, optionally, <code>max_age</code> in
+seconds.</p>
+</li>
+<li>
+<p>If nobody is signed in, the user signs in first (see <a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a>).</p>
+</li>
+<li>
+<p><code>StepUpProtocolChainCustomizer</code> installed <code>StepUpAuthorizationRequestConverter</code> first among the authorization
+endpoint converters. It reads the session&#8217;s factors through <code>FactorTimeline</code>:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>If more than <code>max_age</code> seconds have passed since the primary factor was presented (<code>auth_time</code>), it throws
+<code>ReauthenticationRequiredException</code>. <code>SecondFactorErrorResponseHandler</code> hands it to <code>ReauthenticationEntryPoint</code>,
+which clears the security context, saves the request and redirects to <code>GET /login</code>.</p>
+</li>
+<li>
+<p>Otherwise, if <code>acr_values</code> names the multi-factor class only and the session is not multi-factor
+(<code>MfaPolicy.isMultiFactor</code>: two distinct reported factors, or one factor that is multi-factor alone, today only a
+trusted provider&#8217;s <code>FACTOR_FEDERATED_MFA</code>), it throws <code>SecondFactorRequiredException.forStepUp()</code>, and <code>SecondFactorRequiredEntryPoint</code> redirects to
+<code>GET /login/second-factor</code>. In this case the page renders the second-factor forms even on a trusted device, because
+a remembered device never satisfies a step-up.</p>
+</li>
+<li>
+<p>Otherwise the request continues. A request that also lists <code>urn:irurueta:acr:pwd</code> is satisfied by the password.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>After the new sign-in or second factor, the saved request resumes and the code is issued. The tokens carry the new
+<code>acr</code> and <code>auth_time</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_step_up_demanded_by_an_api_rfc_9470"><a class="anchor" href="#_step_up_demanded_by_an_api_rfc_9470"></a>Step-up demanded by an API (RFC 9470)</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client calls a sensitive operation with a bearer token whose <code>acr</code> is <code>urn:irurueta:acr:pwd</code>, or whose
+<code>auth_time</code> is too old.</p>
+</li>
+<li>
+<p>On the authorization server, the controller (<code>TotpController</code>, <code>RecoveryCodeController</code>, <code>TrustedDeviceController</code>,
+<code>PasskeyController</code>, <code>PhoneController</code>, <code>CertificateController</code>, <code>IdentityController</code>) first calls
+<code>StepUpGuard.requireRecentMultiFactor</code>. While the account has a confirmed second factor
+(<code>HasConfirmedSecondFactorUseCase</code>), the JWT&#8217;s <code>acr</code> must be <code>urn:irurueta:acr:mfa</code> and its <code>auth_time</code> within
+<code>authserver.mfa.step-up-max-age</code>; otherwise it throws <code>InsufficientUserAuthenticationException</code> and
+<code>MfaExceptionHandler</code> answers <code>401</code> with the challenge and a problem body.</p>
+</li>
+<li>
+<p>On the resource server, <code>StepUpAuthorizationManager</code> guards <code>DELETE /api/documents/{id}</code>: with the
+<code>SCOPE_documents.delete</code> authority but without an accepted <code>acr</code> and a recent enough <code>auth_time</code>, it returns a
+<code>StepUpRequiredDecision</code>, and <code>StepUpAccessDeniedHandler</code> answers <code>401</code> with the challenge. Other denials keep the
+RFC 6750 answers (<code>403</code> for a missing scope).</p>
+</li>
+<li>
+<p>The client reads <code>acr_values</code> and <code>max_age</code> from <code>WWW-Authenticate</code>, sends the user to <code>GET /oauth2/authorize</code> with
+them, and exchanges the new code for a token.</p>
+</li>
+<li>
+<p>The client retries the call with the new token, which now passes.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Through the <code>bff</code>, the browser never sees the challenge itself. <code>StepUpChallengeMapper</code> reads it and the BFF answers
+<code>401</code> with a problem of type <code>urn:problem:documents:step-up-required</code> carrying <code>acrValues</code> and <code>maxAge</code>
+(<code>StepUpProblemMapper</code> keeps them within what the login accepts). The SPA then navigates to
+<code>GET /bff/login?returnTo=&#8230;&#8203;&amp;acrValues=&#8230;&#8203;&amp;maxAge=&#8230;&#8203;</code>, and <code>StepUpAuthorizationRequestResolver</code> adds <code>acr_values</code> and
+<code>max_age</code> to the next authorization request; see <a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a> and
+<a href="../login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Checks the step-up parameters of a request.
+     *
+     * @param request the request.
+     * @return always {@code null}: this converter only vetoes requests.
+     * @throws ReauthenticationRequiredException if {@code max_age} is exceeded.
+     * @throws SecondFactorRequiredException     if the requested {@code acr_values} are not reached.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+        final var user = SecurityContextHolder.getContext().getAuthentication();
+        if (!MfaAuthorizationManager.isUser(user)) {
+            return null;
+        }
+        final var authTime = factorTimeline.authTime(user);
+        if (authTime.isEmpty()) {
+            return null;
+        }
+        if (maxAgeExceeded(request.getParameter(MAX_AGE_PARAMETER), authTime.get())) {
+            throw new ReauthenticationRequiredException();
+        }
+        if (!acrReached(request.getParameter(ACR_VALUES_PARAMETER), factorTimeline.isMultiFactor(user))) {
+            throw SecondFactorRequiredException.forStepUp();
+        }
+        return null;
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Guards the API operations that remove or reset a second factor (disabling the authenticator app, generating new
+ * recovery codes, revoking a trusted device): a stolen token, or a session left open, must not be enough to weaken the
+ * account. While the account has a confirmed second factor, the bearer token must show a multi-factor sign-in
+ * ({@code acr} {@value AuthenticationContextClass#MULTI_FACTOR}) whose {@code auth_time} is within
+ * {@code authserver.mfa.step-up-max-age}; otherwise an {@link InsufficientUserAuthenticationException} asks the client
+ * to step up (RFC 9470). An account without a second factor cannot step up, so it is not asked to. The controllers call
+ * it first; the {@code /api/**} chain itself is not changed.
+ */
+@Component
+@RequiredArgsConstructor
+public class StepUpGuard {
+
+    /** Tells whether the account has a confirmed second factor. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /** Multi-factor settings, with the maximum age of the sign-in. */
+    private final MfaProperties mfaProperties;
+
+    /** Clock the age of the sign-in is measured with. */
+    private final Clock clock;
+
+    /**
+     * Requires a recent multi-factor sign-in from the bearer token of the current request.
+     *
+     * @param userId identifier of the account the operation acts on.
+     * @throws InsufficientUserAuthenticationException if the account has a confirmed second factor and the token does
+     *                                                 not show a recent enough multi-factor sign-in.
+     */
+    public void requireRecentMultiFactor(final UUID userId) {
+        if (!hasConfirmedSecondFactorUseCase.execute(userId)) {
+            return;
+        }
+        final var maxAge = mfaProperties.stepUpMaxAge();
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof JwtAuthenticationToken token)
+                || !isRecentMultiFactor(token.getToken(), maxAge)) {
+            throw new InsufficientUserAuthenticationException(AuthenticationContextClass.MULTI_FACTOR, maxAge);
+        }
+    }
+
+    /**
+     * Tells whether a token shows a multi-factor sign-in that is recent enough.
+     *
+     * @param jwt    the bearer token.
+     * @param maxAge maximum age of the sign-in.
+     * @return {@code true} when {@code acr} is the multi-factor class and {@code auth_time} is at most {@code maxAge}
+     *         old (and not in the future).
+     */
+    private boolean isRecentMultiFactor(final Jwt jwt, final Duration maxAge) {
+        if (!AuthenticationContextClass.MULTI_FACTOR.equals(jwt.getClaimAsString(IdTokenClaimNames.ACR))) {
+            return false;
+        }
+        final var authTime = jwt.getClaimAsInstant(IdTokenClaimNames.AUTH_TIME);
+        if (authTime == null) {
+            return false;
+        }
+        final var age = Duration.between(authTime, clock.instant());
+        return !age.isNegative() &amp;&amp; age.compareTo(maxAge) &lt;= 0;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@RequiredArgsConstructor
+public class StepUpAccessDeniedHandler implements AccessDeniedHandler {
+
+    /** Handler of every denial that is not a step-up requirement. */
+    private final AccessDeniedHandler delegate;
+
+    /** Step-up policy, whose values are advertised in the challenge. */
+    private final StepUpProperties properties;
+
+    @Override
+    public void handle(final HttpServletRequest request, final HttpServletResponse response,
+            final AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        if (accessDeniedException instanceof AuthorizationDeniedException denied
+                &amp;&amp; denied.getAuthorizationResult() instanceof StepUpRequiredDecision) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"insufficient_user_authentication\", "
+                    + "acr_values=\"" + properties.acrValues() + "\", max_age=\""
+                    + properties.maxAge().toSeconds() + "\"");
+            return;
+        }
+        delegate.handle(request, response, accessDeniedException);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_decision_on_the_authorization_request"><a class="anchor" href="#_decision_on_the_authorization_request"></a>Decision on the authorization request</h3>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  A["GET /oauth2/authorize with acr_values and max_age"] --> B{"Signed in?"}
+  B -- no --> L["302 to /login, then back here"]
+  L --> A
+  B -- yes --> C{"max_age given and auth_time older than max_age?"}
+  C -- yes --> R["ReauthenticationRequiredException: clear context, 302 to /login"]
+  R --> A
+  C -- no --> D{"acr_values names a known class?"}
+  D -- no --> OK["Continue: MFA policy, consent, code"]
+  D -- yes --> E{"Session is multi-factor, or the pwd class is accepted?"}
+  E -- yes --> OK
+  E -- no --> S["SecondFactorRequiredException.forStepUp: 302 to /login/second-factor"]
+  S --> T["Present TOTP, one-time token or passkey (trusted device does not count)"]
+  T --> A</div></div>
+</div>
+<div class="sect2">
+<h3 id="_api_challenge_and_retry"><a class="anchor" href="#_api_challenge_and_retry"></a>API challenge and retry</h3>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as Client
+  participant AS as Authorization server
+  participant API as Resource server or account API
+  C->>API: DELETE with bearer token (acr pwd)
+  API-->>C: 401 WWW-Authenticate error insufficient_user_authentication, acr_values, max_age
+  C->>B: redirect to /oauth2/authorize with acr_values and max_age
+  B->>AS: GET /oauth2/authorize with acr_values mfa and max_age 300
+  AS->>AS: StepUpAuthorizationRequestConverter
+  AS-->>B: 302 to /login/second-factor
+  B->>AS: POST /login/second-factor/totp with the code
+  AS-->>B: redirect to saved /oauth2/authorize, then to client with code
+  B->>C: code
+  C->>AS: POST /oauth2/token with code and PKCE verifier
+  AS-->>C: access token with acr mfa and fresh auth_time
+  C->>API: DELETE with the new token
+  API-->>C: 204 No Content</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>acr</code>: <code>urn:irurueta:acr:mfa</code> when the session is multi-factor (<code>MfaPolicy.isMultiFactor</code>: two distinct reported
+factors, or one factor that is multi-factor alone), otherwise <code>urn:irurueta:acr:pwd</code> (<code>MfaClaimsContributor</code>). The
+same rule decides the authorization request converter, so the claims and the step-up checks always agree. A trusted
+provider&#8217;s multi-factor sign-in is multi-factor alone (see <a href="social-login-federation.html" class="xref page">Social login and identity brokering</a>).</p>
+</li>
+<li>
+<p><code>amr</code>: the RFC 8176 values of the presented factors plus <code>mfa</code>, for example <code>pwd</code>, <code>otp</code>, <code>mfa</code>.</p>
+</li>
+<li>
+<p><code>auth_time</code>: the time the earliest primary factor was presented, written by <code>MfaClaimsContributor</code> on access tokens
+and by the framework on ID tokens. A second factor added later does not move it, so <code>max_age</code> and the APIs' age limit
+measure the sign-in itself.</p>
+</li>
+<li>
+<p>The challenge: <code>WWW-Authenticate: Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa",
+max_age="300"</code> (the configured age in seconds).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>By design:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A remembered (trusted) device is never reported and never satisfies a step-up.</p>
+</li>
+<li>
+<p>A passkey or a certificate alone is a strong factor, so it satisfies the sign-in policy, but it proves one thing (user
+verification of a passkey is only preferred; a certificate is possession of a key), so its <code>acr</code> is the password
+class: a step-up asks it for a second factor.</p>
+</li>
+<li>
+<p>A sign-in at a provider with <code>trust-mfa</code> that reported <code>mfa</code> (<code>FACTOR_FEDERATED_MFA</code>) is multi-factor alone: it gets
+<code>acr</code> <code>urn:irurueta:acr:mfa</code> and passes a step-up (<code>acr_values</code>, <code>StepUpGuard</code>, the resource server and the phone
+page) without a local second factor, as long as it is recent enough.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>StepUpIT</code> (<code>auth-server/boot</code>): <code>acr_values</code> asking for the multi-factor class requires the second factor, the
+password class is satisfied by the password, and an exceeded <code>max_age</code> forces a new sign-in with a newer <code>auth_time</code>.</p>
+</li>
+<li>
+<p><code>TotpApiIT</code> (<code>auth-server/boot</code>): the account API answers the step-up challenge to a token without a recent
+multi-factor sign-in.</p>
+</li>
+<li>
+<p><code>TrustedDeviceIT</code> (<code>auth-server/boot</code>): a trusted device skips the second factor at sign-in.</p>
+</li>
+<li>
+<p><code>SocialLoginIT</code> (<code>auth-server/boot</code>): unlinking an identity needs a step-up token.</p>
+</li>
+<li>
+<p><code>StepUpDeletionIT</code> (<code>resource-server/boot</code>): a password-only or stale token is challenged, a recent multi-factor
+token deletes, and listing is never challenged.</p>
+</li>
+<li>
+<p><code>SocialTrustedProviderIT</code> (<code>auth-server/boot</code>): after a trusted provider&#8217;s multi-factor sign-in, <code>acr_values</code> asking
+for the multi-factor class issues the code without a second factor.</p>
+</li>
+<li>
+<p><code>BffEndToEndIT</code> (<code>e2e-tests</code>): a password-only session&#8217;s deletion through the BFF answers the step-up problem, and
+the step-up login reaches the second-factor page.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9470">RFC 9470, OAuth 2.0 Step Up Authentication Challenge Protocol</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8176">RFC 8176, Authentication Method Reference Values</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest">OpenID Connect Core 1.0, section 3.1.2.1</a>
+(<code>acr_values</code>, <code>max_age</code>)</p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749, The OAuth 2.0 Authorization Framework</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636, Proof Key for Code Exchange</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6238">RFC 6238, TOTP</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/authentication-methods-2fa-and-passwordless.html">Authentication Methods: Passwordless &amp; 2FA</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/openid-connect.html">OpenID Connect</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+<li>
+<p><a href="openid-connect.html" class="xref page">OpenID Connect sign-in</a></p>
+</li>
+<li>
+<p><a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a></p>
+</li>
+<li>
+<p><a href="../resource-server.html" class="xref page">Resource server</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

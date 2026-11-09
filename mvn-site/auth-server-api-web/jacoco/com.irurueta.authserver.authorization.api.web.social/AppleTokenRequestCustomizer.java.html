@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppleTokenRequestCustomizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">AppleTokenRequestCustomizer.java</span></div><h1>AppleTokenRequestCustomizer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import java.util.function.Consumer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.util.MultiValueMap;
+
+// tag::social-apple-token-request[]
+/**
+ * Customizes the parameters of the token request of the authorization code grant: the request made for Apple's client
+ * id carries the signed JWT of {@link AppleClientSecretGenerator} as its {@code client_secret}, in place of the empty
+ * secret the registration holds. Requests of other registrations are left alone. It is the
+ * {@code parametersCustomizer} of the framework's token response client, which runs after the parameters are built.
+ */
+@RequiredArgsConstructor
+public class AppleTokenRequestCustomizer implements Consumer&lt;MultiValueMap&lt;String, String&gt;&gt; {
+
+    /** Client id of the Apple registration. */
+    private final String appleClientId;
+
+    /** Generates the client secret. */
+    private final AppleClientSecretGenerator secretGenerator;
+
+    /**
+     * Replaces the client secret of an Apple request.
+     *
+     * @param parameters the parameters of the token request.
+     */
+    @Override
+    public void accept(final MultiValueMap&lt;String, String&gt; parameters) {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (appleClientId.equals(parameters.getFirst(OAuth2ParameterNames.CLIENT_ID))) {</span>
+<span class="fc" id="L48">            parameters.set(OAuth2ParameterNames.CLIENT_SECRET, secretGenerator.generate());</span>
+        }
+<span class="fc" id="L50">    }</span>
+}
+// end::social-apple-token-request[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LoginController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.login</a> &gt; <span class="el_source">LoginController.java</span></div><h1>LoginController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.login;
+
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.LoginPageApi;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.stereotype.Controller;
+
+/**
+ * Serves the login page, as the contract {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml} describes it
+ * through the generated {@link LoginPageApi}, supplying the ordered login method fragments and the outcome of the last
+ * attempt to the template.
+ */
+@Controller
+public class LoginController implements LoginPageApi {
+
+    /**
+     * Path of the login page, which also receives the form post. The single source of the path for the security
+     * chains and the template, taken from the contract.
+     */
+    public static final String LOGIN_PATH = PATH_LOGIN_PAGE;
+
+    /** Name of the login template. */
+    static final String VIEW_NAME = &quot;login&quot;;
+
+    /** Name of the model attribute that holds the path the login form posts to. */
+    static final String LOGIN_PATH_ATTRIBUTE = &quot;loginPath&quot;;
+
+    /** Name of the model attribute that holds the fragments of the login methods. */
+    static final String FRAGMENTS_ATTRIBUTE = &quot;fragments&quot;;
+
+    /** Name of the model attribute that holds the key of the message of a failed sign-in. */
+    static final String ERROR_MESSAGE_ATTRIBUTE = &quot;errorMessageKey&quot;;
+
+    /** Name of the model attribute that tells the user has just signed out. */
+    static final String LOGGED_OUT_ATTRIBUTE = &quot;loggedOut&quot;;
+
+    /** Fragments contributed by the authentication methods, sorted by order. */
+    private final List&lt;LoginMethodFragment&gt; fragments;
+
+    /** Maps the last authentication exception to a message key. */
+    private final LoginErrorMessages errorMessages;
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy, whose session holds the last failure. */
+    private final HttpServletRequest request;
+
+    /**
+     * Creates the controller.
+     *
+     * @param methods       fragments contributed by the authentication methods.
+     * @param errorMessages mapper of the authentication exceptions to message keys.
+     * @param pageRenderer  renderer of the page.
+     * @param request       the current request.
+     */
+    public LoginController(final List&lt;LoginMethodFragment&gt; methods, final LoginErrorMessages errorMessages,
+<span class="fc" id="L80">            final PageRenderer pageRenderer, final HttpServletRequest request) {</span>
+<span class="fc" id="L81">        this.fragments = methods.stream().sorted(Comparator.comparingInt(LoginMethodFragment::order)).toList();</span>
+<span class="fc" id="L82">        this.errorMessages = errorMessages;</span>
+<span class="fc" id="L83">        this.pageRenderer = pageRenderer;</span>
+<span class="fc" id="L84">        this.request = request;</span>
+<span class="fc" id="L85">    }</span>
+
+    // tag::login-controller[]
+    /**
+     * Renders the login page.
+     *
+     * @param error  present (even if empty) when the previous attempt failed.
+     * @param logout present (even if empty) when the user has just signed out.
+     * @return the login page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; loginPage(final String error, final String logout) {
+<span class="fc" id="L97">        final var model = new HashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L98">        model.put(LOGIN_PATH_ATTRIBUTE, LOGIN_PATH);</span>
+<span class="fc" id="L99">        model.put(FRAGMENTS_ATTRIBUTE, fragments);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (error != null) {</span>
+<span class="fc" id="L101">            model.put(ERROR_MESSAGE_ATTRIBUTE, errorMessages.keyOf(lastFailure()));</span>
+        }
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        model.put(LOGGED_OUT_ATTRIBUTE, logout != null);</span>
+<span class="fc" id="L104">        return pageRenderer.render(VIEW_NAME, model);</span>
+    }
+    // end::login-controller[]
+
+    /**
+     * Gets the exception of the previous failed attempt, which Spring Security keeps in the session.
+     *
+     * @return the exception, or {@code null} when there is no session or it holds none.
+     */
+    private AuthenticationException lastFailure() {
+<span class="fc" id="L114">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        final var failure = session == null ? null : session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        return failure instanceof final AuthenticationException exception ? exception : null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

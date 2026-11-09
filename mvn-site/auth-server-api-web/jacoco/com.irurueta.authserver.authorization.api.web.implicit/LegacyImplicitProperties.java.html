@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitProperties.java</span></div><h1>LegacyImplicitProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import java.time.Duration;
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.util.StringUtils;
+
+// tag::implicit-properties[]
+/**
+ * Settings of the legacy implicit flow, bound from {@code authserver.legacy-implicit.*} (see
+ * {@code application-legacy-implicit.yml}). The flow exists only to show why OAuth 2.1 removed it, so it is limited to
+ * one client, one redirect URI, a restricted audience and scope, and a short lifetime.
+ *
+ * @param clientId       identifier of the only client that may use the flow.
+ * @param redirectUri    the only redirect URI of that client.
+ * @param scopes         scopes the client may request.
+ * @param audience       audience of the access tokens it gets.
+ * @param accessTokenTtl lifetime of the access tokens, at most {@link #MAX_ACCESS_TOKEN_TTL}.
+ */
+@ConfigurationProperties(prefix = &quot;authserver.legacy-implicit&quot;)
+public record LegacyImplicitProperties(
+        @DefaultValue(&quot;legacy-implicit-spa&quot;) String clientId,
+        String redirectUri,
+        @DefaultValue(&quot;documents.read&quot;) List&lt;String&gt; scopes,
+        @DefaultValue(&quot;resource-server&quot;) String audience,
+        @DefaultValue(&quot;PT5M&quot;) Duration accessTokenTtl) {
+
+    /** Longest lifetime an access token of the legacy flow may have. */
+<span class="fc" id="L45">    public static final Duration MAX_ACCESS_TOKEN_TTL = Duration.ofMinutes(15);</span>
+
+    /**
+     * Validates the settings and defensively copies the scopes.
+     *
+     * @throws IllegalArgumentException if the client id, redirect URI or audience is blank, the scopes are missing,
+     *                                  empty or contain a blank value, or the lifetime is missing, not positive or
+     *                                  longer than {@link #MAX_ACCESS_TOKEN_TTL}.
+     */
+<span class="fc" id="L54">    public LegacyImplicitProperties {</span>
+<span class="fc" id="L55">        requireText(clientId, &quot;clientId&quot;);</span>
+<span class="fc" id="L56">        requireText(redirectUri, &quot;redirectUri&quot;);</span>
+<span class="fc" id="L57">        requireText(audience, &quot;audience&quot;);</span>
+<span class="fc bfc" id="L58" title="All 8 branches covered.">        if (scopes == null || scopes.isEmpty() || scopes.stream().anyMatch(scope -&gt; !StringUtils.hasText(scope))) {</span>
+<span class="fc" id="L59">            throw new IllegalArgumentException(&quot;scopes must not be empty or contain blank values&quot;);</span>
+        }
+<span class="fc" id="L61">        scopes = List.copyOf(scopes);</span>
+<span class="fc bfc" id="L62" title="All 6 branches covered.">        if (accessTokenTtl == null || accessTokenTtl.isZero() || accessTokenTtl.isNegative()) {</span>
+<span class="fc" id="L63">            throw new IllegalArgumentException(&quot;accessTokenTtl must be positive&quot;);</span>
+        }
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (accessTokenTtl.compareTo(MAX_ACCESS_TOKEN_TTL) &gt; 0) {</span>
+<span class="fc" id="L66">            throw new IllegalArgumentException(&quot;accessTokenTtl must be at most &quot; + MAX_ACCESS_TOKEN_TTL);</span>
+        }
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * Refuses a blank text.
+     *
+     * @param value the value.
+     * @param name  its name, for the message.
+     */
+    private static void requireText(final String value, final String name) {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (!StringUtils.hasText(value)) {</span>
+<span class="fc" id="L78">            throw new IllegalArgumentException(name + &quot; must not be blank&quot;);</span>
+        }
+<span class="fc" id="L80">    }</span>
+}
+// end::implicit-properties[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

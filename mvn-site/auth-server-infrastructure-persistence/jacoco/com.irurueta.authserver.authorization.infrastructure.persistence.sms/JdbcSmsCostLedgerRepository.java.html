@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcSmsCostLedgerRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.sms</a> &gt; <span class="el_source">JdbcSmsCostLedgerRepository.java</span></div><h1>JdbcSmsCostLedgerRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.infrastructure.persistence.sms;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.sms.SmsCostLedgerRepository;
+import com.irurueta.authserver.authorization.domain.sms.SmsSpendCap;
+import java.time.Instant;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link SmsCostLedgerRepository} over the {@code sms_cost_ledger} table. It opens no transaction: a reservation runs
+ * in the caller's, where it first takes a PostgreSQL transaction-level advisory lock, so that concurrent senders (of
+ * this or another instance) check and record their messages one after the other and a cap is never overshot. The
+ * check and the insert are one conditional statement, so a refused message leaves no row. A refusal is logged, without
+ * the number or the country, so that an exhausted budget can be seen.
+ */
+<span class="nc" id="L35">@Slf4j</span>
+@Repository
+@RequiredArgsConstructor
+public class JdbcSmsCostLedgerRepository implements SmsCostLedgerRepository {
+
+    /** Key of the advisory lock that serialises the reservations of SMS spend. */
+    static final long SPEND_LOCK_KEY = 5_203_341_870_000_630L;
+
+    /** Statement taking the advisory lock, released when the caller's transaction ends. */
+    private static final String LOCK = &quot;SELECT pg_advisory_xact_lock(?)&quot;;
+
+    /**
+     * Statement inserting a row only when the spend of each window, the new row included, stays within its cap. It
+     * runs after the lock is taken, so (in the default {@code READ COMMITTED} isolation) it sees every row a previous
+     * holder of the lock committed.
+     */
+    private static final String INSERT_WITHIN_CAPS = &quot;&quot;&quot;
+            INSERT INTO sms_cost_ledger (sent_at, country, cost_micros)
+            SELECT ?::timestamptz, ?::char(2), ?::bigint
+            WHERE (SELECT COALESCE(SUM(cost_micros), 0) FROM sms_cost_ledger WHERE sent_at &gt; ?::timestamptz)
+                    + ?::bigint &lt;= ?::bigint
+              AND (SELECT COALESCE(SUM(cost_micros), 0) FROM sms_cost_ledger WHERE sent_at &gt; ?::timestamptz)
+                    + ?::bigint &lt;= ?::bigint
+            &quot;&quot;&quot;;
+
+    /** Statement deleting the rows older than an instant. */
+    private static final String DELETE_OLDER_THAN = &quot;DELETE FROM sms_cost_ledger WHERE sent_at &lt; ?&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    @Override
+    public boolean tryRecord(final Instant sentAt, final String country, final long costMicros,
+                             final SmsSpendCap windowCap, final SmsSpendCap dailyCap) {
+        // the row mapper only drains the (void) result of the lock function
+<span class="nc" id="L70">        jdbcClient.sql(LOCK).param(SPEND_LOCK_KEY).query((rs, rowNum) -&gt; Boolean.TRUE).list();</span>
+<span class="nc" id="L71">        final var recorded = jdbcClient.sql(INSERT_WITHIN_CAPS)</span>
+<span class="nc" id="L72">                .params(toTimestamp(sentAt), country, costMicros,</span>
+<span class="nc" id="L73">                        toTimestamp(sentAt.minus(windowCap.window())), costMicros, windowCap.capMicros(),</span>
+<span class="nc" id="L74">                        toTimestamp(sentAt.minus(dailyCap.window())), costMicros, dailyCap.capMicros())</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                .update() &gt; 0;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (!recorded) {</span>
+<span class="nc" id="L77">            log.warn(&quot;An SMS was not sent: the spending cap has been reached&quot;);</span>
+        }
+<span class="nc" id="L79">        return recorded;</span>
+    }
+
+    @Override
+    public int deleteOlderThan(final Instant before) {
+<span class="nc" id="L84">        return jdbcClient.sql(DELETE_OLDER_THAN).param(toTimestamp(before)).update();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Configuration :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="configuration.html">Configuration</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/configuration.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Configuration</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>This page lists every configuration property the four applications implement: <code>auth-server</code>, <code>bff</code>,
+<code>resource-server</code> and <code>service-client</code>. For each one it gives the environment variable that <code>application*.yml</code> maps
+to it, the default when nothing is set, what it does and the profile where it matters.</p>
+</div>
+<div class="paragraph">
+<p>A property can be set in several ways:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>in <code>application.yml</code> or a profile file (<code>application-&lt;profile&gt;.yml</code>) of the application&#8217;s <code>boot</code> module;</p>
+</li>
+<li>
+<p>through the environment variable that the yml file maps with a placeholder such as
+<code>${AUTHSERVER_ISSUER_URL:http://localhost:9000}</code> (the value after the colon is the default);</p>
+</li>
+<li>
+<p>through any other environment variable, by Spring Boot&#8217;s relaxed binding: upper case, dots and dashes replaced by
+underscores. For example <code>AUTHSERVER_MFA_MAX_FAILED_ATTEMPTS</code> sets <code>authserver.mfa.max-failed-attempts</code>, even
+though no yml file maps it;</p>
+</li>
+<li>
+<p>as a command-line argument, for example <code>--authserver.par.enabled=true</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When a yml file sets a value, that value is the effective default, even if the code has another one. The tables say
+so where the two differ. Most settings are bound into validated <code>@ConfigurationProperties</code> records: an invalid value
+(a negative duration, an unknown provider, a malformed country code, &#8230;&#8203;) stops the application at startup with a
+message that names the property.</p>
+</div>
+<div class="paragraph">
+<p>In the tables, "none" means there is no default and "-" means no yml file maps an environment variable (relaxed
+binding still works).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_profiles"><a class="anchor" href="#_profiles"></a>Profiles</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Profile</th>
+<th class="tableblock halign-left valign-top">Application</th>
+<th class="tableblock halign-left valign-top">What it switches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>dev</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Local development only. Starts the root <code>compose.yaml</code> with Spring Boot&#8217;s Docker Compose support (PostgreSQL,
+Mailpit), points mail at <code>localhost:1025</code>, sets the local redirect URIs of the seeded <code>bff</code> and <code>spa-public</code> clients,
+seeds a demo user, the <code>bff</code> client with a generated secret and the public <code>device-client</code> (<code>DevDataInitializer</code>),
+generates the key-encryption secret under <code>~/.irurueta-auth-server/</code> (<code>DevKeyEncryptionSecret</code>), generates a
+self-signed server certificate for the X.509 TLS port when one is configured (<code>DevX509KeyStore</code>), keeps SMS messages
+in memory and shows them at <code>/dev/sms-inbox</code>. Never activate it outside local development.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>test</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Activated by the integration tests (<code>@PostgresIT</code>). Selects the logging SMS sender, which keeps the messages in an
+in-memory outbox. Not meant for a deployment.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>twilio</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sends SMS through Twilio (<code>application-twilio.yml</code>). Ignored when <code>sns</code> is active too.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sns</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sends SMS through Amazon SNS (<code>application-sns.yml</code>). Credentials and region come from the AWS SDK default chains
+(<code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code>, <code>AWS_REGION</code>, the shared profile files or the instance role); no
+project property is involved.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>legacy-implicit</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables the legacy implicit flow demo for the one client <code>legacy-implicit-spa</code> (<code>application-legacy-implicit.yml</code>).
+Opt-in, outside OAuth 2.1, and never to be enabled in production. See <a href="legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>dev</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Starts the root <code>compose.yaml</code> with Docker Compose and points the BFF at its own <code>bff</code> database
+(<code>BffDevDatabase</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>opaque</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resource-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Validates bearer tokens by introspection at the authorization server instead of as JWTs
+(<code>application-opaque.yml</code>). See <a href="resource-server.html" class="xref page">Resource server</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>client-credentials</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Runs <code>ClientCredentialsCli</code>: gets a token with the client credentials grant and lists <code>GET /api/documents</code>. See
+<a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>device-flow</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Runs <code>DeviceFlowCli</code>: the device authorization grant against the framework endpoints. See <a href="device-grant.html" class="xref page">Device authorization grant</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>token-exchange</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Runs <code>TokenExchangeCli</code>: exchanges the user&#8217;s access token (<code>SERVICE_CLIENT_SUBJECT_TOKEN</code>) for one that names the
+client as actor. See <a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The SMS sender is chosen by profile, never by a property. The profile expressions are <code>twilio &amp; !sns</code> (Twilio),
+<code>sns</code> (SNS) and <code>(dev | test) &amp; !twilio &amp; !sns</code> (logging sender). With none of <code>dev</code>, <code>test</code>, <code>twilio</code> or <code>sns</code>
+active, <code>auth-server</code> refuses to start (<code>MissingSmsGatewayConfiguration</code>), so a deployment never keeps its messages in
+memory by mistake. A deployment therefore always activates <code>twilio</code> or <code>sns</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_secrets"><a class="anchor" href="#_secrets"></a>Secrets</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>These values must come from the environment (or a secret store that feeds it) and never from a file in the
+repository. Never write a real value in a yml file or in these docs.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 30%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.encryption.password</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_KEYS_ENCRYPTION_PASSWORD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Encrypts the private signing keys at rest. Required without <code>dev</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.encryption.salt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_KEYS_ENCRYPTION_SALT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hex-encoded salt of the same encryption. Required without <code>dev</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.password</code> (<code>auth-server</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_DB_PASSWORD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Database password.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.clients.bff-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_BFF_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secret of the seeded <code>bff</code> client.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.{google,microsoft,github}.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GOOGLE_CLIENT_SECRET</code>, <code>AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_SECRET</code>,
+<code>AUTHSERVER_SOCIAL_GITHUB_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client secrets at the identity providers.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.private-key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_APPLE_PRIVATE_KEY</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PKCS#8 PEM text of the <code>.p8</code> key Apple issued; it signs the Apple client secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.twilio.auth-token</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SMS_TWILIO_AUTH_TOKEN</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Twilio API token (<code>twilio</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.key-store-password</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_KEY_STORE_PASSWORD</code> (relaxed binding)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Password of the server key store of the X.509 TLS port.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.password</code> (<code>bff</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_DB_PASSWORD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Database password of the BFF.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.client.registration.bff.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secret of the BFF at the authorization server; the BFF does not start without it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.resourceserver.opaquetoken.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>INTROSPECTION_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secret the resource server uses at the introspection endpoint (<code>opaque</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secret of the <code>service-client</code> (<code>client_secret_basic</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.key.private-key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_PRIVATE_KEY</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PKCS#8 RSA private key that signs the client assertion (<code>private_key_jwt</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.cli.subject-token</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_SUBJECT_TOKEN</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The user&#8217;s access token exchanged by <code>token-exchange</code>. It is a credential too.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>AWS credentials of the <code>sns</code> profile and SMTP credentials, when the relay needs them (<code>spring.mail.username</code>,
+<code>spring.mail.password</code>), also come from the environment only.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_auth_server"><a class="anchor" href="#_auth_server"></a>auth-server</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>All the project properties of the authorization server live under <code>authserver.*</code>. The framework properties it uses
+are in <a href="#_framework_properties_the_project_relies_on">Framework properties the project relies on</a>.</p>
+</div>
+<div class="sect2">
+<h3 id="_issuer_and_api"><a class="anchor" href="#_issuer_and_api"></a>Issuer and API</h3>
+<div class="paragraph">
+<p>See <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.api.audience</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_API_AUDIENCE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Audience a bearer token must list to call <code>/api/**</code>. The seeded clients get it as one of their audiences.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The issuer itself is the framework property <code>spring.security.oauth2.authorizationserver.issuer</code>
+(<code>AUTHSERVER_ISSUER_URL</code>, default <code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_seeded_clients"><a class="anchor" href="#_seeded_clients"></a>Seeded clients</h3>
+<div class="paragraph">
+<p>At startup <code>ClientSeeder</code> creates the default clients whose redirect URIs are configured; nothing is seeded by
+default. Lists are comma-separated. See <a href="clients.html" class="xref page">Registered clients</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.clients.bff-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_BFF_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secret of the confidential <code>bff</code> client. Without it the <code>bff</code> client is skipped with a warning. Under <code>dev</code>,
+<code>DevDataInitializer</code> creates the <code>bff</code> client with a generated secret instead (logged once).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.clients.bff.redirect-uris</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_BFF_REDIRECT_URIS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none; <code><a href="http://localhost:8080/login/oauth2/code/bff" class="bare">http://localhost:8080/login/oauth2/code/bff</a></code> in <code>dev</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect URIs of the <code>bff</code> client. The client is seeded only when this is set.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.clients.bff.post-logout-redirect-uris</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_BFF_POST_LOGOUT_REDIRECT_URIS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none; <code><a href="http://localhost:8080/" class="bare">http://localhost:8080/</a></code> in <code>dev</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Where the user may be sent after an RP-initiated logout (<code>/connect/logout</code>) from the <code>bff</code> client.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.clients.spa-public.redirect-uris</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SPA_REDIRECT_URIS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none; <code><a href="http://localhost:3000/callback" class="bare">http://localhost:3000/callback</a></code> in <code>dev</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect URIs of the public <code>spa-public</code> client. The client is seeded only when this is set.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.clients.spa-public.post-logout-redirect-uris</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SPA_POST_LOGOUT_REDIRECT_URIS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none; <code><a href="http://localhost:3000/" class="bare">http://localhost:3000/</a></code> in <code>dev</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Post-logout redirect URIs of the <code>spa-public</code> client.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_keys_and_tokens"><a class="anchor" href="#_keys_and_tokens"></a>Keys and tokens</h3>
+<div class="paragraph">
+<p>See <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.encryption.password</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_KEYS_ENCRYPTION_PASSWORD</code> (relaxed binding)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required without <code>dev</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Passphrase that encrypts the private signing keys at rest. Without <code>dev</code> the application does not start without it.
+Under <code>dev</code>, when it or the salt is missing, both are generated once per machine in
+<code>~/.irurueta-auth-server/key-encryption</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.encryption.salt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_KEYS_ENCRYPTION_SALT</code> (relaxed binding)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required without <code>dev</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hex-encoded salt of the key encryption. Same rules as the password.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.rotation-interval</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>P30D</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long a signing key signs before it is replaced.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.rotation.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 0 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of the job that checks whether the signing key must rotate (every hour).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.retention</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT2H</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minimum time a retired signing key stays published, so tokens it signed can still be verified.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.clock-skew</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT60S</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clock skew of the token consumers, added to the longest token lifetime when a retired key is kept.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.jwks-cache-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT30S</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long the JSON Web Key set read from the database is cached.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.tokens.cleanup.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 0 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of the job that deletes expired authorizations (every hour).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.tokens.cleanup.abandoned-after</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>P1D</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Age after which an authorization that never got a token is deleted.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_accounts_and_passwords"><a class="anchor" href="#_accounts_and_passwords"></a>Accounts and passwords</h3>
+<div class="paragraph">
+<p>See <a href="passwords-and-accounts.html" class="xref page">Passwords and accounts</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.password.compromised-check.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Checks new passwords against the Have I Been Pwned range API. <code>false</code> turns the check off (for example offline);
+then no password is reported as compromised.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.rate-limit.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Rate limits the unauthenticated <code>/api/account</code> endpoints, per client address and per e-mail address (<code>429</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.rate-limit.window</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT15M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Length of the fixed counting window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.rate-limit.per-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>20</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requests allowed per client address and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.rate-limit.per-email</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requests allowed per e-mail address and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.rate-limit.max-tracked-keys</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Most addresses and e-mails tracked at once.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.cleanup.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 30 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of the job that deletes expired account tokens (every hour, at minute 30).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_multi_factor_authentication"><a class="anchor" href="#_multi_factor_authentication"></a>Multi-factor authentication</h3>
+<div class="paragraph">
+<p>No yml file sets these; the record defaults apply. See <a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mfa.max-failed-attempts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Failed second-factor attempts before the second factor of the user is locked. At least 1.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mfa.lockout</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT15M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long the second factor stays locked.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mfa.trusted-device-validity</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>P30D</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long a remembered browser (trusted device cookie) stands in for the second factor.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mfa.totp-issuer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Irurueta Auth Server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Issuer shown by authenticator apps for the TOTP enrolment.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mfa.step-up-max-age</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT5M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Longest age of the <code>auth_time</code> of a bearer token for an API operation that requires step-up (<code>StepUpGuard</code>).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_passkeys"><a class="anchor" href="#_passkeys"></a>Passkeys</h3>
+<div class="paragraph">
+<p>The defaults are the local development values; a deployment must set its public host. See <a href="passkeys.html" class="xref page">Passkeys (WebAuthn)</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.passkeys.rp-name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_PASSKEYS_RP_NAME</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Irurueta Auth Server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relying party name shown by the authenticator.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.passkeys.rp-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_PASSKEYS_RP_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>localhost</code> (application.yml; no default in code)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relying party id: the host name the credentials are scoped to. Must not be blank.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.passkeys.allowed-origins</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_PASSKEYS_ALLOWED_ORIGINS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code> (application.yml; no default in code)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Origins browsers may run the WebAuthn ceremonies from (comma-separated). At least one.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_one_time_tokens"><a class="anchor" href="#_one_time_tokens"></a>One-time tokens</h3>
+<div class="paragraph">
+<p>E-mail codes, magic links and SMS codes. A <code>0</code> value of the code settings falls back to the default; a negative one
+fails at startup. See <a href="one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.code-length</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>6</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Digits of an e-mail or SMS code.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.code-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT10M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long a code stays valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.link-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT15M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long a magic link stays valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.max-attempts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Wrong codes accepted before the code is spent.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.cleanup.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 15 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of the job that deletes expired codes, phone verifications, SMS ledger entries and link tokens (every hour,
+at minute 15).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Rate limits <code>POST /ott/generate</code>, <code>POST /login/ott</code>, <code>POST /login/second-factor/ott</code> and the phone enrolment, per
+client address and per identifier (<code>429</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.window</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT15M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Length of the fixed counting window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.generation-per-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>20</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code or link requests per client address and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.generation-per-identifier</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code or link requests per identifier (user name, e-mail or phone) and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.verification-per-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>30</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code submissions per client address and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.verification-per-identifier</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code submissions per identifier and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ott.rate-limit.max-tracked-keys</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Most addresses and identifiers tracked at once.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_sms"><a class="anchor" href="#_sms"></a>SMS</h3>
+<div class="paragraph">
+<p>Phone numbers, cost control and the SMS gateways. Costs are in millionths of the billing currency. A <code>0</code> duration or
+count falls back to the default; a negative value fails at startup. See <a href="one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.default-region</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>US</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Region a number typed without a country prefix is read in (ISO 3166-1 alpha-2, upper case).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.allowed-countries</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>US,ES,GB</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Regions SMS may be sent to (comma-separated, upper case).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.cost-per-country-micros</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Price of one message per region, as a map (for example <code>authserver.sms.cost-per-country-micros.ES=70000</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.default-cost-micros</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>50000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Price assumed for a region without an entry in <code>cost-per-country-micros</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.window</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT1H</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Window of <code>window-cap-micros</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.window-cap-micros</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5000000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Most that may be spent per window; a message over the cap is not sent.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.daily-cap-micros</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>20000000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Most that may be spent per day.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.verification-code-length</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>6</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Digits of the code that verifies a phone being enrolled.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.verification-code-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT10M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long that verification code stays valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.verification-max-attempts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Wrong verification codes accepted before the code is spent.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.ledger-retention</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>P2D</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long the spend ledger is kept. At least one day.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.outbox.capacity</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>100</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Messages the in-memory outbox of the logging sender keeps (<code>dev</code> or <code>test</code> only). <code>0</code> or less means the default.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The Twilio gateway (<code>twilio</code> profile, <code>application-twilio.yml</code>) needs the account SID and token, and a sender: <code>from</code>
+or <code>messaging-service-sid</code>. Without them it fails at startup.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.twilio.account-sid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SMS_TWILIO_ACCOUNT_SID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Twilio account SID (<code>twilio</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.twilio.auth-token</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SMS_TWILIO_AUTH_TOKEN</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Twilio auth token (<code>twilio</code> profile). Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.twilio.from</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SMS_TWILIO_FROM</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sender number in E.164 (<code>twilio</code> profile). Used when set.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.sms.twilio.messaging-service-sid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SMS_TWILIO_MESSAGING_SERVICE_SID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Twilio Messaging Service that picks the sender, used when <code>from</code> is not set (<code>twilio</code> profile).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The SNS gateway (<code>sns</code> profile) has no project property: see <a href="#_profiles">Profiles</a>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_mail"><a class="anchor" href="#_mail"></a>Mail</h3>
+<div class="paragraph">
+<p>Sender and links of the one-time token and account e-mails. The SMTP server is the framework&#8217;s <code>spring.mail.*</code>. See
+<a href="one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a> and <a href="passwords-and-accounts.html" class="xref page">Passwords and accounts</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mail.from</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_MAIL_FROM</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>no-reply@localhost</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sender address of the e-mails.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mail.base-url</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_ISSUER_URL</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Base of the links in the e-mails (magic links). It shares the issuer&#8217;s environment variable. A trailing <code>/</code> is
+removed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mail.locale</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Language of the e-mails.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_social_login"><a class="anchor" href="#_social_login"></a>Social login</h3>
+<div class="paragraph">
+<p>A provider is enabled only when its <code>client-id</code> has text; with none configured there is no social login at all.
+Provider ids are <code>google</code>, <code>microsoft</code>, <code>apple</code> and <code>github</code>; any other id fails at startup. An enabled provider must
+have its secret (Apple: <code>team-id</code>, <code>key-id</code> and <code>private-key</code>). See <a href="social-login.html" class="xref page">Social login (identity brokering)</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.google.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GOOGLE_CLIENT_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Google OAuth client id. Enables Google.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.google.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GOOGLE_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Google client secret. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.google.trust-mfa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GOOGLE_TRUST_MFA</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Counts Google&#8217;s own multi-factor authentication when its <code>amr</code> claim contains <code>mfa</code>, so no local second factor is
+asked.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.microsoft.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Microsoft Entra ID application id. Enables Microsoft.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.microsoft.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_MICROSOFT_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entra client secret. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.microsoft.tenant</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_MICROSOFT_TENANT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>common</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>common</code>, <code>organizations</code>, <code>consumers</code>, a tenant id or a domain.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.microsoft.allowed-tenants</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_MICROSOFT_ALLOWED_TENANTS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tenants a multi-tenant sign-in is limited to (comma-separated). Empty: the tenant id when <code>tenant</code> is one, otherwise
+any tenant.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.microsoft.trust-mfa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_MICROSOFT_TRUST_MFA</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Same as for Google.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_APPLE_CLIENT_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Apple Services ID. Enables Apple.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.team-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_APPLE_TEAM_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Apple developer team id, issuer of the client secret JWT.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.key-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_APPLE_KEY_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Id of the Apple key that signs the client secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.private-key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_APPLE_PRIVATE_KEY</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PKCS#8 PEM text of the <code>.p8</code> key. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.client-secret-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT5M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lifetime of the generated client secret JWT; positive and at most 180 days. It is cached for half of it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.apple.trust-mfa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_APPLE_TRUST_MFA</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Same as for Google.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.github.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GITHUB_CLIENT_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GitHub OAuth app client id. Enables GitHub.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.github.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GITHUB_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GitHub client secret. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.social.providers.github.trust-mfa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_SOCIAL_GITHUB_TRUST_MFA</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Same as for Google. GitHub is plain OAuth 2.0, so it only matters if its sign-in carries an <code>amr</code> with <code>mfa</code>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The record also accepts <code>tenant</code>, <code>allowed-tenants</code>, <code>team-id</code>, <code>key-id</code>, <code>private-key</code> and <code>client-secret-ttl</code> for
+any provider, but only Microsoft uses the first two and only Apple the others.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_x_509_client_certificates"><a class="anchor" href="#_x_509_client_certificates"></a>X.509 client certificates</h3>
+<div class="paragraph">
+<p>All off by default. See <a href="x509.html" class="xref page">X.509 client certificates</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_ENABLED</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables the certificate sign-in (<code>POST /login/x509</code>) and its login button. The certificate API exists either way.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.forwarded-header</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_FORWARDED_HEADER</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Header in which a reverse proxy forwards the client certificate. Needs <code>trusted-proxies</code> and
+<code>server.forward-headers-strategy=none</code> (see <a href="#_framework_properties_the_project_relies_on">Framework properties the project relies on</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.trusted-proxies</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_TRUSTED_PROXIES</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Addresses or CIDR ranges whose forwarded header is honoured (comma-separated).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.port</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_PORT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Port of a dedicated TLS connector that asks for a client certificate. <code>0</code> means no such connector; at most <code>65535</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.amr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_AMR</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>amr</code> value the tokens report for a certificate sign-in: <code>sc</code> (smart card) or <code>hwk</code> (hardware key).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.key-store</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_KEY_STORE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Path of the key store with the server certificate of the TLS port. Required with a <code>port</code>, except under <code>dev</code>, which
+generates a self-signed one under <code>~/.irurueta-auth-server/</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.key-store-password</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_X509_KEY_STORE_PASSWORD</code> (relaxed binding)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Password of that key store. Secret: from the environment only.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.x509.key-store-type</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PKCS12</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Type of that key store.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_mtls_and_client_assertions"><a class="anchor" href="#_mtls_and_client_assertions"></a>mTLS and client assertions</h3>
+<div class="paragraph">
+<p>Client authentication at the token endpoint. See <a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.mtls.trusted-authorities</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File paths of the certificates (PEM) of the authorities trusted for <code>tls_client_auth</code>. Empty means
+<code>tls_client_auth</code> is refused; <code>self_signed_tls_client_auth</code> still works.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.client-assertion.max-lifetime</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT5M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Longest accepted lifetime (<code>exp</code> minus <code>iat</code>) of a <code>private_key_jwt</code> or <code>client_secret_jwt</code> assertion.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.client-assertion.cleanup.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 30 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of the job that deletes the expired assertion <code>jti</code> records (every hour, at minute 30).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_device_grant"><a class="anchor" href="#_device_grant"></a>Device grant</h3>
+<div class="paragraph">
+<p>Attempts to verify a user code are limited per client address and per signed-in user (<code>429</code>). See
+<a href="device-grant.html" class="xref page">Device authorization grant</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.device.rate-limit.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Turns the limit on or off.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.device.rate-limit.window</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT15M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Length of the fixed counting window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.device.rate-limit.per-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>30</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Attempts per client address and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.device.rate-limit.per-user</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Attempts per user and window.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.device.rate-limit.max-tracked-keys</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>10000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Most addresses and users tracked at once.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_pushed_authorization_requests"><a class="anchor" href="#_pushed_authorization_requests"></a>Pushed authorization requests</h3>
+<div class="paragraph">
+<p>See <a href="legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.par.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables the pushed authorization request endpoint <code>/oauth2/par</code> (RFC 9126).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_oidc_dynamic_client_registration"><a class="anchor" href="#_oidc_dynamic_client_registration"></a>OIDC dynamic client registration</h3>
+<div class="paragraph">
+<p>See <a href="clients.html" class="xref page">Registered clients</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.oidc.client-registration.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables <code>/connect/register</code>, which needs an initial access token with scope <code>client.create</code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_legacy_implicit"><a class="anchor" href="#_legacy_implicit"></a>Legacy implicit</h3>
+<div class="paragraph">
+<p>Bound only under the <code>legacy-implicit</code> profile, whose file sets every value. Never enable it in production. See
+<a href="legacy-implicit.html" class="xref page">Implicit flow (legacy demo) and PAR</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.legacy-implicit.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>legacy-implicit-spa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Id of the one implicit client the profile seeds.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.legacy-implicit.redirect-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_LEGACY_IMPLICIT_REDIRECT_URI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000/legacy-implicit/" class="bare">http://localhost:9000/legacy-implicit/</a></code> (profile file; required in code)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exact redirect URI of that client.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.legacy-implicit.scopes</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>documents.read</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Scopes of that client. Not empty.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.legacy-implicit.audience</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resource-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Audience of the implicit access tokens.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.legacy-implicit.access-token-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT5M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lifetime of the implicit access tokens; positive and at most <code>PT15M</code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_ui_branding"><a class="anchor" href="#_ui_branding"></a>UI branding</h3>
+<div class="paragraph">
+<p>Branding of the server&#8217;s HTML pages. See <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ui.branding.application-name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Irurueta Auth Server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Name shown on the pages. A blank value falls back to the default.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ui.branding.logo-url</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">URL of a logo image; no logo when empty.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.ui.branding.footer-text</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Footer text; no footer when empty.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_bff"><a class="anchor" href="#_bff"></a>bff</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>See <a href="login-and-bff.html" class="xref page">Login pages and the BFF</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff.resource-server.base-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>RESOURCE_SERVER_URI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:8081" class="bare">http://localhost:8081</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Base URI of the resource server the BFF calls.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff.login.allowed-return-paths</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/</code>, <code>/index.html</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relative paths the <code>returnTo</code> value of the login may name; anything else is refused (no open redirect). An empty
+list falls back to the default.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The BFF&#8217;s OAuth client registration is framework configuration: see
+<a href="#_framework_properties_the_project_relies_on">Framework properties the project relies on</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_resource_server"><a class="anchor" href="#_resource_server"></a>resource-server</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>See <a href="resource-server.html" class="xref page">Resource server</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resourceserver.step-up.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requires a recent strong authentication (RFC 9470) to delete a document.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resourceserver.step-up.acr-values</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>urn:irurueta:acr:mfa</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>acr</code> the token must carry for the step-up, and the value of the challenge. Not blank.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resourceserver.step-up.max-age</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT5M</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Longest age of the token&#8217;s <code>auth_time</code> for the step-up. Positive.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The issuer, accepted audiences and introspection settings are framework properties: see
+<a href="#_framework_properties_the_project_relies_on">Framework properties the project relies on</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_service_client"><a class="anchor" href="#_service_client"></a>service-client</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>service-client.*</code> values are mapped to environment variables only in the <code>client-credentials</code> and
+<code>token-exchange</code> profile files; the defaults below are the same in code and in those files. See
+<a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.method</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_AUTH_METHOD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>client_secret_basic</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client authentication method: <code>client_secret_basic</code>, <code>private_key_jwt</code>, <code>tls_client_auth</code> or
+<code>self_signed_tls_client_auth</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client id at the authorization server.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client secret for <code>client_secret_basic</code>. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.token-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_TOKEN_URI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000/oauth2/token" class="bare">http://localhost:9000/oauth2/token</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Token endpoint.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.scopes</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_SCOPES</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>documents.read</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requested scopes (comma-separated).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.refresh-before</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_REFRESH_BEFORE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT60S</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long before expiry a cached token is renewed. Not negative.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.dpop</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_DPOP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sends a DPoP proof with each token request and API call, so the tokens are sender-constrained.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.ssl-bundle</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_SSL_BUNDLE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Name of a <code>spring.ssl.bundle.*</code> entry with the client certificate. Required by <code>tls_client_auth</code> and
+<code>self_signed_tls_client_auth</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.key.private-key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_PRIVATE_KEY</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Unencrypted PKCS#8 RSA private key (PEM text, <code>\n</code> escapes allowed) that signs the <code>private_key_jwt</code> assertion.
+Takes precedence over <code>private-key-path</code>. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.key.private-key-path</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File with that key, used when <code>private-key</code> is empty.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.auth.key.key-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>kid</code> of the signing key; no <code>kid</code> when not set.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.resource-server.base-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_RESOURCE_SERVER_URI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:8081" class="bare">http://localhost:8081</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Base URI of the resource server.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.cli.print-access-token</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_PRINT_ACCESS_TOKEN</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Also prints the access token (<code>client-credentials</code> and <code>token-exchange</code> profiles).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-client.cli.subject-token</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SERVICE_CLIENT_SUBJECT_TOKEN</code> (<code>token-exchange</code> only)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The user&#8217;s access token to exchange (<code>token-exchange</code> profile). Secret.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The device flow CLI (<code>device-flow</code> profile) has its own properties, normally given as command-line arguments
+(<code>--device-flow.issuer=&#8230;&#8203;</code>) or environment variables (<code>DEVICE_FLOW_ISSUER</code>, relaxed binding). See
+<a href="device-grant.html" class="xref page">Device authorization grant</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>device-flow.issuer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DEVICE_FLOW_ISSUER</code> (relaxed binding)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Issuer URL of the authorization server (<code>device-flow</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>device-flow.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>device-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Public client used for the device grant (<code>device-flow</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>device-flow.scope</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>profile documents.read</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requested scope, space-separated (<code>device-flow</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>device-flow.print-access-token</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prints the access token once obtained (<code>device-flow</code> profile).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_framework_properties_the_project_relies_on"><a class="anchor" href="#_framework_properties_the_project_relies_on"></a>Framework properties the project relies on</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>These properties are owned by Spring Boot or Spring Security, not by the project. The table gives the value the
+project&#8217;s yml files give them.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 36.3637%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+<th class="tableblock halign-left valign-top">Value</th>
+<th class="tableblock halign-left valign-top">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>auth-server</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.authorizationserver.issuer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_ISSUER_URL</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Issuer of every token and base of the metadata. Also read by the <code>/api/**</code> decoder and the signed
+token service.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.url</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_DB_URL</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>jdbc:postgresql://localhost:5432/authserver</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Under <code>dev</code> Docker Compose supplies the connection instead.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.username</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_DB_USER</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.password</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_DB_PASSWORD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.mail.host</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_MAIL_HOST</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>localhost</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. SMTP relay; <code>localhost</code> also in <code>dev</code> (Mailpit). Credentials through <code>spring.mail.username</code> /
+<code>spring.mail.password</code> from the environment.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.mail.port</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTHSERVER_MAIL_PORT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1025</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. <code>1025</code> also in <code>dev</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.flyway.enabled</code>, <code>spring.flyway.locations</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code>, <code>classpath:db/migration</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Flyway migrates the schema at startup.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>server.port</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>9000</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. HTTP port.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>server.forward-headers-strategy</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">not set</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. With <code>authserver.x509.forwarded-header</code> set, it must be <code>none</code>: <code>X509ForwardedHeadersGuard</code> refuses
+to start with <code>native</code> or <code>framework</code>, or when it is unset on a detected cloud platform (which defaults to <code>native</code>),
+because the address compared with <code>trusted-proxies</code> would then come from <code>X-Forwarded-For</code>, which a client can
+forge.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.web.locale</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Language used when the request names none.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.messages.fallback-to-system-locale</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. The language of a response never depends on the machine.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.web.error.include-path</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>never</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Error bodies do not carry the requested path.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>management.endpoints.web.exposure.include</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>health,info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Only health and info actuator endpoints are exposed (also in <code>bff</code> and <code>resource-server</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>springdoc.api-docs.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Serves the OpenAPI documents compared with the contracts.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.docker.compose.enabled</code>, <code>.file</code>, <code>.lifecycle-management</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SPRING_DOCKER_COMPOSE_FILE</code> for the file</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>true</code>, <code>../../compose.yaml</code>, <code>start_and_stop</code> (<code>dev</code> only)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. The file is resolved against the working directory (the <code>boot</code> module under <code>spring-boot:run</code>);
+set <code>SPRING_DOCKER_COMPOSE_FILE</code> elsewhere. Same in the <code>bff</code> <code>dev</code> profile.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>bff</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.url</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_DB_URL</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>jdbc:postgresql://localhost:5432/bff</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Database of the sessions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.datasource.username</code>, <code>spring.datasource.password</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_DB_USER</code>, <code>BFF_DB_PASSWORD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code>, empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. The password is a secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.session.jdbc.initialize-schema</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>never</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. The Spring Session schema comes from the BFF&#8217;s Flyway migration (<code>V300</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.client.registration.bff.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BFF_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Secret of the <code>bff</code> client; the placeholder has no default, so the BFF does not start without it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.client.registration.bff.*</code> (other keys)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">client id <code>bff</code>, <code>authorization_code</code>, <code>client_secret_basic</code>, scopes <code>openid,profile,documents.read,documents.delete</code>,
+redirect URI
+<code>{baseUrl}/login/oauth2/code/{registrationId}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. The registration of the BFF at the authorization server.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.client.provider.auth-server.issuer-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTH_ISSUER</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Issuer the BFF discovers the endpoints from.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>server.port</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>8080</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>resource-server</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.resourceserver.jwt.issuer-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTH_ISSUER</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9000" class="bare">http://localhost:9000</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Issuer of the accepted JWTs.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.resourceserver.jwt.audiences</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>RESOURCE_SERVER_AUDIENCES</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resource-server</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Accepted audiences. Must not be empty; the <code>opaque</code> variant checks them too.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.resourceserver.opaquetoken.introspection-uri</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AUTH_INTROSPECTION_URI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required under <code>opaque</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Introspection endpoint (<code>opaque</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.resourceserver.opaquetoken.client-id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>INTROSPECTION_CLIENT_ID</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required under <code>opaque</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Client the resource server introspects as (<code>opaque</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.security.oauth2.resourceserver.opaquetoken.client-secret</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>INTROSPECTION_CLIENT_SECRET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none (required under <code>opaque</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Its secret (<code>opaque</code> profile).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>springdoc.swagger-ui.enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. No Swagger UI.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>server.port</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>8081</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. A certificate-bound token needs <code>server.ssl.*</code> with <code>client-auth: want</code>, set by the deployment.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>service-client</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.main.web-application-type</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>none</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. The service client is a command-line tool with no web server.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.main.banner-mode</code>, <code>spring.main.log-startup-info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>off</code>, <code>false</code> (in the three CLI profiles)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Keeps the CLI output clean.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spring.ssl.bundle.*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">none</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned. Holds the client certificate named by <code>service-client.auth.ssl-bundle</code> (mTLS methods).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_keeping_this_page_complete"><a class="anchor" href="#_keeping_this_page_complete"></a>Keeping this page complete</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>spring-boot-configuration-processor</code> is declared in the root <code>pom.xml</code>, so each module with a
+<code>@ConfigurationProperties</code> record writes <code>target/classes/META-INF/spring-configuration-metadata.json</code> at build time.
+Those files list every key of the records and can serve as a checklist when a property is added. They do not capture
+the defaults set in compact constructors, nor the keys read with <code>@Value</code>, <code>@ConditionalOnProperty</code>,
+<code>Environment.getProperty</code> or a <code>@Scheduled</code> cron placeholder (<code>authserver.keys.<strong></code>, <code>authserver.tokens.cleanup.</strong></code>,
+<code>authserver.account.cleanup.cron</code>, <code>authserver.ott.cleanup.cron</code>, <code>authserver.password.compromised-check.enabled</code>,
+<code>authserver.par.enabled</code>, <code>authserver.oidc.client-registration.enabled</code>, &#8230;&#8203;). Check those by hand in the code and in
+the <code>application*.yml</code> files.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

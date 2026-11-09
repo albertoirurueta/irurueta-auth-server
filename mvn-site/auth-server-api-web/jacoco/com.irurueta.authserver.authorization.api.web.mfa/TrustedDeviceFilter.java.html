@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TrustedDeviceFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">TrustedDeviceFilter.java</span></div><h1>TrustedDeviceFilter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import static com.irurueta.authserver.authorization.api.web.mfa.SecondFactorRequiredEntryPoint.SECOND_FACTOR_PATH;
+
+import com.irurueta.authserver.authorization.application.mfa.FindTrustedDeviceUseCase;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.WebUtils;
+
+// tag::mfa-trusted-device-filter[]
+/**
+ * Lets a browser that was trusted earlier skip the second factor of a sign-in. The cookie is only looked at where it
+ * matters: on the second-factor page ({@code GET /login/second-factor}), where every request that owes a second
+ * factor is sent. Every other request goes through untouched, so a user who never gets the factor is not looked up on
+ * each request. When a signed-in user that does not hold the {@link TrustedDeviceFactor} yet reaches that page with
+ * the {@code __Host-TRUSTED-DEVICE} cookie, and its signed value belongs to a device of that same user that has
+ * neither expired nor been revoked, the authentication of the session is replaced by one that also holds the factor
+ * authority (a remembered factor: it satisfies the sign-in policy but is never reported in the tokens), the session
+ * id is changed, the session is saved and the request that was interrupted is resumed instead of asking for a code.
+ * A forged or unsigned value is rejected by {@link FindTrustedDeviceUseCase} before anything is looked up. While a
+ * step-up is pending ({@link SecondFactorRequiredEntryPoint#isStepUpPending}) the cookie is ignored: a trusted
+ * device cannot satisfy it, so the page is rendered and asks for a real second factor.
+ */
+@RequiredArgsConstructor
+public class TrustedDeviceFilter extends OncePerRequestFilter {
+
+    /** Matches the request of the second-factor page. */
+    private final PathPatternRequestMatcher secondFactorPageMatcher =
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, SECOND_FACTOR_PATH);
+
+    /** Use case that finds the trusted device of a signed cookie value. */
+    private final FindTrustedDeviceUseCase findTrustedDeviceUseCase;
+
+    /** Adds the factor authority to an authentication. */
+    private final FactorGrantor factorGrantor;
+
+    /** Repository the upgraded security context is saved to. */
+    private final SecurityContextRepository securityContextRepository;
+
+    /** Handler that resumes the request that was interrupted. */
+    private final AuthenticationSuccessHandler resumeHandler;
+
+    /** Authority granted to a trusted device. */
+    private final String authority;
+
+    /**
+     * Upgrades the authentication and resumes the interrupted request when the second-factor page is requested with
+     * the cookie of a valid trusted device.
+     *
+     * @param request  the request.
+     * @param response the response.
+     * @param chain    the rest of the chain.
+     * @throws ServletException if the chain fails.
+     * @throws IOException      if the response cannot be written.
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+            final FilterChain chain) throws ServletException, IOException {
+<span class="fc bfc" id="L87" title="All 4 branches covered.">        if (!secondFactorPageMatcher.matches(request) || SecondFactorRequiredEntryPoint.isStepUpPending(request)) {</span>
+<span class="fc" id="L88">            chain.doFilter(request, response);</span>
+<span class="fc" id="L89">            return;</span>
+        }
+<span class="fc" id="L91">        final var cookie = WebUtils.getCookie(request, TrustedDeviceCookieWriter.COOKIE_NAME);</span>
+<span class="fc" id="L92">        final var current = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L93" title="All 6 branches covered.">        if (cookie != null &amp;&amp; needsSecondFactor(current) &amp;&amp; isTrusted(current, cookie.getValue())) {</span>
+<span class="fc" id="L94">            final var upgraded = factorGrantor.grant(current, authority);</span>
+<span class="fc" id="L95">            final var context = SecurityContextHolder.getContextHolderStrategy().createEmptyContext();</span>
+<span class="fc" id="L96">            context.setAuthentication(upgraded);</span>
+<span class="fc" id="L97">            SecurityContextHolder.getContextHolderStrategy().setContext(context);</span>
+            // a new level of authentication gets a new session id, against session fixation
+<span class="fc bfc" id="L99" title="All 2 branches covered.">            if (request.getSession(false) != null) {</span>
+<span class="fc" id="L100">                request.changeSessionId();</span>
+            }
+<span class="fc" id="L102">            securityContextRepository.saveContext(context, request, response);</span>
+<span class="fc" id="L103">            resumeHandler.onAuthenticationSuccess(request, response, upgraded);</span>
+<span class="fc" id="L104">            return;</span>
+        }
+<span class="fc" id="L106">        chain.doFilter(request, response);</span>
+<span class="fc" id="L107">    }</span>
+
+    /**
+     * Tells whether an authentication is a signed-in user that does not hold the trusted-device authority yet.
+     *
+     * @param authentication the authentication of the request, possibly {@code null}.
+     * @return {@code true} when a user is signed in and the trusted-device authority is missing.
+     */
+    private boolean needsSecondFactor(final Authentication authentication) {
+<span class="pc bpc" id="L116" title="1 of 6 branches missed.">        return authentication != null &amp;&amp; authentication.isAuthenticated()</span>
+                &amp;&amp; !(authentication instanceof AnonymousAuthenticationToken)
+<span class="fc" id="L118">                &amp;&amp; authentication.getAuthorities().stream()</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">                .noneMatch(granted -&gt; authority.equals(granted.getAuthority()));</span>
+    }
+
+    /**
+     * Tells whether a signed cookie value identifies a valid trusted device of the signed-in user.
+     *
+     * @param authentication the signed-in user.
+     * @param cookieValue    the signed value of the cookie.
+     * @return {@code true} when the signature is valid and the device exists and belongs to the user; the use case
+     *         only finds devices that have been neither revoked nor expired.
+     */
+    private boolean isTrusted(final Authentication authentication, final String cookieValue) {
+<span class="fc" id="L131">        return findTrustedDeviceUseCase.execute(authentication.getName(), cookieValue).isPresent();</span>
+    }
+}
+// end::mfa-trusted-device-filter[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentsStepUpRequiredException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:bff-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.bff.domain.documents</a> &gt; <span class="el_source">DocumentsStepUpRequiredException.java</span></div><h1>DocumentsStepUpRequiredException.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.bff.domain.documents;
+
+import java.time.Duration;
+import java.util.Optional;
+
+/**
+ * The resource server refused the operation because the access token of the session does not prove a strong or
+ * recent enough authentication (RFC 9470 step-up). The user has to sign in again asking the authorization server for
+ * the authentication context classes and maximum age the resource server named.
+ */
+public class DocumentsStepUpRequiredException extends RuntimeException {
+
+    /** Serialization version. */
+    private static final long serialVersionUID = 1L;
+
+    /** Space-separated authentication context class references asked for, or {@code null} when none was named. */
+    private final String acrValues;
+
+    /** Maximum age of the authentication accepted, or {@code null} when none was named. */
+    private final Duration maxAge;
+
+    /**
+     * Creates the exception.
+     *
+     * @param message   description of the failure; it never carries a token.
+     * @param acrValues space-separated authentication context class references asked for, or {@code null} when the
+     *                  resource server named none.
+     * @param maxAge    maximum age of the authentication accepted, or {@code null} when the resource server named none.
+     * @param cause     the failure that was reported, or {@code null} when there is none.
+     */
+    public DocumentsStepUpRequiredException(final String message, final String acrValues, final Duration maxAge,
+            final Throwable cause) {
+<span class="fc" id="L48">        super(message, cause);</span>
+<span class="fc" id="L49">        this.acrValues = acrValues;</span>
+<span class="fc" id="L50">        this.maxAge = maxAge;</span>
+<span class="fc" id="L51">    }</span>
+
+    /**
+     * Returns the authentication context class references the resource server asked for.
+     *
+     * @return the space-separated values, or empty when the resource server named none.
+     */
+    public Optional&lt;String&gt; getAcrValues() {
+<span class="fc" id="L59">        return Optional.ofNullable(acrValues);</span>
+    }
+
+    /**
+     * Returns the maximum age of the authentication the resource server accepts.
+     *
+     * @return the maximum age, or empty when the resource server named none.
+     */
+    public Optional&lt;Duration&gt; getMaxAge() {
+<span class="fc" id="L68">        return Optional.ofNullable(maxAge);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

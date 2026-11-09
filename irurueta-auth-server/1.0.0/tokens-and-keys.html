@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Tokens and signing keys :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="tokens-and-keys.html">Tokens and signing keys</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/tokens-and-keys.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Tokens and signing keys</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_persisted_rotating_signing_keys"><a class="anchor" href="#_persisted_rotating_signing_keys"></a>Persisted, rotating signing keys</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Signing keys are RSA keys (<code>RS256</code>) stored in the <code>signing_keys</code> table with a status of <code>NEXT</code>, <code>ACTIVE</code> or <code>RETIRED</code>.
+The private half is encrypted with AES-256-GCM (<code>Encryptors.stronger</code>) using a password and salt from
+<code>authserver.keys.encryption.password</code> and <code>authserver.keys.encryption.salt</code>, which come from the environment in
+production and are never committed. With the <code>dev</code> profile, a random secret is created once under
+<code>~/.irurueta-auth-server/</code> (readable by the owner only) and reused, so persisted keys survive restarts.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Inputs of the encryption of private signing keys at rest.
+ *
+ * &lt;p&gt;The record never prints its values: a log line or an exception message that mentions it cannot leak them.
+ *
+ * @param password the passphrase the encryption key is derived from.
+ * @param salt     the salt of the derivation, hex encoded.
+ */
+public record KeyEncryptionProperties(String password, String salt) {
+
+    /**
+     * Validates the properties.
+     *
+     * @throws IllegalArgumentException if the passphrase or the salt is null or blank.
+     */
+    public KeyEncryptionProperties {
+        if (password == null || password.isBlank() || salt == null || salt.isBlank()) {
+            throw new IllegalArgumentException("authserver.keys.encryption.password and .salt must be set");
+        }
+    }
+
+    /**
+     * Describes the properties without revealing them.
+     *
+     * @return a fixed text.
+     */
+    @Override
+    public String toString() {
+        return "KeyEncryptionProperties[redacted]";
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">CREATE TABLE signing_keys
+(
+    kid                   varchar(64)              NOT NULL,
+    alg                   varchar(20)              NOT NULL,
+    public_jwk            text                     NOT NULL,
+    private_jwk_encrypted text                     NOT NULL,
+    status                varchar(20)              NOT NULL,
+    created_at            timestamp with time zone NOT NULL,
+    activated_at          timestamp with time zone,
+    retired_at            timestamp with time zone,
+    PRIMARY KEY (kid),
+    CONSTRAINT ck_signing_keys_status CHECK (status IN ('NEXT', 'ACTIVE', 'RETIRED'))
+);
+
+-- At most one key can sign at any time.
+CREATE UNIQUE INDEX uq_signing_keys_single_active ON signing_keys (status) WHERE status = 'ACTIVE';</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>RotateSigningKeysUseCase</code> applies the lifecycle: it creates the <code>ACTIVE</code> and <code>NEXT</code> keys when missing, promotes
+<code>NEXT</code> and retires the old <code>ACTIVE</code> key when the rotation interval has elapsed, always leaves a fresh <code>NEXT</code> key, and
+deletes keys retired for longer than the retention. The start-up runner and <code>SigningKeyRotationJob</code> call <code>execute()</code>,
+which only rotates a key that is due; <code>POST /api/admin/keys/rotate</code> calls <code>executeForced()</code>, which retires the active
+key now whatever its age (for example after a suspected compromise). Rotation runs in one transaction guarded by a
+PostgreSQL advisory lock, so two instances never rotate at once.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Does whatever the key lifecycle requires at the current instant: the scheduled path, which only rotates a key
+     * that has signed for the whole rotation interval.
+     */
+    public void execute() {
+        run(false);
+    }
+
+    /**
+     * Rotates now, whatever the age of the active key: the active key is retired, the next key promoted and a new
+     * next key generated (for example after a suspected key compromise). Expired retired keys are deleted too.
+     */
+    public void executeForced() {
+        run(true);
+    }
+
+    /**
+     * Applies the lifecycle transitions while holding the rotation lock.
+     *
+     * @param force whether the active key is replaced even when it is not due.
+     */
+    private void run(final boolean force) {
+        final var now = clock.instant();
+        final var retention = signingKeyRetention.effective();
+        signingKeyRepository.withRotationLock(() -&gt; {
+            rotate(now, force, retention);
+            return null;
+        });
+    }
+
+    /**
+     * Applies the lifecycle transitions that are due, or forced.
+     *
+     * @param now       current instant.
+     * @param force     whether the active key is replaced even when it is not due.
+     * @param retention how long a retired key stays published.
+     */
+    private void rotate(final Instant now, final boolean force, final Duration retention) {
+        final var keys = signingKeyRepository.findAll();
+        var active = first(keys, SigningKeyStatus.ACTIVE);
+        var next = first(keys, SigningKeyStatus.NEXT);
+        if (active != null &amp;&amp; (force || isDue(active, now))) {
+            signingKeyRepository.save(active.retire(now));
+            active = null;
+        }
+        if (active == null) {
+            final var promoted = next != null ? next : signingKeyGenerator.generate(now);
+            signingKeyRepository.save(promoted.activate(now));
+            next = null;
+        }
+        if (next == null) {
+            signingKeyRepository.save(signingKeyGenerator.generate(now));
+        }
+        keys.stream()
+                .filter(key -&gt; key.status() == SigningKeyStatus.RETIRED &amp;&amp; isExpired(key, now, retention))
+                .forEach(key -&gt; signingKeyRepository.deleteByKid(key.kid()));
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public &lt;T&gt; T withRotationLock(final Supplier&lt;T&gt; action) {
+        return transactionTemplate.execute(status -&gt; {
+            // the lock is released when the transaction ends; the row mapper only drains the (void) result
+            jdbcClient.sql("SELECT pg_advisory_xact_lock(?)").param(ROTATION_LOCK_KEY)
+                    .query((rs, rowNum) -&gt; Boolean.TRUE).list();
+            return action.get();
+        });
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A retired key must stay published for as long as any token it signed can still be presented. <code>SigningKeyRetention</code>
+therefore computes the <strong>effective</strong> retention as the longest of the configured retention and the longest signed-token
+lifetime plus the clock skew. The signed tokens are the access tokens of the clients with self-contained tokens and
+the ID tokens (reported by the <code>SignedTokenLifetimes</code> port, implemented over the registered clients by
+<code>RegisteredClientTokenLifetimes</code>; Spring Authorization Server fixes the ID-token lifetime at 30 minutes) and the
+24-hour e-mail verification tokens. Registering a client with longer-lived tokens lengthens it automatically.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Computes the effective retention at this moment: registering a client with longer-lived tokens lengthens it.
+     *
+     * @return the longest of the configured retention and the longest signed-token lifetime plus the clock skew.
+     */
+    public Duration effective() {
+        final var longestToken = Stream.of(signedTokenLifetimes.longest(), RegisterAccountUseCase.VERIFICATION_TTL)
+                .max(Duration::compareTo).orElseThrow();
+        final var needed = longestToken.plus(clockSkew);
+        return needed.compareTo(configuredRetention) &gt; 0 ? needed : configuredRetention;
+    }</code></pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 50.0001%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.rotation-interval</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>P30D</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long a key signs before it is replaced.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.retention</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT2H</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minimum time a retired key stays published; the effective retention is never shorter than the longest signed-token
+lifetime plus the clock skew.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.clock-skew</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT60S</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clock skew the token consumers tolerate, added to the longest signed-token lifetime.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.rotation.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 0 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of <code>SigningKeyRotationJob</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.keys.jwks-cache-ttl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PT30S</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How long the published key set is cached.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.tokens.cleanup.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 0 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of <code>ExpiredAuthorizationCleanupJob</code>, which deletes expired and abandoned authorizations.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.tokens.cleanup.abandoned-after</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>P1D</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Age after which an authorization that never got a token (an authorization or consent request the user abandoned)
+is deleted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.account.cleanup.cron</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0 30 * * * *</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Schedule of <code>ExpiredAccountTokenCleanupJob</code>, which deletes expired account (password reset) tokens.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Scheduling is switched on once, for every feature, by <code>SchedulingConfiguration</code> in the root <code>api.web</code> package.</p>
+</div>
+<div class="paragraph">
+<p>An expired authorization has every token expiry in the past. An authorization that never got a token has no expiry
+at all, so a <code>created_at</code> column (migration <code>V240</code>) dates it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- When each authorization row was created. Spring Authorization Server lists its columns explicitly, so the default
+-- fills it in. An authorization that never got a token (an authorization or consent request the user abandoned) has
+-- no expiry at all; the clean-up job deletes it once it is older than a configurable threshold.
+ALTER TABLE oauth2_authorization
+    ADD COLUMN created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Two beans are built over the same table: the <code>JWKSource</code> publishes <code>active</code>, <code>next</code> and still-valid <code>retired</code> public
+keys at the JWKS endpoint, while the <code>JwtEncoder</code> signs only with the <code>active</code> key.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Serves the signing keys kept by the key use cases. Two views of them exist on purpose: the public JWKS lists the
+ * active key, the next key and the still-valid retired keys, whereas the {@link JwtEncoder} only ever sees the single
+ * active key with its private half, so signing never has to choose between several keys. The conversion of the
+ * stored keys into JSON Web Keys belongs to the {@link SigningKeyJwkMapper}.
+ */
+@Configuration(proxyBeanMethods = false)
+public class DatabaseJwkSourceConfiguration {
+
+    /**
+     * Creates the cached set of public keys.
+     *
+     * @param published use case that finds the keys to publish.
+     * @param mapper    maps the keys onto JSON Web Keys.
+     * @param clock     source of the current time.
+     * @param ttl       how long the set is kept ({@code authserver.keys.jwks-cache-ttl} in {@code application.yml}).
+     * @return the cache; call {@link CachedJwkSet#refresh()} after a rotation.
+     */
+    @Bean
+    public CachedJwkSet publishedJwkSet(
+            final PublishedSigningKeysUseCase published, final SigningKeyJwkMapper mapper, final Clock clock,
+            @Value("${authserver.keys.jwks-cache-ttl}") final Duration ttl) {
+        return new CachedJwkSet(() -&gt; mapper.toPublicJwkSet(published.execute()), ttl, clock);
+    }
+
+    /**
+     * Creates the cached set holding only the active key, with its private half.
+     *
+     * @param active use case that finds the active key.
+     * @param mapper maps the key onto a JSON Web Key, decrypting its private half.
+     * @param clock  source of the current time.
+     * @param ttl    how long the set is kept ({@code authserver.keys.jwks-cache-ttl} in {@code application.yml}).
+     * @return the cache; call {@link CachedJwkSet#refresh()} after a rotation.
+     */
+    @Bean
+    public CachedJwkSet signingJwkSet(
+            final ActiveSigningKeyUseCase active, final SigningKeyJwkMapper mapper, final Clock clock,
+            @Value("${authserver.keys.jwks-cache-ttl}") final Duration ttl) {
+        return new CachedJwkSet(() -&gt; mapper.toSigningJwkSet(active.execute()), ttl, clock);
+    }
+
+    /**
+     * Creates the source of the public JWKS. It never holds a private key.
+     *
+     * @param publishedJwkSet the cached public keys.
+     * @return the source.
+     */
+    @Bean
+    public JWKSource&lt;SecurityContext&gt; jwkSource(@Qualifier("publishedJwkSet") final CachedJwkSet publishedJwkSet) {
+        return (selector, context) -&gt; selector.select(publishedJwkSet.get());
+    }
+
+    /**
+     * Creates the encoder that signs tokens with the active key.
+     *
+     * @param signingJwkSet the cached active key.
+     * @return the encoder.
+     */
+    @Bean
+    public JwtEncoder jwtEncoder(@Qualifier("signingJwkSet") final CachedJwkSet signingJwkSet) {
+        return new NimbusJwtEncoder((selector, context) -&gt; selector.select(signingJwkSet.get()));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>NimbusSignedTokenService</code> implements the <code>SignedTokenService</code> port with that key and is used for the e-mail
+verification token.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Issues and verifies purpose-bound tokens as JWTs signed with the active signing key and verified against the
+ * published keys. Verification checks the signature, the issuer, the timestamps and then the purpose; every failure
+ * is reported the same way, as an empty result.
+ */
+@Component
+public class NimbusSignedTokenService implements SignedTokenService {
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /** Issuer written to, and required of, every token. */
+    private final String issuer;
+
+    /** Signs tokens. */
+    private final JwtEncoder encoder;
+
+    /** Verifies tokens. */
+    private final JwtDecoder decoder;
+
+    /**
+     * Creates the service.
+     *
+     * @param encoder   signs tokens with the active key.
+     * @param jwkSource public keys the signatures are verified against.
+     * @param clock     source of the current time.
+     * @param issuer    issuer of the tokens ({@code spring.security.oauth2.authorizationserver.issuer}).
+     */
+    public NimbusSignedTokenService(
+            final JwtEncoder encoder, final JWKSource&lt;SecurityContext&gt; jwkSource, final Clock clock,
+            @Value("${spring.security.oauth2.authorizationserver.issuer}") final String issuer) {
+        this.encoder = encoder;
+        this.clock = clock;
+        this.issuer = issuer;
+        final var timestamps = new JwtTimestampValidator();
+        timestamps.setClock(clock);
+        final var nimbusDecoder = NimbusJwtDecoder.withJwkSource(jwkSource)
+                .jwsAlgorithm(SignatureAlgorithm.RS256)
+                .build();
+        nimbusDecoder.setJwtValidator(new DelegatingOAuth2TokenValidator&lt;Jwt&gt;(
+                List.&lt;OAuth2TokenValidator&lt;Jwt&gt;&gt;of(new JwtIssuerValidator(issuer), timestamps)));
+        decoder = nimbusDecoder;
+    }
+
+    /**
+     * Issues a signed token.
+     *
+     * @param subject who or what the token is about.
+     * @param purpose what the token allows.
+     * @param ttl     how long the token stays valid.
+     * @return the compact token.
+     */
+    @Override
+    public String issue(final String subject, final String purpose, final Duration ttl) {
+        final var now = clock.instant();
+        final var claims = JwtClaimsSet.builder()
+                .issuer(issuer)
+                .subject(subject)
+                .issuedAt(now)
+                .expiresAt(now.plus(ttl))
+                .claim(PURPOSE_CLAIM, purpose)
+                .build();
+        final var header = JwsHeader.with(SignatureAlgorithm.RS256).build();
+        return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+    }
+
+    /**
+     * Verifies a token.
+     *
+     * @param token   the compact token.
+     * @param purpose purpose the token must have been issued for.
+     * @return the subject, or an empty optional when the token is expired, tampered, malformed, from another issuer or
+     *         issued for another purpose.
+     */
+    @Override
+    public Optional&lt;String&gt; verify(final String token, final String purpose) {
+        try {
+            final var jwt = decoder.decode(token);
+            if (purpose != null &amp;&amp; purpose.equals(jwt.getClaimAsString(PURPOSE_CLAIM))) {
+                return Optional.ofNullable(jwt.getSubject());
+            }
+            return Optional.empty();
+        } catch (final JwtException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Administrators can list the keys (<code>GET /api/admin/keys</code>, never exposing private material) and force a rotation
+(<code>POST /api/admin/keys/rotate</code>, the forced path above).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_bearer_tokens_of_the_api"><a class="anchor" href="#_bearer_tokens_of_the_api"></a>Bearer tokens of the API</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>/api/<strong></code> chain (<code>ApiSecurityConfig</code>) has a decoder of its own, separate from the one the UserInfo endpoint uses.
+It accepts a token only when this server signed it (published keys), its issuer is this server, its timestamps are
+valid, its <code>aud</code> lists the API audience (<code>authserver.api.audience</code>, default <code>auth-server</code>) and it does not carry the
+<code>purpose</code> claim of the account tokens, so a user&#8217;s access token for the resource server, or an e-mail verification
+JWT, is answered <code>401</code>. <code>/api/admin/</strong></code> needs the <code>admin</code> scope; the <code>ADMIN</code> role alone does not open it. The seeded
+<code>bff</code> and <code>spa-public</code> clients carry the API audience (so their users can change their password) but never the
+<code>admin</code> scope.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_token_contents"><a class="anchor" href="#_token_contents"></a>Token contents</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>IssuedTokenClaims</code> adds the <code>roles</code>, <code>tenant</code> and <code>aud</code> claims to access tokens, whatever their format. The audience
+is the logical API identifier configured per client (client setting <code>audiences</code>, default the client id).
+<code>RolesTenantAudienceTokenCustomizer</code> applies it to the JWTs (access and ID tokens) and
+<code>ReferenceTokenClaimsCustomizer</code> to the claims stored for a reference (opaque) access token, which the introspection
+endpoint returns, so a resource server that introspects sees the same claims as one that decodes a JWT. Other
+features add claims, for example <code>amr</code> or <code>acr</code>, without editing them, by declaring <code>JwtClaimsContributor</code> beans,
+applied in <code>@Order</code> order to the access tokens of both formats and to the ID tokens (a contributor checks
+<code>context.getTokenType()</code> when a claim belongs to one kind only). ID tokens get the contributed claims but none of
+<code>roles</code>, <code>tenant</code> or <code>aud</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Extension point that lets a feature add claims to the tokens issued by the authorization server: the access tokens,
+ * whether self-contained (JWT) or reference (their claims are returned by the introspection endpoint), and the ID
+ * tokens. Every bean of this type is applied by {@link IssuedTokenClaims}, in
+ * {@link org.springframework.core.annotation.Order} order, after the built-in claims, so a later contributor may
+ * override them. A contributor that only concerns one kind of token checks {@link OAuth2TokenContext#getTokenType()}.
+ */
+@FunctionalInterface
+public interface JwtClaimsContributor {
+
+    /**
+     * Adds claims to the token being issued.
+     *
+     * @param context the token context, with the token type, the principal, the client and the grant type.
+     * @param claims  the mutable claims of the token being built.
+     */
+    void contribute(OAuth2TokenContext context, Map&lt;String, Object&gt; claims);
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * The claims this server adds to the tokens it issues, whatever their format, so the self-contained (JWT) access
+ * tokens and the reference (opaque) ones carry the same claims: {@link RolesTenantAudienceTokenCustomizer} applies it
+ * to the JWTs and {@link ReferenceTokenClaimsCustomizer} to the claims stored for a reference token (which the
+ * introspection endpoint returns).
+ *
+ * &lt;p&gt;An access token gets {@code roles}, {@code tenant} and {@code aud}: the roles are the authorities of the user,
+ * the tenant comes from the user account, the audiences from the {@value #AUDIENCES_SETTING} custom setting of the
+ * client. Tokens of the client credentials grant have no user, so they get no roles and no tenant. An ID token gets
+ * none of them. Then every {@link JwtClaimsContributor}, in order, adds its own claims to the access and ID tokens
+ * (it can tell them apart with {@link OAuth2TokenContext#getTokenType()}); no other token is touched.
+ */
+@Component
+@RequiredArgsConstructor
+public class IssuedTokenClaims {
+
+    /**
+     * Name of the custom client setting that holds the audiences of the access tokens. It is the same name the
+     * persistence adapter writes (that module cannot be referenced from here).
+     */
+    public static final String AUDIENCES_SETTING = "settings.client.audiences";
+
+    /** Name of the claim that holds the roles of the user. */
+    public static final String ROLES_CLAIM = "roles";
+
+    /** Name of the claim that holds the tenant of the user. */
+    public static final String TENANT_CLAIM = "tenant";
+
+    /** Type of the OpenID Connect ID token. */
+    static final OAuth2TokenType ID_TOKEN = new OAuth2TokenType(OidcParameterNames.ID_TOKEN);
+
+    /** Prefix of the authorities that record how a user authenticated, such as {@code FACTOR_PASSWORD}. */
+    private static final String FACTOR_PREFIX = "FACTOR_";
+
+    /** Finds the account of the user. */
+    private final FindUserAccountUseCase findUserAccountUseCase;
+
+    /** Contributors of additional claims, in order. */
+    private final List&lt;JwtClaimsContributor&gt; contributors;
+
+    /**
+     * Adds the claims of the token being issued.
+     *
+     * @param context the token context, with the token type, the principal, the client and the grant type.
+     * @param claims  the mutable claims of the token being built.
+     */
+    public void apply(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+            addAccessTokenClaims(context, claims);
+        } else if (!ID_TOKEN.equals(context.getTokenType())) {
+            return;
+        }
+        contributors.forEach(contributor -&gt; contributor.contribute(context, claims));
+    }
+
+    /**
+     * Adds the roles, the tenant and the audiences of an access token.
+     *
+     * @param context the token context.
+     * @param claims  the mutable claims of the token being built.
+     */
+    private void addAccessTokenClaims(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        if (context.getAuthorizationGrantType() != null
+                &amp;&amp; !AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
+            final Authentication principal =
+                    Objects.requireNonNull(context.getPrincipal(), "a user grant has a principal");
+            // factor authorities (FACTOR_PASSWORD, ...) record how the user signed in; they are not roles. The
+            // list is a mutable one on purpose: the authorization store only deserializes allow-listed types, and
+            // an immutable list copy (Stream.toList) is not one of them.
+            claims.put(ROLES_CLAIM, principal.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(authority -&gt; !authority.startsWith(FACTOR_PREFIX)).sorted()
+                    .collect(Collectors.toCollection(ArrayList::new)));
+            findUserAccountUseCase.execute(principal.getName())
+                    .ifPresent(account -&gt; claims.put(TENANT_CLAIM, account.tenant()));
+        }
+        if (context.getRegisteredClient().getClientSettings().getSetting(AUDIENCES_SETTING)
+                instanceof List&lt;?&gt; audiences &amp;&amp; !audiences.isEmpty()) {
+            claims.put(OAuth2TokenClaimNames.AUD, audiences.stream().map(String::valueOf)
+                    .collect(Collectors.toCollection(ArrayList::new)));
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds the claims of {@link IssuedTokenClaims} to the self-contained tokens (JWT access tokens and ID tokens): the
+ * {@code roles}, {@code tenant} and {@code aud} claims of an access token, then the claims of every
+ * {@link JwtClaimsContributor}, which also reach the ID tokens. It is the one
+ * {@code OAuth2TokenCustomizer&lt;JwtEncodingContext&gt;} of the server.
+ */
+@Component
+@RequiredArgsConstructor
+public class RolesTenantAudienceTokenCustomizer implements OAuth2TokenCustomizer&lt;JwtEncodingContext&gt; {
+
+    /** The claims every issued token gets. */
+    private final IssuedTokenClaims issuedTokenClaims;
+
+    @Override
+    public void customize(final JwtEncodingContext context) {
+        context.getClaims().claims(claims -&gt; issuedTokenClaims.apply(context, claims));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds the claims of {@link IssuedTokenClaims} to the reference (opaque) access tokens. Such a token carries no
+ * claims itself: the claims are stored with the authorization and returned by the introspection endpoint, so a
+ * resource server that introspects it sees the same {@code roles}, {@code tenant}, {@code aud} and contributed
+ * claims as one that decodes a JWT. It is the one {@code OAuth2TokenCustomizer&lt;OAuth2TokenClaimsContext&gt;} of the
+ * server.
+ */
+@Component
+@RequiredArgsConstructor
+public class ReferenceTokenClaimsCustomizer implements OAuth2TokenCustomizer&lt;OAuth2TokenClaimsContext&gt; {
+
+    /** The claims every issued token gets. */
+    private final IssuedTokenClaims issuedTokenClaims;
+
+    @Override
+    public void customize(final OAuth2TokenClaimsContext context) {
+        context.getClaims().claims(claims -&gt; issuedTokenClaims.apply(context, claims));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>UserInfoMapper</code> builds the OpenID Connect UserInfo response and is registered through a <code>ProtocolChainCustomizer</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Builds the OpenID Connect UserInfo response from the account of the user, limited to the granted scopes: the
+ * {@code sub} claim always; {@code preferred_username}, {@code roles} and {@code tenant} with the {@code profile}
+ * scope; {@code email} and {@code email_verified} with the {@code email} scope.
+ */
+@Component
+@RequiredArgsConstructor
+public class UserInfoMapper implements Function&lt;OidcUserInfoAuthenticationContext, OidcUserInfo&gt; {
+
+    /** Scope that grants the profile claims. */
+    public static final String PROFILE_SCOPE = "profile";
+
+    /** Scope that grants the e-mail claims. */
+    public static final String EMAIL_SCOPE = "email";
+
+    /** Finds the account of the user. */
+    private final FindUserAccountUseCase findUserAccountUseCase;
+
+    @Override
+    public OidcUserInfo apply(final OidcUserInfoAuthenticationContext context) {
+        final var username = context.getAuthorization().getPrincipalName();
+        final var scopes = context.getAccessToken().getScopes();
+        final var claims = new HashMap&lt;String, Object&gt;();
+        claims.put(StandardClaimNames.SUB, username);
+        findUserAccountUseCase.execute(username).ifPresent(account -&gt; {
+            if (scopes.contains(PROFILE_SCOPE)) {
+                claims.put(StandardClaimNames.PREFERRED_USERNAME, account.username());
+                claims.put(IssuedTokenClaims.ROLES_CLAIM, account.authorities());
+                claims.put(IssuedTokenClaims.TENANT_CLAIM, account.tenant());
+            }
+            if (scopes.contains(EMAIL_SCOPE) &amp;&amp; account.email() != null) {
+                claims.put(StandardClaimNames.EMAIL, account.email());
+                claims.put(StandardClaimNames.EMAIL_VERIFIED, account.emailVerified());
+            }
+        });
+        return new OidcUserInfo(claims);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the customizer that installs the UserInfo mapper.
+     *
+     * @param userInfoMapper mapper that builds the UserInfo response.
+     * @return the protocol chain customizer.
+     */
+    @Bean
+    public ProtocolChainCustomizer userInfoProtocolChainCustomizer(final UserInfoMapper userInfoMapper) {
+        return server -&gt; server.oidc(oidc -&gt; oidc.userInfoEndpoint(
+                endpoint -&gt; endpoint.userInfoMapper(userInfoMapper)));
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_refresh_token_reuse_detection"><a class="anchor" href="#_refresh_token_reuse_detection"></a>Refresh token reuse detection</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Refresh tokens rotate. A decorator over <code>OAuth2AuthorizationService</code> records the hash of every rotated-out refresh
+token in <code>consumed_refresh_tokens</code>; presenting one of them revokes the whole authorization, because the token was
+stolen or replayed.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public void save(final OAuth2Authorization authorization) {
+        final var previous = delegate.findById(authorization.getId());
+        delegate.save(authorization);
+        if (previous == null) {
+            return;
+        }
+        final var oldToken = refreshTokenValue(previous);
+        if (oldToken != null &amp;&amp; !oldToken.equals(refreshTokenValue(authorization))) {
+            jdbcClient.sql(INSERT_CONSUMED).params(hash(oldToken), authorization.getId()).update();
+        }
+    }
+
+    @Override
+    public void remove(final OAuth2Authorization authorization) {
+        delegate.remove(authorization);
+    }
+
+    @Override
+    public OAuth2Authorization findById(final String id) {
+        return delegate.findById(id);
+    }
+
+    @Override
+    public OAuth2Authorization findByToken(final String token, final OAuth2TokenType tokenType) {
+        final var authorization = delegate.findByToken(token, tokenType);
+        if (authorization != null || (tokenType != null &amp;&amp; !OAuth2TokenType.REFRESH_TOKEN.equals(tokenType))) {
+            return authorization;
+        }
+        jdbcClient.sql(FIND_CONSUMED).param(hash(token)).query(String.class).optional()
+                .map(delegate::findById)
+                .ifPresent(compromised -&gt; {
+                    log.warn("A rotated refresh token was presented again; revoking the authorization {}",
+                            compromised.getId());
+                    delegate.remove(compromised);
+                });
+        return null;
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- Hashes of the refresh tokens that were rotated out of an authorization. Presenting one of them again means the
+-- token was stolen or replayed, so the authorization is revoked.
+CREATE TABLE consumed_refresh_tokens
+(
+    token_hash       varchar(64)              NOT NULL,
+    authorization_id varchar(100)             NOT NULL REFERENCES oauth2_authorization (id) ON DELETE CASCADE,
+    consumed_at      timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (token_hash)
+);
+
+CREATE INDEX ix_consumed_refresh_tokens_authorization ON consumed_refresh_tokens (authorization_id);</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

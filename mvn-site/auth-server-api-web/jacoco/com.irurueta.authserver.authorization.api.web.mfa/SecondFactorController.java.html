@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecondFactorController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">SecondFactorController.java</span></div><h1>SecondFactorController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import com.irurueta.authserver.authorization.api.web.pages.PageRenderer;
+import com.irurueta.authserver.authorization.api.web.pages.v1.generated.api.SecondFactorPageApi;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.stereotype.Controller;
+
+/**
+ * Serves the second-factor page, as the contract {@code apis/auth-server/web-pages/auth-server-pages-v1.yaml}
+ * describes it through the generated {@link SecondFactorPageApi}, supplying the ordered fragments of the second
+ * factors, the model attributes each of them contributes for the signed-in user and the outcome of the last attempt to
+ * the template.
+ */
+@Controller
+public class SecondFactorController implements SecondFactorPageApi {
+
+    /** Path of the second-factor page, taken from the contract. */
+    public static final String SECOND_FACTOR_PATH = PATH_SECOND_FACTOR_PAGE;
+
+    /** Key of the message shown when a code is wrong. */
+    public static final String GENERIC_ERROR = &quot;secondFactor.error.generic&quot;;
+
+    /** Key of the message shown when the second factor is locked. */
+    public static final String LOCKED_ERROR = &quot;secondFactor.error.locked&quot;;
+
+    /** Name of the second-factor template. */
+    static final String VIEW_NAME = &quot;second-factor&quot;;
+
+    /** Name of the model attribute that holds the fragments of the second factors. */
+    static final String FRAGMENTS_ATTRIBUTE = &quot;fragments&quot;;
+
+    /** Name of the model attribute that holds the key of the message of a failed attempt. */
+    static final String ERROR_MESSAGE_ATTRIBUTE = &quot;errorMessageKey&quot;;
+
+    /** Fragments contributed by the second factors, sorted by order. */
+    private final List&lt;SecondFactorFragment&gt; fragments;
+
+    /** Renders the page. */
+    private final PageRenderer pageRenderer;
+
+    /** The current request, injected as a thread-bound proxy, whose session holds the last failure. */
+    private final HttpServletRequest request;
+
+    /**
+     * Creates the controller.
+     *
+     * @param factors      fragments contributed by the second factors.
+     * @param pageRenderer renderer of the page.
+     * @param request      the current request.
+     */
+    public SecondFactorController(final List&lt;SecondFactorFragment&gt; factors, final PageRenderer pageRenderer,
+<span class="fc" id="L75">            final HttpServletRequest request) {</span>
+<span class="fc" id="L76">        this.fragments = factors.stream().sorted(Comparator.comparingInt(SecondFactorFragment::order)).toList();</span>
+<span class="fc" id="L77">        this.pageRenderer = pageRenderer;</span>
+<span class="fc" id="L78">        this.request = request;</span>
+<span class="fc" id="L79">    }</span>
+
+    // tag::mfa-second-factor-page[]
+    /**
+     * Renders the second-factor page.
+     *
+     * @param error present (even if empty) when the previous attempt failed.
+     * @return the second-factor page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; secondFactorPage(final String error) {
+<span class="fc" id="L90">        final var model = new HashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L91">        final var authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc" id="L92">        fragments.forEach(fragment -&gt; model.putAll(fragment.modelAttributes(authentication)));</span>
+<span class="fc" id="L93">        model.put(FRAGMENTS_ATTRIBUTE, fragments);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (error != null) {</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">            model.put(ERROR_MESSAGE_ATTRIBUTE, lastFailureWasLockout() ? LOCKED_ERROR : GENERIC_ERROR);</span>
+        }
+<span class="fc" id="L97">        return pageRenderer.render(VIEW_NAME, model);</span>
+    }
+    // end::mfa-second-factor-page[]
+
+    /**
+     * Tells whether the previous attempt failed because the second factor is locked, which Spring Security keeps in
+     * the session.
+     *
+     * @return {@code true} when the session holds a {@link LockedException} as the last failure.
+     */
+    private boolean lastFailureWasLockout() {
+<span class="fc" id="L108">        final var session = request.getSession(false);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">        final var failure = session == null ? null : session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);</span>
+<span class="fc" id="L110">        return failure instanceof LockedException;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

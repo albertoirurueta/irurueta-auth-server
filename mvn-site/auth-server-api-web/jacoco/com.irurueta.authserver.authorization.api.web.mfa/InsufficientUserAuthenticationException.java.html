@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InsufficientUserAuthenticationException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.mfa</a> &gt; <span class="el_source">InsufficientUserAuthenticationException.java</span></div><h1>InsufficientUserAuthenticationException.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.mfa;
+
+import java.time.Duration;
+
+/**
+ * Thrown by {@link StepUpGuard} when the bearer token of an API call does not show a recent enough multi-factor
+ * sign-in for the operation. {@link MfaExceptionHandler} answers it as RFC 9470 describes: {@code 401} with
+ * {@code WWW-Authenticate: Bearer error=&quot;insufficient_user_authentication&quot;} and the {@code acr_values} and
+ * {@code max_age} the client must ask for.
+ */
+public class InsufficientUserAuthenticationException extends RuntimeException {
+
+    /** Serialization version. */
+    private static final long serialVersionUID = 1L;
+
+    /** Authentication context class the operation requires. */
+    private final String acrValues;
+
+    /** Maximum age of the sign-in the operation accepts. */
+    private final Duration maxAge;
+
+    /**
+     * Creates the exception.
+     *
+     * @param acrValues authentication context class the operation requires.
+     * @param maxAge    maximum age of the sign-in the operation accepts.
+     */
+    public InsufficientUserAuthenticationException(final String acrValues, final Duration maxAge) {
+<span class="fc" id="L44">        super(&quot;A multi-factor sign-in within the last &quot; + maxAge.toSeconds() + &quot; seconds is required&quot;);</span>
+<span class="fc" id="L45">        this.acrValues = acrValues;</span>
+<span class="fc" id="L46">        this.maxAge = maxAge;</span>
+<span class="fc" id="L47">    }</span>
+
+    /**
+     * Gets the authentication context class the operation requires.
+     *
+     * @return the value for the {@code acr_values} parameter.
+     */
+    public String getAcrValues() {
+<span class="fc" id="L55">        return acrValues;</span>
+    }
+
+    /**
+     * Gets the maximum age of the sign-in the operation accepts.
+     *
+     * @return the maximum age.
+     */
+    public Duration getMaxAge() {
+<span class="fc" id="L64">        return maxAge;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttGenerationParameters.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttGenerationParameters.java</span></div><h1>OttGenerationParameters.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import com.irurueta.authserver.authorization.domain.ott.OttChannel;
+import com.irurueta.authserver.authorization.domain.ott.OttKind;
+import com.irurueta.authserver.authorization.domain.ott.OttPurpose;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Locale;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
+/**
+ * What a request to {@code POST /ott/generate} asks for, read from its form fields: through which channel, a numeric
+ * code or a magic link, and for a sign-in or as a second factor. Every unknown or missing value falls back to the
+ * default (an e-mail code for a sign-in), so a malformed request is answered like any other.
+ *
+ * @param channel channel the token is delivered through.
+ * @param kind    whether the token is a numeric code or a magic link.
+ * @param purpose whether the token signs the user in or is a second factor of a signed-in user.
+ */
+<span class="fc" id="L35">public record OttGenerationParameters(OttChannel channel, OttKind kind, OttPurpose purpose) {</span>
+
+    /** Name of the field that holds the identifier (the user name) of a sign-in. */
+    public static final String USERNAME_PARAMETER = &quot;username&quot;;
+
+    /** Name of the field that holds the channel, {@code email} (default) or {@code sms}. */
+    public static final String CHANNEL_PARAMETER = &quot;channel&quot;;
+
+    /** Name of the field that holds the kind of token, {@code code} (default) or {@code link}. */
+    public static final String KIND_PARAMETER = &quot;kind&quot;;
+
+    /** Name of the field that holds the purpose, {@code login} (default) or {@code second-factor}. */
+    public static final String PURPOSE_PARAMETER = &quot;purpose&quot;;
+
+    /** Value of the channel field that selects SMS. */
+    public static final String SMS_VALUE = &quot;sms&quot;;
+
+    /** Value of the kind field that selects a magic link. */
+    public static final String LINK_VALUE = &quot;link&quot;;
+
+    /** Value of the purpose field that selects the second factor. */
+    public static final String SECOND_FACTOR_VALUE = &quot;second-factor&quot;;
+
+    /**
+     * Reads the parameters of a request. A magic link is only sent by e-mail, so an SMS request is always a code, and
+     * a second factor is only possible for a user who is signed in: for anybody else the request is a sign-in.
+     *
+     * @param request the request.
+     * @param current the authentication of the request, or {@code null}.
+     * @return the parameters.
+     */
+    public static OttGenerationParameters from(final HttpServletRequest request, final Authentication current) {
+<span class="fc" id="L67">        final var sms = SMS_VALUE.equals(lowerCase(request.getParameter(CHANNEL_PARAMETER)));</span>
+<span class="fc bfc" id="L68" title="All 4 branches covered.">        final var link = !sms &amp;&amp; LINK_VALUE.equals(lowerCase(request.getParameter(KIND_PARAMETER)));</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        final var secondFactor = SECOND_FACTOR_VALUE.equals(lowerCase(request.getParameter(PURPOSE_PARAMETER)))</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">                &amp;&amp; isSignedIn(current);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        return new OttGenerationParameters(sms ? OttChannel.SMS : OttChannel.EMAIL,</span>
+<span class="fc bfc" id="L72" title="All 4 branches covered.">                link ? OttKind.LINK : OttKind.CODE, secondFactor ? OttPurpose.SECOND_FACTOR : OttPurpose.LOGIN);</span>
+    }
+
+    /**
+     * Tells whether an authentication is a signed-in user.
+     *
+     * @param authentication the authentication, or {@code null}.
+     * @return {@code true} when it is authenticated and not anonymous.
+     */
+    static boolean isSignedIn(final Authentication authentication) {
+<span class="fc bfc" id="L82" title="All 6 branches covered.">        return authentication != null &amp;&amp; authentication.isAuthenticated()</span>
+                &amp;&amp; !(authentication instanceof AnonymousAuthenticationToken);
+    }
+
+    /**
+     * Lower-cases a value, whatever the platform's locale is.
+     *
+     * @param value the value, or {@code null}.
+     * @return the value in lower case; the empty text for {@code null}.
+     */
+    private static String lowerCase(final String value) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        return value == null ? &quot;&quot; : value.trim().toLowerCase(Locale.ROOT);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

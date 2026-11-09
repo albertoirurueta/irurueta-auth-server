@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FederatedUserMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">FederatedUserMapper.java</span></div><h1>FederatedUserMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import java.net.URL;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Component;
+
+// tag::social-user-mapper[]
+/**
+ * Maps the user an external provider described onto the user the rest of the server sees: the principal of the
+ * session, whose name is the local account's username (so it is the {@code sub} of the issued tokens, as it is for
+ * every other way of signing in), whose authorities are the account's own, and which still carries the claims of the
+ * provider (the {@code amr} among them).
+ *
+ * &lt;p&gt;The principal is stored with the authorization and read back at the token request through a polymorphic
+ * allow-list, so every claim is normalised to a JSON-friendly value first: lists are mutable lists (an immutable one
+ * is not on the allow-list), instants are epoch seconds and URLs are strings.
+ */
+@Component
+<span class="fc" id="L50">public class FederatedUserMapper {</span>
+
+    /** Name of the attribute that holds the username of the local account. */
+    public static final String LOCAL_USERNAME_ATTRIBUTE = &quot;local_username&quot;;
+
+    /** Claim of the upstream authentication methods (RFC 8176). */
+    public static final String AMR_CLAIM = &quot;amr&quot;;
+
+    /** Claim that says that the provider verified the e-mail address (the standard OIDC one). */
+    static final String EMAIL_VERIFIED_CLAIM = &quot;email_verified&quot;;
+
+    /** Optional claim of Microsoft Entra ID that says that the owner of the e-mail domain verified the address. */
+    static final String ENTRA_DOMAIN_VERIFIED_CLAIM = &quot;xms_edov&quot;;
+
+    /**
+     * Maps an OpenID Connect user.
+     *
+     * @param upstream    the user the provider described.
+     * @param username    username of the local account.
+     * @param authorities authorities of the local account.
+     * @return a user named after the account, with the claims of the provider.
+     */
+    public OidcUser toLocalUser(
+            final OidcUser upstream, final String username, final Collection&lt;? extends GrantedAuthority&gt; authorities) {
+<span class="fc" id="L74">        final var claims = safeClaims(upstream.getIdToken().getClaims());</span>
+<span class="fc" id="L75">        final var token = upstream.getIdToken();</span>
+<span class="fc" id="L76">        final var idToken = new OidcIdToken(token.getTokenValue(), token.getIssuedAt(), token.getExpiresAt(), claims);</span>
+<span class="fc" id="L77">        final var info = new LinkedHashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L78">        info.put(IdTokenClaimNames.SUB, upstream.getSubject());</span>
+<span class="fc" id="L79">        info.put(LOCAL_USERNAME_ATTRIBUTE, username);</span>
+<span class="fc" id="L80">        return new DefaultOidcUser(List.copyOf(authorities), idToken, new OidcUserInfo(info),</span>
+                LOCAL_USERNAME_ATTRIBUTE);
+    }
+
+    /**
+     * Maps an OAuth 2.0 user. Only the attributes in {@code kept} are carried over (the profile of such a provider may
+     * hold nested objects that have no business in the session).
+     *
+     * @param upstream    the user the provider described.
+     * @param kept        names of the attributes to keep.
+     * @param email       verified e-mail address, or {@code null}; it replaces the provider's {@code email}.
+     * @param username    username of the local account.
+     * @param authorities authorities of the local account.
+     * @return a user named after the account.
+     */
+    public OAuth2User toLocalUser(final OAuth2User upstream, final Collection&lt;String&gt; kept, final String email,
+            final String username, final Collection&lt;? extends GrantedAuthority&gt; authorities) {
+<span class="fc" id="L97">        final var attributes = new LinkedHashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L98">        upstream.getAttributes().forEach((name, value) -&gt; {</span>
+<span class="fc bfc" id="L99" title="All 4 branches covered.">            if (kept.contains(name) &amp;&amp; value != null) {</span>
+<span class="fc" id="L100">                attributes.put(name, safe(value));</span>
+            }
+<span class="fc" id="L102">        });</span>
+<span class="fc" id="L103">        attributes.remove(&quot;email&quot;);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (email != null) {</span>
+<span class="fc" id="L105">            attributes.put(&quot;email&quot;, email);</span>
+        }
+<span class="fc" id="L107">        attributes.put(LOCAL_USERNAME_ATTRIBUTE, username);</span>
+<span class="fc" id="L108">        return new DefaultOAuth2User(List.copyOf(authorities), attributes, LOCAL_USERNAME_ATTRIBUTE);</span>
+    }
+
+    /**
+     * Tells whether the provider vouches for the e-mail address of an OpenID Connect user. The standard
+     * {@code email_verified} claim does (a string {@code &quot;true&quot;} too, as Apple sends it); Microsoft Entra ID has no
+     * such claim in its default tokens, so its optional {@code xms_edov} claim counts, and without either the address
+     * is not verified: Entra's {@code email} can be set by a tenant administrator to any value.
+     *
+     * @param user the user the provider described.
+     * @return {@code true} when the address is verified.
+     */
+    public boolean emailVerified(final OidcUser user) {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        return Boolean.TRUE.equals(user.getEmailVerified())</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">                || Boolean.TRUE.equals(user.getClaimAsBoolean(ENTRA_DOMAIN_VERIFIED_CLAIM));</span>
+    }
+
+    /**
+     * Reads the {@code amr} values the provider reported.
+     *
+     * @param user the user, as mapped by this class or as the provider described it.
+     * @return the values, as strings; empty when there is none.
+     */
+    public List&lt;String&gt; upstreamAmr(final OAuth2User user) {
+<span class="fc" id="L132">        final var amr = user.getAttribute(AMR_CLAIM);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (amr instanceof final Collection&lt;?&gt; values) {</span>
+<span class="fc" id="L134">            return values.stream().filter(Objects::nonNull).map(Object::toString).toList();</span>
+        }
+<span class="fc" id="L136">        return List.of();</span>
+    }
+
+    /**
+     * Normalises a claim map.
+     *
+     * @param claims the claims.
+     * @return a new, mutable map of JSON-friendly values.
+     */
+    private Map&lt;String, Object&gt; safeClaims(final Map&lt;String, Object&gt; claims) {
+<span class="fc" id="L146">        final var result = new LinkedHashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L147">        claims.forEach((name, value) -&gt; {</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">            if (value != null) {</span>
+<span class="fc" id="L149">                result.put(name, safe(value));</span>
+            }
+<span class="fc" id="L151">        });</span>
+<span class="fc" id="L152">        return result;</span>
+    }
+
+    /**
+     * Normalises a value.
+     *
+     * @param value the value.
+     * @return a JSON-friendly equivalent.
+     */
+    private Object safe(final Object value) {
+<span class="fc bfc" id="L162" title="All 5 branches covered.">        return switch (value) {</span>
+<span class="fc" id="L163">            case final Instant instant -&gt; instant.getEpochSecond();</span>
+<span class="fc" id="L164">            case final URL url -&gt; url.toString();</span>
+<span class="fc" id="L165">            case final Collection&lt;?&gt; collection -&gt; collection.stream().filter(Objects::nonNull)</span>
+<span class="fc" id="L166">                    .map(this::safe).collect(Collectors.toCollection(ArrayList::new));</span>
+<span class="fc" id="L167">            case final Map&lt;?, ?&gt; map -&gt; {</span>
+<span class="fc" id="L168">                final var copy = new LinkedHashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L169">                map.forEach((key, entry) -&gt; {</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">                    if (entry != null) {</span>
+<span class="fc" id="L171">                        copy.put(String.valueOf(key), safe(entry));</span>
+                    }
+<span class="fc" id="L173">                });</span>
+<span class="fc" id="L174">                yield copy;</span>
+            }
+<span class="fc" id="L176">            default -&gt; value;</span>
+        };
+    }
+}
+// end::social-user-mapper[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

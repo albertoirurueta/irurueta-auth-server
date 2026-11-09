@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SocialConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.social</a> &gt; <span class="el_source">SocialConfiguration.java</span></div><h1>SocialConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.social;
+
+import static com.irurueta.authserver.authorization.api.web.login.LoginController.LOGIN_PATH;
+
+import com.irurueta.authserver.authorization.api.web.login.LoginChainCustomizer;
+import com.irurueta.authserver.authorization.api.web.mfa.FactorGrantor;
+import com.irurueta.authserver.authorization.api.web.passkeys.AccountStatusUserDetailsService;
+import com.irurueta.authserver.authorization.application.social.LinkIdentityUseCase;
+import com.irurueta.authserver.authorization.application.social.ResolveFederatedLoginUseCase;
+import com.irurueta.authserver.authorization.domain.social.IdentityProvider;
+import com.irurueta.authserver.authorization.domain.social.VerifiedEmailLookup;
+import java.time.Clock;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.oidc.authentication.OidcIdTokenDecoderFactory;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.web.context.DelegatingSecurityContextRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+
+/**
+ * Installs the sign-in with external providers in the login/UI chain. Nothing outside this feature is edited: the chain
+ * applies every {@link LoginChainCustomizer} bean, in order, before its catch-all rule. All of it hangs from
+ * {@link SocialProvidersCondition}: with no provider configured there is no bean here at all, so the application
+ * behaves exactly as it does without the feature.
+ */
+@Configuration(value = &quot;socialWebConfiguration&quot;, proxyBeanMethods = false)
+@Conditional(SocialProvidersCondition.class)
+@EnableConfigurationProperties(SocialProperties.class)
+<span class="fc" id="L60">public class SocialConfiguration {</span>
+
+    // tag::social-registrations[]
+    /**
+     * Declares the registrations of the configured providers; the repository cannot be empty, which is why this
+     * configuration exists only when one provider is configured at least.
+     *
+     * @param properties settings of the providers.
+     * @param mapper     maps the settings onto registrations.
+     * @return the repository.
+     */
+    @Bean
+    public ClientRegistrationRepository socialClientRegistrationRepository(
+            final SocialProperties properties, final ClientRegistrationMapper mapper) {
+<span class="fc" id="L74">        return new InMemoryClientRegistrationRepository(mapper.toRegistrations(properties));</span>
+    }
+
+    /**
+     * Declares the factory of the ID token decoders, with the validators of {@link IdTokenValidatorFactory} (the issuer
+     * of a multi-tenant Microsoft Entra ID token is checked against the token's tenant).
+     *
+     * @param properties settings of the providers.
+     * @return the factory.
+     */
+    @Bean
+    public JwtDecoderFactory&lt;ClientRegistration&gt; socialIdTokenDecoderFactory(final SocialProperties properties) {
+<span class="fc" id="L86">        final var factory = new OidcIdTokenDecoderFactory();</span>
+<span class="fc" id="L87">        factory.setJwtValidatorFactory(new IdTokenValidatorFactory(properties));</span>
+<span class="fc" id="L88">        return factory;</span>
+    }
+    // end::social-registrations[]
+
+    /**
+     * Declares the resolver of the local account of a sign-in, with the account status rules of the other sign-in
+     * methods.
+     *
+     * @param useCase              use case that finds, links or provisions the account.
+     * @param userDetailsService   loads the accounts.
+     * @param linkIdentityUseCase  links an identity to the signed-in account (the explicit link flow).
+     * @param pendingIdentityLinks the link markers of the explicit link flow.
+     * @return the resolver.
+     */
+    @Bean
+    public FederatedAccountResolver federatedAccountResolver(final ResolveFederatedLoginUseCase useCase,
+            final UserDetailsService userDetailsService, final LinkIdentityUseCase linkIdentityUseCase,
+            final PendingIdentityLinks pendingIdentityLinks) {
+<span class="fc" id="L106">        return new FederatedAccountResolver(useCase, new AccountStatusUserDetailsService(userDetailsService),</span>
+                linkIdentityUseCase, pendingIdentityLinks);
+    }
+
+    /**
+     * Declares the user service of the OpenID Connect providers.
+     *
+     * @param resolver resolves the account.
+     * @param mapper   builds the local principal.
+     * @return the service.
+     */
+    @Bean
+    public FederatedOidcUserService federatedOidcUserService(
+            final FederatedAccountResolver resolver, final FederatedUserMapper mapper) {
+<span class="fc" id="L120">        return new FederatedOidcUserService(new OidcUserService(), resolver, mapper);</span>
+    }
+
+    /**
+     * Declares the user service of the OAuth 2.0 providers (GitHub).
+     *
+     * @param verifiedEmailLookup reads the verified e-mail address (the GitHub adapter).
+     * @param resolver            resolves the account.
+     * @param mapper              builds the local principal.
+     * @return the service.
+     */
+    @Bean
+    public FederatedOAuth2UserService federatedOAuth2UserService(final VerifiedEmailLookup verifiedEmailLookup,
+            final FederatedAccountResolver resolver, final FederatedUserMapper mapper) {
+<span class="fc" id="L134">        return new FederatedOAuth2UserService(new DefaultOAuth2UserService(), verifiedEmailLookup, resolver, mapper);</span>
+    }
+
+    /**
+     * Declares the selector of the factor a sign-in proved.
+     *
+     * @param properties settings of the providers.
+     * @param mapper     reads the upstream {@code amr}.
+     * @return the selector.
+     */
+    @Bean
+    public FederatedFactorSelector federatedFactorSelector(
+            final SocialProperties properties, final FederatedUserMapper mapper) {
+<span class="fc" id="L147">        return new FederatedFactorSelector(properties, mapper);</span>
+    }
+
+    /**
+     * Declares the link of each configured provider on the login page.
+     *
+     * @param properties settings of the providers.
+     * @return the fragment.
+     */
+    @Bean
+    public SocialLoginMethodFragment socialLoginMethodFragment(final SocialProperties properties) {
+<span class="fc" id="L158">        return new SocialLoginMethodFragment(</span>
+<span class="fc" id="L159">                properties.enabledProviders().keySet().stream().map(IdentityProvider::id).toList());</span>
+    }
+
+    // tag::social-chain-customizer[]
+    /**
+     * Declares the customizer that enables {@code http.oauth2Login(...)}. It is applied after the phone page one.
+     *
+     * @param repository     registrations of the configured providers.
+     * @param oidcService    user service of the OpenID Connect providers.
+     * @param oauth2Service  user service of the OAuth 2.0 providers.
+     * @param grantor        adds the factor authority.
+     * @param selector       chooses the factor.
+     * @param apple          generates the Apple client secret; absent while Apple is not configured.
+     * @param pendingIdentityLinks the link markers, which tell a link apart from a sign-in.
+     * @return the customizer.
+     */
+    @Bean
+    @Order(SocialChainCustomizer.ORDER)
+    public LoginChainCustomizer socialChainCustomizer(final ClientRegistrationRepository repository,
+            final FederatedOidcUserService oidcService, final FederatedOAuth2UserService oauth2Service,
+            final FactorGrantor grantor, final FederatedFactorSelector selector,
+            final ObjectProvider&lt;AppleClientSecretGenerator&gt; apple, final PendingIdentityLinks pendingIdentityLinks) {
+<span class="fc" id="L181">        final var securityContextRepository = new DelegatingSecurityContextRepository(</span>
+                new RequestAttributeSecurityContextRepository(), new HttpSessionSecurityContextRepository());
+<span class="fc" id="L183">        final var successHandler = new FederatedAuthenticationSuccessHandler(grantor, selector,</span>
+                securityContextRepository, new SavedRequestAwareAuthenticationSuccessHandler(), pendingIdentityLinks);
+<span class="fc" id="L185">        final var failureHandler = new FederatedAuthenticationFailureHandler(</span>
+                new SimpleUrlAuthenticationFailureHandler(LOGIN_PATH + &quot;?error&quot;));
+<span class="fc" id="L187">        final var tokenClient = new RestClientAuthorizationCodeTokenResponseClient();</span>
+<span class="fc" id="L188">        final var resolver = new DefaultOAuth2AuthorizationRequestResolver(repository, &quot;/oauth2/authorization&quot;);</span>
+<span class="fc" id="L189">        final var generator = apple.getIfAvailable();</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (generator != null) {</span>
+<span class="fc" id="L191">            final var clientId = generator.clientId();</span>
+<span class="fc" id="L192">            tokenClient.setParametersCustomizer(new AppleTokenRequestCustomizer(clientId, generator));</span>
+<span class="fc" id="L193">            resolver.setAuthorizationRequestCustomizer(new AppleAuthorizationRequestCustomizer(clientId));</span>
+        }
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        return new SocialChainCustomizer(repository, oidcService, oauth2Service, successHandler, failureHandler,</span>
+                securityContextRepository, tokenClient, resolver, generator != null);
+    }
+    // end::social-chain-customizer[]
+
+    /**
+     * Declares the generator of the Apple client secret, only while Apple is configured.
+     */
+    @Configuration(value = &quot;socialAppleConfiguration&quot;, proxyBeanMethods = false)
+    @Conditional(AppleProviderCondition.class)
+<span class="fc" id="L205">    static class AppleConfiguration {</span>
+
+        /**
+         * Declares the generator, whose key is read (and refused at startup when it is not an ES256 key) once.
+         *
+         * @param properties settings of the providers.
+         * @param parser     reads the private key.
+         * @param clock      source of the current time.
+         * @return the generator.
+         */
+        @Bean
+        public AppleClientSecretGenerator appleClientSecretGenerator(
+                final SocialProperties properties, final ApplePrivateKeyParser parser, final Clock clock) {
+<span class="fc" id="L218">            final var apple = properties.find(IdentityProvider.APPLE).orElseThrow();</span>
+<span class="fc" id="L219">            return new AppleClientSecretGenerator(apple, parser.parse(apple.privateKey()), clock);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

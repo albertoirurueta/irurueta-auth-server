@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Device authorization grant :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="device-grant.html">Device authorization grant</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/device-grant.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Device authorization grant</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The device authorization grant (RFC 8628) lets an input-constrained program obtain tokens while the user approves on
+another device. The endpoints are Spring Authorization Server&#8217;s: <code>POST /oauth2/device_authorization</code> (framework owned) and
+<code>/oauth2/device_verification</code>, whose page is custom and defined in the pages contract.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_enabling_the_endpoints"><a class="anchor" href="#_enabling_the_endpoints"></a>Enabling the endpoints</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Enables the OAuth 2.0 Device Authorization Grant on the protocol chain. The device authorization endpoint
+ * ({@code POST /oauth2/device_authorization}) is where the device, authenticated as a public client by its identifier
+ * alone, obtains a device code and a user code. The verification endpoint ({@code /oauth2/device_verification}) is
+ * where the signed-in user approves the device; its verification URI is the framework's default, the issuer plus the
+ * endpoint, whose {@code GET} without a code is the page of {@link DeviceVerificationController}. The verification
+ * endpoint is customized to guard its requests ({@link DeviceVerificationRequestGuard}), to hand the consent decision
+ * to the existing consent page, to answer its failures with {@link DeviceVerificationErrorHandler} and to go back to
+ * the verification page when the device was approved.
+ */
+@RequiredArgsConstructor
+public class DeviceProtocolChainCustomizer implements ProtocolChainCustomizer {
+
+    /** Order of the customizer: after the multi-factor ({@code 0}) and step-up ({@code 1}) ones. */
+    public static final int ORDER = 2;
+
+    /** Reads the identifier of a public client of the device flow. */
+    private final AuthenticationConverter clientConverter;
+
+    /** Authenticates a public client of the device flow. */
+    private final AuthenticationProvider clientProvider;
+
+    /** Rate limit and multi-factor policy of the verification requests. */
+    private final AuthenticationConverter guard;
+
+    /** Answers the failures of the verification endpoint. */
+    private final AuthenticationFailureHandler errorHandler;
+
+    /** Answers a verification that did not need consent, or whose consent was given. */
+    private final AuthenticationSuccessHandler successHandler;
+
+    /**
+     * Customizes the device endpoints.
+     *
+     * @param server configurer of the authorization server.
+     */
+    @Override
+    public void customize(final OAuth2AuthorizationServerConfigurer server) {
+        server.clientAuthentication(client -&gt; client
+                .authenticationConverter(clientConverter)
+                .authenticationProvider(clientProvider));
+        server.deviceAuthorizationEndpoint(Customizer.withDefaults());
+        server.deviceVerificationEndpoint(endpoint -&gt; endpoint
+                .consentPage(ConsentController.CONSENT_PATH)
+                .deviceVerificationRequestConverters(converters -&gt; converters.addFirst(guard))
+                .errorResponseHandler(errorHandler)
+                .deviceVerificationResponseHandler(successHandler));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the customizer that enables the device endpoints. It is applied after the multi-factor and step-up
+     * ones.
+     *
+     * @param registeredClients          finds the clients of the devices.
+     * @param authorizationService       finds the device authorization of a user code.
+     * @param serverSettings             settings of the protocol endpoints, for the device authorization one.
+     * @param rateLimiter                limits the attempts.
+     * @param authorizationManager       applies the multi-factor policy.
+     * @param secondFactorEntryPoint     entry point of the second-factor page.
+     * @param reauthenticationEntryPoint entry point that forces a new sign-in.
+     * @return the customizer.
+     */
+    @Bean
+    @Order(DeviceProtocolChainCustomizer.ORDER)
+    public ProtocolChainCustomizer deviceProtocolChainCustomizer(final RegisteredClientRepository registeredClients,
+            final OAuth2AuthorizationService authorizationService, final AuthorizationServerSettings serverSettings,
+            final DeviceVerificationRateLimiter rateLimiter, final MfaAuthorizationManager authorizationManager,
+            final SecondFactorRequiredEntryPoint secondFactorEntryPoint,
+            final ReauthenticationEntryPoint reauthenticationEntryPoint) {
+        final var errorHandler = new DeviceVerificationErrorHandler(
+                new SecondFactorErrorResponseHandler(secondFactorEntryPoint, reauthenticationEntryPoint),
+                DeviceVerificationController.VERIFICATION_PATH);
+        final var approvedUrl = DeviceVerificationController.VERIFICATION_PATH + "?"
+                + DeviceVerificationController.SUCCESS_PARAMETER;
+        final var successHandler = new SimpleUrlAuthenticationSuccessHandler(approvedUrl);
+        return new DeviceProtocolChainCustomizer(
+                new DeviceClientAuthenticationConverter(serverSettings.getDeviceAuthorizationEndpoint()),
+                new DeviceClientAuthenticationProvider(registeredClients),
+                new DeviceVerificationRequestGuard(rateLimiter, authorizationManager, authorizationService,
+                        registeredClients), errorHandler, successHandler);
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_verification_page"><a class="anchor" href="#_verification_page"></a>Verification page</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The user opens the verification URI, signs in (with the second factor the policy requires), types the user code and
+approves on the consent page, which hands the decision to <code>POST /oauth2/device_verification</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /oauth2/device_verification:
+    get:
+      tags: [ Device verification page ]
+      operationId: deviceVerificationPage
+      summary: Renders the device verification page
+      description: &gt;-
+        Renders the page the verification URI of the device authorization response points to: the form where the user
+        types the code the device displays (RFC 8628). The form posts the code to the authorization server's own device
+        verification endpoint (POST /oauth2/device_verification, owned by the framework, with the CSRF token), never to
+        this operation. A request that already carries the code (verification_uri_complete) is answered by that
+        endpoint directly, which also applies the multi-factor policy of the account and the limit on the attempts, and
+        sends the browser on to the consent page (GET /oauth2/consent) or back here with a confirmation or an error. A
+        request without a signed-in session is redirected to the sign-in page and resumed afterwards.
+      parameters:
+        - name: user_code
+          in: query
+          required: false
+          description: A user code to prefill in the form. Any value that is not a plausible code is ignored.
+          schema:
+            type: string
+            maxLength: 32
+        - name: error
+          in: query
+          required: false
+          description: &gt;-
+            Present (its value is ignored, usually empty) when the previous attempt failed; the page then shows a
+            message that never says why (an unknown, expired or already used code look the same).
+          schema:
+            type: string
+        - name: success
+          in: query
+          required: false
+          description: &gt;-
+            Present (its value is ignored, usually empty) when the user has just approved the device; the page then
+            says that the device may continue.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The device verification page.
+          content:
+            text/html:
+              schema:
+                type: string</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;!--
+  Device verification page (DeviceVerificationController.deviceVerificationPage): the form where the user types the code
+  the device shows (RFC 8628). It posts the code to the framework's endpoint, which asks for consent on the consent page
+  and sends the browser back here with ?error when the code is refused and ?success when the device was approved
+  (th:action adds the CSRF field). A failed attempt is announced in an assertive live region and never says why.
+--&gt;
+&lt;html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main})}"&gt;
+&lt;head&gt;
+  &lt;title th:text="#{device.title}"&gt;Connect a device&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1 th:text="#{device.heading}"&gt;Connect a device&lt;/h1&gt;
+  &lt;p th:if="${approved}" class="success" role="status" th:text="#{device.success}"&gt;The device may continue now.&lt;/p&gt;
+  &lt;div th:unless="${approved}"&gt;
+    &lt;p th:text="#{device.intro}"&gt;Type the code your device shows to approve it.&lt;/p&gt;
+    &lt;div aria-live="assertive" role="alert"&gt;
+      &lt;p th:if="${failed}" class="error" th:text="#{device.error}"&gt;That code is not valid.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;form method="post" th:action="@{/oauth2/device_verification}"&gt;
+      &lt;p&gt;
+        &lt;label for="user-code" th:text="#{device.code}"&gt;Code&lt;/label&gt;
+        &lt;input type="text" id="user-code" name="user_code" th:value="${userCode}" required autofocus maxlength="32"
+               autocomplete="off" autocapitalize="characters" spellcheck="false"&gt;
+      &lt;/p&gt;
+      &lt;button type="submit" id="verify" th:text="#{device.submit}"&gt;Continue&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+&lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Renders the device verification page.
+     *
+     * @param userCode a code to prefill, ignored unless it looks like a user code.
+     * @param error    present when the previous attempt failed.
+     * @param success  present when the device was just approved.
+     * @return the page.
+     */
+    @Override
+    public ResponseEntity&lt;String&gt; deviceVerificationPage(final String userCode, final String error,
+            final String success) {
+        final var model = new HashMap&lt;String, Object&gt;();
+        model.put(ERROR_ATTRIBUTE, error != null);
+        model.put(SUCCESS_ATTRIBUTE, success != null);
+        if (userCode != null &amp;&amp; PLAUSIBLE_CODE.matcher(userCode).matches()) {
+            model.put(USER_CODE_ATTRIBUTE, userCode);
+        }
+        return pageRenderer.render(VIEW_NAME, model);
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A user code is short, so attempts are limited per client address and per user, and the MFA policy is checked before the
+framework converters run. The policy includes the client&#8217;s <code>mfaRequired</code> setting: the post of the user code names no
+client (and a client without consent approves the device on that post), so the guard finds the client of the device
+authorization stored for the code, normalised as the framework stores it; the <code>client_id</code> of the consent decision is
+only the fallback when no authorization holds the code.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  device:
+    # Device authorization grant (RFC 8628): the attempts to verify a user code, which is short, are limited per client
+    # address and per signed-in user, counted in a fixed window.
+    rate-limit:
+      enabled: true
+      window: PT15M
+      per-client: 30
+      per-user: 10</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Rate limiter of the attempts to verify a user code, on the pattern of the other limiters of this server: Bucket4j
+ * token buckets in Caffeine caches ({@link FixedWindowBuckets}), one per client address and one per signed-in user, so
+ * a user code, which is short, cannot be guessed faster than the limits allow. The buckets live in this instance
+ * only: several instances each apply the limits on their own. The client address is
+ * {@code request.getRemoteAddr()}, so behind a proxy {@code server.forward-headers-strategy} must be set for it to be
+ * the real client.
+ */
+public final class DeviceVerificationRateLimiter {
+
+    /** Key used when the client address is unknown. */
+    private static final String UNKNOWN_CLIENT = "unknown";
+
+    /** Limits, window and bound of the tracked keys. */
+    private final DeviceRateLimitProperties properties;
+
+    /** Buckets per client address. */
+    private final FixedWindowBuckets clients;
+
+    /** Buckets per signed-in user. */
+    private final FixedWindowBuckets users;
+
+    /**
+     * Creates the limiter.
+     *
+     * @param properties limits, window and bound of the tracked keys.
+     * @param clock      source of the current time.
+     */
+    public DeviceVerificationRateLimiter(final DeviceRateLimitProperties properties, final Clock clock) {
+        this.properties = properties;
+        clients = new FixedWindowBuckets(clock, properties.window(), properties.maxTrackedKeys());
+        users = new FixedWindowBuckets(clock, properties.window(), properties.maxTrackedKeys());
+    }
+
+    /**
+     * Counts one attempt and rejects it once a limit is exceeded.
+     *
+     * @param clientAddress address of the calling client, may be {@code null}.
+     * @param userName      name of the signed-in user.
+     * @throws DeviceVerificationRateLimitedException if the client address or the user exceeded its limit.
+     */
+    public void check(final String clientAddress, final String userName) {
+        if (!properties.enabled()) {
+            return;
+        }
+        final var clientWait = clients.tryConsume(clientAddress == null ? UNKNOWN_CLIENT : clientAddress,
+                properties.perClient());
+        if (clientWait.isPresent()) {
+            throw new DeviceVerificationRateLimitedException(clientWait.get());
+        }
+        final var userWait = users.tryConsume(userName, properties.perUser());
+        if (userWait.isPresent()) {
+            throw new DeviceVerificationRateLimitedException(userWait.get());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Guards the device verification endpoint. It is installed first among the converters of the endpoint and never
+ * converts anything: it either lets the request go on (returning {@code null}) or refuses it. Every request that
+ * carries a user code (the code typed on the verification page, a link that carries it, and the consent decision) is
+ * counted against the limit on the attempts, and the multi-factor policy of the account and of the client must be
+ * satisfied, as the authorization endpoint requires before it issues a code: a user who owes a second factor is sent
+ * to the second-factor page and resumes afterwards. The framework's own MFA customizer covers only
+ * {@code /oauth2/authorize}.
+ *
+ * &lt;p&gt;The client is the one the device authorization stored for the user code was issued to, because the code typed on
+ * the page (or carried by the link) is the only thing the request names: so a client that requires multi-factor
+ * authentication is enforced even when it skips the consent page. Only when no authorization holds the code (an
+ * unknown or expired one, which the endpoint refuses anyway) is the {@code client_id} of the consent decision used.
+ */
+@RequiredArgsConstructor
+public class DeviceVerificationRequestGuard implements AuthenticationConverter {
+
+    /** Type of the token the user code is stored as. */
+    static final OAuth2TokenType USER_CODE_TOKEN_TYPE = new OAuth2TokenType(OAuth2ParameterNames.USER_CODE);
+
+    /** Number of letters and digits of a user code. */
+    private static final int USER_CODE_LENGTH = 8;
+
+    /** Position of the dash the framework stores a user code with. */
+    private static final int USER_CODE_GROUP = USER_CODE_LENGTH / 2;
+
+    /** Everything a user may type around the letters and digits of a code (dashes, spaces). */
+    private static final Pattern NOT_ALPHANUMERIC = Pattern.compile("[^A-Z\\d]+");
+
+    /** Limits the attempts. */
+    private final DeviceVerificationRateLimiter rateLimiter;
+
+    /** Applies the multi-factor policy. */
+    private final MfaAuthorizationManager authorizationManager;
+
+    /** Finds the device authorization of a user code. */
+    private final OAuth2AuthorizationService authorizationService;
+
+    /** Finds the client of a device authorization. */
+    private final RegisteredClientRepository registeredClientRepository;
+
+    /**
+     * Checks the request.
+     *
+     * @param request the request.
+     * @return always {@code null}: this converter only vetoes requests.
+     * @throws DeviceVerificationRateLimitedException if the client address or the user made too many attempts.
+     * @throws SecondFactorRequiredException          if the user still owes a second factor.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+        final var user = SecurityContextHolder.getContext().getAuthentication();
+        if (!MfaAuthorizationManager.isUser(user)) {
+            return null;
+        }
+        rateLimiter.check(request.getRemoteAddr(), user.getName());
+        final var clientRequires = authorizationManager.clientRequiresMfa(clientIdOf(request));
+        if (!authorizationManager.evaluate(user, clientRequires).isGranted()) {
+            throw new SecondFactorRequiredException();
+        }
+        return null;
+    }
+
+    /**
+     * Finds the client a request is about: the client of the device authorization stored for its user code, or the
+     * {@code client_id} parameter when no authorization holds that code.
+     *
+     * @param request the request.
+     * @return the client id, or {@code null} when neither tells it.
+     */
+    private String clientIdOf(final HttpServletRequest request) {
+        return normalize(request.getParameter(OAuth2ParameterNames.USER_CODE))
+                .map(userCode -&gt; authorizationService.findByToken(userCode, USER_CODE_TOKEN_TYPE))
+                .map(authorization -&gt; registeredClientRepository.findById(authorization.getRegisteredClientId()))
+                .map(RegisteredClient::getClientId)
+                .orElseGet(() -&gt; request.getParameter(OAuth2ParameterNames.CLIENT_ID));
+    }
+
+    /**
+     * Normalises a user code as the framework stores it: upper case letters and digits in two groups of four,
+     * separated by a dash.
+     *
+     * @param userCode the code as typed, may be {@code null}.
+     * @return the stored form, or empty when the value cannot be a user code.
+     */
+    private static Optional&lt;String&gt; normalize(final String userCode) {
+        if (!StringUtils.hasText(userCode)) {
+            return Optional.empty();
+        }
+        final var compact = NOT_ALPHANUMERIC.matcher(userCode.toUpperCase(Locale.ROOT)).replaceAll("");
+        if (compact.length() != USER_CODE_LENGTH) {
+            return Optional.empty();
+        }
+        return Optional.of(compact.substring(0, USER_CODE_GROUP) + "-" + compact.substring(USER_CODE_GROUP));
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_public_clients"><a class="anchor" href="#_public_clients"></a>Public clients</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The device client is public (no secret). Spring&#8217;s PKCE-based authentication cannot serve the device flow, so a
+dedicated converter and provider authenticate a client that is registered with the device grant and no secret by its
+identifier alone. The request must not ask for <code>openid</code>: Spring Authorization Server refuses it in device requests, so
+the seeded <code>device-client</code> (dev profile only) has no ID token.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Reads the identifier of a public client of the device flow, the only kind of client authentication that flow has
+ * for a device that cannot keep a secret: the {@code client_id} of the request to the device authorization endpoint
+ * and of the polling request to the token endpoint with the device code grant. Spring Authorization Server's public
+ * client authentication needs a PKCE code verifier, which the device flow does not have. A request that carries any
+ * other credential (an {@code Authorization} header, a client secret or a client assertion) is left to the
+ * converters of those credentials.
+ */
+public class DeviceClientAuthenticationConverter implements AuthenticationConverter {
+
+    /** Names of the parameters that carry a credential of a confidential client. */
+    private static final List&lt;String&gt; CREDENTIAL_PARAMETERS = List.of(
+            OAuth2ParameterNames.CLIENT_SECRET, OAuth2ParameterNames.CLIENT_ASSERTION,
+            OAuth2ParameterNames.CLIENT_ASSERTION_TYPE);
+
+    /** Matches the request for the codes, which names the client. */
+    private final RequestMatcher deviceAuthorizationRequest;
+
+    /**
+     * Creates the converter.
+     *
+     * @param deviceAuthorizationEndpoint path of the device authorization endpoint.
+     */
+    public DeviceClientAuthenticationConverter(final String deviceAuthorizationEndpoint) {
+        deviceAuthorizationRequest = PathPatternRequestMatcher.withDefaults()
+                .matcher(HttpMethod.POST, deviceAuthorizationEndpoint);
+    }
+
+    /**
+     * Reads the client of a request.
+     *
+     * @param request the request.
+     * @return the request to authenticate the public client, or {@code null} when the request is not one of the device
+     *         flow's or carries a credential.
+     * @throws OAuth2AuthenticationException {@code invalid_request} if the client is named more than once or not at
+     *                                       all.
+     */
+    @Override
+    public Authentication convert(final HttpServletRequest request) {
+        if (!isDeviceRequest(request) || carriesCredential(request)) {
+            return null;
+        }
+        final var clientIds = request.getParameterValues(OAuth2ParameterNames.CLIENT_ID);
+        if (clientIds == null || clientIds.length != 1 || !StringUtils.hasText(clientIds[0])) {
+            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_REQUEST);
+        }
+        return new DeviceClientAuthenticationToken(clientIds[0]);
+    }
+
+    /**
+     * Tells whether the request is one of the device flow's: the request for the codes, or the poll with the device
+     * code grant.
+     *
+     * @param request the request.
+     * @return {@code true} for a device flow request that names a client.
+     */
+    private boolean isDeviceRequest(final HttpServletRequest request) {
+        if (request.getParameter(OAuth2ParameterNames.CLIENT_ID) == null) {
+            return false;
+        }
+        return deviceAuthorizationRequest.matches(request) || isDeviceCodePoll(request);
+    }
+
+    /**
+     * Tells whether the request is a poll of the token endpoint with the device code grant.
+     *
+     * @param request the request.
+     * @return {@code true} when it is.
+     */
+    private static boolean isDeviceCodePoll(final HttpServletRequest request) {
+        return AuthorizationGrantType.DEVICE_CODE.getValue().equals(request.getParameter(
+                OAuth2ParameterNames.GRANT_TYPE)) &amp;&amp; request.getParameter(OAuth2ParameterNames.DEVICE_CODE) != null;
+    }
+
+    /**
+     * Tells whether the request carries the credential of a confidential client.
+     *
+     * @param request the request.
+     * @return {@code true} when it does.
+     */
+    private static boolean carriesCredential(final HttpServletRequest request) {
+        return request.getHeader(HttpHeaders.AUTHORIZATION) != null
+                || CREDENTIAL_PARAMETERS.stream().anyMatch(name -&gt; request.getParameter(name) != null);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>No migration is needed: the schema of the authorization service already has the <code>device_code_*</code> and <code>user_code_*</code> columns.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_polling_cli"><a class="anchor" href="#_polling_cli"></a>Polling CLI</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>service-client</code> has a command-line client, active only under the <code>device-flow</code> profile. It prints the user code and
+the verification URI, then polls <code>/oauth2/token</code>, honouring <code>interval</code>, <code>slow_down</code>, <code>authorization_pending</code> and
+<code>expired_token</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">java -jar service-client/boot/target/service-client-boot-1.0.0-SNAPSHOT.jar --spring.profiles.active=device-flow --device-flow.issuer=http://localhost:9000</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

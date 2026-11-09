@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientRegistration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-domain</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.domain.clients</a> &gt; <span class="el_source">ClientRegistration.java</span></div><h1>ClientRegistration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.domain.clients;
+
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireText;
+import static com.irurueta.authserver.authorization.domain.Preconditions.requireTextIfPresent;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * An OAuth 2.1 client registered with the authorization server. The client secret is not part of the model: it is
+ * only ever handled encoded, through the repository.
+ *
+ * @param clientId           public identifier of the client.
+ * @param name               human readable name.
+ * @param confidential       {@code true} for a client able to keep a secret, {@code false} for a public client.
+ * @param authMethods        client authentication methods, for example {@code client_secret_basic} or {@code none}.
+ * @param grantTypes         grant types the client may use, for example {@code authorization_code}.
+ * @param redirectUris       redirect URIs the client may use.
+ * @param scopes             scopes the client may request.
+ * @param requireProofKey    whether the authorization code flow must use PKCE.
+ * @param audiences          logical identifiers of the APIs the access tokens are meant for (the {@code aud} claim);
+ *                           the client id when none is given.
+ * @param accessTokenTtl     lifetime of access tokens.
+ * @param refreshTokenTtl    lifetime of refresh tokens.
+ * @param accessTokenFormat  {@code self-contained} or {@code reference}.
+ * @param reuseRefreshTokens {@code true} to keep a refresh token after use, {@code false} to rotate it.
+ * @param postLogoutRedirectUris URIs an end-user may be redirected to after an OpenID Connect RP-initiated logout;
+ *                           a {@code post_logout_redirect_uri} that is not listed is never honoured.
+ * @param requireConsent     whether the end-user must explicitly grant the requested scopes on a consent page.
+ * @param mfaRequired        whether every user signing in through the client must complete a second factor.
+ * @param jwkSetUrl          URL of the client's public JWK set, used to verify {@code private_key_jwt} assertions and
+ *                           self-signed certificates; {@code null} when none.
+ * @param jwks               the client's registered public JWK set as JSON (public keys only), alternative to
+ *                           {@code jwkSetUrl}; {@code null} when none.
+ * @param tokenEndpointSigningAlgorithm JWS algorithm the client signs its {@code private_key_jwt} assertions with;
+ *                           {@code null} when unrestricted.
+ * @param tlsClientAuthSubjectDn expected subject distinguished name of the certificate of a
+ *                           {@code tls_client_auth} client; {@code null} when none.
+ * @param certificateBoundAccessTokens whether access tokens are bound to the client certificate ({@code cnf.x5t#S256}).
+ */
+public record ClientRegistration(
+        String clientId, String name, boolean confidential, List&lt;String&gt; authMethods, List&lt;String&gt; grantTypes,
+        List&lt;String&gt; redirectUris, List&lt;String&gt; scopes, boolean requireProofKey, List&lt;String&gt; audiences,
+        Duration accessTokenTtl, Duration refreshTokenTtl, String accessTokenFormat, boolean reuseRefreshTokens,
+        List&lt;String&gt; postLogoutRedirectUris, boolean requireConsent, boolean mfaRequired, String jwkSetUrl, String jwks,
+        String tokenEndpointSigningAlgorithm, String tlsClientAuthSubjectDn, boolean certificateBoundAccessTokens) {
+
+    /** Access token format of self-contained (JWT) tokens. */
+    public static final String FORMAT_SELF_CONTAINED = &quot;self-contained&quot;;
+
+    /** Grant type of the legacy implicit flow. */
+    public static final String GRANT_IMPLICIT = &quot;implicit&quot;;
+
+    /** Grant type of refresh tokens. */
+    public static final String GRANT_REFRESH_TOKEN = &quot;refresh_token&quot;;
+
+    /** Authentication method of a client that proves possession of a registered private key. */
+    public static final String AUTH_PRIVATE_KEY_JWT = &quot;private_key_jwt&quot;;
+
+    /** Authentication method of mutual TLS with a certificate issued by a trusted authority. */
+    public static final String AUTH_TLS_CLIENT_AUTH = &quot;tls_client_auth&quot;;
+
+    /** Authentication method of mutual TLS with a self-signed certificate. */
+    public static final String AUTH_SELF_SIGNED_TLS_CLIENT_AUTH = &quot;self_signed_tls_client_auth&quot;;
+
+    /** Prefix of the authentication methods that use a client secret. */
+    public static final String AUTH_CLIENT_SECRET_PREFIX = &quot;client_secret_&quot;;
+
+    /** Access token format of opaque, reference tokens. */
+    public static final String FORMAT_REFERENCE = &quot;reference&quot;;
+
+    /**
+     * Validates the registration and defensively copies its collections.
+     *
+     * @throws IllegalArgumentException if the id, name or format is blank, a collection is null or has a null
+     *                                  element, a lifetime is missing or not positive, or a public client does not
+     *                                  require PKCE (unless its only grant type is {@code implicit}), an
+     *                                  {@code implicit} client is confidential, requires consent or has refresh
+     *                                  tokens, a {@code tls_client_auth} client has no subject DN, a
+     *                                  {@code private_key_jwt} or {@code self_signed_tls_client_auth} client has
+     *                                  neither {@code jwks} nor {@code jwkSetUrl}, or a given optional text is blank.
+     */
+<span class="fc" id="L100">    public ClientRegistration {</span>
+<span class="fc" id="L101">        requireText(clientId, &quot;clientId&quot;);</span>
+<span class="fc" id="L102">        requireText(name, &quot;name&quot;);</span>
+<span class="fc" id="L103">        requireText(accessTokenFormat, &quot;accessTokenFormat&quot;);</span>
+<span class="fc" id="L104">        requireNoNulls(authMethods, &quot;authMethods&quot;);</span>
+<span class="fc" id="L105">        authMethods = List.copyOf(authMethods);</span>
+<span class="fc" id="L106">        requireNoNulls(grantTypes, &quot;grantTypes&quot;);</span>
+<span class="fc" id="L107">        grantTypes = List.copyOf(grantTypes);</span>
+<span class="fc" id="L108">        requireNoNulls(redirectUris, &quot;redirectUris&quot;);</span>
+<span class="fc" id="L109">        redirectUris = List.copyOf(redirectUris);</span>
+<span class="fc" id="L110">        requireNoNulls(scopes, &quot;scopes&quot;);</span>
+<span class="fc" id="L111">        scopes = List.copyOf(scopes);</span>
+<span class="fc" id="L112">        requireNoNulls(audiences, &quot;audiences&quot;);</span>
+<span class="fc" id="L113">        audiences = List.copyOf(audiences);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (audiences.isEmpty()) {</span>
+<span class="fc" id="L115">            audiences = List.of(clientId);</span>
+        }
+<span class="fc" id="L117">        requireNoNulls(postLogoutRedirectUris, &quot;postLogoutRedirectUris&quot;);</span>
+<span class="fc" id="L118">        postLogoutRedirectUris = List.copyOf(postLogoutRedirectUris);</span>
+<span class="fc bfc" id="L119" title="All 4 branches covered.">        if (isNotPositive(accessTokenTtl) || isNotPositive(refreshTokenTtl)) {</span>
+<span class="fc" id="L120">            throw new IllegalArgumentException(&quot;token lifetimes must be positive&quot;);</span>
+        }
+<span class="fc" id="L122">        requireTextIfPresent(jwkSetUrl, &quot;jwkSetUrl&quot;);</span>
+<span class="fc" id="L123">        requireTextIfPresent(jwks, &quot;jwks&quot;);</span>
+<span class="fc" id="L124">        requireTextIfPresent(tokenEndpointSigningAlgorithm, &quot;tokenEndpointSigningAlgorithm&quot;);</span>
+<span class="fc" id="L125">        requireTextIfPresent(tlsClientAuthSubjectDn, &quot;tlsClientAuthSubjectDn&quot;);</span>
+<span class="pc bpc" id="L126" title="1 of 6 branches missed.">        if (!confidential &amp;&amp; !requireProofKey &amp;&amp; !grantTypes.equals(List.of(GRANT_IMPLICIT))) {</span>
+<span class="fc" id="L127">            throw new IllegalArgumentException(&quot;a public client must require PKCE&quot;);</span>
+        }
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        if (grantTypes.contains(GRANT_IMPLICIT)) {</span>
+<span class="fc" id="L130">            requireValidImplicit(confidential, requireConsent, grantTypes);</span>
+        }
+<span class="fc bfc" id="L132" title="All 4 branches covered.">        if (authMethods.contains(AUTH_TLS_CLIENT_AUTH) &amp;&amp; tlsClientAuthSubjectDn == null) {</span>
+<span class="fc" id="L133">            throw new IllegalArgumentException(&quot;tls_client_auth requires a subject DN&quot;);</span>
+        }
+<span class="fc bfc" id="L135" title="All 8 branches covered.">        if ((authMethods.contains(AUTH_PRIVATE_KEY_JWT) || authMethods.contains(AUTH_SELF_SIGNED_TLS_CLIENT_AUTH))</span>
+                &amp;&amp; jwks == null &amp;&amp; jwkSetUrl == null) {
+<span class="fc" id="L137">            throw new IllegalArgumentException(</span>
+                    &quot;private_key_jwt and self_signed_tls_client_auth require jwks or jwkSetUrl&quot;);
+        }
+<span class="fc bfc" id="L140" title="All 6 branches covered.">        if (authMethods.contains(AUTH_PRIVATE_KEY_JWT) &amp;&amp; jwks != null &amp;&amp; tokenEndpointSigningAlgorithm == null) {</span>
+<span class="fc" id="L141">            throw new IllegalArgumentException(</span>
+                    &quot;private_key_jwt with registered jwks requires tokenEndpointSigningAlgorithm&quot;);
+        }
+<span class="fc" id="L144">    }</span>
+
+    /**
+     * Tells whether the client may use the legacy implicit grant, which only the legacy demo client seeded under the
+     * {@code legacy-implicit} profile may have.
+     *
+     * @return {@code true} when the grant types contain {@code implicit}.
+     */
+    public boolean usesImplicit() {
+<span class="fc" id="L153">        return grantTypes.contains(GRANT_IMPLICIT);</span>
+    }
+
+    /**
+     * Tells whether the client authenticates with a client secret.
+     *
+     * @return {@code true} when any authentication method is a {@code client_secret_*} one.
+     */
+    public boolean usesClientSecret() {
+<span class="fc" id="L162">        return authMethods.stream().anyMatch(method -&gt; method.startsWith(AUTH_CLIENT_SECRET_PREFIX));</span>
+    }
+
+    /**
+     * Refuses an {@code implicit} client that is confidential, requires consent or may use refresh tokens.
+     *
+     * @param confidential whether the client is confidential.
+     * @param requireConsent whether consent is required.
+     * @param grantTypes the grant types of the client.
+     */
+    private static void requireValidImplicit(
+            final boolean confidential, final boolean requireConsent, final List&lt;String&gt; grantTypes) {
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (confidential) {</span>
+<span class="fc" id="L175">            throw new IllegalArgumentException(&quot;an implicit client must be public&quot;);</span>
+        }
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (requireConsent) {</span>
+<span class="fc" id="L178">            throw new IllegalArgumentException(&quot;an implicit client cannot require consent&quot;);</span>
+        }
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">        if (grantTypes.contains(GRANT_REFRESH_TOKEN)) {</span>
+<span class="nc" id="L181">            throw new IllegalArgumentException(&quot;an implicit client cannot have refresh tokens&quot;);</span>
+        }
+<span class="fc" id="L183">    }</span>
+
+    /**
+     * Tells whether a duration is missing, zero or negative.
+     *
+     * @param duration the duration.
+     * @return {@code true} when it is not a positive duration.
+     */
+    private static boolean isNotPositive(final Duration duration) {
+<span class="fc bfc" id="L192" title="All 6 branches covered.">        return duration == null || duration.isZero() || duration.isNegative();</span>
+    }
+
+    /**
+     * Rejects a null list and a list with null elements.
+     *
+     * @param values the list.
+     * @param name   name of the list, for the message.
+     */
+    private static void requireNoNulls(final List&lt;String&gt; values, final String name) {
+<span class="fc bfc" id="L202" title="All 4 branches covered.">        if (values == null || values.stream().anyMatch(Objects::isNull)) {</span>
+<span class="fc" id="L203">            throw new IllegalArgumentException(name + &quot; must not be null or contain null elements&quot;);</span>
+        }
+<span class="fc" id="L205">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

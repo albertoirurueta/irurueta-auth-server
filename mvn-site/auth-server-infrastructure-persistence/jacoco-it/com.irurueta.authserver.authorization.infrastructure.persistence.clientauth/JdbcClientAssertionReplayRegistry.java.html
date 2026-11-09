@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcClientAssertionReplayRegistry.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.clientauth</a> &gt; <span class="el_source">JdbcClientAssertionReplayRegistry.java</span></div><h1>JdbcClientAssertionReplayRegistry.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.clientauth;
+
+import static com.irurueta.authserver.authorization.infrastructure.persistence.JdbcTimestamps.toTimestamp;
+
+import com.irurueta.authserver.authorization.domain.clientauth.ClientAssertionReplayRegistry;
+import java.time.Instant;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link ClientAssertionReplayRegistry} over the {@code client_assertion_jtis} table. Each method is a single
+ * statement run in the caller's transaction. The primary key {@code (client_id, jti)} makes the insert atomic: of
+ * concurrent registrations of the same pair exactly one inserts a row, the others do nothing and report a replay,
+ * without a constraint violation that would abort the caller's transaction.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcClientAssertionReplayRegistry implements ClientAssertionReplayRegistry {
+
+    /** Statement recording a first use; a replay inserts nothing. */
+    private static final String INSERT = &quot;INSERT INTO client_assertion_jtis (client_id, jti, expires_at) &quot;
+            + &quot;VALUES (?, ?, ?) ON CONFLICT (client_id, jti) DO NOTHING&quot;;
+
+    /** Statement deleting the expired identifiers. */
+    private static final String DELETE_EXPIRED = &quot;DELETE FROM client_assertion_jtis WHERE expires_at &lt;= ?&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    @Override
+    public boolean register(final String clientId, final String jti, final Instant expiresAt) {
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        return jdbcClient.sql(INSERT).params(clientId, jti, toTimestamp(expiresAt)).update() == 1;</span>
+    }
+
+    @Override
+    public int purgeExpired(final Instant now) {
+<span class="fc" id="L54">        return jdbcClient.sql(DELETE_EXPIRED).param(toTimestamp(now)).update();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

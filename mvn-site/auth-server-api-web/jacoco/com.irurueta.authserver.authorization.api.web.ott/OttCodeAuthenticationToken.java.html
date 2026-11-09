@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OttCodeAuthenticationToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.ott</a> &gt; <span class="el_source">OttCodeAuthenticationToken.java</span></div><h1>OttCodeAuthenticationToken.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.ott;
+
+import java.io.Serial;
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+
+/**
+ * Request to sign in with a numeric one-time code: the code the user typed, the identifier it was requested for and the
+ * binding id of the session that requested it. It is never authenticated itself; {@link OttCodeAuthenticationProvider}
+ * answers with the authentication of the user.
+ */
+@EqualsAndHashCode(callSuper = true)
+public class OttCodeAuthenticationToken extends AbstractAuthenticationToken {
+
+    /** Longest numeric code accepted, so a token value of digits is never mistaken for a code by length alone. */
+    static final int MAX_CODE_LENGTH = 12;
+
+    /** Serialization version. */
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    /** The identifier the code was requested for. */
+    private final String username;
+
+    /** The code as typed. */
+    private final String code;
+
+    /** Binding id of the session that requested the code. */
+    private final String bindingId;
+
+    /**
+     * Creates the request.
+     *
+     * @param username  the identifier the code was requested for, empty when the session requested none.
+     * @param code      the code as typed.
+     * @param bindingId binding id of the session that requested the code, empty when it requested none.
+     */
+    public OttCodeAuthenticationToken(final String username, final String code, final String bindingId) {
+<span class="fc" id="L55">        super(List.of());</span>
+<span class="fc" id="L56">        this.username = username;</span>
+<span class="fc" id="L57">        this.code = code;</span>
+<span class="fc" id="L58">        this.bindingId = bindingId;</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * Tells whether a submitted value is a numeric code rather than the token of a magic link (which is a UUID).
+     *
+     * @param value the value of the {@code token} field.
+     * @return {@code true} for one to {@value #MAX_CODE_LENGTH} ASCII digits.
+     */
+    public static boolean isCode(final String value) {
+<span class="fc bfc" id="L68" title="All 6 branches covered.">        return value != null &amp;&amp; !value.isEmpty() &amp;&amp; value.length() &lt;= MAX_CODE_LENGTH</span>
+<span class="pc bpc" id="L69" title="1 of 6 branches missed.">                &amp;&amp; value.chars().allMatch(character -&gt; character &gt;= '0' &amp;&amp; character &lt;= '9');</span>
+    }
+
+    /**
+     * Gets the code.
+     *
+     * @return the code as typed.
+     */
+    @Override
+    public String getCredentials() {
+<span class="fc" id="L79">        return code;</span>
+    }
+
+    /**
+     * Gets the identifier the code was requested for.
+     *
+     * @return the identifier.
+     */
+    @Override
+    public String getPrincipal() {
+<span class="fc" id="L89">        return username;</span>
+    }
+
+    /**
+     * Gets the binding id of the session that requested the code.
+     *
+     * @return the binding id.
+     */
+    public String bindingId() {
+<span class="fc" id="L98">        return bindingId;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

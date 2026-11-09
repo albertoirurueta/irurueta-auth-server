@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientAssertionProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.clientauth</a> &gt; <span class="el_source">ClientAssertionProperties.java</span></div><h1>ClientAssertionProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.clientauth;
+
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.scheduling.support.CronExpression;
+import org.springframework.util.StringUtils;
+
+/**
+ * Settings of the client assertions, bound from {@code authserver.client-assertion.*} once and validated at startup.
+ * A missing value takes its default, so the application starts without any setting.
+ *
+ * @param maxLifetime longest lifetime (exp minus iat, or exp minus now when iat is absent) an assertion may have
+ *                    (default 5 minutes).
+ * @param cleanup     the purge of the stored identifiers.
+ */
+@ConfigurationProperties(&quot;authserver.client-assertion&quot;)
+public record ClientAssertionProperties(
+        @DefaultValue(&quot;PT5M&quot;) Duration maxLifetime,
+        @DefaultValue Cleanup cleanup) {
+
+    /** Default longest lifetime of an assertion, in minutes. */
+    private static final long DEFAULT_MAX_LIFETIME_MINUTES = 5L;
+
+    /**
+     * Applies the defaults and validates the settings.
+     *
+     * @throws IllegalArgumentException if the lifetime is zero or negative or the cron expression is invalid.
+     */
+<span class="fc" id="L46">    public ClientAssertionProperties {</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (maxLifetime == null) {</span>
+<span class="fc" id="L48">            maxLifetime = Duration.ofMinutes(DEFAULT_MAX_LIFETIME_MINUTES);</span>
+<span class="fc bfc" id="L49" title="All 4 branches covered.">        } else if (maxLifetime.isNegative() || maxLifetime.isZero()) {</span>
+<span class="fc" id="L50">            throw new IllegalArgumentException(&quot;authserver.client-assertion.max-lifetime must be positive&quot;);</span>
+        }
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (cleanup == null) {</span>
+<span class="fc" id="L53">            cleanup = new Cleanup(null);</span>
+        }
+<span class="fc" id="L55">    }</span>
+
+    /**
+     * Settings of the purge of expired identifiers.
+     *
+     * @param cron Spring cron expression saying when the purge runs (default every hour at minute 30).
+     */
+    public record Cleanup(@DefaultValue(&quot;0 30 * * * *&quot;) String cron) {
+
+        /** Default cron expression. */
+        private static final String DEFAULT_CRON = &quot;0 30 * * * *&quot;;
+
+        /**
+         * Applies the default and validates the expression.
+         *
+         * @throws IllegalArgumentException if the expression is not a valid Spring cron expression.
+         */
+<span class="fc" id="L72">        public Cleanup {</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (!StringUtils.hasText(cron)) {</span>
+<span class="fc" id="L74">                cron = DEFAULT_CRON;</span>
+            }
+<span class="fc bfc" id="L76" title="All 2 branches covered.">            if (!CronExpression.isValidExpression(cron)) {</span>
+<span class="fc" id="L77">                throw new IllegalArgumentException(&quot;authserver.client-assertion.cleanup.cron is not a valid cron&quot;);</span>
+            }
+<span class="fc" id="L79">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

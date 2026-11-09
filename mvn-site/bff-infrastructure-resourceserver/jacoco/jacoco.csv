@@ -1,0 +1,26 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.api,DocumentsApi,221,0,2,0,46,0,13,0,12,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.model,DocumentResponse,189,0,16,0,41,0,25,0,17,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,ApiClient,1244,0,158,0,280,0,138,0,59,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,ServerConfiguration,78,0,10,0,18,0,8,0,3,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,ExceptionProvider,41,0,0,0,8,0,8,0,8,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,JavaTimeFormatter,29,0,0,0,9,0,5,0,5,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,RFC3339DateFormat,50,0,0,0,12,0,6,0,6,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,ServerVariable,15,0,0,0,6,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,StringUtil,101,0,18,0,22,0,13,0,4,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,ApiClient.CollectionFormat,51,0,0,0,6,0,3,0,3,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated,ExceptionProvider.new ExceptionProvider() {...},3,0,0,0,1,0,1,0,1,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.auth,HttpBearerAuth,57,0,6,0,14,0,10,0,7,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.auth,ApiKeyAuth,79,0,10,0,24,0,13,0,8,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver.v1.generated.auth,HttpBasicAuth,50,0,8,0,12,0,10,0,6,0
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver,StepUpChallengeMapper,0,139,0,16,0,30,0,16,0,8
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver,RestDocumentGateway,0,131,0,8,0,22,0,11,0,6
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver,ResourceServerClientConfiguration,0,58,0,2,0,11,0,6,0,5
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver,DocumentMapper,0,15,0,0,0,2,0,2,0,2
+com.irurueta.authserver:bff-infrastructure-resourceserver,com.irurueta.authserver.bff.infrastructure.resourceserver,ResourceServerProperties,0,16,0,2,0,4,0,3,0,2

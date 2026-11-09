@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Resource server :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="resource-server.html">Resource server</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/resource-server.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Resource server</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The <code>resource-server</code> (port 8081) is hexagonal like <code>auth-server</code>: a <code>Document</code> (id, title, owner) in <code>domain</code>, a list
+and a delete use case in <code>application</code>, an in-memory repository in <code>infrastructure/memory</code> (a real adapter that needs no
+schema) and the REST API in <code>api/web</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_documents_api"><a class="anchor" href="#_documents_api"></a>Documents API</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 28.5714%;">
+<col style="width: 28.5714%;">
+<col style="width: 42.8572%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Endpoint</th>
+<th class="tableblock halign-left valign-top">Required authority</th>
+<th class="tableblock halign-left valign-top">Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET /api/documents</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SCOPE_documents.read</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lists the caller&#8217;s documents; an administrator (<code>ROLE_ADMIN</code>) sees all of them. Enforced by the filter chain.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DELETE /api/documents/{id}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SCOPE_documents.delete</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Deletes one of the caller&#8217;s documents; an administrator (<code>ROLE_ADMIN</code>) may delete any. 204 when deleted, 404 when it does not exist <strong>or belongs to someone else</strong>. The scope is enforced by method security, the ownership by <code>DeleteDocumentUseCase</code>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Answering someone else&#8217;s document with <code>404</code> rather than <code>403</code> is deliberate: the answer is then the same as for an
+identifier that does not exist, so a caller cannot find out which documents exist.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Deletes a document when the caller owns it or is an administrator.
+     *
+     * @param id            identifier of the document.
+     * @param caller        subject of the caller.
+     * @param administrator whether the caller is an administrator, who may delete any document.
+     * @return {@code true} when the document was deleted, {@code false} when it does not exist or the caller may not
+     *         delete it (the two are deliberately indistinguishable).
+     */
+    public boolean execute(final String id, final String caller, final boolean administrator) {
+        // Extension point (#4): the authentication-method check (the `amr` claim of the token, for example to require
+        // a multi-factor login) attaches here, before the deletion, as a step-up requirement.
+        final var allowed = documentRepository.findById(id)
+                .filter(document -&gt; administrator || document.owner().equals(caller))
+                .isPresent();
+        return allowed &amp;&amp; documentRepository.deleteById(id);
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Lists the documents of the caller; an administrator ({@code ROLE_ADMIN}) sees every document.
+     *
+     * @return the documents.
+     */
+    @Override
+    public ResponseEntity&lt;List&lt;DocumentResponse&gt;&gt; listDocuments() {
+        final var authentication = caller();
+        final var documents = BearerAuthorities.isAdministrator(authentication)
+                ? listDocumentsUseCase.listAll()
+                : listDocumentsUseCase.listOwn(authentication.getName());
+        return ResponseEntity.ok(documentDtoMapper.toResponses(documents));
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Deletes a document of the caller; an administrator ({@code ROLE_ADMIN}) may delete any document. Someone
+     * else's document is answered like a missing one, so the answer never reveals that it exists.
+     *
+     * @param id identifier of the document.
+     * @return 204 when the document was deleted, 404 when it does not exist or belongs to someone else.
+     */
+    @Override
+    @PreAuthorize("hasAuthority('SCOPE_documents.delete')")
+    public ResponseEntity&lt;Void&gt; deleteDocument(final String id) {
+        final var authentication = caller();
+        return deleteDocumentUseCase.execute(id, authentication.getName(),
+                BearerAuthorities.isAdministrator(authentication))
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The API is defined by the contract <code>apis/resource-server/rest-server/resource-server-api-v1.yaml</code>: <code>DocumentController</code>
+implements the <code>DocumentsApi</code> interface generated from it, and <code>DocumentDtoMapper</code> maps the domain documents onto the
+generated <code>DocumentResponse</code>. The running server publishes the matching OpenAPI document at <code>/v3/api-docs</code>, which
+<code>OpenApiDriftIT</code> compares with the contract; the Swagger UI is not shipped.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  /api/documents:
+    get:
+      tags: [ documents ]
+      operationId: listDocuments
+      summary: Lists documents
+      description: Lists the caller's documents; an administrator sees all. Needs scope documents.read.
+      security:
+        - bearer: [ documents.read ]
+      responses:
+        '200':
+          description: The documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The token lacks the documents.read scope.
+          headers:
+            WWW-Authenticate:
+              $ref: '#/components/headers/WwwAuthenticate'
+  /api/documents/{id}:
+    delete:
+      tags: [ documents ]
+      operationId: deleteDocument
+      summary: Deletes a document
+      description: &gt;-
+        Deletes one of the caller's documents; an administrator may delete any. Needs scope documents.delete and a
+        recent strong authentication (RFC 9470). Someone else's document is answered 404, like a missing one.
+      security:
+        - bearer: [ documents.delete ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the document.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The document was deleted.
+        '401':
+          description: &gt;-
+            Missing or invalid bearer token, or (RFC 9470) a valid token that does not prove a recent enough strong
+            authentication: its acr claim is not the required one or its auth_time is older than the maximum age.
+            The client must send the user through the authorization server again, asking for the acr_values and
+            max_age of the challenge.
+          headers:
+            WWW-Authenticate:
+              description: &gt;-
+                RFC 6750 bearer challenge. When step-up authentication is required it is
+                Bearer error="insufficient_user_authentication", acr_values="urn:irurueta:acr:mfa", max_age="300"
+                (the values configured under resourceserver.step-up.*).
+              schema:
+                type: string
+        '403':
+          description: The token lacks the documents.delete scope.
+          headers:
+            WWW-Authenticate:
+              $ref: '#/components/headers/WwwAuthenticate'
+        '404':
+          description: The document does not exist or belongs to someone else.</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_token_validation"><a class="anchor" href="#_token_validation"></a>Token validation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>By default tokens are JWTs. The decoder is built from <code>spring.security.oauth2.resourceserver.jwt.issuer-uri</code>
+(<code>AUTH_ISSUER</code>) and only accepts tokens whose <code>aud</code> claim lists one of
+<code>spring.security.oauth2.resourceserver.jwt.audiences</code> (<code>RESOURCE_SERVER_AUDIENCES</code>, default <code>resource-server</code>). The
+application refuses to start when that list is empty, instead of accepting every token. Failures answer with the
+RFC 6750 <code>WWW-Authenticate</code> challenge (<code>invalid_token</code> or <code>insufficient_scope</code>).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the filter chain validating bearer JWTs (the decoder is built from {@code issuer-uri}, and the
+     * configured audiences are validated by it).
+     *
+     * @param http       the HTTP security builder.
+     * @param properties the resource server properties.
+     * @param stepUp     requires a recent strong authentication to delete.
+     * @param accessDeniedHandler answers the denials, including the step-up challenge.
+     * @return the security filter chain.
+     * @throws Exception if the chain cannot be built.
+     * @throws IllegalStateException if no accepted audience is configured.
+     */
+    @Bean
+    @Profile("!opaque")
+    SecurityFilterChain resourceServerFilterChain(final HttpSecurity http,
+            final OAuth2ResourceServerProperties properties, final StepUpAuthorizationManager stepUp,
+            final StepUpAccessDeniedHandler accessDeniedHandler) throws Exception {
+        requireAudiences(properties.getJwt().getAudiences());
+        authorize(http, stepUp);
+        http.oauth2ResourceServer(oauth2 -&gt; oauth2
+                .jwt(jwt -&gt; jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                // DPoP (RFC 9449): "Authorization: DPoP &lt;token&gt;" plus a proof; the framework already refuses a
+                // token whose cnf holds jkt when it arrives as Bearer. A cnf.x5t#S256 token is checked against the
+                // TLS client certificate by the validator of the decoder Boot builds (no JwtDecoder bean here).
+                .dPoP(Customizer.withDefaults())
+                .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
+                .accessDeniedHandler(accessDeniedHandler));
+        return http.build();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The converter maps the <code>scope</code> claim to <code>SCOPE_*</code> authorities and the <code>roles</code> claim to <code>ROLE_*</code> authorities.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Maps the {@code scope} claim to {@code SCOPE_*} authorities (the default converter) and the {@code roles}
+     * claim to {@code ROLE_*} authorities.
+     *
+     * @return the converter.
+     */
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        final var scopes = new JwtGrantedAuthoritiesConverter();
+        final var converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -&gt; {
+            final var authorities = new ArrayList&lt;GrantedAuthority&gt;(scopes.convert(jwt));
+            authorities.addAll(BearerAuthorities.roleAuthorities(
+                    jwt.getClaimAsStringList(BearerAuthorities.ROLES_CLAIM)));
+            return authorities;
+        });
+        return converter;
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_certificate_bound_and_dpop_bound_tokens"><a class="anchor" href="#_certificate_bound_and_dpop_bound_tokens"></a>Certificate-bound and DPoP-bound tokens</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The JWT chain accepts DPoP (<code>Authorization: DPoP</code>). A token with <code>cnf.x5t#S256</code> is accepted only on a TLS connection
+presenting the same certificate (Spring&#8217;s validator, already in Boot&#8217;s decoder, reads the request&#8217;s client certificate;
+set <code>server.ssl.client-auth: want</code> and a bundle), and a token with <code>cnf.jkt</code> is refused as a <code>Bearer</code> token or without a valid
+proof. The DPoP replay cache is per instance and the <code>htu</code> check needs the request URL unchanged by any proxy. See
+<a href="client-credentials.html" class="xref page">Client credentials and service-to-service calls</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">                // DPoP (RFC 9449): "Authorization: DPoP &lt;token&gt;" plus a proof; the framework already refuses a
+                // token whose cnf holds jkt when it arrives as Bearer. A cnf.x5t#S256 token is checked against the
+                // TLS client certificate by the validator of the decoder Boot builds (no JwtDecoder bean here).
+                .dPoP(Customizer.withDefaults())</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_step_up_authentication_rfc_9470"><a class="anchor" href="#_step_up_authentication_rfc_9470"></a>Step-up authentication (RFC 9470)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Deleting a document needs a recent multi-factor sign-in. <code>StepUpAuthorizationManager</code> checks that the token&#8217;s <code>acr</code>
+claim is one of the configured values (<code>acr-values</code> is a space-separated list, like the <code>acr_values</code> parameter) and
+that <code>auth_time</code> is no older than <code>max-age</code>; otherwise <code>StepUpAccessDeniedHandler</code>
+answers <code>401</code> with <code>WWW-Authenticate: Bearer error="insufficient_user_authentication"</code> and the <code>acr_values</code> and
+<code>max_age</code> the client must request (see <a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>). The policy is bound from
+<code>resourceserver.step-up.*</code>: <code>enabled</code> (default <code>true</code>), <code>acr-values</code> (default <code>urn:irurueta:acr:mfa</code>) and <code>max-age</code>
+(default <code>PT5M</code>).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ConfigurationProperties("resourceserver.step-up")
+public record StepUpProperties(
+        @DefaultValue("true") boolean enabled,
+        @DefaultValue("urn:irurueta:acr:mfa") String acrValues,
+        @DefaultValue("PT5M") Duration maxAge) {
+
+    /**
+     * Validates the policy.
+     *
+     * @throws IllegalArgumentException if {@code acrValues} is blank or {@code maxAge} is not positive.
+     */
+    public StepUpProperties {
+        if (!StringUtils.hasText(acrValues)) {
+            throw new IllegalArgumentException("resourceserver.step-up.acr-values must not be blank");
+        }
+        if (maxAge == null || maxAge.isNegative() || maxAge.isZero()) {
+            throw new IllegalArgumentException("resourceserver.step-up.max-age must be positive");
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@RequiredArgsConstructor
+public class StepUpAuthorizationManager implements AuthorizationManager&lt;RequestAuthorizationContext&gt; {
+
+    /** Claim carrying the authentication context class reference. */
+    static final String ACR_CLAIM = "acr";
+
+    /** Claim carrying the time of the user's authentication, in epoch seconds. */
+    static final String AUTH_TIME_CLAIM = "auth_time";
+
+    /** Separator of the configured {@code acr-values}: any run of whitespace. */
+    private static final String ACR_VALUES_SEPARATOR = "\\s+";
+
+    /** Authority the caller needs before the step-up requirement is evaluated. */
+    private final String requiredAuthority;
+
+    /** Step-up policy. */
+    private final StepUpProperties properties;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    @Override
+    public AuthorizationResult authorize(final Supplier&lt;? extends Authentication&gt; authentication,
+            final RequestAuthorizationContext context) {
+        final var current = authentication.get();
+        if (current == null || !current.isAuthenticated() || current.getAuthorities().stream()
+                .noneMatch(authority -&gt; requiredAuthority.equals(authority.getAuthority()))) {
+            return new AuthorizationDecision(false);
+        }
+        if (!properties.enabled() || satisfied(current)) {
+            return new AuthorizationDecision(true);
+        }
+        return new StepUpRequiredDecision();
+    }
+
+    /**
+     * Tells whether the token proves the required authentication.
+     *
+     * @param authentication the authenticated bearer token.
+     * @return {@code true} when the {@code acr} matches and {@code auth_time} is recent enough.
+     */
+    private boolean satisfied(final Authentication authentication) {
+        if (!(authentication instanceof AbstractOAuth2TokenAuthenticationToken&lt;?&gt; token)) {
+            return false;
+        }
+        final var attributes = token.getTokenAttributes();
+        if (!isAccepted(attributes.get(ACR_CLAIM))) {
+            return false;
+        }
+        final var authenticatedAt = toInstant(attributes.get(AUTH_TIME_CLAIM));
+        return authenticatedAt != null
+                &amp;&amp; !authenticatedAt.plus(properties.maxAge()).isBefore(clock.instant());
+    }
+
+    /**
+     * Tells whether an {@code acr} value is one of the configured ones. The configured {@code acr-values} is a
+     * space-separated list, like the {@code acr_values} parameter of OpenID Connect, so the token's single value must
+     * be a member of it, never equal to the whole list.
+     *
+     * @param acr the {@code acr} claim of the token.
+     * @return {@code true} when the claim is a text listed in the configured values.
+     */
+    private boolean isAccepted(final Object acr) {
+        return acr instanceof String value
+                &amp;&amp; Arrays.asList(properties.acrValues().trim().split(ACR_VALUES_SEPARATOR)).contains(value);
+    }
+
+    /**
+     * Converts an {@code auth_time} value, which is epoch seconds in a JWT or an introspection answer.
+     *
+     * @param value the claim value.
+     * @return the instant, or {@code null} when the value is missing or of an unexpected type.
+     */
+    private static Instant toInstant(final Object value) {
+        return switch (value) {
+            case Instant instant -&gt; instant;
+            case Number number -&gt; Instant.ofEpochSecond(number.longValue());
+            case null, default -&gt; null;
+        };
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@RequiredArgsConstructor
+public class StepUpAccessDeniedHandler implements AccessDeniedHandler {
+
+    /** Handler of every denial that is not a step-up requirement. */
+    private final AccessDeniedHandler delegate;
+
+    /** Step-up policy, whose values are advertised in the challenge. */
+    private final StepUpProperties properties;
+
+    @Override
+    public void handle(final HttpServletRequest request, final HttpServletResponse response,
+            final AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        if (accessDeniedException instanceof AuthorizationDeniedException denied
+                &amp;&amp; denied.getAuthorizationResult() instanceof StepUpRequiredDecision) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"insufficient_user_authentication\", "
+                    + "acr_values=\"" + properties.acrValues() + "\", max_age=\""
+                    + properties.maxAge().toSeconds() + "\"");
+            return;
+        }
+        delegate.handle(request, response, accessDeniedException);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Builds the manager that requires a recent strong authentication to delete a document.
+     *
+     * @param properties the step-up policy.
+     * @return the manager.
+     */
+    @Bean
+    StepUpAuthorizationManager stepUpAuthorizationManager(final StepUpProperties properties) {
+        return new StepUpAuthorizationManager(DELETE_AUTHORITY, properties, Clock.systemUTC());
+    }
+
+    /**
+     * Builds the handler that answers the step-up requirement with the RFC 9470 challenge and every other denial
+     * with the RFC 6750 one.
+     *
+     * @param properties the step-up policy.
+     * @return the handler.
+     */
+    @Bean
+    StepUpAccessDeniedHandler stepUpAccessDeniedHandler(final StepUpProperties properties) {
+        return new StepUpAccessDeniedHandler(new BearerTokenAccessDeniedHandler(), properties);
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_opaque_token_profile"><a class="anchor" href="#_opaque_token_profile"></a>Opaque token profile</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>With the Spring profile <code>opaque</code>, the resource server introspects tokens instead. The introspection URI and client
+credentials come from the environment variables <code>AUTH_INTROSPECTION_URI</code>, <code>INTROSPECTION_CLIENT_ID</code> and
+<code>INTROSPECTION_CLIENT_SECRET</code>, with no defaults. <code>AudienceRolesOpaqueTokenIntrospector</code> applies the same audience check
+and role mapping, so both variants behave alike.</p>
+</div>
+<div class="paragraph">
+<p>The resource server authenticates to the introspection endpoint as a client of its own, which must be registered
+first, for example through <code>POST /api/admin/clients</code>: a confidential client (say <code>resource-server</code>) with the
+<code>client_secret_basic</code> method and no redirect URI (any confidential client may call the introspection endpoint; the
+<code>client_credentials</code> grant is a convenient choice but not required); its generated secret goes into
+<code>INTROSPECTION_CLIENT_SECRET</code>, never into a file. The tokens it validates are the reference access tokens
+(<code>"accessTokenFormat": "reference"</code>) of clients whose audiences list <code>resource-server</code>: the authorization server
+stores their <code>roles</code>, <code>tenant</code> and <code>aud</code> with the authorization (see <a href="tokens-and-keys.html" class="xref page">Tokens and signing keys</a>), and the
+introspection answer carries them. The end-to-end test <code>ResourceServerEndToEndIT</code> runs this profile against the real
+authorization server.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>

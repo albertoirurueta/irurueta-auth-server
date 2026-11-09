@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Social login and identity brokering :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="social-login-federation.html">Social login and identity brokering</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/social-login-federation.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Social login and identity brokering</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>With social login the authorization server is both an authorization server and a client. Inside the user&#8217;s own
+authorization code flow (the client application asked this server for a code), the user picks Google, Microsoft Entra
+ID, Apple or GitHub on the login page; this server then runs a second authorization code flow as an OpenID Connect
+client (Google, Entra ID, Apple) or a plain OAuth 2.0 client (GitHub) of that provider, through Spring Security&#8217;s
+<code>oauth2Login(&#8230;&#8203;)</code>. The provider&#8217;s answer is resolved to a local account (an existing link, a link by verified
+e-mail, or a new account provisioned just in time), a federated factor is granted, and the original authorization
+request resumes. The client application only ever talks to this server and receives tokens whose <code>sub</code> is the local
+user name, with an <code>idp</code> claim naming the provider.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user and their browser, the client application (for example the <code>bff</code>), this authorization server
+(acting as the client of the provider) and the external identity provider.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>: a provider is enabled only when <code>authserver.social.providers.&lt;id&gt;.client-id</code> has text
+(<code>SocialProvidersCondition</code>); secrets come only from environment variables (<code>AUTHSERVER_SOCIAL_*</code>). Apple also needs
+<code>team-id</code>, <code>key-id</code> and <code>private-key</code>; Entra ID takes <code>tenant</code> and <code>allowed-tenants</code>. <code>trust-mfa</code> (default <code>false</code>)
+lets a provider&#8217;s own multi-factor sign-in count. With no provider configured there is no social bean at all.</p>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>GET /login</code> (provider buttons), <code>GET /oauth2/authorization/{registrationId}</code> (start),
+<code>/login/oauth2/code/{registrationId}</code> (callback, a <code>POST</code> for Apple&#8217;s <code>form_post</code>), <code>GET /account/identities</code> and
+<code>POST /account/identities/link</code> (explicit link), <code>GET /api/account/identities</code> and
+<code>DELETE /api/account/identities/{id}</code> (account API). The provider&#8217;s own endpoints are called server to server: the
+token endpoint, the JWKS for ID tokens and, for GitHub, <code>/user</code> and <code>/user/emails</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_brokered_sign_in"><a class="anchor" href="#_brokered_sign_in"></a>Brokered sign-in</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client sends the browser to <code>GET /oauth2/authorize</code>. Nobody is signed in, so the request is saved and the
+browser goes to <code>GET /login</code>.</p>
+</li>
+<li>
+<p><code>SocialLoginMethodFragment</code> (rendered by <code>templates/login-social.html</code>) shows one link per configured provider, to
+<code>GET /oauth2/authorization/{registrationId}</code>. <code>SocialChainCustomizer</code> enabled <code>oauth2Login</code> with the server&#8217;s own
+<code>/login</code> page, so a single provider never auto-redirects.</p>
+</li>
+<li>
+<p>Spring Security redirects the browser to the provider&#8217;s authorization endpoint with its own <code>state</code> and, for OpenID
+Connect, a <code>nonce</code>. <code>ClientRegistrationMapper</code> built the registrations from <code>SocialProperties</code>, with the redirect URI
+<code>{baseUrl}/login/oauth2/code/{registrationId}</code>. For Apple, <code>AppleAuthorizationRequestCustomizer</code> asks for
+<code>response_mode=form_post</code>.</p>
+</li>
+<li>
+<p>The user signs in at the provider, which redirects (or, for Apple, posts) back to
+<code>/login/oauth2/code/{registrationId}</code> with a code.</p>
+</li>
+<li>
+<p>This server exchanges the code at the provider&#8217;s token endpoint. Apple&#8217;s <code>client_secret</code> is an ES256 JWT built by
+<code>AppleClientSecretGenerator</code> and swapped in by <code>AppleTokenRequestCustomizer</code>. An Entra ID token is checked by
+<code>EntraIssuerValidator</code> (installed by <code>IdTokenValidatorFactory</code>) for the <code>iss</code> of its own <code>tid</code>.</p>
+</li>
+<li>
+<p><code>FederatedOidcUserService</code> (Google, Entra ID, Apple) or <code>FederatedOAuth2UserService</code> (GitHub, whose verified primary
+address comes from <code>/user/emails</code> through the <code>VerifiedEmailLookup</code> port, implemented by <code>GitHubVerifiedEmailLookup</code>)
+extracts the subject, the e-mail and whether the provider verified it (for Entra ID only <code>email_verified</code> or
+<code>xms_edov</code> count), and calls <code>FederatedAccountResolver</code>.</p>
+</li>
+<li>
+<p><code>FederatedAccountResolver</code> calls <code>ResolveFederatedLoginUseCase</code> (see <a href="#account-resolution">Account resolution</a>), then loads the account
+through <code>AccountStatusUserDetailsService</code>. Any refusal becomes the OAuth 2.0 error <code>access_denied</code>, and
+<code>FederatedAuthenticationFailureHandler</code> sends the browser to <code>/login?error</code>. <code>FederatedUserMapper</code> builds the
+principal, whose name is the local user name.</p>
+</li>
+<li>
+<p><code>FederatedAuthenticationSuccessHandler</code> asks <code>FederatedFactorSelector</code> for the factor, grants it through
+<code>FactorGrantor</code>, saves the security context and resumes the saved <code>/oauth2/authorize</code> request.</p>
+</li>
+<li>
+<p>The multi-factor policy applies as for any primary factor (see <a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a>): with
+<code>FACTOR_FEDERATED</code> a user who requires MFA is sent to <code>GET /login/second-factor</code>; with <code>FACTOR_FEDERATED_MFA</code> the
+policy is already satisfied, and because that factor is multi-factor alone (<code>AuthenticationFactor.multiFactor</code>) a
+request with <code>acr_values</code> for the multi-factor class is satisfied too. The code is then issued to the client.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Finds the local account of a sign-in with an external provider and refuses it unless that account may sign in.
+ *
+ * &lt;p&gt;The use case finds, links or provisions the account and refuses a disabled one before it links anything; the
+ * account is then loaded through the status-checking user service as well (the rules of
+ * {@code AccountStatusUserDetailsService}: a disabled, locked or expired account is refused, exactly as the password
+ * and passkey sign-ins refuse it). Every refusal is the same {@code access_denied} error, which the login chain turns
+ * into the generic failure of the login page, so the answer never says whether an account exists or why it was
+ * refused.
+ *
+ * &lt;p&gt;When the signed-in user asked to link this provider ({@link PendingIdentityLinks}), the identity is linked to
+ * that account through {@link LinkIdentityUseCase} instead: nothing is resolved by e-mail address or provisioned, and
+ * an identity that belongs to another account is refused with {@link #LINK_REFUSED}, which the failure handler sends
+ * back to the identities page.
+ */
+@RequiredArgsConstructor
+public class FederatedAccountResolver {
+
+    /** Error description of every refusal. */
+    static final String REFUSED = "The sign-in with the external provider was refused";
+
+    /** Error code of a refused link: the identity belongs to another account. */
+    public static final String LINK_REFUSED = "identity_link_refused";
+
+    /** Error description of a refused link. */
+    static final String LINK_REFUSED_DESCRIPTION = "The identity is linked to another account";
+
+    /** Use case that finds, links or provisions the account. */
+    private final ResolveFederatedLoginUseCase resolveFederatedLoginUseCase;
+
+    /** Loads the account, refusing one that may not sign in. */
+    private final UserDetailsService accountStatusUserDetailsService;
+
+    /** Use case that links an identity to the signed-in account. */
+    private final LinkIdentityUseCase linkIdentityUseCase;
+
+    /** The link markers of the explicit link flow. */
+    private final PendingIdentityLinks pendingIdentityLinks;
+
+    /**
+     * Resolves a sign-in.
+     *
+     * @param provider      the provider that authenticated the user.
+     * @param subject       the provider's stable identifier of the user.
+     * @param email         e-mail address the provider reported, or {@code null}.
+     * @param emailVerified whether the provider vouches for the address.
+     * @return the local account, which may sign in; for a link, the signed-in account.
+     * @throws OAuth2AuthenticationException if the sign-in is refused: the provider did not verify the address, the
+     *                                       address belongs to an unverified account, or the account is disabled,
+     *                                       locked or expired; or if a link is refused because the identity belongs to
+     *                                       another account.
+     */
+    public UserDetails resolve(
+            final IdentityProvider provider, final String subject, final String email, final boolean emailVerified) {
+        final var link = pendingIdentityLinks.consume(provider);
+        if (link.isPresent()) {
+            return link(link.get(), provider, subject, email);
+        }
+        try {
+            final var login = resolveFederatedLoginUseCase.execute(provider, subject, email, emailVerified);
+            return accountStatusUserDetailsService.loadUserByUsername(login.account().username());
+        } catch (final FederatedLoginRefusedException | AuthenticationException e) {
+            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED, REFUSED, null), e);
+        }
+    }
+
+    /**
+     * Links an identity to the signed-in account that asked for it.
+     *
+     * @param link     the link marker.
+     * @param provider the provider that authenticated the user.
+     * @param subject  the provider's stable identifier of the user.
+     * @param email    e-mail address the provider reported, or {@code null}.
+     * @return the signed-in account.
+     * @throws OAuth2AuthenticationException if the identity belongs to another account, or the account may no longer
+     *                                       sign in.
+     */
+    private UserDetails link(final PendingIdentityLink link, final IdentityProvider provider, final String subject,
+                             final String email) {
+        try {
+            linkIdentityUseCase.execute(link.userId(), link.username(), provider, subject, email);
+            return accountStatusUserDetailsService.loadUserByUsername(link.username());
+        } catch (final FederatedIdentityAlreadyLinkedException | AuthenticationException e) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error(LINK_REFUSED, LINK_REFUSED_DESCRIPTION, null), e);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant C as Client application
+  participant AS as Authorization server
+  participant IdP as Identity provider
+  C->>B: redirect to /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login (request saved)
+  B->>AS: GET /oauth2/authorization/google
+  AS-->>B: 302 to provider with state and nonce
+  B->>IdP: authorization request
+  IdP->>IdP: user signs in at the provider
+  IdP-->>B: 302 to /login/oauth2/code/google with code
+  B->>AS: GET /login/oauth2/code/google with code and state
+  AS->>IdP: POST token request with code and client credentials
+  IdP-->>AS: ID token and access token
+  AS->>AS: validate ID token, FederatedOidcUserService
+  AS->>AS: ResolveFederatedLoginUseCase (link, provision or refuse)
+  AS->>AS: grant FACTOR_FEDERATED or FACTOR_FEDERATED_MFA
+  AS-->>B: 302 to saved /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS->>AS: MFA policy, maybe /login/second-factor
+  AS-->>B: 302 to client redirect_uri with code
+  B->>C: code
+  C->>AS: POST /oauth2/token
+  AS-->>C: tokens with local sub, idp and amr fed</div></div>
+</div>
+<div class="sect2">
+<h3 id="account-resolution"><a class="anchor" href="#account-resolution"></a>Account resolution</h3>
+<div class="paragraph">
+<p><code>ResolveFederatedLoginUseCase</code> first takes <code>FederatedIdentityRepository.lockSubject(provider, subject)</code>, a
+PostgreSQL transaction-level advisory lock, so two concurrent first sign-ins of the same person are serialized and the
+second finds the link the first stored. Then:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>An identity already linked by <code>(provider, subject)</code> in <code>federated_identities</code> signs in to its account, if
+<code>FederatedLinkingPolicy.maySignIn</code> allows it (the account is enabled); the stored e-mail and last-use time are
+updated.</p>
+</li>
+<li>
+<p>Otherwise the provider must have verified a non-blank e-mail (<code>FederatedLinkingPolicy.mayProvision</code>); if not, the
+sign-in is refused and nothing is linked.</p>
+</li>
+<li>
+<p>An account with that e-mail is linked only when that account has verified the address too
+(<code>FederatedLinkingPolicy.mayLinkByEmail</code>) and may sign in. A pre-registered account with an unverified address is
+refused, so nobody can take it over by registering the address first.</p>
+</li>
+<li>
+<p>With no account for the address, a password-less account is provisioned just in time: its user name is the e-mail
+(or <code>&lt;provider&gt;-&lt;uuid&gt;</code> when that is taken or too long), its random password is flagged in
+<code>user_passwords.generated</code> so it does not count as a sign-in method.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Every link is audited as <code>IDENTITY_LINKED</code>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  A["Provider answer: subject, e-mail, verified flag"] --> L["lockSubject(provider, subject)"]
+  L --> B{"Identity linked for provider and subject?"}
+  B -- yes --> E1{"Account enabled?"}
+  E1 -- yes --> S["Sign in to the linked account"]
+  E1 -- no --> X["Refuse: access_denied"]
+  B -- no --> C{"Provider verified a non-blank e-mail?"}
+  C -- no --> X
+  C -- yes --> D{"Account with that e-mail exists?"}
+  D -- yes --> F{"Account verified the e-mail and is enabled?"}
+  F -- yes --> K["Link identity to that account (IDENTITY_LINKED)"]
+  F -- no --> X
+  D -- no --> P["Provision account just in time, generated password"]
+  P --> K
+  K --> S</div></div>
+</div>
+<div class="sect2">
+<h3 id="_explicit_link_from_the_identities_page"><a class="anchor" href="#_explicit_link_from_the_identities_page"></a>Explicit link from the identities page</h3>
+<div class="paragraph">
+<p>A user whose provider address differs from the account&#8217;s, or is not verified, links the provider after signing in:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>GET /account/identities</code> (<code>IdentitiesPageController</code>, guarded by <code>IdentitiesPageChainCustomizer</code> behind the MFA
+policy) lists the linked identities and one button per configured provider.</p>
+</li>
+<li>
+<p><code>POST /account/identities/link</code> (form field <code>provider</code>) stores a <code>PendingIdentityLink</code> in the session through
+<code>PendingIdentityLinks</code> (used once, valid for five minutes) and redirects to
+<code>/oauth2/authorization/{registrationId}</code>.</p>
+</li>
+<li>
+<p>When the provider answers, <code>FederatedAccountResolver</code> consumes the marker (same provider, not expired, session still
+signed in as that account) and calls <code>LinkIdentityUseCase</code> for that account instead of resolving by e-mail.</p>
+</li>
+<li>
+<p>On success <code>FederatedAuthenticationSuccessHandler</code> puts the session&#8217;s previous authentication back, grants no factor
+and redirects to <code>/account/identities?status=linked</code>. An identity linked to another account raises
+<code>FederatedIdentityAlreadyLinkedException</code>, mapped to the error <code>identity_link_refused</code>, and the browser returns to
+<code>/account/identities?status=already-linked</code> with the session unchanged.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Unlinking is on the bearer API: <code>DELETE /api/account/identities/{id}</code> (<code>IdentityController</code>) calls <code>StepUpGuard</code>
+first (see <a href="step-up.html" class="xref page">Step-up authentication</a>) and is refused with <code>409 last-sign-in-method</code> when it would remove the last
+way to sign in.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Decides which factor a federated sign-in proved: the strong one when the provider is trusted for its multi-factor
+ * authentication ({@code authserver.social.providers.&lt;id&gt;.trust-mfa}) and its upstream {@code amr} contains
+ * {@code mfa}, the ordinary one otherwise. An upstream claim the server was not told to trust is never believed.
+ */
+@RequiredArgsConstructor
+public class FederatedFactorSelector {
+
+    /** Settings of the providers, for the trust. */
+    private final SocialProperties properties;
+
+    /** Reads the upstream {@code amr}. */
+    private final FederatedUserMapper userMapper;
+
+    /**
+     * Selects the factor of a sign-in.
+     *
+     * @param token the authentication of the sign-in.
+     * @return {@link FederatedFactor#STRONG_AUTHORITY} or {@link FederatedFactor#AUTHORITY}.
+     */
+    public String authorityOf(final OAuth2AuthenticationToken token) {
+        return IdentityProvider.fromId(token.getAuthorizedClientRegistrationId())
+                .map(properties::trust)
+                .filter(trust -&gt; trust.isStrong(userMapper.upstreamAmr(Objects.requireNonNull(token.getPrincipal()))))
+                .map(trust -&gt; FederatedFactor.STRONG_AUTHORITY)
+                .orElse(FederatedFactor.AUTHORITY);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Factor: <code>FACTOR_FEDERATED</code> (<code>PRIMARY</code>) by default. <code>FACTOR_FEDERATED_MFA</code> (<code>PRIMARY_STRONG</code>) only when the provider
+has <code>trust-mfa: true</code> <strong>and</strong> its upstream <code>amr</code> contains <code>mfa</code>; an untrusted provider&#8217;s <code>amr</code> is never believed. Both
+report <code>amr</code> <code>fed</code> and are never held together.</p>
+</li>
+<li>
+<p><code>sub</code>: the local user name, never the provider&#8217;s subject.</p>
+</li>
+<li>
+<p><code>idp</code>: the registration id of the provider (<code>google</code>, <code>microsoft</code>, <code>apple</code> or <code>github</code>), written by
+<code>IdpClaimsContributor</code>.</p>
+</li>
+<li>
+<p><code>amr</code>: <code>fed</code> (by <code>MfaClaimsContributor</code>), plus <code>mfa</code> and the other factor when a second factor was presented. For
+the strong factor <code>MfaClaimsContributor</code> writes <code>fed</code> and <code>mfa</code>, then <code>IdpClaimsContributor</code> merges the upstream
+<code>amr</code> values after them, each once (for example <code>fed</code>, <code>mfa</code>, <code>pwd</code>).</p>
+</li>
+<li>
+<p><code>acr</code>: <code>urn:irurueta:acr:mfa</code> for the strong factor or after a second factor, otherwise <code>urn:irurueta:acr:pwd</code>. It is
+always written by <code>MfaClaimsContributor</code> (<code>MfaPolicy.isMultiFactor</code>); <code>IdpClaimsContributor</code> never sets it.</p>
+</li>
+<li>
+<p><code>auth_time</code>: the time the federated factor was granted (on access tokens; the framework sets it on ID tokens).</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds to the tokens of a user who signed in with an external provider the claim {@code idp} (the registration id of
+ * the provider). The {@code sub} is the local account's username, because the principal's name is (see
+ * {@link FederatedUserMapper}), so a token of a federated sign-in is indistinguishable from any other in what it says
+ * about the user.
+ *
+ * &lt;p&gt;When the provider is trusted for its multi-factor authentication and proved it (the strong factor,
+ * {@link FederatedFactor#STRONG_AUTHORITY}), the upstream {@code amr} values are added to the {@code amr} claim the
+ * {@link com.irurueta.authserver.authorization.api.web.mfa.MfaClaimsContributor} wrote (each value once, so the
+ * repeated ones of the factor and of the provider are listed once, and {@code mfa} is there exactly once). The
+ * {@code acr} is not set here: the strong factor is {@link
+ * com.irurueta.authserver.authorization.domain.mfa.AuthenticationFactor#multiFactor() multi-factor alone}, so the
+ * multi-factor contributor already wrote the multi-factor class, from the same rule the step-up checks use. The
+ * upstream {@code amr} of a provider that is not trusted is never copied: it would claim a strength the server did not
+ * accept.
+ */
+@Component
+@Order(IdpClaimsContributor.ORDER)
+@RequiredArgsConstructor
+public class IdpClaimsContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the multi-factor one, whose {@code amr} it extends. */
+    public static final int ORDER = 110;
+
+    /** Name of the claim that says which provider authenticated the user. */
+    public static final String IDP_CLAIM = "idp";
+
+    /** Reads the upstream {@code amr}. */
+    private final FederatedUserMapper userMapper;
+
+    /**
+     * Adds the claims.
+     *
+     * @param context the token context.
+     * @param claims  the claims, which this method extends.
+     */
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        if (!(context.getPrincipal() instanceof final OAuth2AuthenticationToken token)) {
+            return;
+        }
+        claims.put(IDP_CLAIM, token.getAuthorizedClientRegistrationId());
+        final var strong = token.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                .anyMatch(FederatedFactor.STRONG_AUTHORITY::equals);
+        if (!strong) {
+            return;
+        }
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var amr = new ArrayList&lt;String&gt;(existingAmr(claims));
+        final var upstream = userMapper.upstreamAmr(Objects.requireNonNull(token.getPrincipal()));
+        upstream.stream().filter(value -&gt; !amr.contains(value)).forEach(amr::add);
+        claims.put(IdTokenClaimNames.AMR, amr);
+    }
+
+    /**
+     * Reads the {@code amr} already in the claims.
+     *
+     * @param claims the claims.
+     * @return its values; empty when there is none.
+     */
+    private static List&lt;String&gt; existingAmr(final Map&lt;String, Object&gt; claims) {
+        return claims.get(IdTokenClaimNames.AMR) instanceof final List&lt;?&gt; values
+                ? values.stream().map(String::valueOf).distinct().toList() : List.of();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The provider is a WireMock fake, so no test calls a real identity provider.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>SocialLoginIT</code> (<code>auth-server/boot</code>): provisioning, linking by verified e-mail, refusal of unverified addresses and
+disabled accounts, GitHub&#8217;s verified primary address, the <code>sub</code>, <code>idp</code> and <code>amr</code> claims, the second factor for an
+untrusted provider, unlinking with step-up and the last-method rule, and the explicit link flow.</p>
+</li>
+<li>
+<p><code>SocialTrustedProviderIT</code> (<code>auth-server/boot</code>): a trusted provider reporting <code>mfa</code> skips the second factor and its
+upstream factors are reported; without <code>mfa</code> or <code>amr</code> the second factor is asked.</p>
+</li>
+<li>
+<p><code>SocialEntraMultiTenantIT</code> and <code>SocialEntraSingleTenantIT</code> (<code>auth-server/boot</code>): the Entra ID issuer and tenant
+checks.</p>
+</li>
+<li>
+<p><code>SocialLoginConfigurationIT</code> (<code>auth-server/boot</code>): which providers are enabled from the configuration.</p>
+</li>
+<li>
+<p><code>JdbcFederatedIdentityRepositoryIT</code>, <code>JdbcGeneratedPasswordRepositoryIT</code> and <code>JdbcSignInMethodsLockIT</code>
+(<code>auth-server/infrastructure/persistence</code>): the identity table, the generated-password flag and the locks.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core 1.0</a> (ID token, <code>nonce</code>, <code>amr</code>, <code>acr</code>)</p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749, The OAuth 2.0 Authorization Framework</a> (section 4.1, authorization
+code)</p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636, Proof Key for Code Exchange</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8176">RFC 8176, Authentication Method Reference Values</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/social-login-and-federation.html">Social Login and Federation</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/openid-connect.html">OpenID Connect</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/authentication-methods-2fa-and-passwordless.html">Authentication Methods: Passwordless &amp; 2FA</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../social-login.html" class="xref page">Social login (identity brokering)</a></p>
+</li>
+<li>
+<p><a href="authentication-methods.html" class="xref page">Authentication methods inside the authorization code flow</a></p>
+</li>
+<li>
+<p><a href="step-up.html" class="xref page">Step-up authentication</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+<li>
+<p><a href="openid-connect.html" class="xref page">OpenID Connect sign-in</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

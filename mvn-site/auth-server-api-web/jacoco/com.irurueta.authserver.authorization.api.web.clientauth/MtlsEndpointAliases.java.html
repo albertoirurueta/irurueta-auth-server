@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MtlsEndpointAliases.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.clientauth</a> &gt; <span class="el_source">MtlsEndpointAliases.java</span></div><h1>MtlsEndpointAliases.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.clientauth;
+
+import com.irurueta.authserver.authorization.api.web.x509.X509Properties;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.web.util.UriComponentsBuilder;
+
+/**
+ * Builds the {@code mtls_endpoint_aliases} metadata claim of RFC 8705 (section 5): the addresses of the endpoints
+ * that authenticate clients on the dedicated TLS port, the issuer's host with {@code authserver.x509.port}. Nothing
+ * is added while that port is not configured.
+ */
+@RequiredArgsConstructor
+public class MtlsEndpointAliases {
+
+    /** Name of the metadata claim. */
+    public static final String CLAIM = &quot;mtls_endpoint_aliases&quot;;
+
+    /** Scheme of the TLS port. */
+    private static final String HTTPS = &quot;https&quot;;
+
+    /** Settings of the X.509 sign-in and its dedicated port. */
+    private final X509Properties x509Properties;
+
+    /** Paths of the protocol endpoints and the configured issuer. */
+    private final AuthorizationServerSettings settings;
+
+    /**
+     * Adds the claim to a metadata document, when the TLS port is configured.
+     *
+     * @param claims receives the claim name and value.
+     */
+    public void contribute(final BiConsumer&lt;String, Object&gt; claims) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (x509Properties.port() &lt;= 0) {</span>
+<span class="fc" id="L54">            return;</span>
+        }
+<span class="fc" id="L56">        final var context = AuthorizationServerContextHolder.getContext();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        final var issuer = context == null ? settings.getIssuer() : context.getIssuer();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (issuer == null) {</span>
+<span class="fc" id="L59">            return;</span>
+        }
+<span class="fc" id="L61">        final var aliases = new LinkedHashMap&lt;String, Object&gt;();</span>
+<span class="fc" id="L62">        put(aliases, &quot;token_endpoint&quot;, issuer, settings.getTokenEndpoint());</span>
+<span class="fc" id="L63">        put(aliases, &quot;revocation_endpoint&quot;, issuer, settings.getTokenRevocationEndpoint());</span>
+<span class="fc" id="L64">        put(aliases, &quot;introspection_endpoint&quot;, issuer, settings.getTokenIntrospectionEndpoint());</span>
+<span class="fc" id="L65">        put(aliases, &quot;pushed_authorization_request_endpoint&quot;, issuer, settings.getPushedAuthorizationRequestEndpoint());</span>
+<span class="fc" id="L66">        put(aliases, &quot;device_authorization_endpoint&quot;, issuer, settings.getDeviceAuthorizationEndpoint());</span>
+<span class="fc" id="L67">        claims.accept(CLAIM, Map.copyOf(aliases));</span>
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * Adds the alias of an endpoint.
+     *
+     * @param aliases  receives the alias.
+     * @param name     metadata name of the endpoint.
+     * @param issuer   the issuer, whose host and path prefix the alias keeps.
+     * @param endpoint path of the endpoint.
+     */
+    private void put(final Map&lt;String, Object&gt; aliases, final String name, final String issuer, final String endpoint) {
+<span class="fc" id="L79">        aliases.put(name, UriComponentsBuilder.fromUriString(issuer).scheme(HTTPS).port(x509Properties.port())</span>
+<span class="fc" id="L80">                .path(endpoint).build().toUriString());</span>
+<span class="fc" id="L81">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

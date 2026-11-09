@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Authentication methods inside the authorization code flow :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="authentication-methods.html">Authentication methods inside the authorization code flow</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/authentication-methods.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Authentication methods inside the authorization code flow</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The authentication methods are not OAuth grants. They are how the user proves who they are <strong>inside</strong> the authorization
+code flow: between the client&#8217;s <code>GET /oauth2/authorize</code> and the moment the server issues the code. Every method ends
+the same way: it adds an authentication factor (a <code>FACTOR_*</code> authority stamped with the time it was presented) to the
+session, the multi-factor policy decides whether that is enough, and the saved authorization request resumes. The
+client never sees which method was used, except through the <code>amr</code>, <code>acr</code> and <code>auth_time</code> claims of the tokens.</p>
+</div>
+<div class="ulist">
+<div class="title">At a glance</div>
+<ul>
+<li>
+<p><strong>Actors</strong>: the user and their browser, the client application (for example the <code>bff</code>, see
+<a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a>), the authorization server (port 9000) and, for one-time tokens, the
+mail server or SMS gateway.</p>
+</li>
+<li>
+<p><strong>Preconditions</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Password: always on (<code>formLogin</code> in <code>SecurityConfig</code>).</p>
+</li>
+<li>
+<p>Passkeys: always on; the relying party is set with <code>authserver.passkeys.rp-id</code>, <code>rp-name</code> and <code>allowed-origins</code>.
+A passkey must first be registered from <code>GET /account/passkeys</code> by a signed-in user.</p>
+</li>
+<li>
+<p>One-time tokens: always on for e-mail; SMS needs one of the profiles <code>dev</code>, <code>test</code> (logging sender), <code>twilio</code> or
+<code>sns</code>, and a verified phone on the account.</p>
+</li>
+<li>
+<p>X.509: <code>authserver.x509.enabled=true</code> plus a transport (<code>authserver.x509.forwarded-header</code> with
+<code>trusted-proxies</code>, or <code>authserver.x509.port</code>), and a certificate bound through <code>POST /api/account/certificates</code>.</p>
+</li>
+<li>
+<p>Second factor: required when the client has <code>mfaRequired</code>, an administrator set <code>users.mfa_required</code>, or the user
+has a confirmed second factor.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Endpoints</strong>: <code>GET /login</code>, <code>POST /login</code> (password), <code>POST /webauthn/authenticate/options</code> and
+<code>POST /login/webauthn</code> (passkeys), <code>POST /ott/generate</code>, <code>GET /login/ott</code>, <code>POST /login/ott</code>,
+<code>GET /login/ott/confirm</code> (one-time tokens), <code>POST /login/x509</code> (certificate), <code>GET /login/second-factor</code>,
+<code>POST /login/second-factor/totp</code>, <code>POST /login/second-factor/ott</code>, <code>GET /login/second-factor/recovery-codes</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client sends the browser to <code>GET /oauth2/authorize</code> (with PKCE). Nobody is signed in, so the protocol chain saves
+the request and redirects to <code>GET /login</code> (<code>LoginUrlAuthenticationEntryPoint</code> in <code>SecurityConfig</code>).</p>
+</li>
+<li>
+<p><code>LoginController</code> renders <code>templates/login.html</code>: the password form plus every <code>LoginMethodFragment</code> bean
+(<code>PasskeyLoginMethodFragment</code>, <code>OttLoginMethodFragment</code>, <code>SocialLoginMethodFragment</code> when a provider is configured,
+<code>X509LoginMethodFragment</code> when X.509 is enabled).</p>
+</li>
+<li>
+<p>The user signs in with one primary method (sections below). The method&#8217;s filter adds its factor to the
+authentication, changes the session id and redirects to the saved request.</p>
+</li>
+<li>
+<p><code>GET /oauth2/authorize</code> is evaluated again. <code>MfaProtocolChainCustomizer</code> (inside the authorization endpoint
+validator) and <code>MfaLoginChainCustomizer</code> (on <code>/oauth2/consent</code>) ask <code>MfaAuthorizationManager</code>, which applies
+<code>MfaPolicy</code>. When a second factor is required and missing, <code>SecondFactorRequiredEntryPoint</code> sends the browser to
+<code>GET /login/second-factor</code> (see <a href="#second-factors">Second factors</a>).</p>
+</li>
+<li>
+<p><code>StepUpAuthorizationRequestConverter</code> checks <code>acr_values</code> and <code>max_age</code> when the client sent them (see
+<a href="step-up.html" class="xref page">Step-up authentication</a>).</p>
+</li>
+<li>
+<p>The consent page is shown if the client needs it, then the code is issued and the flow continues as described in
+<a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a>.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="password"><a class="anchor" href="#password"></a>Password</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The password form posts to <code>POST /login</code>, a Spring Security filter endpoint. <code>UserAccountUserDetailsService</code> loads the
+account and the <code>DelegatingPasswordEncoder</code> built by <code>PasswordConfiguration</code> verifies the hash: Argon2 by default, with
+bcrypt and PBKDF2 hashes still accepted and upgraded on the next successful sign-in (<code>UpgradePasswordHashUseCase</code>).
+Spring Security adds <code>FACTOR_PASSWORD</code>, which <code>PasswordFactor</code> registers as a <code>PRIMARY</code> factor with <code>amr</code> <code>pwd</code>. See
+<a href="../passwords-and-accounts.html" class="xref page">Passwords and accounts</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the password encoder: a delegating encoder whose default is Argon2, with bcrypt and PBKDF2 kept for
+     * legacy hashes.
+     *
+     * @return the delegating password encoder.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new DelegatingPasswordEncoder(DEFAULT_ENCODING_ID, Map.of(
+                DEFAULT_ENCODING_ID, Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8(),
+                BCRYPT_ENCODING_ID, new BCryptPasswordEncoder(),
+                PBKDF2_ENCODING_ID, Pbkdf2PasswordEncoder.defaultsForSpringSecurity_v5_8()));
+    }</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant AS as Authorization server
+  participant DB as Database
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login (request saved)
+  B->>AS: GET /login
+  AS-->>B: login page with password form and fragments
+  B->>AS: POST /login with username, password and CSRF token
+  AS->>DB: load account (UserAccountUserDetailsService)
+  AS->>AS: verify Argon2 hash, add FACTOR_PASSWORD
+  AS-->>B: 302 to saved /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS->>AS: MfaPolicy check
+  AS-->>B: 302 to client redirect_uri with code</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="passkeys"><a class="anchor" href="#passkeys"></a>Passkeys (WebAuthn)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The passkey button and conditional-mediation autofill come from <code>PasskeyLoginMethodFragment</code> and <code>passkeys.js</code>. The
+script asks <code>POST /webauthn/authenticate/options</code> for a challenge, runs the browser&#8217;s WebAuthn ceremony and posts the
+signed assertion to <code>POST /login/webauthn</code>. Both endpoints belong to Spring Security&#8217;s <code>http.webAuthn(&#8230;&#8203;)</code>, enabled
+by <code>PasskeyChainCustomizer</code>, whose shared <code>UserDetailsService</code> is <code>AccountStatusUserDetailsService</code>, so a disabled,
+locked or expired account is refused. <code>PasskeyFactor</code> registers <code>FACTOR_WEBAUTHN</code> as <code>PRIMARY_STRONG</code> (<code>amr</code> <code>hwk</code>): a
+passkey alone satisfies <code>MfaPolicy</code>, so no second factor is asked. See <a href="../passkeys.html" class="xref page">Passkeys (WebAuthn)</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the passkey factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor passkeyAuthenticationFactor() {
+        return new AuthenticationFactor(ID, AMR_VALUE, AUTHORITY, FactorStrength.PRIMARY_STRONG);
+    }</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant A as Authenticator
+  participant AS as Authorization server
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login
+  B->>AS: POST /webauthn/authenticate/options
+  AS-->>B: challenge and allowed credentials
+  B->>A: navigator.credentials.get with the challenge
+  A-->>B: assertion signed by the passkey
+  B->>AS: POST /login/webauthn with the assertion
+  AS->>AS: verify signature, add FACTOR_WEBAUTHN (PRIMARY_STRONG)
+  AS-->>B: redirect to saved /oauth2/authorize
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to client redirect_uri with code</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="one-time-tokens"><a class="anchor" href="#one-time-tokens"></a>E-mail or SMS code and magic link</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The form of <code>OttLoginMethodFragment</code> posts the user name, a channel (<code>email</code> or <code>sms</code>) and a kind (<code>code</code> or <code>link</code>) to
+<code>POST /ott/generate</code>, Spring Security&#8217;s <code>oneTimeTokenLogin(&#8230;&#8203;)</code> endpoint enabled by <code>OttChainCustomizer</code>.
+<code>OttRateLimitFilter</code> runs first and answers <code>429</code> when the per-address or per-identifier limit is reached. The answer
+is always the same redirect to <code>GET /login/ott</code>, whether or not the account exists, so nothing reveals accounts. The
+code is bound to the session (<code>PendingOtt</code>) and delivered after the transaction commits by <code>OttDeliveryListener</code>.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A code is typed on the <code>GET /login/ott</code> page and posted to <code>POST /login/ott</code>, verified by
+<code>OttCodeAuthenticationProvider</code> through <code>VerifyOneTimeCodeUseCase</code>.</p>
+</li>
+<li>
+<p>A magic link (e-mail only) opens <code>GET /login/ott/confirm</code>, whose button posts the token to <code>POST /login/ott</code>
+(<code>OttLinkAuthenticationProvider</code>). A <code>GET</code> never spends the token, so a mail scanner that opens the link cannot use it.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The e-mail code or link adds <code>FACTOR_OTT</code> (<code>amr</code> <code>otp</code>), the SMS code adds <code>FACTOR_OTT_SMS</code> (<code>amr</code> <code>sms</code>); both are
+<code>PRIMARY</code>, so a user who requires MFA is then asked for a second factor. See <a href="../one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Registers the one-time token methods as authentication factors. One authority cannot carry two strengths and the
+ * registry refuses two factors with the same authority, so each use of each channel is a factor of its own: the
+ * e-mail code or magic link as a sign-in ({@code FACTOR_OTT}, Spring Security's own constant) and the SMS code as a
+ * sign-in are {@link FactorStrength#PRIMARY} (they prove the possession of a mailbox or a phone, which is as strong as
+ * a password and no more), and the same two as the second factor of a user who already signed in with a primary
+ * factor are {@link FactorStrength#SECOND}. The {@code amr} values are those of RFC 8176: {@code otp} for the code or
+ * the link sent by e-mail and {@code sms} for the code sent by SMS.
+ */
+@Configuration(proxyBeanMethods = false)
+public class OttFactors {
+
+    /** RFC 8176 {@code amr} value of a one-time password sent by e-mail. */
+    public static final String EMAIL_AMR_VALUE = "otp";
+
+    /** RFC 8176 {@code amr} value of a one-time password sent by SMS. */
+    public static final String SMS_AMR_VALUE = "sms";
+
+    /** Authority of the e-mail code or magic link as a sign-in. */
+    public static final String EMAIL_AUTHORITY = FactorGrantedAuthority.OTT_AUTHORITY;
+
+    /** Authority of the SMS code as a sign-in. */
+    public static final String SMS_AUTHORITY = "FACTOR_OTT_SMS";
+
+    /** Authority of the e-mail code or magic link as a second factor. */
+    public static final String EMAIL_SECOND_FACTOR_AUTHORITY = "FACTOR_OTT_EMAIL_2FA";
+
+    /** Authority of the SMS code as a second factor. */
+    public static final String SMS_SECOND_FACTOR_AUTHORITY = "FACTOR_OTT_SMS_2FA";
+
+    /**
+     * Declares the e-mail code and magic link as a sign-in.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottEmailAuthenticationFactor() {
+        return new AuthenticationFactor("ott-email", EMAIL_AMR_VALUE, EMAIL_AUTHORITY, FactorStrength.PRIMARY);
+    }
+
+    /**
+     * Declares the SMS code as a sign-in.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottSmsAuthenticationFactor() {
+        return new AuthenticationFactor("ott-sms", SMS_AMR_VALUE, SMS_AUTHORITY, FactorStrength.PRIMARY);
+    }
+
+    /**
+     * Declares the e-mail code and magic link as a second factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottEmailSecondAuthenticationFactor() {
+        return new AuthenticationFactor("ott-email-2fa", EMAIL_AMR_VALUE, EMAIL_SECOND_FACTOR_AUTHORITY,
+                FactorStrength.SECOND);
+    }
+
+    /**
+     * Declares the SMS code as a second factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottSmsSecondAuthenticationFactor() {
+        return new AuthenticationFactor("ott-sms-2fa", SMS_AMR_VALUE, SMS_SECOND_FACTOR_AUTHORITY,
+                FactorStrength.SECOND);
+    }</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant AS as Authorization server
+  participant M as Mail server or SMS gateway
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login
+  B->>AS: POST /ott/generate with username, channel and kind
+  AS-->>B: 302 to /login/ott (same answer for unknown accounts)
+  AS-)M: after commit, send code or magic link
+  M-)B: code or link reaches the user
+  alt code
+    B->>AS: POST /login/ott with the code
+  else magic link
+    B->>AS: GET /login/ott/confirm with the token
+    AS-->>B: confirmation page with a button
+    B->>AS: POST /login/ott with the token
+  end
+  AS->>AS: verify, add FACTOR_OTT or FACTOR_OTT_SMS
+  AS-->>B: redirect to saved /oauth2/authorize</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="x509"><a class="anchor" href="#x509"></a>X.509 client certificate</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>X509LoginMethodFragment</code> renders a button whose form posts, with the CSRF token, to <code>POST /login/x509</code>. The CSRF
+filter runs before the X.509 filter, so a page of another site cannot sign a browser in with its certificate, and a
+<code>GET</code> of that path signs nobody in. The certificate arrives either through the dedicated TLS port
+(<code>X509TlsConnectorCustomizer</code>) or in a header set by a reverse proxy, which <code>ForwardedCertificateFilter</code> reads only for
+a request from <code>trusted-proxies</code>. <code>CertificatePrincipalExtractor</code> turns it into its SHA-256 fingerprint (an expired or
+not yet valid certificate yields an unreadable one), <code>X509UserDetailsService</code> maps the fingerprint to an account
+through <code>ResolveCertificateLoginUseCase</code>, and <code>X509AuthenticationSuccessHandler</code> grants <code>FACTOR_X509</code>
+(<code>PRIMARY_STRONG</code>, <code>amr</code> <code>sc</code> or <code>hwk</code> from <code>authserver.x509.amr</code>) and changes the session id. See <a href="../x509.html" class="xref page">X.509 client certificates</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Declares the certificate factor.
+     *
+     * @param properties settings of the sign-in with a certificate, which choose the reported {@code amr} value.
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor x509AuthenticationFactor(final X509Properties properties) {
+        return new AuthenticationFactor(ID, properties.amr(), AUTHORITY, FactorStrength.PRIMARY_STRONG);
+    }</code></pre>
+</div>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant P as Reverse proxy or TLS port
+  participant AS as Authorization server
+  participant DB as Database
+  B->>AS: GET /oauth2/authorize
+  AS-->>B: 302 to /login
+  B->>P: POST /login/x509 with CSRF token and client certificate
+  P->>AS: request with the certificate
+  AS->>AS: CSRF check, then fingerprint (CertificatePrincipalExtractor)
+  AS->>DB: find bound account (ResolveCertificateLoginUseCase)
+  AS->>AS: add FACTOR_X509 (PRIMARY_STRONG), new session id
+  AS-->>B: redirect to saved /oauth2/authorize</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="second-factors"><a class="anchor" href="#second-factors"></a>Second factors</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>When the policy is not satisfied, the browser lands on <code>GET /login/second-factor</code> (<code>SecondFactorController</code>, page
+<code>templates/second-factor.html</code>), which shows every <code>SecondFactorFragment</code> that applies to the user:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>TOTP</strong> (<code>TotpSecondFactorFragment</code>): the code of an authenticator app, or a recovery code, posted to
+<code>POST /login/second-factor/totp</code> and verified by <code>TotpAuthenticationProvider</code>. It adds <code>FACTOR_TOTP</code> (<code>SECOND</code>,
+<code>amr</code> <code>otp</code>). A user without a confirmed app sees the enrolment form instead; <code>ConfirmTotpAtSignInUseCase</code> confirms
+it and <code>GET /login/second-factor/recovery-codes</code> shows the recovery codes once.</p>
+</li>
+<li>
+<p><strong>One-time token</strong> (<code>OttSecondFactorFragment</code>): an e-mail code or link, or an SMS code, posted to
+<code>POST /login/second-factor/ott</code> (<code>OttSecondFactorFilter</code>). It adds <code>FACTOR_OTT_EMAIL_2FA</code> (<code>amr</code> <code>otp</code>) or
+<code>FACTOR_OTT_SMS_2FA</code> (<code>amr</code> <code>sms</code>). <code>OttSecondFactorChannels</code> allows neither the channel that signed the user in, nor
+SMS without a verified phone, nor e-mail while the user has another confirmed second factor.</p>
+</li>
+<li>
+<p><strong>Passkey</strong> (<code>PasskeySecondFactorFragment</code>): the same WebAuthn ceremony posted to <code>POST /login/webauthn</code>. Spring merges
+<code>FACTOR_WEBAUTHN</code> with <code>FACTOR_PASSWORD</code>, so <code>amr</code> becomes <code>pwd</code>, <code>hwk</code>, <code>mfa</code>.</p>
+</li>
+<li>
+<p><strong>Trusted device</strong> (<code>TrustedDeviceFilter</code>): on <code>GET /login/second-factor</code> only, a valid signed
+<code>__Host-TRUSTED-DEVICE</code> cookie grants <code>FACTOR_TRUSTED_DEVICE</code> (<code>REMEMBERED</code>) and resumes the request without a form.
+It satisfies the sign-in policy but is never reported in <code>amr</code> and never satisfies a step-up.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Every verification starts with <code>CheckSecondFactorLockoutUseCase</code> and counts failures through
+<code>RegisterSecondFactorFailureUseCase</code>, so all factors share one lockout (<code>authserver.mfa.max-failed-attempts</code>,
+<code>authserver.mfa.lockout</code>). On success the filter changes the session id, renews the CSRF token and redirects to the
+saved authorization request. See <a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a>.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  A["GET /oauth2/authorize after a primary factor"] --> B{"MFA required? (client mfaRequired, users.mfa_required or a confirmed second factor)"}
+  B -- no --> OK["Continue: consent, then code"]
+  B -- yes --> C{"MfaPolicy satisfied?"}
+  C -- "PRIMARY_STRONG factor (passkey, X.509, trusted federated)" --> OK
+  C -- "PRIMARY plus SECOND or REMEMBERED" --> OK
+  C -- "PRIMARY only" --> D["302 to /login/second-factor (request saved)"]
+  D --> E{"Trusted device cookie valid?"}
+  E -- yes --> F["Grant FACTOR_TRUSTED_DEVICE"]
+  E -- no --> G["Show fragments: TOTP, one-time token, passkey"]
+  G --> H{"Code or assertion valid and not locked out?"}
+  H -- no --> I["Count failure, show the page with an error"]
+  I --> G
+  H -- yes --> J["Grant the SECOND factor, new session id"]
+  F --> K["Resume saved /oauth2/authorize"]
+  J --> K
+  K --> OK</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>MfaClaimsContributor</code> (a <code>JwtClaimsContributor</code>) writes the claims from the factors the session holds, read through
+<code>FactorTimeline</code>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>amr</code>: the <code>amr</code> value of each reported factor in the order presented, each once, plus <code>mfa</code> when the session is
+multi-factor (<code>MfaPolicy.isMultiFactor</code>: two distinct reported factors, or one factor that is multi-factor alone).
+<code>pwd</code> (password), <code>hwk</code> (passkey), <code>otp</code> (e-mail code or link, TOTP),
+<code>sms</code> (SMS code), <code>sc</code> or <code>hwk</code> (X.509), <code>fed</code> (social login, see <a href="social-login-federation.html" class="xref page">Social login and identity brokering</a>).
+The trusted device is never reported.</p>
+</li>
+<li>
+<p><code>acr</code>: <code>urn:irurueta:acr:mfa</code> when the session is multi-factor (same rule), otherwise <code>urn:irurueta:acr:pwd</code>. A
+passkey or a certificate alone is a strong factor but proves one thing, so it is reported with the password class;
+only a trusted provider&#8217;s multi-factor sign-in (<code>FACTOR_FEDERATED_MFA</code>) is multi-factor alone.</p>
+</li>
+<li>
+<p><code>auth_time</code>: on access tokens, the time the earliest primary factor was presented (the framework sets it on ID
+tokens), so a later second factor never makes a sign-in look newer.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Adds to the access and ID tokens how the user authenticated: {@code amr} (the RFC 8176 values of the factors really
+ * presented, plus {@code mfa} when there are at least two), {@code acr} (the class of the authentication, see
+ * {@link AuthenticationContextClass}) and {@code auth_time} (the epoch second the primary factor was presented, a
+ * number per OIDC; access tokens only, because the framework sets it on ID tokens). Every value comes from the
+ * {@link FactorTimeline}, which reads the {@link org.springframework.security.core.authority.FactorGrantedAuthority}
+ * instances of the principal: authorities of an unknown factor and of a remembered (trusted) device are ignored, so a
+ * browser that skipped the second factor gets {@code amr [pwd]} and the password class. A token with no counted factor
+ * (for example of the client credentials grant) gets none of the claims.
+ */
+@Component
+@Order(MfaClaimsContributor.ORDER)
+@RequiredArgsConstructor
+public class MfaClaimsContributor implements JwtClaimsContributor {
+
+    /** Order of the contributor: after the built-in claims and the default contributors. */
+    public static final int ORDER = 100;
+
+    /** RFC 8176 {@code amr} value that tells that more than one factor was used. */
+    public static final String MULTI_FACTOR_AMR_VALUE = "mfa";
+
+    /** Reads the counted factors of the principal and their instants. */
+    private final FactorTimeline factorTimeline;
+
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+        final var principal = context.getPrincipal();
+        if (principal == null) {
+            return;
+        }
+        final var authTime = factorTimeline.authTime(principal);
+        if (authTime.isEmpty()) {
+            return;
+        }
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+        final var amr = new ArrayList&lt;String&gt;(factorTimeline.amrValues(principal));
+        final var multiFactor = factorTimeline.isMultiFactor(principal);
+        if (multiFactor) {
+            amr.add(MULTI_FACTOR_AMR_VALUE);
+        }
+        claims.put(IdTokenClaimNames.AMR, amr);
+        claims.put(IdTokenClaimNames.ACR,
+                multiFactor ? AuthenticationContextClass.MULTI_FACTOR : AuthenticationContextClass.PASSWORD);
+        // the framework sets auth_time itself on ID tokens (as a date it expects to read back on refresh)
+        if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+            claims.put(IdTokenClaimNames.AUTH_TIME, authTime.get().getEpochSecond());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Password: <code>PasswordAuthenticationIT</code>, <code>PasswordUpgradeIT</code> and <code>AuthorizationCodePkceIT</code> in <code>auth-server/boot</code>;
+<code>SignInSmokeIT</code> and <code>BffEndToEndIT</code> in <code>e2e-tests</code> (packaged jars and headless Chromium).</p>
+</li>
+<li>
+<p>Passkeys: <code>PasskeyPagesIT</code> and <code>PasskeyRegistrationIT</code> in <code>auth-server/boot</code>; <code>PasskeyEndToEndIT</code> in <code>e2e-tests</code>
+(virtual authenticator, passkey alone and password plus passkey).</p>
+</li>
+<li>
+<p>One-time tokens: <code>OttEmailCodeIT</code>, <code>OttMagicLinkIT</code>, <code>OttSmsIT</code>, <code>OttEnumerationIT</code>, <code>OttRateLimitIT</code> and
+<code>OttPagesIT</code> in <code>auth-server/boot</code>; <code>OttEndToEndIT</code> in <code>e2e-tests</code>.</p>
+</li>
+<li>
+<p>X.509: <code>X509LoginIT</code> and <code>X509TlsLoginIT</code> in <code>auth-server/boot</code>.</p>
+</li>
+<li>
+<p>Second factors: <code>TotpLoginIT</code>, <code>MfaPasswordOnlyForcedIT</code>, <code>RecoveryCodeIT</code>, <code>TrustedDeviceIT</code> and
+<code>SecondFactorLockoutIT</code> in <code>auth-server/boot</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749, The OAuth 2.0 Authorization Framework</a> (section 4.1, authorization
+code)</p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7636">RFC 7636, Proof Key for Code Exchange</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6238">RFC 6238, TOTP: Time-Based One-Time Password Algorithm</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc8176">RFC 8176, Authentication Method Reference Values</a></p>
+</li>
+<li>
+<p><a href="https://www.w3.org/TR/webauthn-3/">W3C Web Authentication, Level 3</a></p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core 1.0</a> (<code>amr</code>, <code>acr</code>, <code>auth_time</code>)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/authentication-methods-2fa-and-passwordless.html">Authentication Methods: Passwordless &amp; 2FA</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/spring-boot-authentication-methods.html">Spring Boot Authentication Methods</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+<li>
+<p><a href="step-up.html" class="xref page">Step-up authentication</a></p>
+</li>
+<li>
+<p><a href="social-login-federation.html" class="xref page">Social login and identity brokering</a></p>
+</li>
+<li>
+<p><a href="../mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a></p>
+</li>
+<li>
+<p><a href="../passwords-and-accounts.html" class="xref page">Passwords and accounts</a></p>
+</li>
+<li>
+<p><a href="../passkeys.html" class="xref page">Passkeys (WebAuthn)</a></p>
+</li>
+<li>
+<p><a href="../one-time-tokens.html" class="xref page">One-time tokens (e-mail, magic links and SMS)</a></p>
+</li>
+<li>
+<p><a href="../x509.html" class="xref page">X.509 client certificates</a></p>
+</li>
+<li>
+<p><a href="../login-and-bff.html" class="xref page">Login pages and the BFF</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

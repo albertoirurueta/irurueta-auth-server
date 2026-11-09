@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnrollTotpUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.totp</a> &gt; <span class="el_source">EnrollTotpUseCase.java</span></div><h1>EnrollTotpUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.application.totp;
+
+import com.irurueta.authserver.authorization.application.mfa.MfaProperties;
+import com.irurueta.authserver.authorization.domain.totp.SecretGenerator;
+import com.irurueta.authserver.authorization.domain.totp.TotpAlreadyEnabledException;
+import com.irurueta.authserver.authorization.domain.totp.TotpCredential;
+import com.irurueta.authserver.authorization.domain.totp.TotpCredentialRepository;
+import com.irurueta.authserver.authorization.domain.totp.TotpSecretCipher;
+import com.irurueta.authserver.authorization.domain.totp.TotpUri;
+import java.time.Clock;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+// tag::totp-enroll-use-case[]
+/**
+ * Use case that starts the enrolment of an authenticator app: it generates a secret, stores it encrypted and
+ * unconfirmed (replacing any earlier unconfirmed one) and returns the {@code otpauth://} URI to show as a QR code.
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class EnrollTotpUseCase {
+
+    /** Port that stores the TOTP credentials. */
+    private final TotpCredentialRepository totpCredentialRepository;
+
+    /** Port that encrypts the secrets at rest. */
+    private final TotpSecretCipher totpSecretCipher;
+
+    /** Generator of the shared secrets. */
+    private final SecretGenerator secretGenerator;
+
+    /** Source of the current time. */
+    private final Clock clock;
+
+    /** Multi-factor settings: the issuer shown by the authenticator app. */
+    private final MfaProperties mfaProperties;
+
+    /**
+     * Starts the enrolment.
+     *
+     * @param userId   identifier of the user.
+     * @param username name of the user, shown by the authenticator app.
+     * @return the {@code otpauth://} URI.
+     * @throws TotpAlreadyEnabledException if the user already confirmed an authenticator app.
+     */
+    public String execute(final UUID userId, final String username) {
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (totpCredentialRepository.findByUser(userId).filter(TotpCredential::confirmed).isPresent()) {</span>
+<span class="fc" id="L67">            throw new TotpAlreadyEnabledException(&quot;An authenticator app is already enabled&quot;);</span>
+        }
+<span class="fc" id="L69">        final var secret = secretGenerator.generate();</span>
+<span class="fc" id="L70">        totpCredentialRepository.save(new TotpCredential(</span>
+<span class="fc" id="L71">                userId, totpSecretCipher.encrypt(secret), false, TotpCredential.NEVER_USED, clock.instant()));</span>
+<span class="fc" id="L72">        return TotpUri.build(mfaProperties.totpIssuer(), username, secret);</span>
+    }
+}
+// end::totp-enroll-use-case[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

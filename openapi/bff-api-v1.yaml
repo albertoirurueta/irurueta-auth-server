@@ -1,0 +1,348 @@
+# Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Contract of the JSON API the BFF offers its browser front end (version 1). This file is the source of truth: the
+# Spring interfaces and DTOs implemented by bff/api/web are generated from it by openapi-generator, and
+# OpenApiDriftIT fails when the running application serves an operation or a status code this file does not
+# declare. The endpoints Spring Security answers itself are not part of it: the OAuth 2.0 login endpoints (/oauth2/**,
+# /login/**) and POST /bff/logout, which its logout filter handles. The SPA submits a form there (the CSRF token as the
+# _csrf parameter); the BFF ends its session and answers 302 to the RP-initiated logout (end_session_endpoint) of the
+# authorization server, so the id_token_hint of that URL is only seen by a top-level navigation, never by a script.
+openapi: 3.1.0
+info:
+  title: Irurueta BFF API
+  description: >-
+    JSON endpoints of the example backend for frontend. The browser is authenticated by the BFF session cookie set
+    after the OpenID Connect login against the authorization server; it never holds a token.
+  version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.txt
+servers:
+  - url: http://localhost:8080
+    description: Local development instance.
+tags:
+  - name: User
+    description: The user signed in to the BFF session
+  - name: Login
+    description: Starts the OpenID Connect login against the authorization server
+  - name: Documents
+    description: >-
+      Documents of the signed-in user, kept by the resource server. The BFF calls the resource server on the user's
+      behalf with the access token of the session, through a client generated from the resource server's own contract
+      (apis/resource-server/rest-server/resource-server-api-v1.yaml), so the token never reaches the browser.
+paths:
+  # tag::bff-user-api[]
+  /bff/user:
+    get:
+      tags: [ User ]
+      operationId: getSessionUser
+      summary: Returns the signed-in user
+      description: >-
+        Answers the user signed in to the BFF session, as UI-safe claims of its ID token. Tokens are never part of the
+        response: they stay on the server.
+      security:
+        - session: [ ]
+      responses:
+        '200':
+          description: The signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionUserResponse'
+        '401':
+          description: There is no signed-in user
+  # end::bff-user-api[]
+  # tag::bff-login-api[]
+  /bff/login:
+    get:
+      tags: [ Login ]
+      operationId: login
+      summary: Starts the login
+      description: >-
+        Redirects the browser to the OpenID Connect authorization request of the authorization server. Once the user
+        has signed in, the BFF sends the browser back to returnTo (or to the root of the application when it is
+        absent). The SPA navigates to this endpoint; it is not called through fetch.
+      security: [ ]
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: >-
+            Relative path (with an optional query string) of the SPA page to return to after the login. It must be
+            one of the paths listed in bff.login.allowed-return-paths; anything else (absolute URLs, scheme-relative
+            URLs starting with //, backslashes, control characters) is rejected to prevent open redirects.
+          schema:
+            type: string
+            maxLength: 2048
+            examples:
+              - /orders
+        - name: acrValues
+          in: query
+          required: false
+          description: >-
+            Space-separated authentication context class references the authorization server must satisfy, sent as
+            the acr_values parameter of the authorization request. The SPA copies it from the acrValues of a
+            step-up-required problem (RFC 9470) so the user signs in again with a strong enough authentication.
+            Absent, the authorization request carries no acr_values.
+          schema:
+            type: string
+            maxLength: 512
+            pattern: '^[A-Za-z0-9:._~/-]+( [A-Za-z0-9:._~/-]+)*$'
+            examples:
+              - urn:irurueta:acr:mfa
+        - name: maxAge
+          in: query
+          required: false
+          description: >-
+            Maximum age, in seconds, of the user's authentication, sent as the max_age parameter of the authorization
+            request: an older sign-in makes the authorization server ask the user to authenticate again. The SPA
+            copies it from the maxAge of a step-up-required problem. Absent, the authorization request carries no
+            max_age.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            maximum: 86400
+            examples:
+              - 300
+      responses:
+        '302':
+          description: Redirect to the authorization request of the authorization server
+          headers:
+            Location:
+              description: URL of the authorization request, /oauth2/authorization/bff
+              schema:
+                type: string
+        '400':
+          description: >-
+            returnTo is not an allowed relative path, or acrValues or maxAge is not valid
+  # end::bff-login-api[]
+  # tag::bff-documents-api[]
+  /api/documents:
+    get:
+      tags: [ Documents ]
+      operationId: listDocuments
+      summary: Lists documents
+      description: >-
+        Lists the documents of the signed-in user; an administrator sees all. The BFF asks the resource server
+        (GET /api/documents there, which needs the scope documents.read) with the access token of the session,
+        renewing it with the refresh token when it expired.
+      security:
+        - session: [ ]
+      responses:
+        '200':
+          description: The documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The access token of the session lacks the documents.read scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /api/documents/{id}:
+    delete:
+      tags: [ Documents ]
+      operationId: deleteDocument
+      summary: Deletes a document
+      description: >-
+        Deletes one of the signed-in user's documents; an administrator may delete any. The BFF asks the resource
+        server (DELETE /api/documents/{id} there, which needs the scope documents.delete and a recent strong
+        authentication) with the access token of the session. Someone else's document is answered 404, like a missing
+        one. A state-changing request: it needs the CSRF token.
+      security:
+        - session: [ ]
+          csrf: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the document.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The document was deleted.
+        '401':
+          description: >-
+            There is no signed-in session (answered by the security chain, without a body), or the session holds no
+            valid access token (type urn:problem:documents:unauthorized: the SPA signs the user in again), or the
+            resource server asks for step-up authentication (RFC 9470) because the session's sign-in is not strong or
+            recent enough (type urn:problem:documents:step-up-required, with acrValues and maxAge: the SPA sends the
+            user to GET /bff/login with those values, then retries).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: >-
+            The request lacks the CSRF token (answered by the security chain, without a body), or the access token
+            of the session lacks the documents.delete scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: The document does not exist or belongs to someone else.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  # end::bff-documents-api[]
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: __Host-SESSION
+      description: >-
+        Session cookie of the BFF (Secure, HttpOnly, SameSite=Lax, Path=/, no Domain), set after the OpenID Connect
+        login against the authorization server. Requests without a signed-in session are answered 401 instead of
+        being redirected to the login page.
+    csrf:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+      description: >-
+        CSRF protection of every state-changing request (DELETE /api/documents/{id}, for example). The BFF sets the
+        XSRF-TOKEN cookie, readable by the SPA (not HttpOnly); the SPA copies its value into this header (or, for the
+        sign-out form, which is outside this contract, into the _csrf form parameter).
+  responses:
+    Unauthorized:
+      description: >-
+        There is no signed-in session (answered by the security chain, without a body), or the session holds no
+        valid access token: there is none, or it expired and cannot be renewed, or the resource server refused it.
+        The SPA then signs the user in again.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    BadGateway:
+      description: The resource server cannot be reached or failed to answer.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    DocumentResponse:
+      type: object
+      description: A document owned by a user, as the resource server keeps it.
+      required: [ id, owner, title, content ]
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the document.
+        owner:
+          type: string
+          description: Subject of the user who owns the document.
+        title:
+          type: string
+          description: Short title of the document.
+        content:
+          type: string
+          description: Body of the document.
+    Problem:
+      type: object
+      description: >-
+        RFC 9457 problem details of a failed call to the documents, answered as application/problem+json. The
+        operations also declare them under application/json so that a client that only asks for JSON is not refused
+        with 406: it gets the status and the problem (still as application/problem+json).
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type, a URN such as urn:problem:documents:not-found.
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code of the answer.
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence. It never carries a token.
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying this occurrence, usually the request path.
+        acrValues:
+          type: string
+          description: >-
+            Only in a urn:problem:documents:step-up-required problem: the space-separated authentication context
+            class references the resource server asks for, to pass as acrValues to GET /bff/login. Absent when the
+            resource server named none.
+        maxAge:
+          type: integer
+          format: int64
+          description: >-
+            Only in a urn:problem:documents:step-up-required problem: the maximum age, in seconds, of the
+            authentication the resource server accepts, to pass as maxAge to GET /bff/login. Absent when the resource
+            server named none.
+    SessionUserResponse:
+      type: object
+      description: The user signed in to the BFF session
+      required: [ subject, roles ]
+      properties:
+        subject:
+          type: string
+          description: Identifier (OpenID Connect subject) of the signed-in user.
+          examples:
+            - demo-user
+        name:
+          type: string
+          description: Display name of the user, when the ID token carries one.
+          examples:
+            - Demo User
+        email:
+          type: string
+          description: Email address of the user, when the ID token carries one.
+          examples:
+            - demo@example.com
+        roles:
+          type: array
+          description: Roles granted to the user (empty when the ID token carries none), to adapt the UI.
+          items:
+            type: string
+          examples:
+            - [ ROLE_USER ]

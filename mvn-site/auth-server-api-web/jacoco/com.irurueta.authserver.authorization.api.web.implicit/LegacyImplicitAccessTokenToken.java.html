@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyImplicitAccessTokenToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">LegacyImplicitAccessTokenToken.java</span></div><h1>LegacyImplicitAccessTokenToken.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import java.util.List;
+import java.util.Set;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+
+/**
+ * The result of a granted legacy implicit request: the access token and what the response needs to send it to the
+ * client in the fragment of its redirect URI.
+ */
+public class LegacyImplicitAccessTokenToken extends AbstractAuthenticationToken {
+
+    /** Serial version. */
+    private static final long serialVersionUID = 1L;
+
+    /** The access token issued. */
+    private final transient OAuth2AccessToken accessToken;
+
+    /** Scopes granted. */
+    private final Set&lt;String&gt; scopes;
+
+    /** The registered redirect URI the token is sent to. */
+    private final String redirectUri;
+
+    /** State of the request, {@code null} when it had none. */
+    private final String state;
+
+    /**
+     * Creates the result.
+     *
+     * @param accessToken the access token issued.
+     * @param scopes      scopes granted.
+     * @param redirectUri the registered redirect URI.
+     * @param state       state of the request, may be {@code null}.
+     */
+    public LegacyImplicitAccessTokenToken(final OAuth2AccessToken accessToken, final Set&lt;String&gt; scopes,
+            final String redirectUri, final String state) {
+<span class="fc" id="L54">        super(List.of());</span>
+<span class="fc" id="L55">        this.accessToken = accessToken;</span>
+<span class="fc" id="L56">        this.scopes = Set.copyOf(scopes);</span>
+<span class="fc" id="L57">        this.redirectUri = redirectUri;</span>
+<span class="fc" id="L58">        this.state = state;</span>
+<span class="fc" id="L59">        setAuthenticated(true);</span>
+<span class="fc" id="L60">    }</span>
+
+    /**
+     * Returns the access token issued.
+     *
+     * @return the token.
+     */
+    public OAuth2AccessToken getAccessToken() {
+<span class="fc" id="L68">        return accessToken;</span>
+    }
+
+    /**
+     * Returns the scopes granted.
+     *
+     * @return the scopes.
+     */
+    public Set&lt;String&gt; getScopes() {
+<span class="fc" id="L77">        return scopes;</span>
+    }
+
+    /**
+     * Returns the redirect URI the token is sent to.
+     *
+     * @return the redirect URI.
+     */
+    public String getRedirectUri() {
+<span class="fc" id="L86">        return redirectUri;</span>
+    }
+
+    /**
+     * Returns the state of the request.
+     *
+     * @return the state, {@code null} when the request had none.
+     */
+    public String getState() {
+<span class="fc" id="L95">        return state;</span>
+    }
+
+    /**
+     * Returns the credentials, which a result has none of.
+     *
+     * @return an empty string.
+     */
+    @Override
+    public Object getCredentials() {
+<span class="fc" id="L105">        return &quot;&quot;;</span>
+    }
+
+    /**
+     * Returns the principal of the result: the token value is deliberately not it, so it is never logged.
+     *
+     * @return the redirect URI.
+     */
+    @Override
+    public Object getPrincipal() {
+<span class="fc" id="L115">        return redirectUri;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

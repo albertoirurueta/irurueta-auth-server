@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceClientAuthenticationProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.implicit</a> &gt; <span class="el_source">DeviceClientAuthenticationProvider.java</span></div><h1>DeviceClientAuthenticationProvider.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.implicit;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+
+/**
+ * Authenticates a public client of the device flow by its identifier: the client must be registered and must have
+ * registered the {@code none} authentication method, which is what makes it public. It accepts only the requests
+ * {@link DeviceClientAuthenticationConverter} built (a {@link DeviceClientAuthenticationToken}), so it can never stand
+ * in for the PKCE verification of another request of a public client.
+ */
+@RequiredArgsConstructor
+public class DeviceClientAuthenticationProvider implements AuthenticationProvider {
+
+    /** Reference to the standard that describes the failure. */
+    private static final String ERROR_URI = &quot;https://datatracker.ietf.org/doc/html/rfc6749#section-3.2.1&quot;;
+
+    /** Finds the registered clients. */
+    private final RegisteredClientRepository registeredClientRepository;
+
+    /**
+     * Authenticates the client.
+     *
+     * @param authentication the request of a public client of the device flow.
+     * @return the authenticated client.
+     * @throws AuthenticationException {@code invalid_client} if the client is unknown or is not a public one.
+     */
+    @Override
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
+<span class="fc" id="L53">        final var request = (DeviceClientAuthenticationToken) authentication;</span>
+<span class="fc" id="L54">        final var registeredClient = registeredClientRepository.findByClientId(request.clientId());</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (registeredClient == null) {</span>
+<span class="fc" id="L56">            throw invalidClient(&quot;client_id&quot;);</span>
+        }
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (!registeredClient.getClientAuthenticationMethods().contains(ClientAuthenticationMethod.NONE)) {</span>
+<span class="fc" id="L59">            throw invalidClient(&quot;authentication_method&quot;);</span>
+        }
+<span class="fc" id="L61">        return new OAuth2ClientAuthenticationToken(registeredClient, ClientAuthenticationMethod.NONE, null);</span>
+    }
+
+    /**
+     * Tells which requests this provider authenticates.
+     *
+     * @param authentication the type of the request.
+     * @return {@code true} for a {@link DeviceClientAuthenticationToken}.
+     */
+    @Override
+    public boolean supports(final Class&lt;?&gt; authentication) {
+<span class="fc" id="L72">        return DeviceClientAuthenticationToken.class.isAssignableFrom(authentication);</span>
+    }
+
+    /**
+     * Builds the failure.
+     *
+     * @param parameterName what failed.
+     * @return the exception.
+     */
+    private static OAuth2AuthenticationException invalidClient(final String parameterName) {
+<span class="fc" id="L82">        return new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.INVALID_CLIENT,</span>
+                &quot;Client authentication failed: &quot; + parameterName, ERROR_URI));
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

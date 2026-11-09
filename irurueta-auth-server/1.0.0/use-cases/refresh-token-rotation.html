@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Refresh token rotation and reuse detection :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Interactive (browser)</li>
+    <li><a href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/refresh-token-rotation.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Refresh token rotation and reuse detection</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A client that holds a refresh token trades it at the token endpoint for a new access token. The default clients rotate
+refresh tokens (<code>reuseRefreshTokens</code> false), so every refresh also returns a <strong>new</strong> refresh token and the old one stops
+working. Spring Authorization Server does the rotation; this repository adds reuse detection on top:
+<code>ReuseDetectingAuthorizationService</code>, a decorator of the JDBC <code>OAuth2AuthorizationService</code>, records the SHA-256 hash of
+each rotated-out refresh token in <code>consumed_refresh_tokens</code>. If one of those tokens is ever presented again, the token
+was stolen or replayed, so the whole authorization is deleted: the attacker&#8217;s token and the legitimate client&#8217;s
+current refresh and access tokens all stop working.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_at_a_glance"><a class="anchor" href="#_at_a_glance"></a>At a glance</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Item</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Actors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A confidential client holding a refresh token (in this repository the <code>bff</code>, which refreshes on behalf of the
+browser session), <code>auth-server</code>; possibly an attacker holding a copied refresh token.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bff</code>: grant <code>refresh_token</code>, <code>reuseRefreshTokens</code> false, refresh token lifetime 8 hours, access token 10 minutes
+(<code>DefaultClientDefinitions.bff</code>). Any client created with the admin API and <code>reuseRefreshTokens</code> false behaves the same.
+A public client such as <code>spa-public</code> gets no refresh token in the authorization code grant (see
+<a href="authorization-code-public-spa.html" class="xref page">Authorization code with PKCE for a public client</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Preconditions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The client was issued a refresh token by an earlier grant (for <code>bff</code>, the authorization code grant).
+Nothing to enable: the decorator is the <code>OAuth2AuthorizationService</code> bean built by <code>JdbcAuthorizationServerConfiguration</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /oauth2/token</code> with <code>grant_type=refresh_token</code>. The same detection applies to any lookup of a refresh token
+without a token type, as <code>/oauth2/revoke</code> and <code>/oauth2/introspect</code> make when no <code>token_type_hint</code> is sent.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Storage</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>oauth2_authorization</code> (Spring Authorization Server schema, <code>V100</code>) and <code>consumed_refresh_tokens</code> (<code>V230</code>, foreign key
+to <code>oauth2_authorization</code> with <code>ON DELETE CASCADE</code>).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_normal_refresh"><a class="anchor" href="#_normal_refresh"></a>Normal refresh</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The client posts <code>grant_type=refresh_token&amp;refresh_token=RT1</code> to <code>/oauth2/token</code>, authenticating as usual
+(<code>client_secret_basic</code> for <code>bff</code>). In the <code>bff</code> this happens inside <code>OAuth2AuthorizedClientManager</code>, called by
+<code>OAuth2ClientHttpRequestInterceptor</code> when the access token of the session has expired.</p>
+</li>
+<li>
+<p>Spring Authorization Server calls <code>findByToken(RT1, refresh_token)</code>. The delegate finds the authorization, so the
+decorator returns it unchanged.</p>
+</li>
+<li>
+<p>The framework checks that the refresh token belongs to this client and is active, then generates a new access token,
+a new refresh token <code>RT2</code> (rotation) and, when <code>openid</code> was granted, a new ID token.</p>
+</li>
+<li>
+<p>It calls <code>save(authorization)</code>. The decorator reads the stored version first (<code>findById</code>), saves the new one through
+the delegate and, because the refresh token value changed from <code>RT1</code> to <code>RT2</code>, inserts the hash of <code>RT1</code> with the
+authorization id into <code>consumed_refresh_tokens</code> (<code>ON CONFLICT DO NOTHING</code>).</p>
+</li>
+<li>
+<p>The client receives the new access token and <code>RT2</code>, and must drop <code>RT1</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_reuse_of_a_rotated_token"><a class="anchor" href="#_reuse_of_a_rotated_token"></a>Reuse of a rotated token</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Someone presents <code>RT1</code> again (an attacker with a copy, or a client that kept the old value).</p>
+</li>
+<li>
+<p><code>findByToken(RT1, refresh_token)</code> finds nothing in <code>oauth2_authorization</code>, because the stored authorization now
+holds <code>RT2</code>.</p>
+</li>
+<li>
+<p>The decorator hashes <code>RT1</code> and looks it up in <code>consumed_refresh_tokens</code>. It finds the authorization id, logs a warning
+(<code>A rotated refresh token was presented again; revoking the authorization &#8230;&#8203;</code>) and removes that authorization through
+the delegate. Its <code>consumed_refresh_tokens</code> rows go with it (cascade).</p>
+</li>
+<li>
+<p>The decorator returns <code>null</code>, so the token endpoint answers <code>400 invalid_grant</code>.</p>
+</li>
+<li>
+<p>When the legitimate client next refreshes with <code>RT2</code>, the authorization no longer exists and it also gets
+<code>400 invalid_grant</code>. In the <code>bff</code>, <code>RestDocumentGateway</code> reports the failed renewal as unauthorized, the SPA gets <code>401</code>
+and starts a new sign-in.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>A token that was never issued, or whose authorization was already deleted (by a previous reuse or by
+<code>ExpiredAuthorizationCleanupJob</code>), is simply unknown: <code>invalid_grant</code>, nothing revoked.</p>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant C as Client bff
+  participant X as Attacker
+  participant T as Token endpoint
+  participant S as ReuseDetectingAuthorizationService
+  participant D as oauth2_authorization and consumed_refresh_tokens
+  C->>T: grant_type=refresh_token, refresh_token=RT1
+  T->>S: findByToken RT1
+  S->>D: find authorization by RT1
+  D-->>S: authorization
+  S-->>T: authorization
+  Note over T: new access token and refresh token RT2
+  T->>S: save authorization with RT2
+  S->>D: update authorization, insert hash of RT1
+  T-->>C: 200 access_token and RT2
+  X->>T: grant_type=refresh_token, refresh_token=RT1
+  T->>S: findByToken RT1
+  S->>D: find authorization by RT1
+  D-->>S: none
+  S->>D: find hash of RT1 in consumed_refresh_tokens
+  D-->>S: authorization id
+  S->>D: delete the authorization
+  S-->>T: null
+  T-->>X: 400 invalid_grant
+  C->>T: grant_type=refresh_token, refresh_token=RT2
+  T->>S: findByToken RT2
+  S-->>T: null
+  T-->>C: 400 invalid_grant, sign in again</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["Refresh token presented"]) --> Found{"Authorization holds this refresh token?"}
+  Found -- "yes" --> Active{"Same client and token active?"}
+  Active -- "yes" --> Rotate["Issue new access and refresh token"]
+  Rotate --> Record["Record hash of the old refresh token"]
+  Record --> Ok["200 with new tokens"]
+  Active -- "no" --> Invalid["400 invalid_grant"]
+  Found -- "no" --> Consumed{"Hash in consumed_refresh_tokens?"}
+  Consumed -- "yes" --> Revoke["Delete the whole authorization"]
+  Revoke --> Invalid
+  Consumed -- "no" --> Invalid</div></div>
+<div class="paragraph">
+<p>The decorator and its table:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    @Override
+    public void save(final OAuth2Authorization authorization) {
+        final var previous = delegate.findById(authorization.getId());
+        delegate.save(authorization);
+        if (previous == null) {
+            return;
+        }
+        final var oldToken = refreshTokenValue(previous);
+        if (oldToken != null &amp;&amp; !oldToken.equals(refreshTokenValue(authorization))) {
+            jdbcClient.sql(INSERT_CONSUMED).params(hash(oldToken), authorization.getId()).update();
+        }
+    }
+
+    @Override
+    public void remove(final OAuth2Authorization authorization) {
+        delegate.remove(authorization);
+    }
+
+    @Override
+    public OAuth2Authorization findById(final String id) {
+        return delegate.findById(id);
+    }
+
+    @Override
+    public OAuth2Authorization findByToken(final String token, final OAuth2TokenType tokenType) {
+        final var authorization = delegate.findByToken(token, tokenType);
+        if (authorization != null || (tokenType != null &amp;&amp; !OAuth2TokenType.REFRESH_TOKEN.equals(tokenType))) {
+            return authorization;
+        }
+        jdbcClient.sql(FIND_CONSUMED).param(hash(token)).query(String.class).optional()
+                .map(delegate::findById)
+                .ifPresent(compromised -&gt; {
+                    log.warn("A rotated refresh token was presented again; revoking the authorization {}",
+                            compromised.getId());
+                    delegate.remove(compromised);
+                });
+        return null;
+    }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- Hashes of the refresh tokens that were rotated out of an authorization. Presenting one of them again means the
+-- token was stolen or replayed, so the authorization is revoked.
+CREATE TABLE consumed_refresh_tokens
+(
+    token_hash       varchar(64)              NOT NULL,
+    authorization_id varchar(100)             NOT NULL REFERENCES oauth2_authorization (id) ON DELETE CASCADE,
+    consumed_at      timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (token_hash)
+);
+
+CREATE INDEX ix_consumed_refresh_tokens_authorization ON consumed_refresh_tokens (authorization_id);</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The refresh response has the same shape as the authorization code response: a new <code>access_token</code> (same claims as
+before, <code>roles</code>, <code>tenant</code>, <code>aud</code>, <code>scope</code>; <code>amr</code>, <code>acr</code> and <code>auth_time</code> keep describing the original sign-in), a new
+<code>refresh_token</code>, <code>token_type</code>, <code>expires_in</code>, <code>scope</code> and, with the <code>openid</code> scope, a new <code>id_token</code>.</p>
+</div>
+<div class="paragraph">
+<p>Only hashes are stored in <code>consumed_refresh_tokens</code>, so the table cannot be used to obtain tokens. Lookups of other
+token types (access token, device and user codes) are forwarded unchanged.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code> <code>TokenFlowIT</code>: <code>refresh_whenTokenIsValid_rotatesTheRefreshToken</code> (new access and refresh token,
+one authorization) and <code>refresh_whenRotatedTokenIsReused_revokesTheAuthorization</code> (the replay is refused, the
+authorization count drops to zero and the current refresh token is refused too); also revocation of a refresh token.</p>
+</li>
+<li>
+<p><code>auth-server/infrastructure/persistence</code> <code>ReuseDetectingAuthorizationServiceIT</code>: over the JDBC service and PostgreSQL,
+a replayed rotated token revokes the authorization, and a refresh token that is not rotated records nothing.</p>
+</li>
+<li>
+<p><code>auth-server/infrastructure/persistence</code> <code>ReuseDetectingAuthorizationServiceTest</code>: unit tests of each branch (new
+authorization, rotation, unchanged token, device and user codes forwarded unchanged, consumed and never-consumed tokens).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6749#section-6">RFC 6749 §6: Refreshing an Access Token</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc9700#section-4.14">RFC 9700 §4.14: Refresh Token Protection</a></p>
+</li>
+<li>
+<p><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.3">OAuth 2.1 draft §4.3: Refresh Token Grant</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7009">RFC 7009: Token Revocation</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/access-and-refresh-tokens.html">Access &amp; Refresh Tokens</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../tokens-and-keys.html" class="xref page">Tokens and signing keys</a></p>
+</li>
+<li>
+<p><a href="../data-model.html" class="xref page">Data model</a></p>
+</li>
+<li>
+<p><a href="authorization-code-bff.html" class="xref page">Authorization code with PKCE through the BFF</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

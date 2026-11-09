@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServiceClientRegistrationMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:service-client-infrastructure-resourceserver</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.serviceclient.infrastructure.resourceserver</a> &gt; <span class="el_source">ServiceClientRegistrationMapper.java</span></div><h1>ServiceClientRegistrationMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.irurueta.authserver.serviceclient.infrastructure.resourceserver;
+
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.stereotype.Component;
+
+/**
+ * Builds the OAuth2 client registrations of the service client from its settings: one for the client credentials
+ * grant and one for the token exchange grant, which share the client's identity and authentication.
+ */
+@Component
+<span class="fc" id="L29">public class ServiceClientRegistrationMapper {</span>
+
+    /** Registration id of the client credentials grant. */
+    public static final String CLIENT_CREDENTIALS_REGISTRATION_ID = &quot;service-client&quot;;
+
+    /** Registration id of the token exchange grant. */
+    public static final String TOKEN_EXCHANGE_REGISTRATION_ID = &quot;service-client-token-exchange&quot;;
+
+    /**
+     * Builds the registration of the client credentials grant.
+     *
+     * @param properties settings of the service client.
+     * @return the registration.
+     */
+    public ClientRegistration clientCredentials(final ServiceClientAuthProperties properties) {
+<span class="fc" id="L44">        return registration(CLIENT_CREDENTIALS_REGISTRATION_ID, AuthorizationGrantType.CLIENT_CREDENTIALS, properties);</span>
+    }
+
+    /**
+     * Builds the registration of the token exchange grant.
+     *
+     * @param properties settings of the service client.
+     * @return the registration.
+     */
+    public ClientRegistration tokenExchange(final ServiceClientAuthProperties properties) {
+<span class="fc" id="L54">        return registration(TOKEN_EXCHANGE_REGISTRATION_ID, AuthorizationGrantType.TOKEN_EXCHANGE, properties);</span>
+    }
+
+    /**
+     * Builds a registration.
+     *
+     * @param registrationId id of the registration.
+     * @param grantType      grant the registration is for.
+     * @param properties     settings of the service client.
+     * @return the registration.
+     */
+    private static ClientRegistration registration(final String registrationId,
+            final AuthorizationGrantType grantType, final ServiceClientAuthProperties properties) {
+<span class="fc" id="L67">        return ClientRegistration.withRegistrationId(registrationId)</span>
+<span class="fc" id="L68">                .clientId(properties.clientId())</span>
+<span class="fc" id="L69">                .clientSecret(properties.clientSecret())</span>
+<span class="fc" id="L70">                .clientAuthenticationMethod(properties.method().getClientAuthenticationMethod())</span>
+<span class="fc" id="L71">                .authorizationGrantType(grantType)</span>
+<span class="fc" id="L72">                .tokenUri(properties.tokenUri().toString())</span>
+<span class="fc" id="L73">                .scope(properties.scopes())</span>
+<span class="fc" id="L74">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

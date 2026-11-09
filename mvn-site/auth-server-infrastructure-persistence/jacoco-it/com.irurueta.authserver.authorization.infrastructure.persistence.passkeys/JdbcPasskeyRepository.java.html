@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JdbcPasskeyRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.passkeys</a> &gt; <span class="el_source">JdbcPasskeyRepository.java</span></div><h1>JdbcPasskeyRepository.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.passkeys;
+
+import com.irurueta.authserver.authorization.domain.passkeys.Passkey;
+import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * {@link PasskeyRepository} over the {@code user_credentials} and {@code user_entities} tables that Spring Security's
+ * WebAuthn repositories own. It only reads them and renames or deletes a credential; registering one and updating its
+ * signature counter stay with the framework.
+ */
+@Repository
+@RequiredArgsConstructor
+public class JdbcPasskeyRepository implements PasskeyRepository {
+
+    /** Columns of a credential, in the order the row mapper does not depend on. */
+    private static final String COLUMNS = &quot;&quot;&quot;
+            credential_id, user_entity_user_id, label, created, last_used, signature_count, backup_eligible,
+            backup_state&quot;&quot;&quot;;
+
+    /** Query returning the user handle of an account. */
+    private static final String FIND_USER_ID_BY_USERNAME = &quot;&quot;&quot;
+            SELECT id FROM user_entities WHERE name = ?
+            &quot;&quot;&quot;;
+
+    /** Query returning the credentials of a user. */
+    private static final String FIND_BY_USER_ID = &quot;SELECT &quot; + COLUMNS + &quot;&quot;&quot;
+             FROM user_credentials WHERE user_entity_user_id = ? ORDER BY created, credential_id
+            &quot;&quot;&quot;;
+
+    /** Query returning one credential of a user. */
+    private static final String FIND_BY_ID_AND_USER_ID = &quot;SELECT &quot; + COLUMNS + &quot;&quot;&quot;
+             FROM user_credentials WHERE credential_id = ? AND user_entity_user_id = ?
+            &quot;&quot;&quot;;
+
+    /** Statement renaming a credential of a user. */
+    private static final String RENAME = &quot;&quot;&quot;
+            UPDATE user_credentials SET label = ? WHERE credential_id = ? AND user_entity_user_id = ?
+            &quot;&quot;&quot;;
+
+    /** Statement deleting a credential of a user. */
+    private static final String DELETE = &quot;&quot;&quot;
+            DELETE FROM user_credentials WHERE credential_id = ? AND user_entity_user_id = ?
+            &quot;&quot;&quot;;
+
+    /** Query telling whether an account has at least one credential. */
+    private static final String EXISTS_FOR_ACCOUNT = &quot;&quot;&quot;
+            SELECT EXISTS (SELECT 1 FROM users u JOIN user_entities e ON e.name = u.username
+            JOIN user_credentials c ON c.user_entity_user_id = e.id WHERE u.id = ?)
+            &quot;&quot;&quot;;
+
+    /** JDBC client used to run the statements. */
+    private final JdbcClient jdbcClient;
+
+    /** Maps a row to a passkey. */
+    private final PasskeyRowMapper passkeyRowMapper;
+
+    @Override
+    public Optional&lt;String&gt; findUserIdByUsername(final String username) {
+<span class="fc" id="L81">        return jdbcClient.sql(FIND_USER_ID_BY_USERNAME).param(username).query(String.class).optional();</span>
+    }
+
+    @Override
+    public List&lt;Passkey&gt; findByUserId(final String userId) {
+<span class="fc" id="L86">        return jdbcClient.sql(FIND_BY_USER_ID).param(userId).query(passkeyRowMapper).list();</span>
+    }
+
+    @Override
+    public Optional&lt;Passkey&gt; findByIdAndUserId(final String id, final String userId) {
+<span class="fc" id="L91">        return jdbcClient.sql(FIND_BY_ID_AND_USER_ID).params(id, userId).query(passkeyRowMapper).optional();</span>
+    }
+
+    @Override
+    public boolean rename(final String id, final String userId, final String label) {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        return jdbcClient.sql(RENAME).params(label, id, userId).update() &gt; 0;</span>
+    }
+
+    @Override
+    public boolean delete(final String id, final String userId) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        return jdbcClient.sql(DELETE).params(id, userId).update() &gt; 0;</span>
+    }
+
+    @Override
+    public boolean existsForAccount(final UUID accountId) {
+<span class="fc" id="L106">        return Boolean.TRUE.equals(jdbcClient.sql(EXISTS_FOR_ACCOUNT).param(accountId).query(Boolean.class).single());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

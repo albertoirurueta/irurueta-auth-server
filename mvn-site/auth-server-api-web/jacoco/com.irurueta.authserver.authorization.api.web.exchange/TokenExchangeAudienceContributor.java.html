@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenExchangeAudienceContributor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.exchange</a> &gt; <span class="el_source">TokenExchangeAudienceContributor.java</span></div><h1>TokenExchangeAudienceContributor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.api.web.exchange;
+
+import com.irurueta.authserver.authorization.api.web.tokens.IssuedTokenClaims;
+import com.irurueta.authserver.authorization.api.web.tokens.JwtClaimsContributor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenExchangeAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenClaimNames;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenContext;
+import org.springframework.stereotype.Component;
+
+// tag::exchange-claims[]
+/**
+ * Honours the {@code audience} parameter of a token exchange request, which the framework parses but ignores. The
+ * audiences of an exchanged access token are those the exchanging client may have (its
+ * {@value IssuedTokenClaims#AUDIENCES_SETTING} setting); when the request names audiences, only the ones among them
+ * are kept. An audience outside the list of the client is simply not granted, and when none of the requested ones is
+ * allowed the request is refused with {@value #INVALID_TARGET} (RFC 8693, section 2.2.2), so a narrowed request never
+ * comes back with every audience of the client. Tokens of any other grant type are not touched.
+ */
+@Component
+@Order(TokenExchangeAudienceContributor.ORDER)
+<span class="fc" id="L46">public class TokenExchangeAudienceContributor implements JwtClaimsContributor {</span>
+
+    /** Order of the contributor: after the multi-factor ({@code 100}) and identity provider ({@code 110}) ones. */
+    public static final int ORDER = 120;
+
+    /** Error code of an unacceptable target (RFC 8693, section 2.2.2), which the framework has no constant for. */
+    public static final String INVALID_TARGET = &quot;invalid_target&quot;;
+
+    @Override
+    public void contribute(final OAuth2TokenContext context, final Map&lt;String, Object&gt; claims) {
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (!OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">                || !AuthorizationGrantType.TOKEN_EXCHANGE.equals(context.getAuthorizationGrantType())</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">                || !(context.getAuthorizationGrant() instanceof OAuth2TokenExchangeAuthenticationToken exchange)</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">                || exchange.getAudiences().isEmpty()) {</span>
+<span class="fc" id="L60">            return;</span>
+        }
+<span class="fc" id="L62">        final var allowed = context.getRegisteredClient().getClientSettings()</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">                .&lt;Object&gt;getSetting(IssuedTokenClaims.AUDIENCES_SETTING) instanceof List&lt;?&gt; audiences</span>
+<span class="fc" id="L64">                ? audiences : List.of();</span>
+        // a mutable list on purpose: the authorization store only deserializes allow-listed types
+<span class="fc" id="L66">        final var granted = allowed.stream().map(String::valueOf).filter(exchange.getAudiences()::contains)</span>
+<span class="fc" id="L67">                .collect(Collectors.toCollection(ArrayList::new));</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (granted.isEmpty()) {</span>
+<span class="fc" id="L69">            throw new OAuth2AuthenticationException(new OAuth2Error(INVALID_TARGET,</span>
+                    &quot;None of the requested audiences is allowed for the client&quot;, null));
+        }
+<span class="fc" id="L72">        claims.put(OAuth2TokenClaimNames.AUD, granted);</span>
+<span class="fc" id="L73">    }</span>
+}
+// end::exchange-claims[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

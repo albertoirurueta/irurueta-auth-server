@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Dynamic client registration :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../../.."><img src="../../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="3">
+    <a class="nav-link" href="dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Irurueta Auth Server</a></li>
+    <li><a href="index.html">Use cases</a></li>
+    <li>Services and devices</li>
+    <li><a href="dynamic-client-registration.html">Dynamic client registration</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/use-cases/dynamic-client-registration.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Dynamic client registration</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>OpenID Connect Dynamic Client Registration lets a piece of software register itself as a client by posting its
+metadata to the server, instead of an administrator creating it. <code>auth-server</code> offers Spring Authorization Server&#8217;s
+registration endpoint, <code>/connect/register</code>, but only when <code>authserver.oidc.client-registration.enabled=true</code>; it is off
+by default. Even then registration is not open: the caller must present an <strong>initial access token</strong> with the scope
+<code>client.create</code>, obtained by a client that an administrator created with that scope, and each initial token can be
+used once. The normal way to manage clients in this repository is the administration API (<code>/api/admin/clients</code>, see
+<a href="../clients.html" class="xref page">Registered clients</a>), which validates every client against the domain model and supports the repository&#8217;s own
+settings; dynamic registration bypasses both.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_at_a_glance"><a class="anchor" href="#_at_a_glance"></a>At a glance</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Item</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Actors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An administrator (once), the registering software (holding the client that may create clients), <code>auth-server</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clients</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A confidential client with the grant <code>client_credentials</code> and the scope <code>client.create</code>, created through
+<code>POST /api/admin/clients</code>; the new client created by the registration.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Preconditions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>authserver.oidc.client-registration.enabled=true</code> (default <code>false</code> in <code>application.yml</code>). Then
+<code>DynamicClientRegistrationConfiguration</code> (<code>@ConditionalOnProperty</code>) declares a <code>ProtocolChainCustomizer</code> that turns on
+<code>clientRegistrationEndpoint</code> of the OIDC configurer. No profile is involved.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Endpoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST /oauth2/token</code> (<code>grant_type=client_credentials&amp;scope=client.create</code>), <code>POST /connect/register</code> (register),
+<code>GET /connect/register?client_id=&#8230;&#8203;</code> (read the registration with the registration access token, scope
+<code>client.read</code>). The discovery document advertises <code>registration_endpoint</code> only while the property is on.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The whole wiring:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">    /**
+     * Creates the customizer that turns on the client registration endpoint of the protocol chain.
+     *
+     * @return the customizer.
+     */
+    @Bean
+    public ProtocolChainCustomizer clientRegistrationProtocolChainCustomizer() {
+        return server -&gt; server.oidc(oidc -&gt; oidc.clientRegistrationEndpoint(Customizer.withDefaults()));
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_steps"><a class="anchor" href="#_steps"></a>Steps</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>An administrator creates a client with <code>POST /api/admin/clients</code>: confidential, grant <code>client_credentials</code>, scope
+<code>client.create</code>. Its generated secret is shown once in the creation response.</p>
+</li>
+<li>
+<p>The registering software obtains an initial access token: <code>POST /oauth2/token</code> with
+<code>grant_type=client_credentials&amp;scope=client.create</code>, authenticating with that client.</p>
+</li>
+<li>
+<p>It posts its metadata as JSON to <code>/connect/register</code> with <code>Authorization: Bearer &lt;initial token&gt;</code>: for example
+<code>client_name</code>, <code>redirect_uris</code>, <code>grant_types</code>, <code>token_endpoint_auth_method</code>, optionally <code>post_logout_redirect_uris</code>
+and <code>jwks_uri</code>.</p>
+</li>
+<li>
+<p>Without a bearer token the request never reaches the endpoint: the protocol chain&#8217;s entry point redirects to
+<code>/login</code>.</p>
+</li>
+<li>
+<p><code>OidcClientRegistrationAuthenticationProvider</code> finds the authorization of the initial token, requires it to be active
+and to carry <code>client.create</code>, and validates the metadata with the framework&#8217;s default validator: redirect and
+post-logout redirect URIs must have a safe scheme and no fragment, the <code>jwks_uri</code> is checked, and <strong>any <code>scope</code> in the
+request is refused</strong> (<code>invalid_scope</code>). It also checks that a signing algorithm is only given for the JWT
+authentication methods.</p>
+</li>
+<li>
+<p>The framework converts the metadata into a <code>RegisteredClient</code> (generated <code>client_id</code>, a generated secret for the
+<code>client_secret_*</code> methods, grant <code>authorization_code</code> when none is given, PKCE required and consent required),
+encodes the secret with the application&#8217;s <code>PasswordEncoder</code> and saves it through the <code>RegisteredClientRepository</code>
+bean (<code>JdbcRegisteredClientRepository</code>, table <code>oauth2_registered_client</code>).</p>
+</li>
+<li>
+<p>It issues a registration access token (scope <code>client.read</code>) for the new client and invalidates the initial access
+token, which cannot register a second client.</p>
+</li>
+<li>
+<p>The answer is <code>201 Created</code> with the client metadata, <code>client_id</code>, <code>client_secret</code> (shown only here),
+<code>registration_access_token</code> and <code>registration_client_uri</code>.</p>
+</li>
+<li>
+<p>Later the software may read its registration with <code>GET /connect/register?client_id=&#8230;&#8203;</code> and the registration access
+token.</p>
+</li>
+</ol>
+</div>
+<div class="imageblock"><div class="mermaid content" style=" ">sequenceDiagram
+  autonumber
+  participant Ad as Administrator
+  participant S as Registering software
+  participant A as auth-server
+  Ad->>A: POST /api/admin/clients with grant client_credentials and scope client.create
+  A-->>Ad: 201 with client_id and secret, shown once
+  S->>A: POST /oauth2/token grant_type=client_credentials scope=client.create
+  A-->>S: initial access token
+  S->>A: POST /connect/register with Bearer initial token and client metadata
+  Note over A: token active with client.create, metadata validated
+  A->>A: save RegisteredClient, encode secret
+  Note over A: initial token invalidated
+  A-->>S: 201 client_id, client_secret, registration_access_token, registration_client_uri
+  S->>A: GET /connect/register?client_id=... with Bearer registration token
+  A-->>S: 200 client metadata</div></div>
+<div class="imageblock"><div class="mermaid content" style=" ">flowchart TD
+  Start(["POST /connect/register"]) --> Enabled{"client-registration.enabled?"}
+  Enabled -- "no" --> NotThere["No registration endpoint on the protocol chain"]
+  Enabled -- "yes" --> Bearer{"Bearer token sent?"}
+  Bearer -- "no" --> Login["302 to /login"]
+  Bearer -- "yes" --> Active{"Token active and has client.create?"}
+  Active -- "no" --> Refused["Error: invalid_token or insufficient_scope"]
+  Active -- "yes" --> Valid{"Metadata valid and no scope requested?"}
+  Valid -- "no" --> Meta["400 invalid_redirect_uri, invalid_scope or invalid_client_metadata"]
+  Valid -- "yes" --> Created["201 client created, initial token invalidated"]</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tokens_and_claims"><a class="anchor" href="#_tokens_and_claims"></a>Tokens and claims</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The registration response carries the <code>registration_access_token</code>, a bearer token with the scope <code>client.read</code> for
+that client only. The new client&#8217;s own tokens later come from the usual grants, with one consequence of skipping
+the admin API: the registered client has none of the repository&#8217;s custom settings, in particular no
+<code>settings.client.audiences</code>, so <code>IssuedTokenClaims</code> leaves the framework&#8217;s default <code>aud</code>, the client id. Its access
+tokens therefore are not accepted by the resource server (audience <code>resource-server</code>) or by the <code>/api/**</code> chain
+(audience <code>auth-server</code>) until an administrator sets <code>audiences</code> on it with <code>PUT /api/admin/clients/{clientId}</code>. And
+because scopes are refused at registration, the client starts with no scopes.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_dynamic_registration_and_the_administration_api"><a class="anchor" href="#_dynamic_registration_and_the_administration_api"></a>Dynamic registration and the administration API</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Aspect</th>
+<th class="tableblock halign-left valign-top">Dynamic registration (<code>/connect/register</code>)</th>
+<th class="tableblock halign-left valign-top">Administration API (<code>/api/admin/clients</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Availability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Off unless <code>authserver.oidc.client-registration.enabled=true</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Always on</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Who may call</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A bearer token with scope <code>client.create</code>, used once</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A bearer token for the API audience (<code>auth-server</code>) with scope <code>admin</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Validation</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spring Authorization Server&#8217;s defaults (redirect URIs, <code>jwks_uri</code>, no scopes, auth method and algorithm)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The domain <code>ClientRegistration</code> rules: a public client requires PKCE, <code>tls_client_auth</code> needs a subject DN,
+<code>private_key_jwt</code> needs keys, <code>implicit</code> refused, private JWK material refused, and more</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Settings</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Standard client metadata only</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Also <code>audiences</code>, <code>requireConsent</code>, <code>mfaRequired</code>, token lifetimes and format, <code>reuseRefreshTokens</code>,
+<code>postLogoutRedirectUris</code>, client authentication settings</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Operations</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Register and read</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">List, read, create, update, delete (with its authorizations and consents), rotate secret</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Contract</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Framework-owned endpoint, exempt from the OpenAPI contracts</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Defined in <code>apis/auth-server/rest-server/auth-server-api-v1.yaml</code>, implemented by <code>ClientAdminController</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Both write the same <code>oauth2_registered_client</code> table through the same <code>RegisteredClientRepository</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_it_is_tested"><a class="anchor" href="#_how_it_is_tested"></a>How it is tested</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth-server/boot</code> <code>ClientAdminIT</code> (which enables the property for its context):
+<code>dynamicRegistration_whenEnabledAndTokenHasTheScope_registersAClientWithAnEncodedSecret</code> registers a client with an
+initial token from a <code>client_credentials</code> client with <code>client.create</code> and checks that the stored secret is encoded;
+<code>dynamicRegistration_whenThereIsNoToken_isRejected</code> checks the redirect without a token.</p>
+</li>
+<li>
+<p><code>auth-server/api/web</code> <code>DynamicClientRegistrationConfigurationTest</code>: the customizer turns on the endpoint.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_specifications"><a class="anchor" href="#_specifications"></a>Specifications</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-registration-1_0.html">OpenID Connect Dynamic Client Registration 1.0</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7591">RFC 7591: OAuth 2.0 Dynamic Client Registration Protocol</a>, in particular
+<a href="https://www.rfc-editor.org/rfc/rfc7591#section-3">§3 Client Registration Endpoint</a></p>
+</li>
+<li>
+<p><a href="https://www.rfc-editor.org/rfc/rfc7592">RFC 7592: OAuth 2.0 Dynamic Client Registration Management Protocol</a>
+(only reading is offered)</p>
+</li>
+<li>
+<p><a href="https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata">OpenID Connect Discovery §3: <code>registration_endpoint</code></a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_further_reading"><a class="anchor" href="#_further_reading"></a>Further reading</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/discovery-metadata-and-client-registration.html">Discovery, Metadata &amp; Client Registration</a></p>
+</li>
+<li>
+<p><a href="https://www.irurueta.com/backend/oauth/security-best-practices.html">Security Best Practices</a></p>
+</li>
+<li>
+<p><a href="../clients.html" class="xref page">Registered clients</a></p>
+</li>
+<li>
+<p><a href="../tokens-and-keys.html" class="xref page">Tokens and signing keys</a></p>
+</li>
+<li>
+<p><a href="openid-connect.html" class="xref page">OpenID Connect sign-in</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+<script src="../../../_/js/vendor/lunr.js"></script>
+<script src="../../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../../.." data-snippet-length="100" data-stylesheet="../../../_/css/search.css"></script>
+<script async src="../../../search-index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>X509LoginMethodFragment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-api-web</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.api.web.x509</a> &gt; <span class="el_source">X509LoginMethodFragment.java</span></div><h1>X509LoginMethodFragment.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.api.web.x509;
+
+import com.irurueta.authserver.authorization.api.web.login.LoginMethodFragment;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.util.UriComponentsBuilder;
+
+// tag::x509-login-method-fragment[]
+/**
+ * Contributes the sign-in with a client certificate to the login page: a form with one button that posts, with the
+ * CSRF token, to {@code POST /login/x509}. The template reads {@link #action()} through this bean, because where the
+ * form posts depends on the transport:
+ * &lt;ul&gt;
+ *     &lt;li&gt;with a proxy that forwards the certificate, the proxy fronts the whole application, so the form posts to the
+ *     relative path, on the origin of the page;&lt;/li&gt;
+ *     &lt;li&gt;with only the dedicated TLS port, the certificate is requested by that port alone, so a page served on any
+ *     other port posts to the same host on that port over {@code https}; a page already served on that port posts to
+ *     the relative path.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * The session cookie and the CSRF token stay valid on the other port (cookies belong to a host, not to a port), but a
+ * browser only sends a cookie with a {@code SameSite} restriction on a post between pages of the same site, and it
+ * counts {@code http} and {@code https} as different sites: the main port must be served over {@code https} too, or
+ * the login page must be opened on the TLS port. The bean only exists while the sign-in with a certificate is enabled.
+ */
+public class X509LoginMethodFragment implements LoginMethodFragment {
+
+    /** Position of the certificate sign-in in the login page: after the social one, before the one-time tokens. */
+    public static final int ORDER = 260;
+
+    /** Scheme of the dedicated TLS port. */
+    private static final String HTTPS = &quot;https&quot;;
+
+    /** Settings, which tell the transports and the TLS port. */
+    private final X509Properties properties;
+
+    /**
+     * Creates the fragment.
+     *
+     * @param properties settings of the sign-in with a certificate.
+     */
+<span class="fc" id="L57">    public X509LoginMethodFragment(final X509Properties properties) {</span>
+<span class="fc" id="L58">        this.properties = properties;</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * Gets the template that holds the fragment.
+     *
+     * @return {@code login-x509}.
+     */
+    @Override
+    public String templateName() {
+<span class="fc" id="L68">        return &quot;login-x509&quot;;</span>
+    }
+
+    /**
+     * Gets the fragment of the template.
+     *
+     * @return {@code login}.
+     */
+    @Override
+    public String fragmentName() {
+<span class="fc" id="L78">        return &quot;login&quot;;</span>
+    }
+
+    /**
+     * Gets the position of the fragment.
+     *
+     * @return {@link #ORDER}.
+     */
+    @Override
+    public int order() {
+<span class="fc" id="L88">        return ORDER;</span>
+    }
+
+    /**
+     * Gets the address the form of the page being rendered posts to.
+     *
+     * @return the address of the sign-in request for the current request; the relative path when there is none.
+     */
+    public String action() {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if (RequestContextHolder.getRequestAttributes() instanceof final ServletRequestAttributes attributes) {</span>
+<span class="fc" id="L98">            return action(attributes.getRequest());</span>
+        }
+<span class="fc" id="L100">        return X509ChainCustomizer.LOGIN_PATH;</span>
+    }
+
+    /**
+     * Gets the address the form of a page posts to.
+     *
+     * @param request the request of the page.
+     * @return the relative path (with the context path) when a proxy forwards the certificate, when there is no TLS
+     *         port or when the page is served on it; otherwise the absolute address on the TLS port of the same host.
+     */
+    public String action(final HttpServletRequest request) {
+<span class="fc" id="L111">        final var path = request.getContextPath() + X509ChainCustomizer.LOGIN_PATH;</span>
+<span class="fc bfc" id="L112" title="All 4 branches covered.">        if (properties.forwardedEnabled() || !properties.tlsEnabled()</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">                || request.getLocalPort() == properties.port()) {</span>
+<span class="fc" id="L114">            return path;</span>
+        }
+<span class="fc" id="L116">        return UriComponentsBuilder.newInstance().scheme(HTTPS).host(request.getServerName())</span>
+<span class="fc" id="L117">                .port(properties.port()).path(path).toUriString();</span>
+    }
+}
+// end::x509-login-method-fragment[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

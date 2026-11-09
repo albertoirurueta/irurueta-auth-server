@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LockSignInMethodsUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-application</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.application.social</a> &gt; <span class="el_source">LockSignInMethodsUseCase.java</span></div><h1>LockSignInMethodsUseCase.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.irurueta.authserver.authorization.application.social;
+
+import com.irurueta.authserver.authorization.domain.passkeys.PasskeyRepository;
+import com.irurueta.authserver.authorization.domain.social.FederatedIdentityRepository;
+import com.irurueta.authserver.authorization.domain.social.GeneratedPasswordRepository;
+import com.irurueta.authserver.authorization.domain.social.SignInMethods;
+import com.irurueta.authserver.authorization.domain.social.SignInMethodsLock;
+import com.irurueta.authserver.authorization.domain.x509.CertificateBindingRepository;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+// tag::social-lock-sign-in-methods[]
+/**
+ * Use case that locks the sign-in methods of an account for the rest of the caller's transaction and counts them: a
+ * password its owner knows (not a generated one), the linked identities, a passkey and the bound certificates. Every
+ * use case that removes a sign-in method starts with it, so two concurrent removals of the same account are serialized
+ * and the second one counts what the first left. It only runs inside the caller's transaction, which holds the lock.
+ */
+@Service
+@Transactional(propagation = Propagation.MANDATORY)
+@RequiredArgsConstructor
+public class LockSignInMethodsUseCase {
+
+    /** Port that serializes the removals of an account. */
+    private final SignInMethodsLock signInMethodsLock;
+
+    /** Port that stores the links. */
+    private final FederatedIdentityRepository federatedIdentityRepository;
+
+    /** Port that remembers the accounts that only hold a generated password. */
+    private final GeneratedPasswordRepository generatedPasswordRepository;
+
+    /** Port that reads the passkeys. */
+    private final PasskeyRepository passkeyRepository;
+
+    /** Port that reads the bound certificates. */
+    private final CertificateBindingRepository certificateBindingRepository;
+
+    /**
+     * Locks the sign-in methods of an account and counts them.
+     *
+     * @param userId identifier of the account.
+     * @return the ways the account can sign in now, counted once the lock is held.
+     */
+    public SignInMethods execute(final UUID userId) {
+<span class="fc" id="L64">        signInMethodsLock.lock(userId);</span>
+<span class="fc" id="L65">        return new SignInMethods(</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">                !generatedPasswordRepository.isGenerated(userId),</span>
+<span class="fc" id="L67">                federatedIdentityRepository.countByUser(userId),</span>
+<span class="fc" id="L68">                passkeyRepository.existsForAccount(userId),</span>
+<span class="fc" id="L69">                certificateBindingRepository.findByUser(userId).size());</span>
+    }
+}
+// end::social-lock-sign-in-methods[]
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

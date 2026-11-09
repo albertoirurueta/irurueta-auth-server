@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegisteredClientMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">com.irurueta.authserver:auth-server-infrastructure-persistence</a> &gt; <a href="index.source.html" class="el_package">com.irurueta.authserver.authorization.infrastructure.persistence.clients</a> &gt; <span class="el_source">RegisteredClientMapper.java</span></div><h1>RegisteredClientMapper.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2026 Alberto Irurueta Carro (alberto@irurueta.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.irurueta.authserver.authorization.infrastructure.persistence.clients;
+
+import com.irurueta.authserver.authorization.domain.clients.ClientRegistration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.jose.jws.JwsAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
+/**
+ * Maps the domain {@link ClientRegistration} onto Spring Authorization Server's {@link RegisteredClient} and back.
+ * The audiences, which the framework has no field for, travel as the {@value #AUDIENCES_SETTING} custom client
+ * setting.
+ */
+@Component
+<span class="fc" id="L40">public class RegisteredClientMapper {</span>
+
+    /** Name of the custom client setting that holds the audiences of the access tokens issued to the client. */
+    public static final String AUDIENCES_SETTING = &quot;settings.client.audiences&quot;;
+
+    /**
+     * Name of the custom client setting that makes every user of the client complete a second factor. It is only
+     * written and read here: everybody else asks {@code ClientRegistration.mfaRequired()} through the client port.
+     */
+    public static final String MFA_REQUIRED_SETTING = &quot;settings.client.mfa.required&quot;;
+
+    /**
+     * Name of the custom client setting that holds the client's registered public JWK set as JSON, used to verify
+     * {@code private_key_jwt} assertions and self-signed certificates.
+     */
+    public static final String JWKS_SETTING = &quot;settings.client.jwks&quot;;
+
+    /** Authentication method that marks a public client. */
+<span class="fc" id="L58">    private static final String AUTH_METHOD_NONE = ClientAuthenticationMethod.NONE.getValue();</span>
+
+    /**
+     * Maps a registration to a registered client.
+     *
+     * @param registration the registration.
+     * @param id           internal identifier of the registered client.
+     * @param issuedAt     instant the client identifier was issued.
+     * @param secret       encoded secret, or {@code null}.
+     * @return the registered client.
+     * @throws IllegalArgumentException if the token endpoint signing algorithm is not a JWS signature algorithm.
+     */
+    public RegisteredClient toRegisteredClient(
+            final ClientRegistration registration, final String id, final Instant issuedAt, final String secret) {
+<span class="fc" id="L72">        final var clientSettings = ClientSettings.builder()</span>
+<span class="fc" id="L73">                .requireProofKey(registration.requireProofKey())</span>
+<span class="fc" id="L74">                .requireAuthorizationConsent(registration.requireConsent())</span>
+<span class="fc" id="L75">                .setting(AUDIENCES_SETTING, new ArrayList&lt;&gt;(registration.audiences()))</span>
+<span class="fc" id="L76">                .setting(MFA_REQUIRED_SETTING, registration.mfaRequired());</span>
+        // tag::clients-auth-settings[]
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (registration.jwkSetUrl() != null) {</span>
+<span class="fc" id="L79">            clientSettings.jwkSetUrl(registration.jwkSetUrl());</span>
+        }
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (registration.jwks() != null) {</span>
+<span class="fc" id="L82">            clientSettings.setting(JWKS_SETTING, registration.jwks());</span>
+        }
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (registration.tokenEndpointSigningAlgorithm() != null) {</span>
+<span class="fc" id="L85">            clientSettings.tokenEndpointAuthenticationSigningAlgorithm(</span>
+<span class="fc" id="L86">                    signingAlgorithmOf(registration.tokenEndpointSigningAlgorithm()));</span>
+        }
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (registration.tlsClientAuthSubjectDn() != null) {</span>
+<span class="fc" id="L89">            clientSettings.x509CertificateSubjectDN(registration.tlsClientAuthSubjectDn());</span>
+        }
+        // end::clients-auth-settings[]
+<span class="fc" id="L92">        final var builder = RegisteredClient.withId(id)</span>
+<span class="fc" id="L93">                .clientId(registration.clientId())</span>
+<span class="fc" id="L94">                .clientIdIssuedAt(issuedAt)</span>
+<span class="fc" id="L95">                .clientSecret(secret)</span>
+<span class="fc" id="L96">                .clientName(registration.name())</span>
+<span class="fc" id="L97">                .clientAuthenticationMethods(methods -&gt; registration.authMethods()</span>
+<span class="fc" id="L98">                        .forEach(method -&gt; methods.add(new ClientAuthenticationMethod(method))))</span>
+<span class="fc" id="L99">                .authorizationGrantTypes(types -&gt; registration.grantTypes()</span>
+<span class="fc" id="L100">                        .forEach(type -&gt; types.add(new AuthorizationGrantType(type))))</span>
+<span class="fc" id="L101">                .redirectUris(uris -&gt; uris.addAll(registration.redirectUris()))</span>
+<span class="fc" id="L102">                .postLogoutRedirectUris(uris -&gt; uris.addAll(registration.postLogoutRedirectUris()))</span>
+<span class="fc" id="L103">                .scopes(scopes -&gt; scopes.addAll(registration.scopes()))</span>
+<span class="fc" id="L104">                .clientSettings(clientSettings.build())</span>
+                // tag::tokens-settings[]
+<span class="fc" id="L106">                .tokenSettings(TokenSettings.builder()</span>
+<span class="fc" id="L107">                        .accessTokenTimeToLive(registration.accessTokenTtl())</span>
+<span class="fc" id="L108">                        .refreshTokenTimeToLive(registration.refreshTokenTtl())</span>
+<span class="fc" id="L109">                        .accessTokenFormat(new OAuth2TokenFormat(registration.accessTokenFormat()))</span>
+<span class="fc" id="L110">                        .reuseRefreshTokens(registration.reuseRefreshTokens())</span>
+<span class="fc" id="L111">                        .x509CertificateBoundAccessTokens(registration.certificateBoundAccessTokens())</span>
+<span class="fc" id="L112">                        .build());</span>
+                // end::tokens-settings[]
+<span class="fc" id="L114">        return builder.build();</span>
+    }
+
+    /**
+     * Maps a registered client to a registration. The framework keeps these collections as sets, so they are
+     * returned sorted to make the result deterministic. A client is confidential unless it authenticates with
+     * {@code none}.
+     *
+     * @param client the registered client.
+     * @return the registration.
+     */
+    public ClientRegistration toRegistration(final RegisteredClient client) {
+<span class="fc" id="L126">        final var authMethods = client.getClientAuthenticationMethods().stream()</span>
+<span class="fc" id="L127">                .map(ClientAuthenticationMethod::getValue).sorted().toList();</span>
+<span class="fc" id="L128">        final var settings = client.getClientSettings();</span>
+<span class="fc" id="L129">        final var tokenSettings = client.getTokenSettings();</span>
+<span class="fc" id="L130">        return new ClientRegistration(client.getClientId(), client.getClientName(),</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">                !authMethods.contains(AUTH_METHOD_NONE), authMethods,</span>
+<span class="fc" id="L132">                client.getAuthorizationGrantTypes().stream().map(AuthorizationGrantType::getValue).sorted().toList(),</span>
+<span class="fc" id="L133">                client.getRedirectUris().stream().sorted().toList(), client.getScopes().stream().sorted().toList(),</span>
+<span class="fc" id="L134">                settings.isRequireProofKey(), audiencesOf(settings), tokenSettings.getAccessTokenTimeToLive(),</span>
+<span class="fc" id="L135">                tokenSettings.getRefreshTokenTimeToLive(), tokenSettings.getAccessTokenFormat().getValue(),</span>
+<span class="fc" id="L136">                tokenSettings.isReuseRefreshTokens(),</span>
+<span class="fc" id="L137">                client.getPostLogoutRedirectUris().stream().sorted().toList(),</span>
+<span class="fc" id="L138">                settings.isRequireAuthorizationConsent(), mfaRequiredOf(settings), settings.getJwkSetUrl(),</span>
+<span class="fc" id="L139">                jwksOf(settings), signingAlgorithmNameOf(settings), settings.getX509CertificateSubjectDN(),</span>
+<span class="fc" id="L140">                tokenSettings.isX509CertificateBoundAccessTokens());</span>
+    }
+
+    /**
+     * Reads the audiences custom setting.
+     *
+     * @param settings client settings.
+     * @return the audiences; empty when the setting is absent (the registration then defaults to the client id).
+     */
+    public List&lt;String&gt; audiencesOf(final ClientSettings settings) {
+<span class="fc" id="L150">        final var value = settings.getSetting(AUDIENCES_SETTING);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        if (value instanceof List&lt;?&gt; audiences) {</span>
+<span class="fc" id="L152">            return audiences.stream().map(String::valueOf).toList();</span>
+        }
+<span class="fc" id="L154">        return List.of();</span>
+    }
+
+    /**
+     * Reads the second-factor custom setting.
+     *
+     * @param settings client settings.
+     * @return {@code true} only when the setting is present and true.
+     */
+    public boolean mfaRequiredOf(final ClientSettings settings) {
+<span class="fc" id="L164">        return Boolean.TRUE.equals(settings.getSetting(MFA_REQUIRED_SETTING));</span>
+    }
+
+    /**
+     * Reads the registered JWK set custom setting.
+     *
+     * @param settings client settings.
+     * @return the JWK set JSON, or {@code null} when the setting is absent.
+     */
+    public String jwksOf(final ClientSettings settings) {
+<span class="fc" id="L174">        final var value = settings.getSetting(JWKS_SETTING);</span>
+<span class="fc bfc" id="L175" title="All 4 branches covered.">        return value instanceof String jwks &amp;&amp; StringUtils.hasText(jwks) ? jwks : null;</span>
+    }
+
+    /**
+     * Reads the token endpoint authentication signing algorithm.
+     *
+     * @param settings client settings.
+     * @return the algorithm name, or {@code null} when none is set.
+     */
+    private String signingAlgorithmNameOf(final ClientSettings settings) {
+<span class="fc" id="L185">        final JwsAlgorithm algorithm = settings.getTokenEndpointAuthenticationSigningAlgorithm();</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        return algorithm == null ? null : algorithm.getName();</span>
+    }
+
+    /**
+     * Resolves a JWS signature algorithm by name.
+     *
+     * @param name the algorithm name, for example {@code RS256}.
+     * @return the algorithm.
+     * @throws IllegalArgumentException if the name is not a JWS signature algorithm.
+     */
+    private SignatureAlgorithm signingAlgorithmOf(final String name) {
+<span class="fc" id="L197">        final var algorithm = SignatureAlgorithm.from(name);</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (algorithm == null) {</span>
+<span class="fc" id="L199">            throw new IllegalArgumentException(&quot;unsupported token endpoint signing algorithm: &quot; + name);</span>
+        }
+<span class="fc" id="L201">        return algorithm;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

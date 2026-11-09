@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>One-time tokens (e-mail, magic links and SMS) :: Irurueta Auth Server</title>
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+<link rel="icon" type="image/svg+xml" href="../../_/img/logo.svg">
+  </head>
+  <body class="article">
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="../.."><img src="../../_/img/logo.svg" alt="Irurueta Auth Server" class="navbar-brand-logo">Irurueta Auth Server</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs">
+        </div>
+      </div>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu" style="display: none;">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="irurueta-auth-server" data-version="1.0.0">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Irurueta Auth Server</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Irurueta Auth Server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="architecture.html">Architecture</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="data-model.html">Data model</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passwords-and-accounts.html">Passwords and accounts</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="tokens-and-keys.html">Tokens and signing keys</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="clients.html">Registered clients</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="login-and-bff.html">Login pages and the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="mfa-and-step-up.html">Multi-factor authentication and step-up</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="passkeys.html">Passkeys (WebAuthn)</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="social-login.html">Social login (identity brokering)</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="x509.html">X.509 client certificates</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="device-grant.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="client-credentials.html">Client credentials and service-to-service calls</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="legacy-implicit.html">Implicit flow (legacy demo) and PAR</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="resource-server.html">Resource server</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="use-cases/index.html">Use cases</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Interactive (browser)</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-bff.html">Authorization code with PKCE through the BFF</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authorization-code-public-spa.html">Authorization code with PKCE for a public client</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/authentication-methods.html">Authentication methods inside the authorization code flow</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/step-up.html">Step-up authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/social-login-federation.html">Social login and identity brokering</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/openid-connect.html">OpenID Connect sign-in</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/refresh-token-rotation.html">Refresh token rotation and reuse detection</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/logout.html">Logout</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/pushed-authorization-requests.html">Pushed authorization requests</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/legacy-implicit.html">Legacy implicit flow</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Services and devices</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-credentials.html">Client credentials</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/client-authentication.html">Client authentication</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/sender-constrained-tokens.html">Sender-constrained tokens</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/token-exchange.html">Token exchange</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/device-authorization.html">Device authorization grant</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/dynamic-client-registration.html">Dynamic client registration</a>
+  </li>
+  <li class="nav-item" data-depth="3">
+    <a class="nav-link" href="use-cases/resource-server-token-validation.html">Resource server token validation</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="configuration.html">Configuration</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="installation.html">Installation</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="reference.html">Reference</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Irurueta Auth Server</span>
+    <span class="version">1.0.0</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Irurueta Auth Server</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">1.0.0</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Irurueta Auth Server</a></li>
+    <li><a href="one-time-tokens.html">One-time tokens (e-mail, magic links and SMS)</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="https://github.com/albertoirurueta/irurueta-auth-server/edit/main/docs/modules/ROOT/pages/one-time-tokens.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">One-time tokens (e-mail, magic links and SMS)</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documentation was generated with the assistance of AI. Please report any inaccuracies.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>A one-time token is a short-lived secret sent over a channel the user controls: an e-mail code, a magic link or an SMS
+code. It works as a passwordless primary sign-in and as a second factor. The framework mechanism is Spring Security&#8217;s
+<code>http.oneTimeTokenLogin(&#8230;&#8203;)</code> (<code>POST /ott/generate</code>, <code>POST /login/ott</code>); this server adds the numeric code, the
+factors, the SMS gateways, the cost control and the pages.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_factors"><a class="anchor" href="#_factors"></a>Factors</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>OttFactors</code> registers four factors. The second-factor variants are separate authorities, so a code used to sign in is
+never also counted as the second factor. See <a href="mfa-and-step-up.html" class="xref page">Multi-factor authentication and step-up</a> for how the policy, <code>amr</code> and step-up use them.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Registers the one-time token methods as authentication factors. One authority cannot carry two strengths and the
+ * registry refuses two factors with the same authority, so each use of each channel is a factor of its own: the
+ * e-mail code or magic link as a sign-in ({@code FACTOR_OTT}, Spring Security's own constant) and the SMS code as a
+ * sign-in are {@link FactorStrength#PRIMARY} (they prove the possession of a mailbox or a phone, which is as strong as
+ * a password and no more), and the same two as the second factor of a user who already signed in with a primary
+ * factor are {@link FactorStrength#SECOND}. The {@code amr} values are those of RFC 8176: {@code otp} for the code or
+ * the link sent by e-mail and {@code sms} for the code sent by SMS.
+ */
+@Configuration(proxyBeanMethods = false)
+public class OttFactors {
+
+    /** RFC 8176 {@code amr} value of a one-time password sent by e-mail. */
+    public static final String EMAIL_AMR_VALUE = "otp";
+
+    /** RFC 8176 {@code amr} value of a one-time password sent by SMS. */
+    public static final String SMS_AMR_VALUE = "sms";
+
+    /** Authority of the e-mail code or magic link as a sign-in. */
+    public static final String EMAIL_AUTHORITY = FactorGrantedAuthority.OTT_AUTHORITY;
+
+    /** Authority of the SMS code as a sign-in. */
+    public static final String SMS_AUTHORITY = "FACTOR_OTT_SMS";
+
+    /** Authority of the e-mail code or magic link as a second factor. */
+    public static final String EMAIL_SECOND_FACTOR_AUTHORITY = "FACTOR_OTT_EMAIL_2FA";
+
+    /** Authority of the SMS code as a second factor. */
+    public static final String SMS_SECOND_FACTOR_AUTHORITY = "FACTOR_OTT_SMS_2FA";
+
+    /**
+     * Declares the e-mail code and magic link as a sign-in.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottEmailAuthenticationFactor() {
+        return new AuthenticationFactor("ott-email", EMAIL_AMR_VALUE, EMAIL_AUTHORITY, FactorStrength.PRIMARY);
+    }
+
+    /**
+     * Declares the SMS code as a sign-in.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottSmsAuthenticationFactor() {
+        return new AuthenticationFactor("ott-sms", SMS_AMR_VALUE, SMS_AUTHORITY, FactorStrength.PRIMARY);
+    }
+
+    /**
+     * Declares the e-mail code and magic link as a second factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottEmailSecondAuthenticationFactor() {
+        return new AuthenticationFactor("ott-email-2fa", EMAIL_AMR_VALUE, EMAIL_SECOND_FACTOR_AUTHORITY,
+                FactorStrength.SECOND);
+    }
+
+    /**
+     * Declares the SMS code as a second factor.
+     *
+     * @return the factor.
+     */
+    @Bean
+    public AuthenticationFactor ottSmsSecondAuthenticationFactor() {
+        return new AuthenticationFactor("ott-sms-2fa", SMS_AMR_VALUE, SMS_SECOND_FACTOR_AUTHORITY,
+                FactorStrength.SECOND);
+    }</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_generating_a_token"><a class="anchor" href="#_generating_a_token"></a>Generating a token</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>POST /ott/generate</code> always answers with the same redirect to <code>/login/ott</code>, whether or not the account exists, so
+nothing reveals accounts. The request resolver sets the lifetime of a magic link from the policy.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Resolves the request of {@code POST /ott/generate} to the token Spring's filter asks the token service for. The
+ * identifier is the {@code username} field of a sign-in and, for a second factor, the name of the signed-in user (never
+ * a field a client could point at somebody else), cleaned of control characters and cut to what the token store
+ * holds. The lifetime of the token is the one {@link OttPolicy} sets for its kind. A request that names no identifier
+ * is not resolved, so the chain goes on as it would for any other path. Whether the identifier belongs to an account
+ * is not looked at here: a token is issued for any identifier, and what is delivered is decided afterwards, so the
+ * answer never tells.
+ */
+@RequiredArgsConstructor
+public class OttGenerateRequestResolver implements GenerateOneTimeTokenRequestResolver {
+
+    /** The rules of one-time tokens, which set the lifetime of each kind. */
+    private final OttPolicy ottPolicy;
+
+    /**
+     * Resolves the request.
+     *
+     * @param request the request.
+     * @return the token to generate, or {@code null} when the request names no identifier.
+     */
+    @Override
+    public GenerateOneTimeTokenRequest resolve(final HttpServletRequest request) {
+        final var current = SecurityContextHolder.getContext().getAuthentication();
+        final var parameters = OttGenerationParameters.from(request, current);
+        final var secondFactor = parameters.purpose() == OttPurpose.SECOND_FACTOR;
+        final var identifier = LinkTokenUsername.clean(
+                secondFactor ? current.getName() : request.getParameter(OttGenerationParameters.USERNAME_PARAMETER));
+        if (!StringUtils.hasText(identifier)) {
+            return null;
+        }
+        final var username = LinkTokenUsername.forLink(identifier,
+                secondFactor &amp;&amp; parameters.kind() == OttKind.LINK);
+        return new GenerateOneTimeTokenRequest(username, ottPolicy.ttl(parameters.kind()));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The token is never delivered on the request thread nor inside a database transaction. The use cases store the code
+(or resolve the address of a link, or record the cost of an SMS) and publish a delivery event; <code>OttDeliveryListener</code>
+sends it after the transaction commits (<code>@TransactionalEventListener(phase = AFTER_COMMIT)</code>) and off the request
+thread (<code>@Async</code>, on Spring Boot&#8217;s <code>applicationTaskExecutor</code>, enabled once by <code>AsyncConfiguration</code>). A slow or failing
+mail server or SMS gateway therefore holds no database connection, never shows in the response, and cannot tell an
+existing account from an unknown one by the time the request takes. A failed delivery is logged without the address,
+the number or the token.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Delivers the one-time tokens the use cases asked for, once the transaction that stored them has committed
+ * ({@link TransactionPhase#AFTER_COMMIT}; an event published outside a transaction is delivered at once) and off the
+ * request thread ({@code @Async}, on Spring Boot's {@code applicationTaskExecutor}). So no mail server or SMS gateway
+ * is ever called inside a transaction, a slow one holds no database connection, a rolled-back request sends nothing,
+ * and the time the request takes is the same whether or not something is sent, which keeps the latency from telling
+ * an existing account from an unknown one. A failure is logged without the address, the number or the token, and
+ * never reaches the response.
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class OttDeliveryListener {
+
+    /** Delivers the tokens. */
+    private final DeliverOneTimeTokenUseCase deliverOneTimeTokenUseCase;
+
+    /**
+     * E-mails a code.
+     *
+     * @param event what to deliver.
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onEmailCode(final EmailCodeRequested event) {
+        try {
+            deliverOneTimeTokenUseCase.deliverEmailCode(event);
+        } catch (final OttDeliveryException e) {
+            log.warn("A one-time code was not delivered by e-mail: {}", e.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * E-mails a magic link.
+     *
+     * @param event what to deliver.
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onEmailLink(final EmailLinkRequested event) {
+        try {
+            deliverOneTimeTokenUseCase.deliverEmailLink(event);
+        } catch (final OttDeliveryException e) {
+            log.warn("A magic link was not delivered: {}", e.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Sends a text message.
+     *
+     * @param event what to send.
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onSms(final SmsRequested event) {
+        try {
+            deliverOneTimeTokenUseCase.deliverSms(event);
+        } catch (final SmsDeliveryException e) {
+            log.warn("An SMS was not delivered: {}", e.getClass().getSimpleName());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The sign-in page shows the e-mail / SMS form as a login method fragment.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Contributes the one-time token sign-in to the login page: a form that asks for the identifier and whether to receive
+ * a code or a magic link by e-mail, or a code by SMS, and posts it to {@code POST /ott/generate}. It renders below the
+ * passkey sign-in.
+ */
+@Component
+public class OttLoginMethodFragment implements LoginMethodFragment {
+
+    /** Position of the one-time token sign-in in the login page: after the passkey sign-in. */
+    public static final int ORDER = 300;
+
+    /**
+     * Gets the template that holds the fragment.
+     *
+     * @return {@code login-ott}.
+     */
+    @Override
+    public String templateName() {
+        return "login-ott";
+    }
+
+    /**
+     * Gets the fragment of the template.
+     *
+     * @return {@code login}.
+     */
+    @Override
+    public String fragmentName() {
+        return "login";
+    }
+
+    /**
+     * Gets the position of the fragment.
+     *
+     * @return {@link #ORDER}.
+     */
+    @Override
+    public int order() {
+        return ORDER;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-html hljs" data-lang="html">&lt;form th:fragment="login" class="ott-login" method="post" th:action="@{/ott/generate}"&gt;
+  &lt;h2 th:text="#{ott.login.heading}"&gt;Sign in with a code or a link&lt;/h2&gt;
+  &lt;input type="hidden" name="purpose" value="login"&gt;
+  &lt;p&gt;
+    &lt;label for="ott-username" th:text="#{ott.login.username}"&gt;Username&lt;/label&gt;
+    &lt;input type="text" id="ott-username" name="username" required autocomplete="username" aria-describedby="ott-hint"&gt;
+  &lt;/p&gt;
+  &lt;p id="ott-hint" th:text="#{ott.login.hint}"&gt;We will send you a code or a link if the account exists.&lt;/p&gt;
+  &lt;fieldset&gt;
+    &lt;legend th:text="#{ott.login.channel}"&gt;Receive it by&lt;/legend&gt;
+    &lt;label&gt;&lt;input type="radio" name="channel" value="email" checked&gt;
+      &lt;span th:text="#{ott.login.channel.email}"&gt;E-mail&lt;/span&gt;&lt;/label&gt;
+    &lt;label&gt;&lt;input type="radio" name="channel" value="sms"&gt;
+      &lt;span th:text="#{ott.login.channel.sms}"&gt;SMS (only if you have a verified phone)&lt;/span&gt;&lt;/label&gt;
+  &lt;/fieldset&gt;
+  &lt;fieldset&gt;
+    &lt;legend th:text="#{ott.login.kind}"&gt;Use&lt;/legend&gt;
+    &lt;label&gt;&lt;input type="radio" name="kind" value="code" checked&gt;
+      &lt;span th:text="#{ott.login.kind.code}"&gt;A code&lt;/span&gt;&lt;/label&gt;
+    &lt;label&gt;&lt;input type="radio" name="kind" value="link"&gt;
+      &lt;span th:text="#{ott.login.kind.link}"&gt;A link (e-mail only)&lt;/span&gt;&lt;/label&gt;
+  &lt;/fieldset&gt;
+  &lt;button type="submit" th:text="#{ott.login.submit}"&gt;Send&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_as_a_second_factor"><a class="anchor" href="#_as_a_second_factor"></a>As a second factor</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Which channels may be the second factor of a signed-in user is one rule, <code>OttSecondFactorChannels</code>, applied in three
+places: what the second-factor page offers, whether a requested token is delivered at all (<code>POST /ott/generate</code> is
+still answered with the same redirect, but nothing is sent), and whether a presented code or link is accepted. The rule
+is checked before a code is compared, so a code of a channel that is not allowed counts against the second-factor
+lockout and is never audited as a success.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The channel that signed the user in is never its own second factor.</p>
+</li>
+<li>
+<p>SMS needs a verified phone.</p>
+</li>
+<li>
+<p>E-mail is the second factor only of a user <strong>without any other confirmed second factor</strong> (authenticator app, passkey,
+verified phone). The password is reset by e-mail too, so a mailbox is not independent from the password: whoever
+controls it could otherwise skip the stronger factor the user enrolled. For a user whose multi-factor authentication
+was forced by an administrator before anything was enrolled, the e-mail is then the only second factor available.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Decides through which channels a one-time code or link may be the second factor of a signed-in user. The same rule
+ * decides what the second-factor page offers, whether a requested token is delivered at all and whether a presented
+ * one is accepted, so a channel that is not offered can neither be asked for nor used by posting the forms by hand:
+ * &lt;ul&gt;
+ * &lt;li&gt;never the channel that signed the user in (the same mailbox or phone would be proved twice);&lt;/li&gt;
+ * &lt;li&gt;SMS only to a user with a verified phone;&lt;/li&gt;
+ * &lt;li&gt;e-mail only to a user without any other confirmed second factor (authenticator app, passkey, verified phone).
+ * The password is reset by e-mail too, so a mailbox is not independent from the password: whoever controls it could
+ * otherwise skip the stronger factor the user enrolled. For a user whose multi-factor authentication was forced by an
+ * administrator before any factor was enrolled, the e-mail is then the only second factor available.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+@RequiredArgsConstructor
+public class OttSecondFactorChannels {
+
+    /** Rules about the session a second factor is presented in. */
+    private final PrimaryFactorSession primaryFactorSession;
+
+    /** Resolves the identifier of the account of the signed-in user. */
+    private final SecondFactorUserResolver userResolver;
+
+    /** Tells whether the user has a confirmed second factor of any kind. */
+    private final HasConfirmedSecondFactorUseCase hasConfirmedSecondFactorUseCase;
+
+    /** Tells whether the user has a verified phone. */
+    private final HasVerifiedPhoneUseCase hasVerifiedPhoneUseCase;
+
+    /**
+     * Gets the channels a signed-in user may use as the second factor.
+     *
+     * @param authentication the authentication of the session, which holds a primary factor.
+     * @return the channels; empty when none may be used.
+     */
+    public Set&lt;OttChannel&gt; allowed(final Authentication authentication) {
+        final var userId = userResolver.userIdOf(authentication.getName());
+        final var channels = EnumSet.noneOf(OttChannel.class);
+        if (!primaryFactorSession.signedInThrough(authentication, OttChannel.EMAIL)
+                &amp;&amp; !hasConfirmedSecondFactorUseCase.execute(userId)) {
+            channels.add(OttChannel.EMAIL);
+        }
+        if (!primaryFactorSession.signedInThrough(authentication, OttChannel.SMS)
+                &amp;&amp; hasVerifiedPhoneUseCase.execute(userId)) {
+            channels.add(OttChannel.SMS);
+        }
+        return channels;
+    }
+
+    /**
+     * Tells whether a signed-in user may use a channel as the second factor.
+     *
+     * @param authentication the authentication of the session, which holds a primary factor.
+     * @param channel        the channel.
+     * @return {@code true} when the channel is one of {@link #allowed(Authentication)}.
+     */
+    public boolean isAllowed(final Authentication authentication, final OttChannel channel) {
+        return allowed(authentication).contains(channel);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A consequence of the e-mail rule: a user whose only second factor is the verified phone, and who signs in with an SMS
+code, has no one-time token left to complete the second factor (SMS signed in, and e-mail is not allowed next to the
+phone); that user signs in with the password, or enrols another factor.</p>
+</div>
+<div class="paragraph">
+<p>A second-factor magic link carries a marker in the user name Spring&#8217;s token store keeps, so a user name longer than
+<code>LinkTokenUsername.MAX_SECOND_FACTOR_LENGTH</code> (99 characters) would not fit whole; such a link is not delivered.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_phone"><a class="anchor" href="#_phone"></a>Phone</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Starting the enrolment of a phone (<code>PUT /api/account/phone</code> and the form of <code>/account/phone</code>) needs a recent
+multi-factor sign-in while the account already has a confirmed second factor, as removing it does, because the new
+number replaces a second factor. Replacing a verified phone revokes every trusted device of the user and is audited
+(<code>SECOND_FACTOR_REMOVED</code>); removing it is audited and, when no other second factor is left, revokes the trusted devices
+too. Two users confirming the same number at once are serialised by a PostgreSQL advisory lock on the number, so the
+second one is refused as an invalid code and never fails the request.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_schema_and_settings"><a class="anchor" href="#_schema_and_settings"></a>Schema and settings</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Spring&#8217;s own <code>one_time_tokens</code> table holds the link tokens; the numeric codes are ours and only their hash is stored.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sql hljs" data-lang="sql">-- Spring Security's one_time_tokens schema (JdbcOneTimeTokenService), adapted to PostgreSQL. The service issues the
+-- UUID of a magic link; its SQL is fixed, so the table and column names must not change.
+CREATE TABLE one_time_tokens
+(
+    token_value varchar(36)              NOT NULL,
+    username    varchar(100)             NOT NULL,
+    expires_at  timestamp with time zone NOT NULL,
+    PRIMARY KEY (token_value)
+);
+
+CREATE INDEX ix_one_time_tokens_expires_at ON one_time_tokens (expires_at);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">    # Digits of the e-mail / SMS code, how long a code and a magic link stay valid, and how many wrong codes are
+    # accepted before the code is spent. The values shown are the defaults of OttProperties.
+    code-length: 6
+    code-ttl: PT10M
+    link-ttl: PT15M
+    max-attempts: 5</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_rate_limits"><a class="anchor" href="#_rate_limits"></a>Rate limits</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Generation and verification are limited per client address and per identifier (Bucket4j with Caffeine); an exceeded
+limit answers <code>429</code>. The filter is added before Spring&#8217;s generate filter, which answers <code>POST /ott/generate</code> itself.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Rate limiter of the one-time token endpoints, on the pattern of the account endpoints' limiter: Bucket4j token
+ * buckets in Caffeine caches ({@link FixedWindowBuckets}). Requests for a token (generation) and submissions of a token
+ * or code (verification) are limited separately, and each twice: per client address and per identifier (the user name
+ * the request names), so a single client cannot flood the mailboxes and the SMS budget, many clients cannot aim at one
+ * account, and a code cannot be guessed faster than the limits allow, on top of the attempt counter of the code
+ * itself. The identifier is limited whether or not it belongs to an account, so the limit never tells which ones
+ * exist.
+ *
+ * &lt;p&gt;Each bucket holds the limit of its key and is refilled all at once every
+ * {@link OttRateLimitProperties#window()}. The buckets live in this instance only: several instances each apply the
+ * limits on their own. The client address is {@code request.getRemoteAddr()}, so behind a proxy
+ * {@code server.forward-headers-strategy} must be set for it to be the real client.
+ */
+@Component
+@EnableConfigurationProperties(OttRateLimitProperties.class)
+public final class OttRateLimiter {
+
+    /** Key used when the client address is unknown. */
+    private static final String UNKNOWN_CLIENT = "unknown";
+
+    /** Limits, window and bound of the tracked keys. */
+    private final OttRateLimitProperties properties;
+
+    /** Buckets of the token requests per client address. */
+    private final FixedWindowBuckets generationClients;
+
+    /** Buckets of the token requests per identifier. */
+    private final FixedWindowBuckets generationIdentifiers;
+
+    /** Buckets of the submissions per client address. */
+    private final FixedWindowBuckets verificationClients;
+
+    /** Buckets of the submissions per identifier. */
+    private final FixedWindowBuckets verificationIdentifiers;
+
+    /**
+     * Creates the limiter.
+     *
+     * @param properties limits, window and bound of the tracked keys.
+     * @param clock      source of the current time.
+     */
+    public OttRateLimiter(final OttRateLimitProperties properties, final Clock clock) {
+        this.properties = properties;
+        generationClients = buckets(clock);
+        generationIdentifiers = buckets(clock);
+        verificationClients = buckets(clock);
+        verificationIdentifiers = buckets(clock);
+    }
+
+    /**
+     * Counts one request for a token and rejects it once a limit is exceeded.
+     *
+     * @param clientAddress address of the calling client.
+     * @param identifier    identifier the request names, or {@code null} when it names none.
+     * @throws OttRateLimitExceededException if the client or the identifier exceeded its limit.
+     */
+    public void checkGeneration(final String clientAddress, final String identifier) {
+        check(generationClients, properties.generationPerClient(), generationIdentifiers,
+                properties.generationPerIdentifier(), clientAddress, identifier);
+    }
+
+    /**
+     * Counts one submission of a token or a code and rejects it once a limit is exceeded.
+     *
+     * @param clientAddress address of the calling client.
+     * @param identifier    identifier the submission is for, or {@code null} when it names none (a magic link).
+     * @throws OttRateLimitExceededException if the client or the identifier exceeded its limit.
+     */
+    public void checkVerification(final String clientAddress, final String identifier) {
+        check(verificationClients, properties.verificationPerClient(), verificationIdentifiers,
+                properties.verificationPerIdentifier(), clientAddress, identifier);
+    }
+
+    /**
+     * Tells how many keys are tracked, after any pending eviction.
+     *
+     * @return the number of keys of the four kinds.
+     */
+    long trackedKeys() {
+        return generationClients.trackedKeys() + generationIdentifiers.trackedKeys()
+                + verificationClients.trackedKeys() + verificationIdentifiers.trackedKeys();
+    }
+
+    /**
+     * Applies the client and the identifier limits of one kind of request.
+     *
+     * @param clients         buckets per client address.
+     * @param clientLimit     requests per client address per window.
+     * @param identifiers     buckets per identifier.
+     * @param identifierLimit requests per identifier per window.
+     * @param clientAddress   address of the calling client.
+     * @param identifier      identifier, or {@code null}.
+     * @throws OttRateLimitExceededException if a limit is exceeded.
+     */
+    private void check(final FixedWindowBuckets clients, final int clientLimit, final FixedWindowBuckets identifiers,
+                       final int identifierLimit, final String clientAddress, final String identifier) {
+        if (!properties.enabled()) {
+            return;
+        }
+        consume(clients, clientAddress == null ? UNKNOWN_CLIENT : clientAddress, clientLimit);
+        if (identifier != null) {
+            consume(identifiers, identifier.toLowerCase(Locale.ROOT), identifierLimit);
+        }
+    }
+
+    /**
+     * Takes one token from the bucket of a key.
+     *
+     * @param buckets buckets of one kind of key.
+     * @param key     the key.
+     * @param limit   requests the key may make per window.
+     * @throws OttRateLimitExceededException if the bucket is empty.
+     */
+    private static void consume(final FixedWindowBuckets buckets, final String key, final int limit) {
+        final var wait = buckets.tryConsume(key, limit);
+        if (wait.isPresent()) {
+            throw new OttRateLimitExceededException(wait.get());
+        }
+    }
+
+    /**
+     * Builds the buckets of one kind of key.
+     *
+     * @param clock source of the current time.
+     * @return the buckets.
+     */
+    private FixedWindowBuckets buckets(final Clock clock) {
+        return new FixedWindowBuckets(clock, properties.window(), properties.maxTrackedKeys());
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sms"><a class="anchor" href="#_sms"></a>SMS</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The domain port <code>SmsSender</code> has three implementations chosen by a Spring profile, never by a property: <code>twilio</code>, <code>sns</code>,
+and, only under the <code>dev</code> or <code>test</code> profile, a logging sender with a bounded in-memory outbox (shown at <code>/dev/sms-inbox</code>
+under <code>dev</code>). With none of these profiles the application refuses to start (<code>MissingSmsGatewayConfiguration</code>), so a
+deployment never silently keeps its messages in memory. The gateway credentials are supplied only through environment
+variables (<code>AUTHSERVER_SMS_TWILIO_*</code>, the AWS default credential chain); none is stored in the repository.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Port that sends a text message through a gateway. No gateway type crosses it.
+ */
+public interface SmsSender {
+
+    /**
+     * Sends a text message.
+     *
+     * @param to   recipient.
+     * @param text text of the message.
+     * @throws SmsDeliveryException if the gateway failed or refused the message.
+     */
+    void send(PhoneNumber to, String text);
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Wires the phone normaliser and the logging {@link SmsSender} of development and tests. The profile expressions make
+ * the three senders (logging, Twilio, SNS) mutually exclusive in every combination of profiles: the logging one only
+ * under {@code dev} or {@code test} and when neither gateway profile is active, Twilio unless SNS is also active, and
+ * SNS whenever it is active. With none of those profiles there is no sender at all and
+ * {@link MissingSmsGatewayConfiguration} stops the startup: a deployment never silently keeps its messages in memory.
+ */
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(SmsOutboxProperties.class)
+public class SmsAdapterConfiguration {
+
+    /** Profiles under which the logging sender (and its outbox) is used: development or tests, and no gateway. */
+    public static final String LOGGING_SENDER_PROFILES = "(dev | test) &amp; !twilio &amp; !sns";
+
+    /**
+     * Creates the phone normaliser.
+     *
+     * @return the libphonenumber based normaliser.
+     */
+    @Bean
+    public PhoneNormalizer phoneNormalizer() {
+        return new LibPhoneNumberNormalizer(PhoneNumberUtil.getInstance());
+    }
+
+    /**
+     * Creates the resolver of the country of a phone number.
+     *
+     * @return the libphonenumber based resolver.
+     */
+    @Bean
+    public PhoneCountryResolver phoneCountryResolver() {
+        return new LibPhoneNumberCountryResolver(PhoneNumberUtil.getInstance());
+    }
+
+    /**
+     * Creates the outbox of the logging sender.
+     *
+     * @param properties outbox settings.
+     * @return the outbox, readable by the development inbox.
+     */
+    @Bean
+    @Profile(LOGGING_SENDER_PROFILES)
+    public SmsOutbox smsOutbox(final SmsOutboxProperties properties) {
+        return new SmsOutbox(properties.capacity());
+    }
+
+    /**
+     * Creates the logging sender of development and tests.
+     *
+     * @param outbox records the messages.
+     * @param clock  source of the recording instant.
+     * @return the logging sender.
+     */
+    @Bean
+    @Profile(LOGGING_SENDER_PROFILES)
+    public SmsSender loggingSmsSender(final SmsOutbox outbox, final Clock clock) {
+        return new LoggingSmsSender(outbox, clock);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Cost control checks the country allow-list and the per-window and per-day caps before each message. The caps are
+checked and the cost recorded in one step (<code>SmsCostLedgerRepository.tryRecord</code>: a conditional insert after a
+PostgreSQL transaction-level advisory lock), so concurrent senders cannot overshoot a budget and a refused message
+leaves no ledger row; the message is handed to the gateway only after that transaction commits.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  sms:
+    # Region numbers typed without a country prefix are read in, and the regions SMS may be sent to (ISO 3166-1
+    # alpha-2, upper case). The values shown are the defaults of SmsProperties.
+    default-region: US
+    allowed-countries: US,ES,GB
+    # Cost caps in millionths of the billing currency, so a bug or an attack cannot run up the bill: the price assumed
+    # for a country without an entry in cost-per-country-micros, and the most that may be spent per window and per day.
+    default-cost-micros: 50000
+    window: PT1H
+    window-cap-micros: 5000000
+    daily-cap-micros: 20000000
+    # Verification code of a phone being enrolled, and how long the spend ledger is kept.
+    verification-code-length: 6
+    verification-code-ttl: PT10M
+    verification-max-attempts: 5
+    ledger-retention: P2D
+    # Which gateway sends the messages is chosen with a Spring profile, never with a property: "twilio" sends through
+    # Twilio (application-twilio.yml) and "sns" through Amazon SNS (application-sns.yml, default AWS credential chain);
+    # only "dev" and "test" log the message to a bounded in-memory outbox (the dev profile shows it at
+    # /dev/sms-inbox). With none of these profiles the application refuses to start, so a deployment never silently
+    # keeps its messages in memory.</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Made with ♥ from <strong>BCN</strong></p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>
